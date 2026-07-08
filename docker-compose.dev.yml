@@ -1,0 +1,37 @@
+# Contributor infrastructure (PRD §6.1: productive in 5 minutes):
+#
+#   pnpm install
+#   docker compose -f docker-compose.dev.yml up -d
+#   pnpm dev
+#
+# Postgres and Redis run in containers on the default ports; the apps run on
+# the host with hot reload (vite dev + tsx watch) using the built-in dev
+# defaults from packages/shared/src/env.ts — no .env needed.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trackt
+      POSTGRES_PASSWORD: trackt
+      POSTGRES_DB: trackt
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U trackt -d trackt']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata_dev:/data
+
+volumes:
+  pgdata_dev:
+  redisdata_dev:
