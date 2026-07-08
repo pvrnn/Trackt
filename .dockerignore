@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+**/dist
+**/.output
+**/.tanstack
+**/.turbo
+.git
+.env
+.env.*
+data
+backups
+coverage
+*.log

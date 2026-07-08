@@ -1,0 +1,19 @@
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from './schema/index.js';
+
+export * from './schema/index.js';
+export { schema };
+export { runMigrations } from './migrate.js';
+
+export interface CreateDbOptions {
+  /** Max pool connections (default 10). */
+  max?: number;
+}
+
+export function createDb(databaseUrl: string, options: CreateDbOptions = {}) {
+  const client = postgres(databaseUrl, { max: options.max ?? 10 });
+  return drizzle(client, { schema });
+}
+
+export type Db = ReturnType<typeof createDb>;
