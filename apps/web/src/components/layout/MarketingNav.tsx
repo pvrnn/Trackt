@@ -1,6 +1,9 @@
+import { Link } from '@tanstack/react-router';
 import { m } from 'motion/react';
 import { buttonClassName } from '../ui/Button';
 import { Wordmark } from './Wordmark';
+
+const MotionLink = m.create(Link);
 
 const links = [
   { label: 'SELF-HOST', href: '#pillars' },
@@ -26,14 +29,13 @@ export function MarketingNav() {
             {link.label}
           </a>
         ))}
-        {/* /login route lands with the auth screens — plain <a> until then */}
-        <m.a
-          href="/login"
+        <MotionLink
+          to="/login"
           whileTap={{ scale: 0.97 }}
           className={buttonClassName({ className: 'px-5.5 py-2.5 whitespace-nowrap' })}
         >
           SIGN IN
-        </m.a>
+        </MotionLink>
       </div>
     </nav>
   );

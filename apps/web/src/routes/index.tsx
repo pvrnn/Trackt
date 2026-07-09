@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { m } from 'motion/react';
 import { useState } from 'react';
 import type { MediaKind } from '@trackt/shared';
@@ -9,6 +9,8 @@ import { UpNextCard } from '../components/media/UpNextCard';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { coverGradient } from '../lib/cover';
+
+const MotionLink = m.create(Link);
 
 export const Route = createFileRoute('/')({
   component: Landing,
@@ -85,20 +87,20 @@ function Hero() {
           from day one. TV Time deleted 25 million histories. Never again.
         </p>
         <div className="flex flex-wrap gap-3.5">
-          <m.a
-            href="/login"
+          <MotionLink
+            to="/register"
             whileTap={{ scale: 0.97 }}
             className={buttonClassName({ variant: 'primary', size: 'lg' })}
           >
             START TRACKING
-          </m.a>
-          <m.a
-            href="/login"
+          </MotionLink>
+          <MotionLink
+            to="/register"
             whileTap={{ scale: 0.97 }}
             className={buttonClassName({ variant: 'secondary', size: 'lg' })}
           >
             IMPORT FROM TV TIME
-          </m.a>
+          </MotionLink>
         </div>
         <p className="font-label text-[13px] text-dim">
           or self-host:{' '}

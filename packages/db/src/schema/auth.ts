@@ -15,6 +15,8 @@ export const users = pgTable('user', {
   image: text('image'),
   // Trackt profile fields (PRD §3.4, §7)
   username: text('username').unique(),
+  /** Raw-cased username as typed at signup; `username` holds the lowercase form (better-auth username plugin). */
+  displayUsername: text('display_username'),
   bio: text('bio'),
   role: userRoleEnum('role').notNull().default('user'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

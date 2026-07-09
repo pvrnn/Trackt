@@ -94,6 +94,13 @@
       radial-gradient(750px 500px at 100% 15%, rgb(217 107 176 / 0.28), transparent 65%),
       radial-gradient(800px 600px at 30% 115%, rgb(217 164 65 / 0.3), transparent 70%);
   }
+  /* High-opacity variant scoped to the auth pages' left panel (absolute, not fixed). */
+  .aura-auth {
+    background:
+      radial-gradient(700px 500px at 20% 10%, rgb(139 92 246 / 0.55), transparent 65%),
+      radial-gradient(650px 480px at 90% 40%, rgb(217 107 176 / 0.45), transparent 65%),
+      radial-gradient(700px 550px at 30% 100%, rgb(217 164 65 / 0.5), transparent 70%);
+  }
   .grain {
     background-image: url('/noise.svg');
     background-size: 220px;
