@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(900px 600px at 15% -5%, rgba(139,92,246,0.4), transparent 65%), radial-gradient(800px 550px at 100% 20%, rgba(217,107,176,0.3), transparent 65%), radial-gradient(850px 600px at 40% 110%, rgba(217,164,65,0.32), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09);">
+  <div style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</div>
+  <div style="flex: 1;"></div>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; align-items: center;">
+    <a href="Landing.dc.html" style="color: #948da1;">SELF-HOST</a>
+    <a href="Landing.dc.html" style="color: #948da1;">API</a>
+    <a href="Landing.dc.html" style="color: #948da1;">GITHUB</a>
+    <a href="Login.dc.html" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; padding: 10px 22px; border-radius: 999px;" style-hover="filter: brightness(1.15); color: #14101a;">SIGN IN</a>
+  </div>
+</div>
+
+<!-- hero -->
+<div style="border-bottom: 1px solid rgba(255,255,255,0.09); position: relative; overflow: hidden;">
+  <div style="max-width: 1360px; margin: 0 auto; padding: 96px 40px 80px; display: flex; flex-direction: column; gap: 28px; position: relative;">
+    <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">OPEN SOURCE · SELF-HOSTABLE · COMMUNITY-OWNED</div>
+    <div style="font-family: Anton; font-size: 120px; line-height: 0.92; text-transform: uppercase; max-width: 1000px;">Track everything.<br>Lose <span style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">nothing.</span></div>
+    <div style="color: #b8b1c4; font-size: 19px; line-height: 1.6; max-width: 560px;">Movies, series, anime, manga, and webtoons — with full export at any time and a public API from day one. TV Time deleted 25 million histories. Never again.</div>
+    <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+      <a href="Login.dc.html" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 16px 32px; border-radius: 999px;" style-hover="filter: brightness(1.15); color: #14101a;">START TRACKING</a>
+      <a href="Landing.dc.html" style="border: 1px solid rgba(255,255,255,0.2); color: #f0edf4; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 15px 32px; border-radius: 999px; background: rgba(255,255,255,0.05);" style-hover="border-color: #d96bb0;">IMPORT FROM TV TIME</a>
+    </div>
+    <div style="font-family: 'Space Grotesk'; font-size: 13px; color: #948da1;">or self-host: <span style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 12px; color: #d96bb0;">docker compose up</span></div>
+  </div>
+  <!-- cover strip -->
+  <div style="display: flex; gap: 2px; transform: {{ stripTransform }}; margin: 0 -80px; width: calc(100% + 160px);">
+    <sc-for list="{{ strip }}" as="s" hint-placeholder-count="10">
+      <div style="flex: 1; min-width: 110px; height: 190px; background: {{ s.grad }}; display: flex; align-items: flex-start; padding: 12px 10px;">
+        <span style="font-family: Anton; font-size: 13px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.9); opacity: {{ titleOpacity }};">{{ s.title }}</span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+
+<!-- pillars -->
+<div style="max-width: 1360px; margin: 0 auto; padding: 80px 40px; display: flex; flex-direction: column; gap: 40px;">
+  <div style="font-family: Anton; font-size: 48px; text-transform: uppercase;">Why this exists</div>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+    <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="4">
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(16px);">
+        <div style="font-family: Anton; font-size: 28px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ p.num }}</div>
+        <div style="font-weight: 700; font-size: 17px;">{{ p.title }}</div>
+        <div style="color: #b8b1c4; font-size: 14px; line-height: 1.6;">{{ p.body }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+
+<!-- check-in demo band -->
+<div style="border-top: 1px solid rgba(255,255,255,0.09); border-bottom: 1px solid rgba(255,255,255,0.09);">
+  <div style="max-width: 1360px; margin: 0 auto; padding: 80px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="font-family: Anton; font-size: 48px; line-height: 1; text-transform: uppercase;">Two taps.<br>You're checked in.</div>
+      <div style="color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 440px;">Per-episode for series and anime, per-chapter for manga and webtoons, rewatch counters, precise stats. Speed is a hard requirement, not a feature.</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; display: flex; overflow: hidden; max-width: 460px; backdrop-filter: blur(16px);">
+      <div style="width: 96px; height: 136px; flex-shrink: 0; background: linear-gradient(160deg, #8a5c2a 20%, #17100a 100%); display: flex; align-items: flex-end; padding: 8px;">
+        <span style="font-family: Anton; font-size: 12px; line-height: 1.15; text-transform: uppercase; color: rgba(255,255,255,0.92);">Ashfall Chronicle</span>
+      </div>
+      <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
+        <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">ANIME</div>
+        <div style="font-weight: 700; font-size: 16px;">Ashfall Chronicle</div>
+        <div style="color: #b8b1c4; font-size: 13px;">Episode 18 of 24</div>
+        <div style="flex: 1;"></div>
+        <div style="display: flex;">
+          <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 9px 18px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">✓ CHECK IN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- footer -->
+<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 64px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+  <div style="font-family: Anton; font-size: 20px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</div>
+  <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; max-width: 560px;">GPL-3.0 · Metadata from TMDB, AniList and TVmaze. This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;stripTilt&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: -2, &quot;min&quot;: -6, &quot;max&quot;: 6, &quot;step&quot;: 0.5, &quot;unit&quot;: &quot;deg&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Cover strip&quot;}, &quot;showStripTitles&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Cover strip&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const tilt = this.props.stripTilt ?? -2;
+    return {
+      stripTransform: 'rotate(' + tilt + 'deg) translateY(20px)',
+      titleOpacity: (this.props.showStripTitles ?? true) ? 1 : 0,
+      strip: [
+        { title: 'Neon Harbor', grad: 'linear-gradient(160deg, #35296b, #0e0c1a)' },
+        { title: 'Ashfall Chronicle', grad: 'linear-gradient(160deg, #8a5c2a, #17100a)' },
+        { title: 'Moonlit Courier', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
+        { title: 'The Long Static', grad: 'linear-gradient(160deg, #3a55b0, #080b17)' },
+        { title: 'Paper Cities', grad: 'linear-gradient(160deg, #6b3aa0, #0f0817)' },
+        { title: 'Sable Coast', grad: 'linear-gradient(160deg, #2a4a8c, #080d17)' },
+        { title: 'Copper Veil', grad: 'linear-gradient(160deg, #a03a7a, #170812)' },
+        { title: 'Glass Orchard', grad: 'linear-gradient(160deg, #b0722a, #140e08)' },
+        { title: 'Hollow Signal', grad: 'linear-gradient(160deg, #55309a, #0d0817)' },
+        { title: 'Ninth Tide', grad: 'linear-gradient(160deg, #8c5a2a, #140f08)' },
+        { title: 'Static Bloom', grad: 'linear-gradient(160deg, #c48a2a, #141008)' },
+        { title: 'The Ferry Years', grad: 'linear-gradient(160deg, #2a3a8c, #0a0c17)' },
+      ],
+      pillars: [
+        { num: '01', title: 'Your data, forever', body: 'Full export at any time in an open format. Public API from day one. Portability is the founding principle, not a checkbox.' },
+        { num: '02', title: 'Self-host in one command', body: 'docker compose up and you have your own instance — your catalog, your community, your rules.' },
+        { num: '03', title: 'Track at real granularity', body: 'Episodes, chapters, volumes, rewatches. Half-point ratings on whole works or single episodes.' },
+        { num: '04', title: 'Community catalog', body: 'Webtoons and obscure titles the big databases skip? Add them yourself and share them across instances.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

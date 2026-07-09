@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: #d96bb0; text-decoration: none; }
+    a:hover { color: #e88cc4; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative; max-width: 1200px; margin: 0 auto; padding: 64px 40px 120px; display: flex; flex-direction: column; gap: 72px;">
+
+  <!-- header -->
+  <div style="display: flex; flex-direction: column; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.09); padding-bottom: 40px;">
+    <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT DESIGN SYSTEM · AURA PRISM</div>
+    <div style="font-family: Anton; font-size: 88px; line-height: 0.95; text-transform: uppercase;">Loud type,<br>soft light.</div>
+    <div style="color: #b8b1c4; font-size: 17px; max-width: 620px;">Near-black base washed with diffuse violet, pink, and gold auras under a film of grain. Glassy panels, pill-shaped actions, one prismatic gradient reserved for what matters. Condensed uppercase display type keeps Shotgun's punch.</div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+      <a href="Landing.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="border-color: #d96bb0; color: #d96bb0;">LANDING</a>
+      <a href="Login.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="border-color: #d96bb0; color: #d96bb0;">LOGIN</a>
+      <a href="Home.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="border-color: #d96bb0; color: #d96bb0;">HOME</a>
+      <a href="Search.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="border-color: #d96bb0; color: #d96bb0;">DISCOVER</a>
+      <a href="Media Detail.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="border-color: #d96bb0; color: #d96bb0;">MEDIA DETAIL</a>
+      <a href="Lists.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="border-color: #d96bb0; color: #d96bb0;">LISTS</a>
+      <a href="Profile.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="border-color: #d96bb0; color: #d96bb0;">PROFILE</a>
+    </div>
+  </div>
+
+  <!-- color -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">01 · Color &amp; light</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="8">
+        <div style="display: flex; flex-direction: column;">
+          <div style="height: 96px; background: {{ c.hex }}; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;"></div>
+          <div style="padding: 12px 0; display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-weight: 700; font-size: 14px;">{{ c.name }}</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">{{ c.hex }} — {{ c.use }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div style="height: 120px; border-radius: 12px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: flex-end; padding: 14px;">
+        <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #14101a;">PRISM — #D9A441 → #D96BB0 → #8B5CF6 · primary actions, wordmark, key stats</span>
+      </div>
+      <div style="height: 120px; border-radius: 12px; background: #201c26; position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: radial-gradient(200px 140px at 25% 20%, rgba(139,92,246,0.5), transparent 70%), radial-gradient(180px 130px at 80% 80%, rgba(217,164,65,0.45), transparent 70%);"></div>
+        <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 160px; opacity: 0.55; mix-blend-mode: overlay;"></div>
+        <span style="position: absolute; bottom: 14px; left: 14px; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4;">AURA + GRAIN — radial glows under noise.svg at 50% overlay</span>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px 24px; color: #b8b1c4; font-size: 14px; max-width: 720px; backdrop-filter: blur(16px);">Rule: the prism gradient is reserved for the single primary action per view, the wordmark, and hero stats. Everything else is glass — white at 5–7% opacity over the aura background. Pink (#D96BB0) alone serves as the small accent (links, active states, selected chips).</div>
+  </div>
+
+  <!-- type -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">02 · Type</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">DISPLAY — ANTON, UPPERCASE, 0.95 LINE-HEIGHT</div>
+          <div style="font-family: Anton; font-size: 64px; line-height: 0.95; text-transform: uppercase;">Up next</div>
+        </div>
+        <div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">GRADIENT DISPLAY — KEY WORDS ONLY</div>
+          <div style="font-family: Anton; font-size: 44px; text-transform: uppercase; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">Nothing</div>
+        </div>
+        <div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">CARD TITLE — ARCHIVO 700 / 16</div>
+          <div style="font-weight: 700; font-size: 16px;">Ashfall Chronicle</div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">BODY — ARCHIVO 400 / 15 / 1.6</div>
+          <div style="font-size: 15px; line-height: 1.6; color: #b8b1c4; max-width: 420px;">Per-episode and per-chapter progress for series, anime, manga, and webtoons. One-tap check-ins, rewatch counters, precise stats.</div>
+        </div>
+        <div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">DATA / LABEL — SPACE GROTESK 600 / 12 / +0.1em</div>
+          <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; color: #b8b1c4;">S2 E5 · 42 MIN · AIRED JUL 02</div>
+        </div>
+        <div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">STAT — ANTON 34, PRISM GRADIENT</div>
+          <div style="font-family: Anton; font-size: 34px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">186</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- actions -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">03 · Actions</div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+      <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">✓ CHECK IN</div>
+      <div style="background: rgba(255,255,255,0.05); color: #f0edf4; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 11px 24px; cursor: pointer;" style-hover="border-color: #d96bb0; color: #d96bb0;">ADD TO LIST</div>
+      <div style="color: #b8b1c4; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 10px; cursor: pointer;" style-hover="color: #d96bb0;">SKIP →</div>
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; color: #6a6478; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 11px 24px;">DISABLED</div>
+      <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; color: #f0edf4;" style-hover="border-color: #d96bb0;">＋</div>
+    </div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 12px 18px; width: 320px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles, people, lists…</div>
+      <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.08); border: 1px solid #d96bb0; border-radius: 999px; padding: 12px 18px; width: 320px; font-size: 14px; color: #f0edf4;"><span style="color:#948da1;">⌕</span> neon har<span style="width: 1px; height: 16px; background: #d96bb0;"></span></div>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <sc-for list="{{ statusChips }}" as="ch" hint-placeholder-count="5">
+        <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: {{ ch.bg }}; color: {{ ch.fg }}; border: 1px solid {{ ch.bd }}; cursor: pointer;">{{ ch.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- covers -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">04 · Covers &amp; kinds</div>
+    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">Generated covers are two-stop gradients seeded by the media kind's hue — violet-blues for series/movies, golds for anime/manga, magentas for webtoons — with the title in Anton, bottom-left. Real artwork replaces the gradient; the progress bar and title treatment stay.</div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;">
+      <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="aspect-ratio: 2/3; border-radius: 12px; background: {{ k.grad }}; display: flex; align-items: flex-end; padding: 12px; position: relative; overflow: hidden;">
+            <span style="font-family: Anton; font-size: 17px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ k.sample }}</span>
+            <div style="position: absolute; left: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: {{ k.pct }};"></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 8px; height: 8px; border-radius: 999px; background: {{ k.dot }};"></div>
+            <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; color: #b8b1c4;">{{ k.label }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- components -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">05 · Core components</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">UP-NEXT CARD — the 2-tap check-in</div>
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; display: flex; overflow: hidden; max-width: 460px; backdrop-filter: blur(16px);">
+          <div style="width: 96px; height: 136px; flex-shrink: 0; background: linear-gradient(160deg, #8a5c2a 20%, #17100a 100%); display: flex; align-items: flex-end; padding: 8px;">
+            <span style="font-family: Anton; font-size: 12px; line-height: 1.15; text-transform: uppercase; color: rgba(255,255,255,0.92);">Ashfall Chronicle</span>
+          </div>
+          <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">ANIME</div>
+            <div style="font-weight: 700; font-size: 16px;">Ashfall Chronicle</div>
+            <div style="color: #b8b1c4; font-size: 13px;">Episode 18 of 24</div>
+            <div style="flex: 1;"></div>
+            <div style="display: flex;">
+              <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 9px 18px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">✓ CHECK IN</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">EPISODE ROW — watched / next / unaired</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px;">
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; gap: 14px; padding: 12px 16px;">
+            <div style="width: 22px; height: 22px; border-radius: 999px; background: #d96bb0; color: #14101a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">✓</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; width: 44px;">S2 E4</div>
+            <div style="font-size: 14px; flex: 1; color: #b8b1c4;">Riptide</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #d96bb0;">8.5</div>
+          </div>
+          <div style="background: rgba(217,107,176,0.12); border: 1px solid rgba(217,107,176,0.5); border-radius: 12px; display: flex; align-items: center; gap: 14px; padding: 12px 16px;">
+            <div style="width: 22px; height: 22px; border-radius: 999px; border: 1px solid #d96bb0; cursor: pointer;" style-hover="background: #d96bb0;"></div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; width: 44px;">S2 E5</div>
+            <div style="font-size: 14px; flex: 1; font-weight: 600;">Undertow</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">42 MIN</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; gap: 14px; padding: 12px 16px; opacity: 0.45;">
+            <div style="width: 22px; height: 22px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2);"></div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; width: 44px;">S2 E6</div>
+            <div style="font-size: 14px; flex: 1;">Dead Reckoning</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">JUL 14</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">RATING — 0–10, half points, heat bar</div>
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 18px 20px; max-width: 460px; display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(16px);">
+          <div style="display: flex; align-items: baseline; gap: 12px;">
+            <div style="font-family: Anton; font-size: 40px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.08em;">1,204 RATINGS ON THIS INSTANCE</div>
+          </div>
+          <div style="display: flex; gap: 3px; align-items: flex-end; height: 40px;">
+            <sc-for list="{{ heat }}" as="h" hint-placeholder-count="12">
+              <div style="flex: 1; background: {{ h.c }}; height: {{ h.v }}; border-radius: 3px 3px 0 0;"></div>
+            </sc-for>
+          </div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; display: flex; justify-content: space-between;"><span>E1</span><span>EPISODE RATINGS · S2</span><span>E12</span></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">ACTIVITY ROW + SPOILER BLUR</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px;">
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; gap: 12px; padding: 14px 16px; align-items: center;">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 13px;">J</div>
+            <div style="font-size: 14px; color: #b8b1c4;"><span style="color: #f0edf4; font-weight: 600;">june_k</span> rated <span style="color: #f0edf4; font-weight: 600;">Neon Harbor S2E4</span> <span style="color: #d96bb0; font-weight: 700;">9.0</span></div>
+          </div>
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; gap: 12px; padding: 14px 16px; align-items: center;">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(135deg, #8b5cf6, #3d2a80); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px;">R</div>
+            <div style="font-size: 14px; color: #b8b1c4; flex: 1;"><span style="color: #f0edf4; font-weight: 600;">rex</span> commented on <span style="color: #f0edf4; font-weight: 600;">S2E5</span> — <span style="filter: blur(5px); cursor: pointer;" style-hover="filter: blur(0px);">the twist with the lighthouse keeper</span> <span style="font-family: 'Space Grotesk'; font-size: 10px; color: #d96bb0; letter-spacing: 0.08em;">SPOILER</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- texture recipe -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">06 · Texture recipe</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 940px;">
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px 24px; backdrop-filter: blur(16px);">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #d96bb0; letter-spacing: 0.1em; margin-bottom: 10px;">AURA LAYER</div>
+        <div style="color: #b8b1c4; font-size: 14px; line-height: 1.7;">Fixed full-viewport layer of 3–4 large radial-gradients (violet top-left, pink right, gold bottom), each fading to transparent by 65–70%. Opacity 0.25–0.35 on app pages; up to 0.55 on marketing/login panels.</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px 24px; backdrop-filter: blur(16px);">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #d96bb0; letter-spacing: 0.1em; margin-bottom: 10px;">GRAIN LAYER</div>
+        <div style="color: #b8b1c4; font-size: 14px; line-height: 1.7;">noise.svg (fractal turbulence, desaturated) tiled at 220px, opacity 0.5, mix-blend-mode overlay, on top of the aura. Never on top of text containers — it sits between background and content.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- voice -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">07 · Voice</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 940px;">
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px 24px; backdrop-filter: blur(16px);">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #d96bb0; letter-spacing: 0.1em; margin-bottom: 10px;">DO</div>
+        <div style="color: #b8b1c4; font-size: 14px; line-height: 1.7;">Short, declarative, second person. "Your data, forever." "Checked in." "186 episodes this year." Numbers do the bragging.</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px 24px; backdrop-filter: blur(16px);">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 10px;">DON'T</div>
+        <div style="color: #b8b1c4; font-size: 14px; line-height: 1.7;">No exclamation marks, no emoji, no "awesome!". Never guilt-trip about dropped shows — dropping is a first-class status.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { name: 'Ink', hex: '#0E0C10', use: 'page background' },
+        { name: 'Glass', hex: 'rgba(255,255,255,0.05)', use: 'cards, rows (over aura)' },
+        { name: 'Glass line', hex: 'rgba(255,255,255,0.10)', use: 'borders, dividers' },
+        { name: 'Text', hex: '#F0EDF4', use: 'primary text' },
+        { name: 'Muted', hex: '#B8B1C4', use: 'secondary text' },
+        { name: 'Dim', hex: '#948DA1', use: 'labels, meta' },
+        { name: 'Accent pink', hex: '#D96BB0', use: 'links, active, selected' },
+        { name: 'Violet', hex: '#8B5CF6', use: 'aura, gradient stop' },
+      ],
+      statusChips: [
+        { label: 'IN PROGRESS', bg: 'rgba(217,107,176,0.18)', fg: '#d96bb0', bd: '#d96bb0' },
+        { label: 'PLANNED', bg: 'rgba(255,255,255,0.05)', fg: '#b8b1c4', bd: 'rgba(255,255,255,0.12)' },
+        { label: 'COMPLETED', bg: 'rgba(255,255,255,0.05)', fg: '#b8b1c4', bd: 'rgba(255,255,255,0.12)' },
+        { label: 'PAUSED', bg: 'rgba(255,255,255,0.05)', fg: '#b8b1c4', bd: 'rgba(255,255,255,0.12)' },
+        { label: 'DROPPED', bg: 'rgba(255,255,255,0.05)', fg: '#948da1', bd: 'rgba(255,255,255,0.12)' },
+      ],
+      kinds: [
+        { label: 'MOVIE', dot: '#8b5cf6', sample: 'The Long Static', pct: '100%', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
+        { label: 'SERIES', dot: '#4a6ee8', sample: 'Neon Harbor', pct: '38%', grad: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)' },
+        { label: 'ANIME', dot: '#d9a441', sample: 'Ashfall Chronicle', pct: '75%', grad: 'linear-gradient(160deg, #8a5c2a 0%, #17100a 100%)' },
+        { label: 'MANGA', dot: '#e8874a', sample: 'Paper Cities', pct: '62%', grad: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)' },
+        { label: 'WEBTOON', dot: '#d96bb0', sample: 'Moonlit Courier', pct: '84%', grad: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)' },
+      ],
+      heat: [
+        { v: '45%', c: '#5a3f63' }, { v: '60%', c: '#7a5183' }, { v: '52%', c: '#6b4873' },
+        { v: '75%', c: '#a95f96' }, { v: '90%', c: '#c46ba5' }, { v: '68%', c: '#8f5789' },
+        { v: '55%', c: '#7a5183' }, { v: '82%', c: '#b865a0' }, { v: '100%', c: '#d96bb0' },
+        { v: '72%', c: '#a95f96' }, { v: '48%', c: '#63446b' }, { v: '95%', c: '#cf68ab' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
