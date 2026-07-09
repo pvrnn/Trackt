@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%), radial-gradient(500px 400px at 75% 105%, rgba(74,110,232,0.25), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">HOME</a>
+    <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
+    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;">
+    <span style="font-size: 15px;">⌕</span> Search titles…
+  </a>
+  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
+</div>
+
+<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 24px;">
+  <div style="display: flex; align-items: baseline; gap: 16px;">
+    <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">Up next</div>
+    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700; letter-spacing: 0.06em;">4 EPISODES · 2 CHAPTERS</div>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+    <sc-for list="{{ upNext }}" as="it" hint-placeholder-count="3">
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; display: flex; overflow: hidden; backdrop-filter: blur(16px);">
+        <a href="Media Detail.dc.html" style="width: 96px; height: 136px; flex-shrink: 0; background: {{ it.grad }}; display: flex; align-items: flex-end; padding: 8px;">
+          <span style="font-family: Anton; font-size: 12px; line-height: 1.15; text-transform: uppercase; color: rgba(255,255,255,0.92);">{{ it.title }}</span>
+        </a>
+        <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ it.kind }}</div>
+          <a href="Media Detail.dc.html" style="font-weight: 700; font-size: 16px; line-height: 1.25;">{{ it.title }}</a>
+          <div style="color: #b8b1c4; font-size: 13px;">{{ it.next }}</div>
+          <div style="flex: 1;"></div>
+          <div style="display: flex;">
+            <div onClick="{{ it.checkIn }}" style="background: {{ it.btnBg }}; color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 9px 18px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">{{ it.btnLabel }}</div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 24px;">
+    <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">In progress</div>
+    <a href="Lists.dc.html" style="color: #d96bb0; font-size: 13px; font-weight: 700; letter-spacing: 0.08em;">VIEW ALL →</a>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;">
+    <sc-for list="{{ covers }}" as="c" hint-placeholder-count="6">
+      <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="aspect-ratio: 2/3; border-radius: 12px; background: {{ c.grad }}; display: flex; align-items: flex-end; padding: 12px; position: relative; overflow: hidden;">
+          <span style="font-family: Anton; font-size: 17px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ c.title }}</span>
+          <div style="position: absolute; left: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: {{ c.pct }};"></div>
+        </div>
+        <div style="font-size: 12px; color: #b8b1c4;">{{ c.sub }}</div>
+      </a>
+    </sc-for>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px; margin-top: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">Friends</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{ activity }}" as="a" hint-placeholder-count="4">
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; display: flex; gap: 12px; padding: 14px 18px; align-items: center; backdrop-filter: blur(16px);">
+            <div style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; background: {{ a.av }}; display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 13px;">{{ a.initial }}</div>
+            <div style="font-size: 14px; color: #b8b1c4; flex: 1;"><span style="color: #f0edf4; font-weight: 600;">{{ a.user }}</span> {{ a.verb }} <span style="color: #f0edf4; font-weight: 600;">{{ a.what }}</span> <span style="color: #d96bb0; font-weight: 700;">{{ a.extra }}</span></div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">{{ a.time }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">This year</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 18px 24px; display: flex; align-items: baseline; justify-content: space-between; backdrop-filter: blur(16px);">
+            <div style="font-family: Anton; font-size: 30px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ s.v }}</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ s.k }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { checked: {} };
+  renderVals() {
+    const base = [
+      { id: 'nh', title: 'Neon Harbor', kind: 'SERIES', next: 'S2 E5 — "Undertow"', grad: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)' },
+      { id: 'ac', title: 'Ashfall Chronicle', kind: 'ANIME', next: 'Episode 18 of 24', grad: 'linear-gradient(160deg, #8a5c2a 20%, #17100a 100%)' },
+      { id: 'mc', title: 'Moonlit Courier', kind: 'WEBTOON', next: 'Chapter 112', grad: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)' },
+    ];
+    const grad = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
+    const upNext = base.map((it) => {
+      const done = this.state.checked[it.id];
+      return Object.assign({}, it, {
+        btnLabel: done ? 'CHECKED IN' : '✓ CHECK IN',
+        btnBg: done ? 'rgba(255,255,255,0.25)' : grad,
+        checkIn: () => this.setState((s) => ({ checked: Object.assign({}, s.checked, { [it.id]: !s.checked[it.id] }) })),
+      });
+    });
+    return {
+      upNext,
+      covers: [
+        { title: 'Paper Cities', sub: 'Manga · Vol 4, Ch 31', pct: '62%', grad: 'linear-gradient(200deg, #6b3aa0 0%, #0f0817 90%)' },
+        { title: 'The Long Static', sub: 'Series · S1 E7 of 10', pct: '70%', grad: 'linear-gradient(200deg, #3a55b0 0%, #080b17 90%)' },
+        { title: 'Ashfall Chronicle', sub: 'Anime · Ep 18 of 24', pct: '75%', grad: 'linear-gradient(200deg, #c46a2a 0%, #140e08 90%)' },
+        { title: 'Neon Harbor', sub: 'Series · S2 E5 of 12', pct: '38%', grad: 'linear-gradient(200deg, #2a6b8c 0%, #081217 90%)' },
+        { title: 'Moonlit Courier', sub: 'Webtoon · Ch 112', pct: '84%', grad: 'linear-gradient(200deg, #8c2a6b 0%, #170812 90%)' },
+        { title: 'Glass Orchard', sub: 'Anime · Ep 3 of 13', pct: '23%', grad: 'linear-gradient(200deg, #d9a441 0%, #171008 90%)' },
+      ],
+      activity: [
+        { initial: 'J', av: 'linear-gradient(135deg, #d9a441, #d96bb0)', user: 'june_k', verb: 'rated', what: 'Neon Harbor S2E4', extra: '9.0', time: '2H' },
+        { initial: 'R', av: 'linear-gradient(135deg, #8b5cf6, #3d2a80)', user: 'rex', verb: 'finished', what: 'The Long Static', extra: '', time: '5H' },
+        { initial: 'A', av: 'linear-gradient(135deg, #d96bb0, #8b5cf6)', user: 'aki', verb: 'started', what: 'Glass Orchard', extra: '', time: '1D' },
+        { initial: 'S', av: 'linear-gradient(135deg, #4a6ee8, #8b5cf6)', user: 'sam_reads', verb: 'added', what: 'Moonlit Courier', extra: 'to Best Webtoons', time: '1D' },
+      ],
+      stats: [
+        { v: '186', k: 'EPISODES' },
+        { v: '412', k: 'CHAPTERS' },
+        { v: '23', k: 'DAY STREAK' },
+        { v: '9h', k: 'THIS WEEK' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

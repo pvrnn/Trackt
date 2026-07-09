@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #948da1;">HOME</a>
+    <a href="Search.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">DISCOVER</a>
+    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
+    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
+</div>
+
+<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 28px;">
+  <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">Discover</div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 16px 24px; font-size: 17px; backdrop-filter: blur(16px);">
+      <span style="color: #948da1; font-size: 18px;">⌕</span>
+      <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search titles, people, lists…" style="background: transparent; border: none; outline: none; color: #f0edf4; font-family: Archivo; font-size: 17px; flex: 1;">
+      <span style="font-family: 'Space Grotesk'; font-size: 12px; color: #6a6478; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px;">⌘K</span>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="6">
+        <div onClick="{{ f.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: {{ f.bg }}; color: {{ f.fg }}; border: 1px solid {{ f.bd }}; cursor: pointer;">{{ f.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between;">
+    <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">{{ sectionTitle }}</div>
+    <div style="font-family: 'Space Grotesk'; font-size: 13px; color: #948da1;">{{ resultMeta }}</div>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;">
+    <sc-for list="{{ results }}" as="r" hint-placeholder-count="12">
+      <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="aspect-ratio: 2/3; border-radius: 12px; background: {{ r.grad }}; display: flex; align-items: flex-end; padding: 12px; overflow: hidden;">
+          <span style="font-family: Anton; font-size: 16px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ r.title }}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px;">
+          <div style="width: 7px; height: 7px; border-radius: 999px; background: {{ r.dot }};"></div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">{{ r.kind }} · {{ r.year }}</div>
+        </div>
+      </a>
+    </sc-for>
+  </div>
+
+  <div style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 24px; margin-top: 12px; backdrop-filter: blur(16px);">
+    <div style="font-family: Anton; font-size: 40px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">＋</div>
+    <div style="flex: 1;">
+      <div style="font-weight: 700; font-size: 16px;">Can't find it?</div>
+      <div style="color: #b8b1c4; font-size: 14px; margin-top: 2px;">Add it yourself — webtoons and obscure titles welcome. Usable immediately, verified by moderators.</div>
+    </div>
+    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">CREATE ENTRY</div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { query: '', filter: 'ALL' };
+  renderVals() {
+    const all = [
+      { title: 'Neon Harbor', kind: 'SERIES', year: '2024', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)' },
+      { title: 'Ashfall Chronicle', kind: 'ANIME', year: '2025', dot: '#d9a441', grad: 'linear-gradient(160deg, #8a5c2a 0%, #17100a 100%)' },
+      { title: 'The Long Static', kind: 'MOVIE', year: '2023', dot: '#8b5cf6', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
+      { title: 'Moonlit Courier', kind: 'WEBTOON', year: '2022', dot: '#d96bb0', grad: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)' },
+      { title: 'Paper Cities', kind: 'MANGA', year: '2019', dot: '#e8874a', grad: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)' },
+      { title: 'Glass Orchard', kind: 'ANIME', year: '2026', dot: '#d9a441', grad: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)' },
+      { title: 'Sable Coast', kind: 'SERIES', year: '2025', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #2a4a8c 0%, #080d17 100%)' },
+      { title: 'Hollow Signal', kind: 'MOVIE', year: '2024', dot: '#8b5cf6', grad: 'linear-gradient(160deg, #55309a 0%, #0d0817 100%)' },
+      { title: 'Ninth Tide', kind: 'MANGA', year: '2021', dot: '#e8874a', grad: 'linear-gradient(160deg, #8c5a2a 0%, #140f08 100%)' },
+      { title: 'Copper Veil', kind: 'WEBTOON', year: '2023', dot: '#d96bb0', grad: 'linear-gradient(160deg, #a03a7a 0%, #170812 100%)' },
+      { title: 'Static Bloom', kind: 'ANIME', year: '2024', dot: '#d9a441', grad: 'linear-gradient(160deg, #c48a2a 0%, #141008 100%)' },
+      { title: 'The Ferry Years', kind: 'SERIES', year: '2020', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #2a3a8c 0%, #0a0c17 100%)' },
+    ];
+    const kinds = ['ALL', 'MOVIES', 'SERIES', 'ANIME', 'MANGA', 'WEBTOONS'];
+    const map = { MOVIES: 'MOVIE', SERIES: 'SERIES', ANIME: 'ANIME', MANGA: 'MANGA', WEBTOONS: 'WEBTOON' };
+    const q = this.state.query.trim().toLowerCase();
+    let results = all;
+    if (this.state.filter !== 'ALL') results = results.filter((r) => r.kind === map[this.state.filter]);
+    if (q) results = results.filter((r) => r.title.toLowerCase().includes(q));
+    return {
+      query: this.state.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      filters: kinds.map((k) => ({
+        label: k,
+        bg: k === this.state.filter ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
+        fg: k === this.state.filter ? '#d96bb0' : '#b8b1c4',
+        bd: k === this.state.filter ? '#d96bb0' : 'rgba(255,255,255,0.12)',
+        pick: () => this.setState({ filter: k }),
+      })),
+      sectionTitle: q ? 'Results' : 'Trending on this instance',
+      resultMeta: results.length + ' TITLES',
+      results,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #948da1;">HOME</a>
+    <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
+    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
+  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
+</div>
+
+<!-- hero -->
+<div style="border-bottom: 1px solid rgba(255,255,255,0.09);">
+  <div style="max-width: 1360px; margin: 0 auto; padding: 56px 40px 40px; display: flex; gap: 40px;">
+    <div style="width: 240px; height: 360px; flex-shrink: 0; border-radius: 16px; background: linear-gradient(160deg, #35296b 0%, #0e0c1a 100%); display: flex; align-items: flex-end; padding: 20px; position: relative; overflow: hidden;">
+      <span style="font-family: Anton; font-size: 30px; line-height: 1.05; text-transform: uppercase; color: rgba(255,255,255,0.94);">Neon Harbor</span>
+      <div style="position: absolute; left: 0; bottom: 0; height: 5px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: 38%;"></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: #4a6ee8;"></div>
+          <span style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; color: #b8b1c4;">SERIES</span>
+        </div>
+        <span style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">2024–&nbsp;·&nbsp;AIRING&nbsp;·&nbsp;2 SEASONS · 22 EPISODES</span>
+      </div>
+      <div style="font-family: Anton; font-size: 72px; line-height: 0.95; text-transform: uppercase;">Neon Harbor</div>
+      <div style="color: #b8b1c4; font-size: 15px; line-height: 1.6; max-width: 640px;">A dockworker in a drowned port city moonlights as a courier for the last honest smuggler on the coast. Slow-burn neo-noir about tides, debts, and the people who keep other people's secrets.</div>
+      <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
+        <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">✓ CHECK IN S2 E5</div>
+        <div style="background: rgba(217,107,176,0.15); color: #d96bb0; border: 1px solid #d96bb0; border-radius: 999px; font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 11px 20px;">IN PROGRESS ▾</div>
+        <div style="background: rgba(255,255,255,0.05); color: #f0edf4; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 11px 20px; cursor: pointer;" style-hover="border-color: #d96bb0; color: #d96bb0;">＋ LIST</div>
+        <div style="background: rgba(255,255,255,0.05); color: #f0edf4; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 11px 20px; cursor: pointer;" style-hover="border-color: #d96bb0; color: #d96bb0;">RATE</div>
+      </div>
+      <div style="display: flex; gap: 32px; margin-top: 12px;">
+        <div><div style="font-family: Anton; font-size: 32px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div><div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">1,204 RATINGS</div></div>
+        <div><div style="font-family: Anton; font-size: 32px;">9/22</div><div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">YOUR PROGRESS</div></div>
+        <div><div style="font-family: Anton; font-size: 32px;">42</div><div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">MIN / EPISODE</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width: 1360px; margin: 0 auto; padding: 40px 40px 80px; display: grid; grid-template-columns: 2fr 1fr; gap: 48px;">
+  <!-- episodes -->
+  <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">Episodes</div>
+      <div style="display: flex; gap: 8px; margin-left: 12px;">
+        <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 7px 16px; border-radius: 999px; background: rgba(255,255,255,0.05); color: #b8b1c4; border: 1px solid rgba(255,255,255,0.12); cursor: pointer;">S1</div>
+        <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 7px 16px; border-radius: 999px; background: rgba(217,107,176,0.18); color: #d96bb0; border: 1px solid #d96bb0;">S2</div>
+      </div>
+    </div>
+    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(16px);">
+      <div style="display: flex; gap: 3px; align-items: flex-end; height: 44px;">
+        <sc-for list="{{ heat }}" as="h" hint-placeholder-count="12">
+          <div style="flex: 1; background: {{ h.c }}; height: {{ h.v }}; border-radius: 3px 3px 0 0;" title="{{ h.t }}"></div>
+        </sc-for>
+      </div>
+      <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; display: flex; justify-content: space-between;"><span>E1</span><span>EPISODE RATINGS · SEASON 2</span><span>E12</span></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <sc-for list="{{ episodes }}" as="ep" hint-placeholder-count="7">
+        <div style="background: {{ ep.bg }}; border: 1px solid {{ ep.bd }}; border-radius: 12px; display: flex; align-items: center; gap: 14px; padding: 13px 18px; opacity: {{ ep.op }}; backdrop-filter: blur(16px);">
+          <div onClick="{{ ep.toggle }}" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 999px; background: {{ ep.boxBg }}; border: 1px solid {{ ep.boxBd }}; color: #14101a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; cursor: pointer;">{{ ep.check }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; width: 52px;">{{ ep.code }}</div>
+          <div style="font-size: 14px; flex: 1; font-weight: {{ ep.wt }}; color: {{ ep.fg }};">{{ ep.name }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: {{ ep.metaFg }};">{{ ep.meta }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- side -->
+  <div style="display: flex; flex-direction: column; gap: 32px;">
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Comments</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(16px);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 12px;">J</div>
+            <span style="font-weight: 600; font-size: 13px;">june_k</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">S2 E4 · 2H</span>
+          </div>
+          <div style="font-size: 14px; color: #b8b1c4; line-height: 1.5;">That last shot of the flooded tram line — this show's cinematography budget went somewhere real.</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">▲ 14 · REPLY</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(16px);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #8b5cf6, #3d2a80); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px;">R</div>
+            <span style="font-weight: 600; font-size: 13px;">rex</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">S2 E5 · 5H</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 10px; color: #d96bb0; letter-spacing: 0.08em;">SPOILER</span>
+          </div>
+          <div style="font-size: 14px; color: #b8b1c4; line-height: 1.5; filter: blur(5px); cursor: pointer;" style-hover="filter: blur(0px);">The lighthouse keeper being the buyer all along recontextualizes every S1 dock scene.</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">▲ 31 · REPLY</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 12px 18px; color: #948da1; font-size: 14px;">Add a comment…</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Details</div>
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; backdrop-filter: blur(16px); display: flex; flex-direction: column;">
+        <sc-for list="{{ details }}" as="d" hint-placeholder-count="5">
+          <div style="padding: 12px 18px; display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.07);">
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.08em; color: #948da1;">{{ d.k }}</span>
+            <span style="font-size: 13px; color: #b8b1c4; text-align: right;">{{ d.v }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #6a6478;">Metadata from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Related</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <sc-for list="{{ related }}" as="r" hint-placeholder-count="3">
+          <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ r.grad }}; display: flex; align-items: flex-end; padding: 10px; overflow: hidden;">
+              <span style="font-family: Anton; font-size: 13px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ r.title }}</span>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { watched: { 1: true, 2: true, 3: true, 4: true } };
+  renderVals() {
+    const eps = [
+      { n: 1, code: 'S2 E1', name: 'High Water', meta: '8.2' },
+      { n: 2, code: 'S2 E2', name: 'Ledger', meta: '7.9' },
+      { n: 3, code: 'S2 E3', name: 'The Narrows', meta: '8.8' },
+      { n: 4, code: 'S2 E4', name: 'Riptide', meta: '8.5' },
+      { n: 5, code: 'S2 E5', name: 'Undertow', meta: '42 MIN' },
+      { n: 6, code: 'S2 E6', name: 'Dead Reckoning', meta: 'JUL 14', future: true },
+      { n: 7, code: 'S2 E7', name: 'Salvage', meta: 'JUL 21', future: true },
+    ];
+    let nextFound = false;
+    const episodes = eps.map((e) => {
+      const w = !!this.state.watched[e.n];
+      const isNext = !w && !e.future && !nextFound;
+      if (isNext) nextFound = true;
+      return {
+        code: e.code, name: e.name, meta: e.meta,
+        bg: isNext ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.05)',
+        bd: isNext ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.1)',
+        op: e.future ? 0.45 : 1,
+        boxBg: w ? '#d96bb0' : 'transparent',
+        boxBd: w || isNext ? '#d96bb0' : 'rgba(255,255,255,0.2)',
+        check: w ? '✓' : '',
+        wt: isNext ? 600 : 400,
+        fg: w ? '#b8b1c4' : '#f0edf4',
+        metaFg: w ? '#d96bb0' : '#948da1',
+        toggle: e.future ? null : () => this.setState((s) => ({ watched: Object.assign({}, s.watched, { [e.n]: !s.watched[e.n] }) })),
+      };
+    });
+    return {
+      episodes,
+      heat: [
+        { v: '55%', c: '#8a5a8f', t: 'E1 · 7.6' }, { v: '48%', c: '#75517f', t: 'E2 · 7.4' },
+        { v: '72%', c: '#c46ba5', t: 'E3 · 8.8' }, { v: '64%', c: '#a95f96', t: 'E4 · 8.5' },
+        { v: '30%', c: '#453050', t: 'E5 · —' }, { v: '30%', c: '#2e2138', t: 'E6 · —' },
+        { v: '30%', c: '#2e2138', t: 'E7 · —' }, { v: '30%', c: '#2e2138', t: 'E8 · —' },
+        { v: '30%', c: '#2e2138', t: 'E9 · —' }, { v: '30%', c: '#2e2138', t: 'E10 · —' },
+        { v: '30%', c: '#2e2138', t: 'E11 · —' }, { v: '30%', c: '#2e2138', t: 'E12 · —' },
+      ],
+      details: [
+        { k: 'STATUS', v: 'Airing · weekly' },
+        { k: 'NETWORK', v: 'Harbor Studios' },
+        { k: 'CREATED BY', v: 'L. Okafor, D. Marsh' },
+        { k: 'GENRES', v: 'Neo-noir, Drama' },
+        { k: 'EXTERNAL', v: 'TMDB · TVmaze' },
+      ],
+      related: [
+        { title: 'The Long Static', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
+        { title: 'Glass Orchard', grad: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)' },
+        { title: 'Paper Cities', grad: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #948da1;">HOME</a>
+    <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="Lists.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">LISTS</a>
+    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
+  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
+</div>
+
+<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+    <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">Lists</div>
+    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">＋ NEW LIST</div>
+  </div>
+
+  <div style="display: flex; gap: 10px;">
+    <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(217,107,176,0.18); color: #d96bb0; border: 1px solid #d96bb0; cursor: pointer;">MY LISTS</div>
+    <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); color: #b8b1c4; border: 1px solid rgba(255,255,255,0.12); cursor: pointer;">FOLLOWING</div>
+    <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); color: #b8b1c4; border: 1px solid rgba(255,255,255,0.12); cursor: pointer;">COLLABORATIVE</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <sc-for list="{{ lists }}" as="l" hint-placeholder-count="4">
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; cursor: pointer; backdrop-filter: blur(16px);" style-hover="border-color: #d96bb0;">
+        <div style="display: flex; height: 170px; overflow: hidden;">
+          <sc-for list="{{ l.covers }}" as="c">
+            <div style="flex: 1; background: {{ c }}; display: flex; align-items: flex-end; padding: 10px; border-right: 1px solid rgba(14,12,16,0.6);"></div>
+          </sc-for>
+        </div>
+        <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-family: Anton; font-size: 22px; text-transform: uppercase; flex: 1;">{{ l.title }}</div>
+            <sc-if value="{{ l.ranked }}" hint-placeholder-val="{{ false }}"><div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; border: 1px solid #d96bb0; border-radius: 999px; padding: 3px 10px;">RANKED</div></sc-if>
+            <sc-if value="{{ l.collab }}" hint-placeholder-val="{{ false }}"><div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4; border: 1px solid rgba(255,255,255,0.2); border-radius: 999px; padding: 3px 10px;">COLLAB</div></sc-if>
+          </div>
+          <div style="color: #b8b1c4; font-size: 14px; line-height: 1.5;">{{ l.desc }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; display: flex; gap: 14px; margin-top: 4px;">
+            <span>{{ l.count }} TITLES</span>
+            <span>{{ l.vis }}</span>
+            <span>UPDATED {{ l.updated }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px;">
+      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">Best webtoons, ranked</div>
+      <div style="font-family: 'Space Grotesk'; font-size: 13px; color: #948da1;">DRAG TO REORDER</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <sc-for list="{{ ranked }}" as="r" hint-placeholder-count="4">
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; display: flex; align-items: center; gap: 18px; padding: 12px 18px; backdrop-filter: blur(16px);">
+          <div style="font-family: Anton; font-size: 24px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; width: 40px;">{{ r.rank }}</div>
+          <div style="width: 44px; height: 62px; flex-shrink: 0; border-radius: 6px; background: {{ r.grad }};"></div>
+          <div style="flex: 1;">
+            <a href="Media Detail.dc.html" style="font-weight: 700; font-size: 15px;">{{ r.title }}</a>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; margin-top: 2px;">{{ r.meta }}</div>
+          </div>
+          <div style="font-family: 'Space Grotesk'; font-size: 13px; color: #d96bb0; font-weight: 600;">{{ r.score }}</div>
+          <div style="color: #6a6478; font-size: 16px; cursor: grab;">⋮⋮</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      lists: [
+        { title: 'Best webtoons, ranked', desc: 'The ones worth reading on a cracked phone screen at 1am.', count: 14, vis: 'PUBLIC', updated: '2D AGO', ranked: true, collab: false,
+          covers: ['linear-gradient(160deg, #8c2a6b, #170812)', 'linear-gradient(160deg, #a03a7a, #170812)', 'linear-gradient(160deg, #55309a, #0d0817)', 'linear-gradient(160deg, #6b3aa0, #0f0817)'] },
+        { title: 'Rainy day noir', desc: 'Movies and series for when the weather agrees with the genre.', count: 22, vis: 'PUBLIC', updated: '1W AGO', ranked: false, collab: false,
+          covers: ['linear-gradient(160deg, #3a55b0, #080b17)', 'linear-gradient(160deg, #35296b, #0e0c1a)', 'linear-gradient(160deg, #2a4a8c, #080d17)', 'linear-gradient(160deg, #2a3a8c, #0a0c17)'] },
+        { title: 'Watch with Sam', desc: 'Shared queue. No skipping ahead. Sam skipped ahead twice.', count: 8, vis: 'FOLLOWERS', updated: 'YESTERDAY', ranked: false, collab: true,
+          covers: ['linear-gradient(160deg, #8a5c2a, #17100a)', 'linear-gradient(160deg, #b0722a, #140e08)', 'linear-gradient(160deg, #c48a2a, #141008)', 'linear-gradient(160deg, #d9a441, #171008)'] },
+        { title: '2026 completions', desc: 'Everything finished this year, in order.', count: 41, vis: 'PRIVATE', updated: 'TODAY', ranked: false, collab: false,
+          covers: ['linear-gradient(160deg, #6b3aa0, #0f0817)', 'linear-gradient(160deg, #8c5a2a, #140f08)', 'linear-gradient(160deg, #3a55b0, #080b17)', 'linear-gradient(160deg, #8c2a6b, #170812)'] },
+      ],
+      ranked: [
+        { rank: '01', title: 'Moonlit Courier', meta: 'WEBTOON · 132 CHAPTERS · ONGOING', score: '9.5', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
+        { rank: '02', title: 'Copper Veil', meta: 'WEBTOON · 88 CHAPTERS · ONGOING', score: '9.0', grad: 'linear-gradient(160deg, #a03a7a, #170812)' },
+        { rank: '03', title: 'Ninth Tide', meta: 'MANGA · 12 VOLUMES · ENDED', score: '8.5', grad: 'linear-gradient(160deg, #8c5a2a, #140f08)' },
+        { rank: '04', title: 'Static Bloom', meta: 'WEBTOON · 45 CHAPTERS · ONGOING', score: '8.0', grad: 'linear-gradient(160deg, #c48a2a, #141008)' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

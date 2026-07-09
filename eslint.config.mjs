@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/routeTree.gen.ts',
       'packages/db/migrations/**',
+      'docs/design/**',
     ],
   },
   ...tseslint.configs.recommended,
