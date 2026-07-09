@@ -22,6 +22,7 @@
   "devDependencies": {
     "eslint": "^10.6.0",
     "prettier": "^3.9.4",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "turbo": "^2.10.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.63.0"
