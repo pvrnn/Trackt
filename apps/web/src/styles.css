@@ -1,105 +1,103 @@
-:root {
-  color-scheme: dark;
-  --bg: #0b0d12;
-  --surface: #151923;
-  --text: #e8ebf2;
-  --muted: #9aa3b5;
-  --accent: #e0563a;
+@import 'tailwindcss';
+@import '@fontsource/anton';
+@import '@fontsource-variable/archivo';
+@import '@fontsource-variable/space-grotesk';
+
+/*
+ * AURA PRISM design tokens (docs/design/README.md).
+ * Values are final per the design handoff — change them there first.
+ */
+@theme {
+  /* color */
+  --color-ink: #0e0c10;
+  --color-fg: #f0edf4;
+  --color-muted: #b8b1c4;
+  --color-dim: #948da1;
+  --color-faint: #6a6478;
+  --color-pink: #d96bb0;
+  --color-on-prism: #14101a;
+  --color-glass: rgb(255 255 255 / 0.05);
+  --color-glass-well: rgb(255 255 255 / 0.07);
+  --color-glass-border: rgb(255 255 255 / 0.1);
+  --color-glass-border-strong: rgb(255 255 255 / 0.15);
+  --color-divider: rgb(255 255 255 / 0.09);
+  --color-pink-selected: rgb(217 107 176 / 0.18);
+  --color-pink-row: rgb(217 107 176 / 0.12);
+  --color-kind-movie: #8b5cf6;
+  --color-kind-series: #4a6ee8;
+  --color-kind-anime: #d9a441;
+  --color-kind-manga: #e8874a;
+  --color-kind-webtoon: #d96bb0;
+
+  /* type */
+  --font-sans: 'Archivo Variable', system-ui, sans-serif;
+  --font-display: 'Anton', 'Archivo Variable', sans-serif;
+  --font-label: 'Space Grotesk Variable', 'Archivo Variable', sans-serif;
+  --text-hero: clamp(3.25rem, 8.8vw, 7.5rem);
+  --text-hero--line-height: 0.92;
+  --text-display: clamp(2.5rem, 5vw, 4rem);
+  --text-display--line-height: 0.95;
+  --text-section: clamp(2rem, 3.6vw, 3rem);
+  --text-section--line-height: 1;
+  --tracking-label: 0.1em;
+  --tracking-eyebrow: 0.14em;
+  --tracking-btn: 0.06em;
+
+  /* shape */
+  --radius-card: 16px;
+  --radius-card-sm: 14px;
+  --radius-cover: 12px;
+  --radius-thumb: 6px;
+
+  /* the one signature gradient: primary action, wordmark, hero stats only */
+  --gradient-prism: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);
 }
 
-* {
-  box-sizing: border-box;
+@utility bg-prism {
+  background-image: var(--gradient-prism);
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  line-height: 1.6;
+@utility text-prism {
+  background-image: var(--gradient-prism);
+  background-clip: text;
+  color: transparent;
 }
 
-.page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 4rem 1.5rem 2rem;
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-ink font-sans text-fg antialiased;
+  }
 }
 
-.hero {
-  text-align: center;
-  margin-bottom: 4rem;
-}
-
-.hero h1 {
-  font-size: 3rem;
-  margin: 1rem 0 0.5rem;
-  letter-spacing: -0.02em;
-}
-
-.tagline {
-  color: var(--muted);
-  font-size: 1.15rem;
-  max-width: 40rem;
-  margin: 0 auto 2rem;
-}
-
-.actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.button {
-  display: inline-block;
-  padding: 0.6rem 1.4rem;
-  border-radius: 0.5rem;
-  background: var(--accent);
-  color: #fff;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.button.secondary {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-}
-
-.card {
-  background: var(--surface);
-  border-radius: 0.75rem;
-  padding: 1.25rem 1.5rem;
-}
-
-.card h2 {
-  font-size: 1.1rem;
-  margin: 0 0 0.5rem;
-}
-
-.card p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.footer {
-  margin-top: 4rem;
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.footer a {
-  color: var(--text);
+/*
+ * Background recipe (every page): fixed aura radials + grain film.
+ * Kept as plain CSS — multi-stop radial stacks are unreadable as utilities.
+ */
+@layer components {
+  .aura-fixed {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+  .aura-marketing {
+    background:
+      radial-gradient(900px 600px at 15% -5%, rgb(139 92 246 / 0.4), transparent 65%),
+      radial-gradient(800px 550px at 100% 20%, rgb(217 107 176 / 0.3), transparent 65%),
+      radial-gradient(850px 600px at 40% 110%, rgb(217 164 65 / 0.32), transparent 70%);
+  }
+  .aura-app {
+    background:
+      radial-gradient(850px 550px at 10% -10%, rgb(139 92 246 / 0.35), transparent 65%),
+      radial-gradient(750px 500px at 100% 15%, rgb(217 107 176 / 0.28), transparent 65%),
+      radial-gradient(800px 600px at 30% 115%, rgb(217 164 65 / 0.3), transparent 70%);
+  }
+  .grain {
+    background-image: url('/noise.svg');
+    background-size: 220px;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+  }
 }
