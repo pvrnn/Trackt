@@ -4,7 +4,7 @@ Open-source, self-hostable tracker for **movies, series, anime, manga, and webto
 
 > TV Time shut down and deleted everyone's history. Trackt exists so that never happens again: **full export at any time, a public API from day one, and self-hosting in one command.**
 
-See the full product spec in [docs/PRD.md](docs/PRD.md).
+See the full product spec in [docs/PRD.md](docs/PRD.md) and the current status in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Founding principles
 
