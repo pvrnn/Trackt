@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { SearchQuerySchema, SearchResultSchema } from '@trackt/shared';
+import { ApiErrorSchema, SearchQuerySchema, SearchResultSchema } from '@trackt/shared';
+import { searchMedia } from '../../lib/search.js';
 
 /**
- * Catalog search across metadata providers (PRD §3.5).
- * v0.1 queries providers live; results are cached into `media` when a user tracks one.
+ * Catalog search against the instance's local `media` table (ADR-0001) — every
+ * instance serves the same catalog once synced, so search needs no upstream calls.
  */
 export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -13,13 +14,16 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['catalog'],
         querystring: SearchQuerySchema,
-        response: { 200: z.array(SearchResultSchema) },
+        response: {
+          200: z.array(SearchResultSchema),
+          503: ApiErrorSchema,
+        },
       },
     },
-    async (request) => {
-      const { q, kind } = request.query;
-      if (!app.deps.registry) return [];
-      return app.deps.registry.search(q, kind);
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      return searchMedia(db, request.query);
     },
   );
 };

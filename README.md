@@ -29,9 +29,10 @@ Requirements: Node 22+, pnpm 10 (`corepack enable`), Docker.
 
 ```sh
 pnpm install
-docker compose -f docker-compose.dev.yml up -d   # Postgres 16 + Redis on default ports
+docker compose -f docker-compose.dev.yml up -d   # Postgres 16 (:5432), Redis, catalog Postgres (:5433)
 pnpm db:migrate                                   # apply schema (after pnpm build once)
-pnpm dev                                          # web :3000, api :3001, worker — hot reload
+pnpm db:seed                                      # fixture catalog so search has data
+pnpm dev                                          # web :3000, api :3001, catalog :3002, worker — hot reload
 ```
 
 No `.env` needed in development — every variable has a dev default (see `packages/shared/src/env.ts`). The web dev server proxies `/api`, `/docs`, and health endpoints to the API.
@@ -44,6 +45,7 @@ No `.env` needed in development — every variable has a dev default (see `packa
 | `pnpm lint` / `pnpm typecheck` / `pnpm format` | the usual suspects                                     |
 | `pnpm db:generate`                             | generate a migration from schema changes (drizzle-kit) |
 | `pnpm db:migrate`                              | apply migrations to `DATABASE_URL`                     |
+| `pnpm db:seed`                                 | insert the dev fixture catalog (idempotent)            |
 
 ## Repository layout
 
@@ -51,24 +53,24 @@ No `.env` needed in development — every variable has a dev default (see `packa
 apps/
   web/        TanStack Start PWA (SSR for public pages, installable on mobile)
   api/        Fastify public REST API — OpenAPI generated from Zod schemas at /docs
-  worker/     BullMQ background jobs: metadata refresh, importers, notifications
+  worker/     BullMQ background jobs: catalog sync, importers, notifications
+  catalog/    Central slim catalog service (project-operated, not self-hosted)
 packages/
   shared/     Zod schemas, shared types, env validation — single source of truth
   db/         Drizzle ORM schema + migrations (PostgreSQL 16)
-  providers/  Metadata provider abstraction: TMDB, AniList, TVmaze
+  providers/  Parked: metadata providers (future per-instance enrichment)
 ```
 
 ### Architecture notes
 
-- **Federated fetch-and-cache** (PRD §4): each instance fetches metadata from upstream providers with its own API keys and caches locally in Postgres. No central metadata server — no single point of failure, no licensing liability.
-- **Provider routing**: movies → TMDB · series → TMDB, TVmaze fallback · anime/manga → AniList (keyless) · webtoons → user-created entries.
+- **Central slim catalog** ([ADR-0001](docs/adr/0001-central-slim-catalog.md)): a project-operated service holds the shared catalog of redistributable facts (titles, synonyms, years, genres, counts, external IDs); every instance syncs it, so all instances share the same catalog and the same deterministic canonical media IDs (UUIDv5). Instance search runs entirely on the local Postgres.
 - **Shard-friendly schema** (PRD §5): UUIDs everywhere, `user_id` on every user-owned table, no cross-user joins in hot paths. Scaling ladder: partitioning → read replicas → Citus, without an app rewrite.
 - **Monolith image**: one container runs API (public port), web SSR, and worker; the API proxies non-API routes to the SSR server. Separate processes remain the advanced path.
 - **Config via env vars only**, Zod-validated at startup with actionable errors.
 
 ## Metadata attribution
 
-Metadata is fetched from [TMDB](https://www.themoviedb.org/), [AniList](https://anilist.co/), and [TVmaze](https://www.tvmaze.com/) using each instance's own API keys. This product uses the TMDB API but is not endorsed or certified by TMDB.
+Catalog entries reference external IDs from [TMDB](https://www.themoviedb.org/), [AniList](https://anilist.co/), and [TVmaze](https://www.tvmaze.com/). Optional per-instance enrichment may use the TMDB API with the instance's own key; this product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ## License
 

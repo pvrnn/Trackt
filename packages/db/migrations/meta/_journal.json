@@ -15,6 +15,20 @@
       "when": 1783626970903,
       "tag": "0001_reflective_loa",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783716784025,
+      "tag": "0002_motionless_vanisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783716799393,
+      "tag": "0003_year_backfill_and_synonyms_index",
+      "breakpoints": true
     }
   ]
 }

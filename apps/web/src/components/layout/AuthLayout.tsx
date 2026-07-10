@@ -21,8 +21,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             <span className="text-prism">Yours forever.</span>
           </h2>
           <p className="mt-4 max-w-[400px] text-[15px] text-muted">
-            Open source, self-hostable, full export any time. Built by people who lost their
-            history once.
+            Open source, self-hostable, full export any time. Built by people who lost their history
+            once.
           </p>
         </div>
       </div>

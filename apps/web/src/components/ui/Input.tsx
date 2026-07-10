@@ -26,7 +26,7 @@ export function Input({ label, error, labelEnd, id, className, ...props }: Input
         id={inputId}
         className={clsx(
           'rounded-cover border bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg',
-          'placeholder:text-faint outline-none transition-colors focus:border-pink/60',
+          'transition-colors outline-none placeholder:text-faint focus:border-pink/60',
           error ? 'border-red-400/60' : 'border-white/12',
           className,
         )}

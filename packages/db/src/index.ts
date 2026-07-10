@@ -5,6 +5,8 @@ import * as schema from './schema/index.js';
 export * from './schema/index.js';
 export { schema };
 export { runMigrations } from './migrate.js';
+export { seedMedia } from './seed.js';
+export { SEED_MEDIA } from './seed-data.js';
 
 export interface CreateDbOptions {
   /** Max pool connections (default 10). */

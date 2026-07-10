@@ -2,7 +2,6 @@ import httpProxy from '@fastify/http-proxy';
 import { sql } from 'drizzle-orm';
 import { Redis } from 'ioredis';
 import { createDb } from '@trackt/db';
-import { createDefaultRegistry } from '@trackt/providers';
 import { EnvValidationError, loadEnv } from '@trackt/shared';
 import { buildApp } from './app.js';
 import { createAuth } from './auth.js';
@@ -27,10 +26,6 @@ async function main(): Promise<void> {
     env,
     db,
     auth,
-    registry: createDefaultRegistry({
-      tmdbApiKey: env.TMDB_API_KEY,
-      logger: { warn: (message) => console.warn(message) },
-    }),
     dbPing: async () => {
       await db.execute(sql`select 1`);
     },

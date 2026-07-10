@@ -32,6 +32,25 @@ services:
     volumes:
       - redisdata_dev:/data
 
+  # Dev DB for apps/catalog — the central slim catalog is a project-operated
+  # service (ADR-0001), NOT part of self-hosted deployments (docker-compose.yml).
+  postgres-catalog:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trackt
+      POSTGRES_PASSWORD: trackt
+      POSTGRES_DB: trackt_catalog
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata_catalog_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U trackt -d trackt_catalog']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   pgdata_dev:
   redisdata_dev:
+  pgdata_catalog_dev:

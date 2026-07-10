@@ -1,29 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { loadEnv, type SearchResult } from '@trackt/shared';
-import type { ProviderRegistry } from '@trackt/providers';
+import { loadEnv } from '@trackt/shared';
 import { buildApp, type App } from './app.js';
 
 const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
-
-const fakeResult: SearchResult = {
-  provider: 'fake',
-  externalId: '42',
-  kind: 'anime',
-  title: 'Cowboy Bebop',
-  year: 1998,
-};
-
-const fakeRegistry = {
-  search: async () => [fakeResult],
-  providersFor: () => [],
-  getProvider: () => undefined,
-} as unknown as ProviderRegistry;
 
 describe('api app', () => {
   let app: App;
 
   beforeAll(async () => {
-    app = await buildApp({ env, registry: fakeRegistry });
+    app = await buildApp({ env });
   });
 
   afterAll(async () => {
@@ -58,13 +43,12 @@ describe('api app', () => {
     await failing.close();
   });
 
-  it('GET /api/v1/search returns provider results', async () => {
+  it('GET /api/v1/search responds 503 without a database', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/search?q=cowboy&kind=anime',
     });
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual([fakeResult]);
+    expect(response.statusCode).toBe(503);
   });
 
   it('GET /api/v1/search validates the query', async () => {

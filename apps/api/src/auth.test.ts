@@ -44,7 +44,12 @@ describe('auth routes', () => {
 
   it('signs up with a username and sets a session cookie', async () => {
     const response = await app.inject(
-      signUp({ name: 'Paul', email: 'paul@example.com', password: 'password123', username: 'PaulV' }),
+      signUp({
+        name: 'Paul',
+        email: 'paul@example.com',
+        password: 'password123',
+        username: 'PaulV',
+      }),
     );
     expect(response.statusCode).toBe(200);
     const { user } = response.json();
@@ -58,7 +63,12 @@ describe('auth routes', () => {
 
   it('rejects a duplicate username', async () => {
     const response = await app.inject(
-      signUp({ name: 'Other', email: 'other@example.com', password: 'password123', username: 'paulv' }),
+      signUp({
+        name: 'Other',
+        email: 'other@example.com',
+        password: 'password123',
+        username: 'paulv',
+      }),
     );
     expect(response.statusCode).toBeGreaterThanOrEqual(400);
     expect(response.json().code).toBe('USERNAME_IS_ALREADY_TAKEN');

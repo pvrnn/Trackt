@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MediaKindSchema } from './media.js';
+import { MediaKindSchema, MediaStatusSchema } from './media.js';
 
 export const APP_VERSION = '0.1.0';
 
@@ -18,20 +18,22 @@ export type ReadyResponse = z.infer<typeof ReadyResponseSchema>;
 
 export const SearchQuerySchema = z.object({
   q: z.string().min(1).max(200),
-  kind: MediaKindSchema,
+  /** Optional filter — search is cross-kind by default. */
+  kind: MediaKindSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 export type SearchQuery = z.infer<typeof SearchQuerySchema>;
 
-/** A search hit as returned by a metadata provider, before it is cached locally. */
+/** A search hit from the instance's local catalog (ADR-0001). */
 export const SearchResultSchema = z.object({
-  provider: z.string(),
-  externalId: z.string(),
+  id: z.uuid(),
+  slug: z.string(),
   kind: MediaKindSchema,
   title: z.string(),
-  originalTitle: z.string().optional(),
-  year: z.number().int().optional(),
-  coverUrl: z.string().optional(),
-  description: z.string().optional(),
+  year: z.number().int().nullable(),
+  status: MediaStatusSchema.nullable(),
+  coverUrl: z.string().nullable(),
+  description: z.string().nullable(),
 });
 export type SearchResult = z.infer<typeof SearchResultSchema>;
 

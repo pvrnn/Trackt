@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node dist/bin/migrate.js",
+    "db:seed": "node dist/bin/seed.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

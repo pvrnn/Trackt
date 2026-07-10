@@ -80,6 +80,8 @@ A community-owned, open-source tracker for **movies, series, anime, manga, and w
 
 ## 4. Catalog Architecture
 
+> **Superseded by [ADR-0001](adr/0001-central-slim-catalog.md)** (central slim catalog + deterministic canonical IDs) — kept for historical context.
+
 ### Decision: federated fetch-and-cache, no central metadata server for licensed data
 
 Each instance fetches from upstream providers using its own API keys and caches results in its local Postgres. Rationale:

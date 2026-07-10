@@ -7,7 +7,7 @@ import { z } from 'zod';
  * Production refuses to boot without the critical variables, with actionable errors.
  */
 
-const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
+export const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
 
 const RawEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -41,7 +41,8 @@ const HINTS: Record<string, string> = {
     'e.g. postgres://trackt:trackt@db:5432/trackt — the bundled docker-compose.yml sets this for you',
   REDIS_URL: 'e.g. redis://redis:6379 — the bundled docker-compose.yml sets this for you',
   AUTH_SECRET: 'generate one with: openssl rand -base64 32',
-  TMDB_API_KEY: 'get a free key at https://www.themoviedb.org/settings/api',
+  TMDB_API_KEY:
+    'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
 };
 

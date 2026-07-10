@@ -4,9 +4,9 @@ import pino from 'pino';
 import { EnvValidationError, QUEUES, loadEnv } from '@trackt/shared';
 
 /**
- * Background jobs (PRD §6): metadata refresh, importers, notifications.
- * v0.1 wires the queue plumbing and a daily metadata-refresh schedule;
- * job handlers grow with the features that need them.
+ * Background jobs (PRD §6): catalog sync, importers, notifications.
+ * v0.1 wires the queue plumbing; the catalog-sync handler (pull slim-catalog
+ * changes from the central service, ADR-0001) lands with the sync sprint.
  */
 
 let env;
@@ -29,42 +29,37 @@ const logger = pino({
 
 const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
-const metadataQueue = new Queue(QUEUES.metadataRefresh, { connection });
+const catalogQueue = new Queue(QUEUES.catalogSync, { connection });
 
-// Cache policy (PRD §4): airing/publishing titles refresh daily, ended titles weekly.
-await metadataQueue.upsertJobScheduler(
-  'refresh-airing-daily',
-  { pattern: '0 3 * * *' },
-  { name: 'refresh-airing', data: {} },
-);
-await metadataQueue.upsertJobScheduler(
-  'refresh-ended-weekly',
-  { pattern: '0 4 * * 1' },
-  { name: 'refresh-ended', data: {} },
-);
+// Remove the provider-refresh schedulers from the pre-pivot era (ADR-0001):
+// dev Redis volumes persist, so old schedulers would keep firing otherwise.
+const legacyQueue = new Queue(QUEUES.metadataRefresh, { connection });
+await legacyQueue.removeJobScheduler('refresh-airing-daily');
+await legacyQueue.removeJobScheduler('refresh-ended-weekly');
+await legacyQueue.close();
 
-const metadataWorker = new Worker(
-  QUEUES.metadataRefresh,
+const catalogWorker = new Worker(
+  QUEUES.catalogSync,
   async (job) => {
-    logger.info({ jobId: job.id, name: job.name, data: job.data }, 'processing metadata refresh');
-    // TODO(v0.1): select stale media rows and re-fetch via @trackt/providers.
+    logger.info({ jobId: job.id, name: job.name, data: job.data }, 'processing catalog sync');
+    // TODO(v0.2): pull /v1/catalog/changes from the central catalog and upsert media rows.
   },
   { connection },
 );
 
-metadataWorker.on('completed', (job) => {
+catalogWorker.on('completed', (job) => {
   logger.debug({ jobId: job.id, name: job.name }, 'job completed');
 });
-metadataWorker.on('failed', (job, error) => {
+catalogWorker.on('failed', (job, error) => {
   logger.error({ jobId: job?.id, name: job?.name, err: error }, 'job failed');
 });
 
-logger.info({ queue: QUEUES.metadataRefresh }, 'worker started');
+logger.info({ queue: QUEUES.catalogSync }, 'worker started');
 
 const shutdown = async (signal: string) => {
   logger.info(`received ${signal}, shutting down`);
-  await metadataWorker.close();
-  await metadataQueue.close();
+  await catalogWorker.close();
+  await catalogQueue.close();
   connection.disconnect();
   process.exit(0);
 };

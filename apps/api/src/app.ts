@@ -10,7 +10,6 @@ import {
 } from 'fastify-type-provider-zod';
 import { APP_VERSION, type Env } from '@trackt/shared';
 import type { Db } from '@trackt/db';
-import type { ProviderRegistry } from '@trackt/providers';
 import type { Auth } from './auth.js';
 import { healthRoutes } from './routes/health.js';
 import { v1Routes } from './routes/v1/index.js';
@@ -20,7 +19,6 @@ export interface AppDeps {
   /** Absent in unit tests: routes that need them respond 503. */
   db?: Db;
   auth?: Auth;
-  registry?: ProviderRegistry;
   dbPing?: () => Promise<void>;
   redisPing?: () => Promise<void>;
 }

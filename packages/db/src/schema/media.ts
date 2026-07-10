@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   date,
   index,
+  integer,
   jsonb,
   numeric,
   pgTable,
@@ -23,8 +24,9 @@ import { users } from './auth.js';
 
 /**
  * Catalog entries: one row per work, all media kinds (PRD §5).
- * Provider-sourced rows are cached from upstream APIs (fetch-and-cache, PRD §4);
- * user-created rows start `unverified` and go through the per-instance moderation queue.
+ * Provider-identified rows use deterministic canonical UUIDs and will be synced from
+ * the central slim catalog (ADR-0001); user-created rows keep random UUIDs, start
+ * `unverified`, and go through the per-instance moderation queue.
  */
 export const media = pgTable(
   'media',
@@ -34,6 +36,14 @@ export const media = pgTable(
     title: text('title').notNull(),
     originalTitle: text('original_title'),
     slug: text('slug').notNull(),
+    /** Alternative titles (original language, romanizations, aliases) — searched. */
+    synonyms: text('synonyms').array().notNull().default([]),
+    genres: text('genres').array().notNull().default([]),
+    year: integer('year'),
+    episodeCount: integer('episode_count'),
+    seasonCount: integer('season_count'),
+    chapterCount: integer('chapter_count'),
+    volumeCount: integer('volume_count'),
     description: text('description'),
     coverUrl: text('cover_url'),
     releaseDate: date('release_date'),

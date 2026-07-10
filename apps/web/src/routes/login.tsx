@@ -72,7 +72,10 @@ function LoginPage() {
       </form>
       <AuthDivider label="New here" />
       <div className="flex flex-col gap-3">
-        <Link to="/register" className={buttonClassName({ variant: 'secondary', className: 'w-full' })}>
+        <Link
+          to="/register"
+          className={buttonClassName({ variant: 'secondary', className: 'w-full' })}
+        >
           CREATE ACCOUNT
         </Link>
         <TvTimeCard />
