@@ -19,12 +19,48 @@ export const FavoriteEntrySchema = z.object({
 });
 export type FavoriteEntry = z.infer<typeof FavoriteEntrySchema>;
 
+/**
+ * Linkable platforms shown on the profile. `base` composes a URL from a bare
+ * handle ('website' takes full URLs only).
+ */
+export const SOCIAL_PLATFORMS = {
+  website: { label: 'Website', base: null },
+  x: { label: 'X', base: 'https://x.com/' },
+  instagram: { label: 'Instagram', base: 'https://instagram.com/' },
+  bluesky: { label: 'Bluesky', base: 'https://bsky.app/profile/' },
+  anilist: { label: 'AniList', base: 'https://anilist.co/user/' },
+  myanimelist: { label: 'MyAnimeList', base: 'https://myanimelist.net/profile/' },
+  letterboxd: { label: 'Letterboxd', base: 'https://letterboxd.com/' },
+} as const;
+export type SocialPlatform = keyof typeof SOCIAL_PLATFORMS;
+export const SOCIAL_PLATFORM_KEYS = Object.keys(SOCIAL_PLATFORMS) as SocialPlatform[];
+
+/** Sparse platform → https URL map; absent key = not linked. */
+export const SocialLinksSchema = z
+  .partialRecord(
+    z.enum(SOCIAL_PLATFORM_KEYS as [SocialPlatform, ...SocialPlatform[]]),
+    z.url({ protocol: /^https$/ }).max(200),
+  )
+  .refine((links) => Object.keys(links).length <= SOCIAL_PLATFORM_KEYS.length);
+export type SocialLinks = z.infer<typeof SocialLinksSchema>;
+
+/** 'handle or URL' input → canonical https URL for the platform; null if unusable. */
+export function normalizeSocialLink(platform: SocialPlatform, input: string): string | null {
+  const value = input.trim();
+  if (!value) return null;
+  if (/^https:\/\//i.test(value)) return value;
+  const base = SOCIAL_PLATFORMS[platform].base;
+  if (!base) return null; // website requires a full URL
+  return `${base}${value.replace(/^@/, '')}`;
+}
+
 export const ProfileSummarySchema = z.object({
   user: z.object({
     name: z.string(),
     username: z.string(),
     bio: z.string().nullable(),
     image: z.string().nullable(),
+    socialLinks: SocialLinksSchema,
     joinedAt: z.iso.datetime(),
   }),
   stats: z.object({
@@ -47,6 +83,8 @@ export const UpdateProfileBodySchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     bio: z.string().trim().max(280).nullable(),
+    /** Full replacement of the links map (sparse — omit a platform to unlink it). */
+    socialLinks: SocialLinksSchema,
   })
   .partial();
 export type UpdateProfileBody = z.infer<typeof UpdateProfileBodySchema>;

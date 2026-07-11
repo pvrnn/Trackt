@@ -62,6 +62,7 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
           username: users.displayUsername,
           bio: users.bio,
           image: users.image,
+          socialLinks: users.socialLinks,
           createdAt: users.createdAt,
         })
         .from(users)
@@ -121,6 +122,7 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
           username: account?.username ?? user.name,
           bio: account?.bio ?? null,
           image: account?.image ?? null,
+          socialLinks: account?.socialLinks ?? {},
           joinedAt: (account?.createdAt ?? new Date()).toISOString(),
         },
         stats: {
@@ -157,8 +159,8 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = await getSessionUser(app, request);
       if (!user) return reply.status(401).send({ error: 'authentication required' });
 
-      const { name, bio } = request.body;
-      if (name === undefined && bio === undefined) {
+      const { name, bio, socialLinks } = request.body;
+      if (name === undefined && bio === undefined && socialLinks === undefined) {
         return reply.status(400).send({ error: 'nothing to update' });
       }
       await db
@@ -166,9 +168,10 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
         .set({
           ...(name !== undefined ? { name } : {}),
           ...(bio !== undefined ? { bio } : {}),
+          ...(socialLinks !== undefined ? { socialLinks } : {}),
         })
         .where(eq(users.id, user.id));
-      return { name, bio };
+      return { name, bio, socialLinks };
     },
   );
 

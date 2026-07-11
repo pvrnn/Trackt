@@ -3,8 +3,13 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   AVATAR_MIME_TYPES,
   MEDIA_KINDS,
+  normalizeSocialLink,
+  SOCIAL_PLATFORM_KEYS,
+  SOCIAL_PLATFORMS,
   type MediaKind,
   type ProfileSummary,
+  type SocialLinks,
+  type SocialPlatform,
 } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
@@ -106,13 +111,26 @@ function ProfilePage() {
                     })}
                     {summary.user.bio ? ` · ${summary.user.bio}` : ''}
                   </p>
-                  <div className="flex gap-5 font-label text-[13px] text-dim">
+                  <div className="flex flex-wrap items-center gap-5 font-label text-[13px] text-dim">
                     <span>
                       <span className="font-semibold text-fg">{summary.stats.titlesTracked}</span>{' '}
                       TITLES TRACKED
                     </span>
                     {summary.stats.dayStreak > 0 && (
                       <span className="text-pink">● {summary.stats.dayStreak}-DAY STREAK</span>
+                    )}
+                    {SOCIAL_PLATFORM_KEYS.filter((key) => summary.user.socialLinks[key]).map(
+                      (key) => (
+                        <a
+                          key={key}
+                          href={summary.user.socialLinks[key]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full border border-glass-border bg-glass px-3 py-1 text-xs font-semibold tracking-label transition hover:border-pink hover:text-pink"
+                        >
+                          {SOCIAL_PLATFORMS[key].label.toUpperCase()} ↗
+                        </a>
+                      ),
                     )}
                   </div>
                 </div>
@@ -271,6 +289,12 @@ function EditProfileDialog({
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio ?? '');
   const [image, setImage] = useState(user.image);
+  const [links, setLinks] = useState<Record<SocialPlatform, string>>(
+    () =>
+      Object.fromEntries(
+        SOCIAL_PLATFORM_KEYS.map((key) => [key, user.socialLinks[key] ?? '']),
+      ) as Record<SocialPlatform, string>,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -316,14 +340,24 @@ function EditProfileDialog({
       setError('Name can’t be empty.');
       return;
     }
+    const socialLinks: SocialLinks = {};
+    for (const key of SOCIAL_PLATFORM_KEYS) {
+      if (!links[key].trim()) continue;
+      const url = normalizeSocialLink(key, links[key]);
+      if (!url) {
+        setError(`${SOCIAL_PLATFORMS[key].label} needs a full https:// URL.`);
+        return;
+      }
+      socialLinks[key] = url;
+    }
     setBusy(true);
     setError(null);
     try {
-      await updateProfile({ name: name.trim(), bio: bio.trim() || null });
+      await updateProfile({ name: name.trim(), bio: bio.trim() || null, socialLinks });
       await onSaved();
       onClose();
     } catch {
-      setError('Saving failed — try again.');
+      setError('Saving failed — check the links and try again.');
       setBusy(false);
     }
   };
@@ -338,7 +372,10 @@ function EditProfileDialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <GlassCard as="section" className="w-full max-w-md bg-ink/90 p-7">
+      <GlassCard
+        as="section"
+        className="max-h-[88vh] w-full max-w-lg overflow-y-auto bg-ink/90 p-7"
+      >
         <form onSubmit={save} className="flex flex-col gap-5">
           <h2 className="font-display text-[28px] uppercase">Edit profile</h2>
 
@@ -400,6 +437,31 @@ function EditProfileDialog({
             />
             <p className="text-right text-xs text-faint">{bio.length}/280</p>
           </div>
+
+          <fieldset className="flex flex-col gap-2.5">
+            <legend className="mb-1.5 font-label text-xs font-semibold tracking-label text-dim uppercase">
+              Social links
+            </legend>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {SOCIAL_PLATFORM_KEYS.map((key) => (
+                <label key={key} className="flex flex-col gap-1">
+                  <span className="font-label text-[10px] tracking-label text-faint uppercase">
+                    {SOCIAL_PLATFORMS[key].label}
+                  </span>
+                  <input
+                    type="text"
+                    value={links[key]}
+                    placeholder={SOCIAL_PLATFORMS[key].base ? '@handle or URL' : 'https://…'}
+                    onChange={(event) =>
+                      setLinks((current) => ({ ...current, [key]: event.target.value }))
+                    }
+                    className="rounded-cover border border-white/12 bg-white/6 px-3 py-2 font-sans text-[13px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+                  />
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-faint">Leave a field empty to unlink it.</p>
+          </fieldset>
 
           {error && (
             <p role="alert" className="text-sm text-red-400">

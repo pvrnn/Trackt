@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { userRoleEnum } from './enums.js';
 
 /**
@@ -18,6 +18,8 @@ export const users = pgTable('user', {
   /** Raw-cased username as typed at signup; `username` holds the lowercase form (better-auth username plugin). */
   displayUsername: text('display_username'),
   bio: text('bio'),
+  /** {"x": "https://x.com/…", "anilist": …} — platform keys from @trackt/shared SOCIAL_PLATFORMS. */
+  socialLinks: jsonb('social_links').$type<Record<string, string>>().notNull().default({}),
   role: userRoleEnum('role').notNull().default('user'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true })

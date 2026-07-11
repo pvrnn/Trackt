@@ -176,6 +176,48 @@ describe.runIf(available)('profile + favourites (postgres)', () => {
     expect(blankName.statusCode).toBe(400);
   });
 
+  it('stores, replaces, and validates social links', async () => {
+    const set = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/me/profile',
+      headers: { cookie },
+      payload: {
+        socialLinks: {
+          x: 'https://x.com/tracktester',
+          anilist: 'https://anilist.co/user/tracktester',
+        },
+      },
+    });
+    expect(set.statusCode).toBe(200);
+    expect((await getProfile()).user.socialLinks).toEqual({
+      x: 'https://x.com/tracktester',
+      anilist: 'https://anilist.co/user/tracktester',
+    });
+
+    // Full replacement: omitting a platform unlinks it.
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/me/profile',
+      headers: { cookie },
+      payload: { socialLinks: { website: 'https://paulv.dev' } },
+    });
+    expect((await getProfile()).user.socialLinks).toEqual({ website: 'https://paulv.dev' });
+
+    for (const socialLinks of [
+      { x: 'http://x.com/insecure' }, // https only
+      { x: 'not a url' },
+      { myspace: 'https://myspace.com/tom' }, // unknown platform
+    ]) {
+      const bad = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/me/profile',
+        headers: { cookie },
+        payload: { socialLinks },
+      });
+      expect(bad.statusCode, JSON.stringify(socialLinks)).toBe(400);
+    }
+  });
+
   it('uploads, serves, and removes an avatar', async () => {
     // 1×1 transparent PNG.
     const png = Buffer.from(

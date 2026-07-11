@@ -43,6 +43,13 @@
       "when": 1783768831070,
       "tag": "0005_sweet_vanisher",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783790334740,
+      "tag": "0006_crazy_edwin_jarvis",
+      "breakpoints": true
     }
   ]
 }
