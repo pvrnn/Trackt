@@ -23,6 +23,8 @@ export interface AppNavUser {
   name: string;
   /** Unique @handle (better-auth `displayUsername`). */
   username: string;
+  /** Uploaded avatar URL (better-auth `image`). */
+  image?: string | null;
 }
 
 /** Sticky authenticated-app navigation: wordmark, section links, search, account menu. */
@@ -145,7 +147,7 @@ function AccountMenu({ user }: { user: AppNavUser }) {
         onClick={() => setOpen((current) => !current)}
         className="block cursor-pointer rounded-full transition hover:brightness-115"
       >
-        <Avatar name={user.username} size={32} className="size-9" />
+        <Avatar name={user.username} src={user.image} size={32} className="size-9" />
       </button>
       {open && (
         <div

@@ -1,16 +1,23 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-import { MEDIA_KINDS, type MediaKind, type ProfileSummary } from '@trackt/shared';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  AVATAR_MIME_TYPES,
+  MEDIA_KINDS,
+  type MediaKind,
+  type ProfileSummary,
+} from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
 import { Avatar } from '../components/ui/Avatar';
+import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
+import { Input } from '../components/ui/Input';
 import { KindDot } from '../components/ui/KindDot';
 import { StatCard } from '../components/ui/StatCard';
 import { authClient } from '../lib/auth-client';
 import { relativeTime } from '../lib/home';
-import { fetchProfileSummary } from '../lib/profile';
+import { fetchProfileSummary, removeAvatar, updateProfile, uploadAvatar } from '../lib/profile';
 
 export const Route = createFileRoute('/profile')({
   head: () => ({ meta: [{ title: 'Profile — Trackt' }] }),
@@ -33,9 +40,10 @@ const KIND_BLOCK_TITLES: Record<MediaKind, string> = {
 
 function ProfilePage() {
   const navigate = useNavigate();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, refetch } = authClient.useSession();
   const [summary, setSummary] = useState<ProfileSummary | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   // Same client-side session guard as the other app pages.
   useEffect(() => {
@@ -51,6 +59,13 @@ function ProfilePage() {
   const navUser = {
     name: session.user.name,
     username: session.user.displayUsername ?? session.user.name,
+    image: session.user.image,
+  };
+
+  /** After an edit: re-pull the summary and the session (nav name/avatar). */
+  const applyEdits = async () => {
+    setSummary(await fetchProfileSummary());
+    refetch();
   };
 
   const favoriteBlocks = summary
@@ -78,7 +93,7 @@ function ProfilePage() {
             {/* header */}
             <div className="border-b border-divider">
               <div className="mx-auto flex max-w-[1360px] items-end gap-8 px-10 pt-14 pb-10">
-                <Avatar name={summary.user.username} size={120} />
+                <Avatar name={summary.user.username} src={summary.user.image} size={120} />
                 <div className="flex flex-1 flex-col gap-2">
                   <h1 className="font-display text-[56px] leading-none uppercase">
                     {summary.user.name}
@@ -89,6 +104,7 @@ function ProfilePage() {
                       month: 'long',
                       year: 'numeric',
                     })}
+                    {summary.user.bio ? ` · ${summary.user.bio}` : ''}
                   </p>
                   <div className="flex gap-5 font-label text-[13px] text-dim">
                     <span>
@@ -100,12 +116,13 @@ function ProfilePage() {
                     )}
                   </div>
                 </div>
-                <span
-                  title="Coming soon"
-                  className="cursor-not-allowed rounded-full border border-glass-border-strong bg-glass px-6 py-[11px] text-[13px] font-bold tracking-btn text-fg/60"
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-6 py-[11px] text-[13px] font-bold tracking-btn text-fg transition hover:border-pink hover:text-pink"
                 >
                   EDIT PROFILE
-                </span>
+                </button>
               </div>
               <div className="mx-auto grid max-w-[1360px] grid-cols-2 gap-3 px-10 pb-10 md:grid-cols-3 lg:grid-cols-5">
                 <StatCard
@@ -227,9 +244,179 @@ function ProfilePage() {
                 </section>
               </div>
             </main>
+            {editing && (
+              <EditProfileDialog
+                user={summary.user}
+                onClose={() => setEditing(false)}
+                onSaved={applyEdits}
+              />
+            )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Edit dialog: avatar upload/remove, display name, bio. Username stays fixed. */
+function EditProfileDialog({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: ProfileSummary['user'];
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [name, setName] = useState(user.name);
+  const [bio, setBio] = useState(user.bio ?? '');
+  const [image, setImage] = useState(user.image);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  const pickAvatar = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setImage(await uploadAvatar(file));
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed');
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const dropAvatar = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await removeAvatar();
+      setImage(null);
+    } catch {
+      setError('Could not remove the photo — try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!name.trim()) {
+      setError('Name can’t be empty.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await updateProfile({ name: name.trim(), bio: bio.trim() || null });
+      await onSaved();
+      onClose();
+    } catch {
+      setError('Saving failed — try again.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal
+      aria-label="edit profile"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-ink/70 p-6 backdrop-blur-sm"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <GlassCard as="section" className="w-full max-w-md bg-ink/90 p-7">
+        <form onSubmit={save} className="flex flex-col gap-5">
+          <h2 className="font-display text-[28px] uppercase">Edit profile</h2>
+
+          <div className="flex items-center gap-5">
+            <Avatar name={user.username} src={image} size={120} className="size-20 text-2xl" />
+            <div className="flex flex-col gap-2">
+              <input
+                ref={fileRef}
+                type="file"
+                accept={AVATAR_MIME_TYPES.join(',')}
+                className="hidden"
+                onChange={(event) => pickAvatar(event.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => fileRef.current?.click()}
+              >
+                {image ? 'CHANGE PHOTO' : 'UPLOAD PHOTO'}
+              </Button>
+              {image && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={dropAvatar}
+                  className="cursor-pointer text-left text-[13px] text-dim transition hover:text-pink"
+                >
+                  Remove photo
+                </button>
+              )}
+              <p className="text-xs text-faint">PNG, JPEG, or WebP — 2MB max.</p>
+            </div>
+          </div>
+
+          <Input
+            label="Display name"
+            name="displayName"
+            value={name}
+            maxLength={80}
+            onChange={(event) => setName(event.target.value)}
+            required
+          />
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="bio"
+              className="font-label text-xs font-semibold tracking-label text-dim uppercase"
+            >
+              Bio
+            </label>
+            <textarea
+              id="bio"
+              rows={3}
+              maxLength={280}
+              value={bio}
+              placeholder="Watches too much neo-noir. Reads webtoons on the tram."
+              onChange={(event) => setBio(event.target.value)}
+              className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+            />
+            <p className="text-right text-xs text-faint">{bio.length}/280</p>
+          </div>
+
+          {error && (
+            <p role="alert" className="text-sm text-red-400">
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
+              CANCEL
+            </Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? 'SAVING…' : 'SAVE'}
+            </Button>
+          </div>
+        </form>
+      </GlassCard>
     </div>
   );
 }

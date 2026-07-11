@@ -111,6 +111,7 @@ function MediaPage() {
   const navUser = {
     name: session.user.name,
     username: session.user.displayUsername ?? session.user.name,
+    image: session.user.image,
   };
 
   if (missing) {

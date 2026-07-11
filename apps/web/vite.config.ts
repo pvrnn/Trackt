@@ -9,6 +9,7 @@ export default defineConfig({
     // In development the API runs separately on :3001 (see apps/api).
     proxy: {
       '/api': 'http://localhost:3001',
+      '/uploads': 'http://localhost:3001',
       '/healthz': 'http://localhost:3001',
       '/readyz': 'http://localhost:3001',
       '/docs': 'http://localhost:3001',

@@ -61,7 +61,7 @@ function HomePage() {
   if (isPending || !session) return <div className="min-h-screen bg-ink" />;
 
   const userName = session.user.displayUsername ?? session.user.name;
-  const navUser = { name: session.user.name, username: userName };
+  const navUser = { name: session.user.name, username: userName, image: session.user.image };
 
   const checkIn = (entry: UpNextEntry) => {
     if (checkedIn.has(entry.id)) return;

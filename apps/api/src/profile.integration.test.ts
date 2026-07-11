@@ -140,6 +140,92 @@ describe.runIf(available)('profile + favourites (postgres)', () => {
     ]);
   });
 
+  it('updates display name and bio via PATCH, rejects empty updates', async () => {
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/me/profile',
+      headers: { cookie },
+      payload: { name: 'Renamed Tester', bio: 'Tracks everything.' },
+    });
+    expect(patch.statusCode).toBe(200);
+    const profile = await getProfile();
+    expect(profile.user).toMatchObject({ name: 'Renamed Tester', bio: 'Tracks everything.' });
+
+    const clearBio = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/me/profile',
+      headers: { cookie },
+      payload: { bio: null },
+    });
+    expect(clearBio.statusCode).toBe(200);
+    expect((await getProfile()).user.bio).toBeNull();
+
+    const empty = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/me/profile',
+      headers: { cookie },
+      payload: {},
+    });
+    expect(empty.statusCode).toBe(400);
+    const blankName = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/me/profile',
+      headers: { cookie },
+      payload: { name: '   ' },
+    });
+    expect(blankName.statusCode).toBe(400);
+  });
+
+  it('uploads, serves, and removes an avatar', async () => {
+    // 1×1 transparent PNG.
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const boundary = '----trackt-test-boundary';
+    const multipart = (filename: string, mime: string, body: Buffer) =>
+      Buffer.concat([
+        Buffer.from(
+          `--${boundary}\r\ncontent-disposition: form-data; name="file"; filename="${filename}"\r\ncontent-type: ${mime}\r\n\r\n`,
+        ),
+        body,
+        Buffer.from(`\r\n--${boundary}--\r\n`),
+      ]);
+
+    const upload = await app.inject({
+      method: 'POST',
+      url: '/api/v1/me/avatar',
+      headers: { cookie, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: multipart('avatar.png', 'image/png', png),
+    });
+    expect(upload.statusCode).toBe(200);
+    const { image } = upload.json();
+    expect(image).toMatch(/^\/uploads\/avatars\/.+\.png$/);
+    expect((await getProfile()).user.image).toBe(image);
+
+    const served = await app.inject({ method: 'GET', url: image });
+    expect(served.statusCode).toBe(200);
+    expect(served.rawPayload.equals(png)).toBe(true);
+
+    const badType = await app.inject({
+      method: 'POST',
+      url: '/api/v1/me/avatar',
+      headers: { cookie, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: multipart('avatar.gif', 'image/gif', png),
+    });
+    expect(badType.statusCode).toBe(400);
+
+    const remove = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/me/avatar',
+      headers: { cookie },
+    });
+    expect(remove.statusCode).toBe(200);
+    expect((await getProfile()).user.image).toBeNull();
+    // The stored file is gone too.
+    expect((await app.inject({ method: 'GET', url: image })).statusCode).toBe(404);
+  });
+
   it('aggregates tracking stats and mean rating', async () => {
     await app.inject({
       method: 'PUT',

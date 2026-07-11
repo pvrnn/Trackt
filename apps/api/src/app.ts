@@ -1,5 +1,9 @@
+import { mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import {
@@ -8,7 +12,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
-import { APP_VERSION, type Env } from '@trackt/shared';
+import { APP_VERSION, AVATAR_MAX_BYTES, type Env } from '@trackt/shared';
 import type { Db } from '@trackt/db';
 import type { Auth } from './auth.js';
 import { toWebHeaders } from './lib/session.js';
@@ -50,6 +54,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     origin: env.NODE_ENV === 'production' ? [env.APP_URL] : true,
     credentials: true,
   });
+
+  // User uploads (avatars; later, covers for user-created entries — PRD §6.1).
+  // Local disk for now; the S3_* env vars are reserved for object storage.
+  const uploadsRoot = resolve(env.UPLOADS_DIR);
+  mkdirSync(uploadsRoot, { recursive: true });
+  await app.register(fastifyStatic, { root: uploadsRoot, prefix: '/uploads/' });
+  await app.register(multipart, { limits: { fileSize: AVATAR_MAX_BYTES, files: 1 } });
 
   await app.register(swagger, {
     openapi: {

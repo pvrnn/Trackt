@@ -23,6 +23,8 @@ export const ProfileSummarySchema = z.object({
   user: z.object({
     name: z.string(),
     username: z.string(),
+    bio: z.string().nullable(),
+    image: z.string().nullable(),
     joinedAt: z.iso.datetime(),
   }),
   stats: z.object({
@@ -39,3 +41,19 @@ export const ProfileSummarySchema = z.object({
   activity: z.array(ActivityEntrySchema),
 });
 export type ProfileSummary = z.infer<typeof ProfileSummarySchema>;
+
+/** Editable profile fields (`PATCH /api/v1/me/profile`). Username is fixed. */
+export const UpdateProfileBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    bio: z.string().trim().max(280).nullable(),
+  })
+  .partial();
+export type UpdateProfileBody = z.infer<typeof UpdateProfileBodySchema>;
+
+/** Avatar constraints shared by the upload endpoint and the edit form. */
+export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+export const AVATAR_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+
+export const AvatarResponseSchema = z.object({ image: z.string().nullable() });
+export type AvatarResponse = z.infer<typeof AvatarResponseSchema>;

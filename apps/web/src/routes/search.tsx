@@ -80,6 +80,7 @@ function SearchPage() {
           user={{
             name: session.user.name,
             username: session.user.displayUsername ?? session.user.name,
+            image: session.user.image,
           }}
         />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
