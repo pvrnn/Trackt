@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useCallback, useEffect, useState } from 'react';
 import { LOG_STATUSES, type LogStatus, type MediaDetail } from '@trackt/shared';
-import { AppNav } from '../components/layout/AppNav';
+import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
 import { Button } from '../components/ui/Button';
@@ -101,11 +101,14 @@ function MediaPage() {
 
   if (isPending || !session) return <div className="min-h-screen bg-ink" />;
 
-  const userName = session.user.displayUsername ?? session.user.name;
+  const navUser = {
+    name: session.user.name,
+    username: session.user.displayUsername ?? session.user.name,
+  };
 
   if (missing) {
     return (
-      <Shell userName={userName}>
+      <Shell user={navUser}>
         <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-10 pt-14 pb-20">
           <h1 className="font-display text-[56px] leading-none uppercase">Not found</h1>
           <p className="text-[15px] text-muted">
@@ -119,7 +122,7 @@ function MediaPage() {
     );
   }
 
-  if (!detail) return <Shell userName={userName} />;
+  if (!detail) return <Shell user={navUser} />;
 
   const viewer = detail.viewer ?? { status: null, score: null, watched: [] };
   const noun = partNoun(detail);
@@ -165,7 +168,7 @@ function MediaPage() {
   ];
 
   return (
-    <Shell userName={userName}>
+    <Shell user={navUser}>
       {/* hero */}
       <div className="border-b border-divider">
         <div className="mx-auto flex max-w-[1360px] flex-col gap-8 px-10 pt-14 pb-10 md:flex-row">
@@ -432,12 +435,12 @@ function MediaPage() {
   );
 }
 
-function Shell({ userName, children }: { userName: string; children?: React.ReactNode }) {
+function Shell({ user, children }: { user: AppNavUser; children?: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
       <div className="relative">
-        <AppNav userName={userName} />
+        <AppNav user={user} />
         {children}
       </div>
     </div>

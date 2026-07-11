@@ -76,7 +76,12 @@ function SearchPage() {
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
       <div className="relative">
-        <AppNav userName={session.user.displayUsername ?? session.user.name} />
+        <AppNav
+          user={{
+            name: session.user.name,
+            username: session.user.displayUsername ?? session.user.name,
+          }}
+        />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
           <h1 className="font-display text-[64px] leading-none uppercase">Discover</h1>
 

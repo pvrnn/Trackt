@@ -61,6 +61,7 @@ function HomePage() {
   if (isPending || !session) return <div className="min-h-screen bg-ink" />;
 
   const userName = session.user.displayUsername ?? session.user.name;
+  const navUser = { name: session.user.name, username: userName };
 
   const checkIn = (entry: UpNextEntry) => {
     if (checkedIn.has(entry.id)) return;
@@ -100,7 +101,7 @@ function HomePage() {
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
       <div className="relative">
-        <AppNav userName={userName} />
+        <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-10 pt-12 pb-20">
           {loadError ? (
             <p role="alert" className="text-[15px] text-red-400">
