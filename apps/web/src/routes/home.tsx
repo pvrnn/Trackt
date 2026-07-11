@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { Wordmark } from '../components/layout/Wordmark';
 import { Avatar } from '../components/ui/Avatar';
-import { Button } from '../components/ui/Button';
+import { Button, buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { authClient } from '../lib/auth-client';
 
@@ -42,9 +42,12 @@ function HomePage() {
               Welcome, {displayName}
             </h1>
             <p className="text-[15px] text-muted">
-              Your tracker is ready. Search, check-ins, and stats land here next.
+              Your tracker is ready. Check-ins and stats land here next.
             </p>
           </div>
+          <Link to="/search" className={buttonClassName({ className: 'w-full' })}>
+            DISCOVER
+          </Link>
           <Button
             variant="secondary"
             onClick={() =>

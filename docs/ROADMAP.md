@@ -13,13 +13,13 @@ The living record of what's built and what's next. **Every PR/sprint that comple
 | Web          | Login + register pages, end-to-end auth flow (better-auth, email/password + username)                                                                                                                                           | `9f13a9b`                         |
 | Architecture | Central slim catalog pivot: deterministic canonical IDs (UUIDv5), slim media contract, local-Postgres search (`/api/v1/search`), `apps/catalog` service with seq-cursor sync protocol, dev seed (`pnpm db:seed`)                | `495ba65`, ADR-0001               |
 | Worker       | Instance-side catalog sync job: pages `/v1/catalog/changes` into local `media` (slug on insert only, enrichment-preserving upserts, tombstones), `sync_state` cursor, 6-hour scheduler + immediate first run, `CATALOG_URL` env | `apps/worker/src/catalog-sync.ts` |
+| Web          | Search/Discover page (`/search`, mockup Search.dc.html): debounced `/api/v1/search` consumer, kind filter chips, shareable `?q=&kind=` URLs, ⌘K focus, `AppNav`; `@trackt/shared` made browser-safe (pure-TS SHA-1 for uuidv5)  | `apps/web/src/routes/search.tsx`  |
 
 ## 🔜 Next (in order)
 
 1. **Catalog population** — importers feeding `apps/catalog` from redistributable sources only (anime-offline-database → anime; TVmaze → series; Wikidata → movies; MangaDex/AniList → manga). Single-writer publish path (seq caveat, ADR-0001). Replaces the 501 stub at `POST /v1/admin/media`.
-2. **Search UI** in apps/web (mockup: `docs/design/Search.dc.html`) — first consumer of `/api/v1/search`.
-3. **Catalog service deployment** — Dockerfile/deploy for apps/catalog (project-operated; stays out of the self-hoster compose).
-4. **Home dashboard** (mockup: `Home.dc.html`) — replace the placeholder in `apps/web/src/routes/home.tsx`.
+2. **Catalog service deployment** — Dockerfile/deploy for apps/catalog (project-operated; stays out of the self-hoster compose).
+3. **Home dashboard** (mockup: `Home.dc.html`) — replace the placeholder in `apps/web/src/routes/home.tsx`.
 
 ## 📋 Backlog (unordered, from PRD)
 
