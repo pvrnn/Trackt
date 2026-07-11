@@ -3,6 +3,7 @@ export * from './canonical-id.js';
 export * from './catalog.js';
 export * from './env.js';
 export * from './env-catalog.js';
+export * from './home.js';
 export * from './media.js';
 export * from './queues.js';
 export * from './rating.js';

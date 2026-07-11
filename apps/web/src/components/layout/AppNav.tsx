@@ -42,6 +42,12 @@ export function AppNav({ userName }: { userName: string }) {
         )}
       </div>
       <div className="flex-1" />
+      <Link
+        to="/search"
+        className="hidden w-[260px] items-center gap-2.5 rounded-full border border-glass-border bg-glass-well px-4.5 py-2.5 text-sm text-dim transition hover:border-pink hover:text-pink lg:flex"
+      >
+        <span aria-hidden>⌕</span> Search titles…
+      </Link>
       <Avatar name={userName} size={32} className="size-9" />
     </nav>
   );
