@@ -6,3 +6,4 @@ export * from './env-catalog.js';
 export * from './media.js';
 export * from './queues.js';
 export * from './rating.js';
+export * from './slug.js';

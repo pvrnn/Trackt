@@ -17,6 +17,8 @@ const RawEnvSchema = z.object({
   DATABASE_URL: z.string().startsWith('postgres', 'must be a postgres:// URL').optional(),
   REDIS_URL: z.string().startsWith('redis', 'must be a redis:// URL').optional(),
   AUTH_SECRET: z.string().min(16, 'must be at least 16 characters').optional(),
+  // Empty string means "unset" (compose files pass optional keys through as '').
+  CATALOG_URL: z.preprocess((value) => (value === '' ? undefined : value), z.url().optional()),
   TMDB_API_KEY: z.string().optional(),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   UPLOADS_DIR: z.string().default('./data/uploads'),
@@ -33,6 +35,7 @@ const DEV_DEFAULTS = {
   DATABASE_URL: 'postgres://trackt:trackt@localhost:5432/trackt',
   REDIS_URL: 'redis://localhost:6379',
   AUTH_SECRET: 'trackt-dev-secret-do-not-use-in-production',
+  CATALOG_URL: 'http://localhost:3002',
 } as const;
 
 /** How to fix each missing/invalid variable — shown in startup errors. */
@@ -41,6 +44,8 @@ const HINTS: Record<string, string> = {
     'e.g. postgres://trackt:trackt@db:5432/trackt — the bundled docker-compose.yml sets this for you',
   REDIS_URL: 'e.g. redis://redis:6379 — the bundled docker-compose.yml sets this for you',
   AUTH_SECRET: 'generate one with: openssl rand -base64 32',
+  CATALOG_URL:
+    'base URL of the central slim catalog service (ADR-0001); unset disables catalog sync',
   TMDB_API_KEY:
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
@@ -61,6 +66,8 @@ export interface Env {
   DATABASE_URL: string;
   REDIS_URL: string;
   AUTH_SECRET: string;
+  /** Central slim-catalog base URL; undefined (production only) disables catalog sync. */
+  CATALOG_URL?: string | undefined;
   TMDB_API_KEY?: string | undefined;
   LOG_LEVEL: (typeof LOG_LEVELS)[number];
   UPLOADS_DIR: string;
@@ -114,6 +121,9 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     DATABASE_URL: raw.DATABASE_URL ?? DEV_DEFAULTS.DATABASE_URL,
     REDIS_URL: raw.REDIS_URL ?? DEV_DEFAULTS.REDIS_URL,
     AUTH_SECRET: raw.AUTH_SECRET ?? DEV_DEFAULTS.AUTH_SECRET,
+    // In production an unset CATALOG_URL stays unset (sync disabled, warned at
+    // worker startup) — defaulting to localhost there would just fail opaquely.
+    CATALOG_URL: raw.CATALOG_URL ?? (isProduction ? undefined : DEV_DEFAULTS.CATALOG_URL),
     TMDB_API_KEY: tmdbApiKey,
   };
 }

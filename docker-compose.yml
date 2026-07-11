@@ -24,6 +24,7 @@ services:
       DATABASE_URL: postgres://trackt:${POSTGRES_PASSWORD:-trackt}@postgres:5432/trackt
       REDIS_URL: redis://redis:6379
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env — generate one with `openssl rand -base64 32`}
+      CATALOG_URL: ${CATALOG_URL:-}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       UPLOADS_DIR: /app/data/uploads
     ports:

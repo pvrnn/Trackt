@@ -1,12 +1,15 @@
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import pino from 'pino';
+import { createDb } from '@trackt/db';
 import { EnvValidationError, QUEUES, loadEnv } from '@trackt/shared';
+import { runCatalogSync } from './catalog-sync.js';
 
 /**
  * Background jobs (PRD §6): catalog sync, importers, notifications.
- * v0.1 wires the queue plumbing; the catalog-sync handler (pull slim-catalog
- * changes from the central service, ADR-0001) lands with the sync sprint.
+ * The catalog-sync job mirrors the central slim catalog into the local
+ * `media` table (ADR-0001) — scheduled below, plus an immediate run on boot
+ * so a fresh instance starts its initial full sync right away.
  */
 
 let env;
@@ -28,6 +31,7 @@ const logger = pino({
 });
 
 const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
+const db = createDb(env.DATABASE_URL, { max: 3 });
 
 const catalogQueue = new Queue(QUEUES.catalogSync, { connection });
 
@@ -38,11 +42,29 @@ await legacyQueue.removeJobScheduler('refresh-airing-daily');
 await legacyQueue.removeJobScheduler('refresh-ended-weekly');
 await legacyQueue.close();
 
+const catalogUrl = env.CATALOG_URL;
+if (catalogUrl) {
+  // Repeatable sync; BullMQ runs the first iteration immediately, which
+  // doubles as the initial full sync (cursor 0) on a fresh instance.
+  await catalogQueue.upsertJobScheduler(
+    'catalog-sync-repeat',
+    { every: 6 * 60 * 60 * 1000 },
+    { name: 'sync', opts: { attempts: 3, backoff: { type: 'exponential', delay: 30_000 } } },
+  );
+} else {
+  await catalogQueue.removeJobScheduler('catalog-sync-repeat');
+  logger.warn('CATALOG_URL is not set — catalog sync disabled, local search stays empty');
+}
+
 const catalogWorker = new Worker(
   QUEUES.catalogSync,
   async (job) => {
-    logger.info({ jobId: job.id, name: job.name, data: job.data }, 'processing catalog sync');
-    // TODO(v0.2): pull /v1/catalog/changes from the central catalog and upsert media rows.
+    if (!catalogUrl) {
+      logger.warn({ jobId: job.id }, 'skipping catalog sync: CATALOG_URL is not set');
+      return;
+    }
+    logger.info({ jobId: job.id, name: job.name }, 'catalog sync started');
+    return runCatalogSync({ db, catalogUrl, logger });
   },
   { connection },
 );
@@ -54,7 +76,7 @@ catalogWorker.on('failed', (job, error) => {
   logger.error({ jobId: job?.id, name: job?.name, err: error }, 'job failed');
 });
 
-logger.info({ queue: QUEUES.catalogSync }, 'worker started');
+logger.info({ queue: QUEUES.catalogSync, catalogUrl }, 'worker started');
 
 const shutdown = async (signal: string) => {
   logger.info(`received ${signal}, shutting down`);
