@@ -19,9 +19,9 @@ The living record of what's built and what's next. **Every PR/sprint that comple
 
 ## 🔜 Next (in order)
 
-1. **Catalog population** — importers feeding `apps/catalog` from redistributable sources only (anime-offline-database → anime; TVmaze → series; Wikidata → movies; MangaDex/AniList → manga). Single-writer publish path (seq caveat, ADR-0001). Replaces the 501 stub at `POST /v1/admin/media`.
+1. **Home dashboard** (mockup: `Home.dc.html`) — replace the placeholder in `apps/web/src/routes/home.tsx`. First consumer of the tracking data (up-next row from in-progress titles, stats, recent ratings).
 2. **Catalog service deployment** — Dockerfile/deploy for apps/catalog (project-operated; stays out of the self-hoster compose).
-3. **Home dashboard** (mockup: `Home.dc.html`) — replace the placeholder in `apps/web/src/routes/home.tsx`.
+3. **Catalog population** (deliberately last — relies on importer scripts to be built in a later dedicated sprint) — importers feeding `apps/catalog` from redistributable sources only (anime-offline-database → anime; TVmaze → series; Wikidata → movies; MangaDex/AniList → manga). Single-writer publish path (seq caveat, ADR-0001). Replaces the 501 stub at `POST /v1/admin/media`.
 
 ## 📋 Backlog (unordered, from PRD)
 
