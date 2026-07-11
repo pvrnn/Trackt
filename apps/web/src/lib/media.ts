@@ -28,4 +28,6 @@ export const trackingApi = {
   clearScore: (id: string) => mutate(`/media/${id}/rating`, 'DELETE'),
   checkIn: (id: string, number: number) => mutate(`/media/${id}/progress/${number}`, 'PUT'),
   uncheck: (id: string, number: number) => mutate(`/media/${id}/progress/${number}`, 'DELETE'),
+  favorite: (id: string) => mutate(`/media/${id}/favorite`, 'PUT'),
+  unfavorite: (id: string) => mutate(`/media/${id}/favorite`, 'DELETE'),
 };

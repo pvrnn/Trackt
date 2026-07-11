@@ -1,13 +1,13 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { media, userMedia, type Db } from '@trackt/db';
+import { media, userMedia } from '@trackt/db';
 import {
   ApiErrorSchema,
   HomeSummarySchema,
-  type ActivityEntry,
   type HomeSummary,
   type MediaKind,
 } from '@trackt/shared';
+import { loadActivity, loadStreak, loadYearCheckinCounts } from '../../lib/me.js';
 import { getSessionUser } from '../../lib/session.js';
 
 /**
@@ -35,23 +35,6 @@ function partTotal(row: {
   const partKind = PART_KIND_BY_MEDIA[row.kind];
   if (!partKind) return null;
   return partKind === 'episode' ? row.episodeCount : row.chapterCount;
-}
-
-/** Consecutive days with a check-in, ending today or yesterday (grace day). */
-function computeStreak(days: string[], today: Date): number {
-  const dayMs = 24 * 60 * 60 * 1000;
-  const toUtcDay = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
-  const todayUtc = Date.parse(`${today.toISOString().slice(0, 10)}T00:00:00Z`);
-  let streak = 0;
-  let expected = todayUtc;
-  for (const day of days) {
-    const value = toUtcDay(day);
-    if (streak === 0 && value === todayUtc - dayMs) expected = value; // grace: streak alive from yesterday
-    if (value !== expected) break;
-    streak += 1;
-    expected -= dayMs;
-  }
-  return streak;
 }
 
 export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -137,93 +120,25 @@ export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
         });
       }
 
-      const [checkinStats, completedStats, streakDays, recentCheckins, recentRatings, recentLogs] =
-        await Promise.all([
-          db.execute(sql`
-            SELECT mp.kind, count(*)::int AS count FROM progress p
-            JOIN media_part mp ON mp.id = p.part_id
-            WHERE p.user_id = ${user.id} AND p.watched_at >= date_trunc('year', now())
-            GROUP BY mp.kind
-          `),
-          db.execute(sql`
-            SELECT count(*)::int AS count FROM user_media
-            WHERE user_id = ${user.id} AND status = 'completed'
-              AND updated_at >= date_trunc('year', now())
-          `),
-          db.execute(sql`
-            SELECT DISTINCT (watched_at AT TIME ZONE 'UTC')::date::text AS day FROM progress
-            WHERE user_id = ${user.id}
-            ORDER BY day DESC
-            LIMIT 60
-          `),
-          db.execute(sql`
-            SELECT m.title, m.slug, mp.kind, mp.number, p.watched_at FROM progress p
-            JOIN media_part mp ON mp.id = p.part_id
-            JOIN media m ON m.id = mp.media_id
-            WHERE p.user_id = ${user.id}
-            ORDER BY p.watched_at DESC
-            LIMIT ${ACTIVITY_LIMIT}
-          `),
-          db.execute(sql`
-            SELECT m.title, m.slug, r.score, r.updated_at FROM rating r
-            JOIN media m ON m.id = r.target_id
-            WHERE r.user_id = ${user.id} AND r.target_type = 'media' AND r.score IS NOT NULL
-            ORDER BY r.updated_at DESC
-            LIMIT ${ACTIVITY_LIMIT}
-          `),
-          db.execute(sql`
-            SELECT m.title, m.slug, um.status, um.updated_at FROM user_media um
-            JOIN media m ON m.id = um.media_id
-            WHERE um.user_id = ${user.id}
-            ORDER BY um.updated_at DESC
-            LIMIT ${ACTIVITY_LIMIT}
-          `),
-        ]);
-
-      let episodesThisYear = 0;
-      let chaptersThisYear = 0;
-      for (const row of checkinStats) {
-        if (row.kind === 'episode') episodesThisYear = row.count as number;
-        if (row.kind === 'chapter') chaptersThisYear = row.count as number;
-      }
-
-      const activity: ActivityEntry[] = [
-        ...[...recentCheckins].map((row) => ({
-          verb: 'checked_in' as const,
-          title: row.title as string,
-          slug: row.slug as string,
-          detail: `${row.kind === 'chapter' ? 'CH' : 'E'}${Number(row.number)}`,
-          at: new Date(row.watched_at as string).toISOString(),
-        })),
-        ...[...recentRatings].map((row) => ({
-          verb: 'rated' as const,
-          title: row.title as string,
-          slug: row.slug as string,
-          detail: `★ ${Number(row.score).toFixed(1)}`,
-          at: new Date(row.updated_at as string).toISOString(),
-        })),
-        ...[...recentLogs].map((row) => ({
-          verb: 'status' as const,
-          title: row.title as string,
-          slug: row.slug as string,
-          detail: (row.status as string).replace('_', ' '),
-          at: new Date(row.updated_at as string).toISOString(),
-        })),
-      ]
-        .sort((a, b) => b.at.localeCompare(a.at))
-        .slice(0, ACTIVITY_LIMIT);
+      const [yearCounts, completedStats, dayStreak, activity] = await Promise.all([
+        loadYearCheckinCounts(db, user.id),
+        db.execute(sql`
+          SELECT count(*)::int AS count FROM user_media
+          WHERE user_id = ${user.id} AND status = 'completed'
+            AND updated_at >= date_trunc('year', now())
+        `),
+        loadStreak(db, user.id),
+        loadActivity(db, user.id, ACTIVITY_LIMIT),
+      ]);
 
       return {
         upNext,
         inProgress,
         activity,
         stats: {
-          episodesThisYear,
-          chaptersThisYear,
-          dayStreak: computeStreak(
-            [...streakDays].map((row) => row.day as string),
-            new Date(),
-          ),
+          episodesThisYear: yearCounts.episodes,
+          chaptersThisYear: yearCounts.chapters,
+          dayStreak,
           completedThisYear: Number([...completedStats][0]?.count ?? 0),
         },
       };

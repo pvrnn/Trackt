@@ -28,6 +28,7 @@ export const ViewerStateSchema = z.object({
   score: RatingScoreSchema.nullable(),
   /** Checked-in episode/chapter numbers (integers — generated flat parts). */
   watched: z.array(z.number()),
+  favorited: z.boolean(),
 });
 export type ViewerState = z.infer<typeof ViewerStateSchema>;
 

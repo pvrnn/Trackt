@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'HOME', to: '/home' },
   { label: 'DISCOVER', to: '/search' },
   { label: 'LISTS' },
-  { label: 'ACTIVITY' },
+  { label: 'ACTIVITY', to: '/profile' },
 ];
 
 export interface AppNavUser {
@@ -156,14 +156,14 @@ function AccountMenu({ user }: { user: AppNavUser }) {
             <p className="text-sm font-bold">{user.name}</p>
             <p className="text-[13px] text-dim">@{user.username}</p>
           </div>
-          <span
+          <Link
             role="menuitem"
-            aria-disabled
-            title="Coming soon"
-            className="block cursor-not-allowed px-4.5 py-3 text-sm text-dim/60"
+            to="/profile"
+            onClick={() => setOpen(false)}
+            className="block px-4.5 py-3 text-sm text-fg transition hover:bg-pink-row hover:text-pink"
           >
             Profile
-          </span>
+          </Link>
           <button
             type="button"
             role="menuitem"

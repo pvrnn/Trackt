@@ -1,8 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { media, mediaPart, progress, rating, userMedia, type Db } from '@trackt/db';
+import { favorite, media, mediaPart, progress, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
   LogStatusSchema,
@@ -152,6 +152,61 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
           set: { score: String(score), updatedAt: new Date() },
         });
       return { score };
+    },
+  );
+
+  app.put(
+    '/media/:id/favorite',
+    {
+      schema: {
+        tags: ['tracking'],
+        params: MediaIdParamsSchema,
+        response: {
+          200: z.object({ favorited: z.literal(true) }),
+          401: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const ctx = await requireUserAndMedia(request, reply, request.params.id);
+      if (!ctx) return;
+      // Rank = insertion order within the kind shelf (max position + 1).
+      await ctx.db.execute(sql`
+        INSERT INTO favorite (user_id, media_id, kind, position)
+        VALUES (
+          ${ctx.user.id}, ${ctx.row.id}, ${ctx.row.kind},
+          COALESCE((SELECT max(position) + 1 FROM favorite
+                    WHERE user_id = ${ctx.user.id} AND kind = ${ctx.row.kind}), 1)
+        )
+        ON CONFLICT (user_id, media_id) DO NOTHING
+      `);
+      return { favorited: true as const };
+    },
+  );
+
+  app.delete(
+    '/media/:id/favorite',
+    {
+      schema: {
+        tags: ['tracking'],
+        params: MediaIdParamsSchema,
+        response: {
+          200: z.object({ removed: z.boolean() }),
+          401: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const ctx = await requireUserAndMedia(request, reply, request.params.id);
+      if (!ctx) return;
+      await ctx.db
+        .delete(favorite)
+        .where(and(eq(favorite.userId, ctx.user.id), eq(favorite.mediaId, ctx.row.id)));
+      return { removed: true };
     },
   );
 

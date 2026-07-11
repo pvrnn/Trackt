@@ -85,7 +85,14 @@ function MediaPage() {
         current
           ? {
               ...current,
-              viewer: { status: null, score: null, watched: [], ...current.viewer, ...patch },
+              viewer: {
+                status: null,
+                score: null,
+                watched: [],
+                favorited: false,
+                ...current.viewer,
+                ...patch,
+              },
             }
           : current,
       );
@@ -124,7 +131,7 @@ function MediaPage() {
 
   if (!detail) return <Shell user={navUser} />;
 
-  const viewer = detail.viewer ?? { status: null, score: null, watched: [] };
+  const viewer = detail.viewer ?? { status: null, score: null, watched: [], favorited: false };
   const noun = partNoun(detail);
   const total = partTotal(detail);
   const watchedSet = new Set(viewer.watched);
@@ -263,6 +270,26 @@ function MediaPage() {
                   </option>
                 ))}
               </PillSelect>
+              <button
+                type="button"
+                aria-pressed={viewer.favorited}
+                title={viewer.favorited ? 'Remove from favourites' : 'Add to favourites'}
+                onClick={() =>
+                  applyViewer({ favorited: !viewer.favorited }, () =>
+                    viewer.favorited
+                      ? trackingApi.unfavorite(detail.id)
+                      : trackingApi.favorite(detail.id),
+                  )
+                }
+                className={clsx(
+                  'cursor-pointer rounded-full border px-5 py-[11px] text-[13px] font-bold tracking-btn transition',
+                  viewer.favorited
+                    ? 'border-pink bg-pink-selected text-pink'
+                    : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
+                )}
+              >
+                {viewer.favorited ? '♥ FAVOURITE' : '♡ FAVOURITE'}
+              </button>
               <span
                 title="Lists are coming soon"
                 className="cursor-not-allowed rounded-full border border-glass-border-strong bg-glass px-5 py-[11px] text-[13px] font-bold tracking-btn text-fg/60"

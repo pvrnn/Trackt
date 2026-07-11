@@ -1,7 +1,7 @@
 import { and, count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { media, rating, userMedia, type Db } from '@trackt/db';
+import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
   MediaDetailSchema,
@@ -79,10 +79,15 @@ async function loadViewer(db: Db, userId: string, mediaId: string): Promise<View
     WHERE p.user_id = ${userId} AND mp.media_id = ${mediaId}
     ORDER BY mp.number ASC
   `);
+  const [fav] = await db
+    .select({ mediaId: favorite.mediaId })
+    .from(favorite)
+    .where(and(eq(favorite.userId, userId), eq(favorite.mediaId, mediaId)));
   return {
     status: log?.status ?? null,
     score: own?.score !== undefined && own.score !== null ? Number(own.score) : null,
     watched: [...watchedRows].map((row) => Number(row.number)),
+    favorited: fav !== undefined,
   };
 }
 
