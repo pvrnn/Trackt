@@ -95,7 +95,8 @@ export const mediaPart = pgTable(
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
   },
   (t) => [
-    index('media_part_media_id_idx').on(t.mediaId, t.kind, t.number),
+    // Unique so lazy part creation (tracking check-ins) can ON CONFLICT DO NOTHING.
+    uniqueIndex('media_part_media_id_idx').on(t.mediaId, t.kind, t.number),
     index('media_part_parent_id_idx').on(t.parentId),
   ],
 );

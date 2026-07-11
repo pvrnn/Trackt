@@ -36,6 +36,13 @@
       "when": 1783765913912,
       "tag": "0004_low_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783768831070,
+      "tag": "0005_sweet_vanisher",
+      "breakpoints": true
     }
   ]
 }

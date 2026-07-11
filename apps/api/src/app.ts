@@ -11,6 +11,7 @@ import {
 import { APP_VERSION, type Env } from '@trackt/shared';
 import type { Db } from '@trackt/db';
 import type { Auth } from './auth.js';
+import { toWebHeaders } from './lib/session.js';
 import { healthRoutes } from './routes/health.js';
 import { v1Routes } from './routes/v1/index.js';
 
@@ -77,15 +78,9 @@ function mountAuth(app: FastifyInstance, auth: Auth): void {
     url: '/api/auth/*',
     async handler(request, reply) {
       const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
-      const headers = new Headers();
-      for (const [key, value] of Object.entries(request.headers)) {
-        if (value === undefined) continue;
-        if (Array.isArray(value)) for (const v of value) headers.append(key, v);
-        else headers.append(key, value);
-      }
       const webRequest = new Request(url, {
         method: request.method,
-        headers,
+        headers: toWebHeaders(request),
         body: request.body ? JSON.stringify(request.body) : undefined,
       });
       const response = await auth.handler(webRequest);

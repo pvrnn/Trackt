@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
@@ -149,17 +149,19 @@ function SearchPage() {
             >
               {results.map((result) => (
                 <li key={result.id}>
-                  <CoverCard
-                    kind={result.kind}
-                    title={result.title}
-                    coverUrl={result.coverUrl ?? undefined}
-                    caption={
-                      <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
-                        <KindDot kind={result.kind} showLabel />
-                        {result.year !== null && <span>· {result.year}</span>}
-                      </span>
-                    }
-                  />
+                  <Link to="/media/$slug" params={{ slug: result.slug }}>
+                    <CoverCard
+                      kind={result.kind}
+                      title={result.title}
+                      coverUrl={result.coverUrl ?? undefined}
+                      caption={
+                        <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
+                          <KindDot kind={result.kind} showLabel />
+                          {result.year !== null && <span>· {result.year}</span>}
+                        </span>
+                      }
+                    />
+                  </Link>
                 </li>
               ))}
             </ul>
