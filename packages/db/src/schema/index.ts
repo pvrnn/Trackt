@@ -4,4 +4,3 @@ export * from './media.js';
 export * from './tracking.js';
 export * from './social.js';
 export * from './lists.js';
-export * from './sync.js';

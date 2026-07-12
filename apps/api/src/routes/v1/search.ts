@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { ApiErrorSchema, SearchQuerySchema, SearchResultSchema } from '@trackt/shared';
-import { searchMedia } from '../../lib/search.js';
+import { searchFederated } from '../../lib/federated-search.js';
 import { getSessionUser } from '../../lib/session.js';
 
 /**
- * Catalog search against the instance's local `media` table (ADR-0001) — every
- * instance serves the same catalog once synced, so search needs no upstream calls.
+ * Federated catalog search (ADR-0002): merges the instance's local `media`
+ * table with a live query against the central catalog. Central-only hits are
+ * materialized locally on first sight; a slow/unreachable catalog degrades
+ * to local-only results rather than failing the request.
  */
 export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -25,7 +27,10 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
       const viewer = await getSessionUser(app, request);
-      return searchMedia(db, request.query, viewer);
+      return searchFederated(db, app.deps.env.CATALOG_URL, request.query, viewer, {
+        timeoutMs: app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+        logger: app.log,
+      });
     },
   );
 };

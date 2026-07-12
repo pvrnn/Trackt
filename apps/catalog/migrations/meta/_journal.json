@@ -15,6 +15,13 @@
       "when": 1783717443227,
       "tag": "0001_catalog_seq_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783880086966,
+      "tag": "0002_majestic_hairball",
+      "breakpoints": true
     }
   ]
 }

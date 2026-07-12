@@ -4,17 +4,20 @@ import type { SearchQuery, SearchResult } from '@trackt/shared';
 import type { SessionUser } from './session.js';
 import { visibleMediaSql } from './visibility.js';
 
+/** A local search hit, with `rank` exposed so callers can merge-sort against central hits. */
+export type LocalSearchResult = SearchResult & { rank: number };
+
 /**
  * Typo-tolerant catalog search over the local `media` table: pg_trgm `%` on title
  * and synonyms (both GIN-indexed) plus ILIKE for short queries below the trgm
  * similarity threshold. `immutable_array_to_string` is created in migration 0003.
  * Results are scoped to what the viewer may see (lib/visibility.ts).
  */
-export async function searchMedia(
+export async function searchLocalMedia(
   db: Db,
   { q, kind, limit }: SearchQuery,
   viewer: SessionUser | null,
-): Promise<SearchResult[]> {
+): Promise<LocalSearchResult[]> {
   const rows = await db.execute(sql`
     SELECT id, slug, kind, title, year, status, cover_url, description,
            GREATEST(similarity(title, ${q}),
@@ -38,5 +41,6 @@ export async function searchMedia(
     status: row.status as SearchResult['status'],
     coverUrl: row.cover_url as string | null,
     description: row.description as string | null,
+    rank: row.rank as number,
   }));
 }

@@ -5,6 +5,7 @@ dist/
 .turbo/
 pnpm-lock.yaml
 packages/db/migrations/
-docs/design/
+apps/catalog/migrations/
+docs/
 **/routeTree.gen.ts
 LICENSE

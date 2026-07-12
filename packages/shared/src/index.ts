@@ -1,6 +1,7 @@
 export * from './api.js';
 export * from './canonical-id.js';
 export * from './catalog.js';
+export * from './catalog-client.js';
 export * from './env.js';
 export * from './env-catalog.js';
 export * from './home.js';
