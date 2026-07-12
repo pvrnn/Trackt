@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { loadEnv } from '@trackt/shared';
-import { buildApp, type App } from './app.js';
-import { baseAuthOptions, type Auth } from './auth.js';
+import { buildApp, type App } from '../src/app.js';
+import { baseAuthOptions, type Auth } from '../src/auth.js';
 
 const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
 

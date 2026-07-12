@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, loadEnv } from './env.js';
+import { EnvValidationError, loadEnv } from '../src/env.js';
 
 describe('loadEnv', () => {
   it('applies development defaults with an empty environment', () => {

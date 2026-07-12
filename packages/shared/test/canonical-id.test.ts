@@ -5,7 +5,7 @@ import {
   canonicalMediaId,
   canonicalMediaKey,
   uuidv5,
-} from './canonical-id.js';
+} from '../src/canonical-id.js';
 
 const DNS_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 

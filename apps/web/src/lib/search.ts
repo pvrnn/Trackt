@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SearchResultSchema, type MediaKind, type SearchResult } from '@trackt/shared';
+import { api } from './http';
 
 export interface MediaSearchState {
   status: 'idle' | 'loading' | 'success' | 'error';
@@ -25,11 +26,10 @@ export function useMediaSearch(query: string, kind?: MediaKind): MediaSearchStat
     setState((previous) => ({ ...previous, status: 'loading' }));
     const timer = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ q });
-        if (kind) params.set('kind', kind);
-        const response = await fetch(`/api/v1/search?${params}`, { signal: controller.signal });
-        if (!response.ok) throw new Error(`search responded ${response.status}`);
-        const results = SearchResultSchema.array().parse(await response.json());
+        const searchParams: Record<string, string> = { q };
+        if (kind) searchParams.kind = kind;
+        const json = await api.get('search', { searchParams, signal: controller.signal }).json();
+        const results = SearchResultSchema.array().parse(json);
         setState({ status: 'success', results });
       } catch {
         if (!controller.signal.aborted) setState({ status: 'error', results: [] });

@@ -1,10 +1,13 @@
 import { HomeSummarySchema, type HomeSummary } from '@trackt/shared';
+import { api, toError } from './http';
 
 /** Fetch the authenticated home dashboard summary. */
 export async function fetchHomeSummary(): Promise<HomeSummary> {
-  const response = await fetch('/api/v1/me/home');
-  if (!response.ok) throw new Error(`home summary responded ${response.status}`);
-  return HomeSummarySchema.parse(await response.json());
+  try {
+    return HomeSummarySchema.parse(await api.get('me/home').json());
+  } catch (error) {
+    throw await toError(error, 'home summary');
+  }
 }
 
 /** Compact relative timestamp for activity rows: 2H, 1D, 3W. */

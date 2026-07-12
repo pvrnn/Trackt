@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { MediaKind } from '@trackt/shared';
-import { createDefaultRegistry, ProviderRegistry } from './registry.js';
-import type { MetadataProvider, ProviderSearchResult } from './types.js';
+import { createDefaultRegistry, ProviderRegistry } from '../src/registry.js';
+import type { MetadataProvider, ProviderSearchResult } from '../src/types.js';
 
 function fakeProvider(
   name: string,

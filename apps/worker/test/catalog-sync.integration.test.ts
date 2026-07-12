@@ -5,7 +5,7 @@ import postgres from 'postgres';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, media, runMigrations, syncState, type Db } from '@trackt/db';
 import { canonicalMediaId, type CatalogChange } from '@trackt/shared';
-import { CATALOG_SYNC_CURSOR_KEY, runCatalogSync } from './catalog-sync.js';
+import { CATALOG_SYNC_CURSOR_KEY, runCatalogSync } from '../src/catalog-sync.js';
 
 /**
  * Postgres-backed sync tests against the dev compose database
