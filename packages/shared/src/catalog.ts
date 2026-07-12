@@ -37,28 +37,25 @@ export const CatalogVersionSchema = z.object({
 });
 export type CatalogVersion = z.infer<typeof CatalogVersionSchema>;
 
-/** One changed catalog row; `deletedAt` set means the entry is tombstoned. */
-export const CatalogChangeSchema = SlimMediaSchema.extend({
-  seq: z.number().int().positive(),
-  deletedAt: z.iso.datetime().nullable(),
-});
-export type CatalogChange = z.infer<typeof CatalogChangeSchema>;
-
 /**
- * Query for `GET /v1/catalog/changes`. A full snapshot is `since=0` paged to
- * completion — the future instance sync job uses the same endpoint for initial
- * and incremental sync.
+ * Query for `GET /v1/catalog/search` — the live federated-search surface
+ * (ADR-0002). Deliberately mirrors `SearchQuerySchema` in api.ts; kept as a
+ * separate schema because it's a distinct service's contract.
  */
-export const CatalogChangesQuerySchema = z.object({
-  since: z.coerce.number().int().nonnegative().default(0),
-  limit: z.coerce.number().int().min(1).max(1000).default(500),
+export const CatalogSearchQuerySchema = z.object({
+  q: z.string().min(1).max(200),
+  kind: MediaKindSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
 });
-export type CatalogChangesQuery = z.infer<typeof CatalogChangesQuerySchema>;
+export type CatalogSearchQuery = z.infer<typeof CatalogSearchQuerySchema>;
 
-export const CatalogChangesResponseSchema = z.object({
-  latestVersion: z.number().int().nonnegative(),
-  /** Cursor for the next page, or null when this page is the last. */
-  nextSince: z.number().int().positive().nullable(),
-  changes: z.array(CatalogChangeSchema),
+/** A central-catalog search hit; `rank` lets callers merge-sort against local results. */
+export const CatalogSearchHitSchema = SlimMediaSchema.extend({
+  rank: z.number(),
 });
-export type CatalogChangesResponse = z.infer<typeof CatalogChangesResponseSchema>;
+export type CatalogSearchHit = z.infer<typeof CatalogSearchHitSchema>;
+
+export const CatalogSearchResponseSchema = z.object({
+  results: z.array(CatalogSearchHitSchema),
+});
+export type CatalogSearchResponse = z.infer<typeof CatalogSearchResponseSchema>;

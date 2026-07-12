@@ -19,6 +19,8 @@ const RawEnvSchema = z.object({
   AUTH_SECRET: z.string().min(16, 'must be at least 16 characters').optional(),
   // Empty string means "unset" (compose files pass optional keys through as '').
   CATALOG_URL: z.preprocess((value) => (value === '' ? undefined : value), z.url().optional()),
+  /** Timeout for live central-catalog search calls on the interactive search path (ADR-0002). */
+  CATALOG_SEARCH_TIMEOUT_MS: z.coerce.number().int().positive().default(1500),
   TMDB_API_KEY: z.string().optional(),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   UPLOADS_DIR: z.string().default('./data/uploads'),
@@ -45,7 +47,7 @@ const HINTS: Record<string, string> = {
   REDIS_URL: 'e.g. redis://redis:6379 — the bundled docker-compose.yml sets this for you',
   AUTH_SECRET: 'generate one with: openssl rand -base64 32',
   CATALOG_URL:
-    'base URL of the central slim catalog service (ADR-0001); unset disables catalog sync',
+    'base URL of the central slim catalog service (ADR-0001); unset disables federated search',
   TMDB_API_KEY:
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
@@ -66,8 +68,9 @@ export interface Env {
   DATABASE_URL: string;
   REDIS_URL: string;
   AUTH_SECRET: string;
-  /** Central slim-catalog base URL; undefined (production only) disables catalog sync. */
+  /** Central slim-catalog base URL; undefined (production only) disables federated search. */
   CATALOG_URL?: string | undefined;
+  CATALOG_SEARCH_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
   LOG_LEVEL: (typeof LOG_LEVELS)[number];
   UPLOADS_DIR: string;
