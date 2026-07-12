@@ -2,8 +2,8 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, runMigrations, seedMedia, type Db } from '@trackt/db';
 import { canonicalMediaId, loadEnv, type HomeSummary } from '@trackt/shared';
-import { createAuth } from './auth.js';
-import { buildApp, type App } from './app.js';
+import { createAuth } from '../src/auth.js';
+import { buildApp, type App } from '../src/app.js';
 
 /**
  * Postgres-backed home-dashboard tests against the dev compose database
@@ -80,7 +80,7 @@ describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
     return response.json();
   }
 
-  async function track(method: 'PUT', url: string, payload?: unknown): Promise<void> {
+  async function track(method: 'PUT', url: string, payload?: object): Promise<void> {
     const response = await app.inject({ method, url, headers: { cookie }, payload });
     expect(response.statusCode, url).toBe(200);
   }

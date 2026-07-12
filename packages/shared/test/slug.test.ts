@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mediaSlug } from './slug.js';
+import { mediaSlug } from '../src/slug.js';
 
 describe('mediaSlug', () => {
   it('lowercases and hyphenates', () => {

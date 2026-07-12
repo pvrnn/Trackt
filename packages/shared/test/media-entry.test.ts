@@ -4,7 +4,7 @@ import {
   ModerationPatchBodySchema,
   ModerationQueueQuerySchema,
   isModerator,
-} from './media-entry.js';
+} from '../src/media-entry.js';
 
 describe('isModerator', () => {
   it('grants moderator and admin, not user', () => {

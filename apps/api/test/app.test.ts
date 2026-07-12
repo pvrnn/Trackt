@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadEnv } from '@trackt/shared';
-import { buildApp, type App } from './app.js';
+import { buildApp, type App } from '../src/app.js';
 
 const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
 

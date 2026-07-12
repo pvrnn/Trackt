@@ -8,8 +8,8 @@ import {
   loadEnv,
   type MediaDetail,
 } from '@trackt/shared';
-import { createAuth } from './auth.js';
-import { buildApp, type App } from './app.js';
+import { createAuth } from '../src/auth.js';
+import { buildApp, type App } from '../src/app.js';
 
 /**
  * Postgres-backed tests for user-created entries + the moderation queue

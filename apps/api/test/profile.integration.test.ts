@@ -2,8 +2,8 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, runMigrations, seedMedia, type Db } from '@trackt/db';
 import { canonicalMediaId, loadEnv, type MediaDetail, type ProfileSummary } from '@trackt/shared';
-import { createAuth } from './auth.js';
-import { buildApp, type App } from './app.js';
+import { createAuth } from '../src/auth.js';
+import { buildApp, type App } from '../src/app.js';
 
 /**
  * Postgres-backed profile + favourites tests (own `trackt_profile_test` db,

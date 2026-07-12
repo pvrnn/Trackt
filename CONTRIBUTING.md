@@ -39,6 +39,10 @@ Schema rules (PRD §5): UUID primary keys, `user_id` on every user-owned table, 
 
 Instances search their local `media` table only; the catalog is synced from the project-operated slim catalog service (`apps/catalog`) — see [ADR-0001](docs/adr/0001-central-slim-catalog.md). Canonical media IDs are deterministic UUIDv5s (`packages/shared/src/canonical-id.ts`) and must be identical on every instance: never mint random IDs for provider-identified works. `packages/providers` is parked (future per-instance enrichment) — don't extend it for core features.
 
+## Tests
+
+Tests live in each package's `test/` directory (mirroring `src/`), not alongside the source files. Name them `<subject>.test.ts` for unit tests or `<subject>.integration.test.ts` for tests that need the dev compose databases.
+
 ## Commit style
 
 Small, focused commits with imperative subjects ("add chapter progress endpoint"). Reference issues where relevant.

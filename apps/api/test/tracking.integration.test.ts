@@ -10,8 +10,8 @@ import {
   type Db,
 } from '@trackt/db';
 import { canonicalMediaId, loadEnv, type MediaDetail } from '@trackt/shared';
-import { createAuth } from './auth.js';
-import { buildApp, type App } from './app.js';
+import { createAuth } from '../src/auth.js';
+import { buildApp, type App } from '../src/app.js';
 
 /**
  * Postgres-backed media-detail + tracking tests against the dev compose database

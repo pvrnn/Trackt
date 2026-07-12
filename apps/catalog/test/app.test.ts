@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadCatalogEnv } from '@trackt/shared';
-import { buildApp, type App } from './app.js';
+import { buildApp, type App } from '../src/app.js';
 
 const env = loadCatalogEnv({
   NODE_ENV: 'test',

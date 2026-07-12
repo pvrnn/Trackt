@@ -2,7 +2,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, runMigrations, seedMedia, type Db } from '@trackt/db';
 import { SearchResultSchema, canonicalMediaId, loadEnv } from '@trackt/shared';
-import { buildApp, type App } from './app.js';
+import { buildApp, type App } from '../src/app.js';
 
 /**
  * Postgres-backed search tests against the dev compose database

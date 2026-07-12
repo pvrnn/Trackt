@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TokenBucket } from './rate-limit.js';
+import { TokenBucket } from '../src/rate-limit.js';
 
 describe('TokenBucket', () => {
   it('serves requests immediately while tokens remain', async () => {

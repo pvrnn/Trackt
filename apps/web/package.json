@@ -19,6 +19,7 @@
     "@trackt/shared": "workspace:*",
     "better-auth": "^1.6.23",
     "clsx": "^2.1.1",
+    "ky": "^2.0.2",
     "motion": "^12.42.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
