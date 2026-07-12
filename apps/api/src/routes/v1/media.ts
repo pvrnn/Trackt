@@ -1,17 +1,34 @@
+import { randomUUID } from 'node:crypto';
 import { and, count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
+  CoverResponseSchema,
+  CreateMediaBodySchema,
+  CreateMediaResponseSchema,
+  MEDIA_CREATE_DAILY_LIMIT,
   MediaDetailSchema,
+  isModerator,
+  mediaSlug,
   type MediaDetail,
   type SearchResult,
   type ViewerState,
 } from '@trackt/shared';
-import { getSessionUser } from '../../lib/session.js';
+import { getSessionUser, type SessionUser } from '../../lib/session.js';
+import { removeStoredUpload, storeUploadedImage } from '../../lib/uploads.js';
+import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Unique-violation SQLSTATE; drizzle wraps the driver error, so walk the cause chain. */
+const UNIQUE_VIOLATION = '23505';
+function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, cause } = error as { code?: unknown; cause?: unknown };
+  return code === UNIQUE_VIOLATION || isUniqueViolation(cause);
+}
 
 async function loadCommunity(db: Db, mediaId: string): Promise<MediaDetail['community']> {
   const [row] = await db
@@ -34,6 +51,7 @@ async function loadCommunity(db: Db, mediaId: string): Promise<MediaDetail['comm
 async function loadRelated(
   db: Db,
   row: { id: string; kind: string; genres: string[] },
+  viewer: SessionUser | null,
 ): Promise<SearchResult[]> {
   if (row.genres.length === 0) return [];
   // Self-join on the source row: its genres never leave Postgres (array params
@@ -46,7 +64,7 @@ async function loadRelated(
     WHERE m.kind = src.kind
       AND m.id <> src.id
       AND m.genres && src.genres
-      AND m.moderation <> 'rejected'
+      AND ${visibleMediaSql(viewer, sql.raw('m.'))}
     ORDER BY overlap DESC, m.year DESC NULLS LAST, m.title ASC
     LIMIT 3
   `);
@@ -112,18 +130,136 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       const { idOrSlug } = request.params;
       const column = UUID_RE.test(idOrSlug) ? media.id : media.slug;
       const [row] = await db.select().from(media).where(eq(column, idOrSlug)).limit(1);
-      if (!row || row.moderation === 'rejected') {
+      const user = await getSessionUser(app, request);
+      // 404 (not 403) for entries the viewer can't see — don't leak existence.
+      if (!row || !canViewMedia(row, user)) {
         return reply.status(404).send({ error: 'media not found' });
       }
 
-      const user = await getSessionUser(app, request);
       const [community, related, viewer] = await Promise.all([
         loadCommunity(db, row.id),
-        loadRelated(db, row),
+        loadRelated(db, row, user),
         user ? loadViewer(db, user.id, row.id) : Promise.resolve(null),
       ]);
 
       return { ...row, community, related, viewer };
+    },
+  );
+
+  /**
+   * User-created entries (PRD §3.5): usable immediately by the creator,
+   * `unverified` (creator+moderator visibility) until the moderation queue
+   * verifies them. Random UUIDs — canonical UUIDv5 ids are reserved for
+   * provider-identified rows (ADR-0001).
+   */
+  app.post(
+    '/media',
+    {
+      schema: {
+        tags: ['catalog'],
+        body: CreateMediaBodySchema,
+        response: {
+          201: CreateMediaResponseSchema,
+          401: ApiErrorSchema,
+          429: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const user = await getSessionUser(app, request);
+      if (!user) return reply.status(401).send({ error: 'authentication required' });
+
+      const [recent] = await db
+        .select({ created: count() })
+        .from(media)
+        .where(
+          and(eq(media.createdBy, user.id), sql`${media.createdAt} > now() - interval '1 day'`),
+        );
+      if ((recent?.created ?? 0) >= MEDIA_CREATE_DAILY_LIMIT) {
+        return reply
+          .status(429)
+          .send({ error: `entry limit reached (${MEDIA_CREATE_DAILY_LIMIT} per day)` });
+      }
+
+      const body = request.body;
+      const id = randomUUID();
+      const values = {
+        id,
+        kind: body.kind,
+        title: body.title,
+        originalTitle: body.originalTitle ?? null,
+        synonyms: body.synonyms ?? [],
+        genres: body.genres ?? [],
+        year: body.year ?? null,
+        episodeCount: body.episodeCount ?? null,
+        seasonCount: body.seasonCount ?? null,
+        chapterCount: body.chapterCount ?? null,
+        volumeCount: body.volumeCount ?? null,
+        description: body.description ?? null,
+        releaseDate: body.releaseDate ?? null,
+        status: body.status ?? null,
+        source: 'user' as const,
+        createdBy: user.id,
+        moderation: 'unverified' as const,
+      };
+      const slug = mediaSlug(body.title, body.year);
+      try {
+        await db.insert(media).values({ ...values, slug });
+        return reply.status(201).send({ id, slug, moderation: 'unverified' });
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error;
+      }
+      // Slug taken by another work — same retry convention as the catalog sync.
+      const suffixed = `${slug}-${id.slice(0, 8)}`;
+      await db.insert(media).values({ ...values, slug: suffixed });
+      return reply.status(201).send({ id, slug: suffixed, moderation: 'unverified' });
+    },
+  );
+
+  app.post(
+    '/media/:id/cover',
+    {
+      schema: {
+        tags: ['catalog'],
+        params: z.object({ id: z.uuid() }),
+        // Multipart body — validated by hand below, not by the zod serializer.
+        response: {
+          200: CoverResponseSchema,
+          400: ApiErrorSchema,
+          401: ApiErrorSchema,
+          403: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const user = await getSessionUser(app, request);
+      if (!user) return reply.status(401).send({ error: 'authentication required' });
+
+      const [row] = await db.select().from(media).where(eq(media.id, request.params.id)).limit(1);
+      if (!row || !canViewMedia(row, user)) {
+        return reply.status(404).send({ error: 'media not found' });
+      }
+      if (row.source !== 'user' || (row.createdBy !== user.id && !isModerator(user.role))) {
+        return reply
+          .status(403)
+          .send({ error: 'only the creator or a moderator can change this cover' });
+      }
+
+      const stored = await storeUploadedImage(request, app.deps.env.UPLOADS_DIR, 'covers', row.id);
+      if (stored.error !== undefined) return reply.status(400).send({ error: stored.error });
+      await db
+        .update(media)
+        .set({ coverUrl: stored.publicPath, updatedAt: new Date() })
+        .where(eq(media.id, row.id));
+      await removeStoredUpload(app.deps.env.UPLOADS_DIR, 'covers', row.coverUrl);
+      return { coverUrl: stored.publicPath };
     },
   );
 };

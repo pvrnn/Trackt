@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate, type LinkProps } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { UserRoleSchema, isModerator } from '@trackt/shared';
 import { authClient } from '../../lib/auth-client';
 import { Avatar } from '../ui/Avatar';
 import { Wordmark } from './Wordmark';
@@ -25,17 +26,24 @@ export interface AppNavUser {
   username: string;
   /** Uploaded avatar URL (better-auth `image`). */
   image?: string | null;
+  /** Per-instance role (better-auth `role`); gates the MODERATION link. */
+  role?: string;
 }
 
 /** Sticky authenticated-app navigation: wordmark, section links, search, account menu. */
 export function AppNav({ user }: { user: AppNavUser }) {
+  const role = UserRoleSchema.safeParse(user.role);
+  const items: NavItem[] =
+    role.success && isModerator(role.data)
+      ? [...NAV_ITEMS, { label: 'MODERATION', to: '/moderation' }]
+      : NAV_ITEMS;
   return (
     <nav className="sticky top-0 z-10 flex items-center gap-8 border-b border-divider bg-ink/75 px-10 py-5 backdrop-blur-[16px]">
       <Link to="/home">
         <Wordmark className="text-[26px]" />
       </Link>
       <div className="flex gap-6 text-sm font-semibold tracking-btn">
-        {NAV_ITEMS.map((item) =>
+        {items.map((item) =>
           item.to ? (
             <Link
               key={item.label}

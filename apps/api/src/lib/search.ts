@@ -1,15 +1,19 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@trackt/db';
 import type { SearchQuery, SearchResult } from '@trackt/shared';
+import type { SessionUser } from './session.js';
+import { visibleMediaSql } from './visibility.js';
 
 /**
  * Typo-tolerant catalog search over the local `media` table: pg_trgm `%` on title
  * and synonyms (both GIN-indexed) plus ILIKE for short queries below the trgm
  * similarity threshold. `immutable_array_to_string` is created in migration 0003.
+ * Results are scoped to what the viewer may see (lib/visibility.ts).
  */
 export async function searchMedia(
   db: Db,
   { q, kind, limit }: SearchQuery,
+  viewer: SessionUser | null,
 ): Promise<SearchResult[]> {
   const rows = await db.execute(sql`
     SELECT id, slug, kind, title, year, status, cover_url, description,
@@ -20,7 +24,7 @@ export async function searchMedia(
            OR title ILIKE '%' || ${q} || '%'
            OR immutable_array_to_string(synonyms, ' ') ILIKE '%' || ${q} || '%')
       AND (${kind ?? null}::media_kind IS NULL OR kind = ${kind ?? null}::media_kind)
-      AND moderation <> 'rejected'
+      AND ${visibleMediaSql(viewer)}
     ORDER BY rank DESC, title ASC
     LIMIT ${limit}
   `);

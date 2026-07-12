@@ -14,6 +14,7 @@ import {
   type PartKind,
 } from '@trackt/shared';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
+import { canViewMedia } from '../../lib/visibility.js';
 
 /**
  * Tracking core (PRD §3.1–3.2): the viewer's log status, rating, and per-part
@@ -36,9 +37,9 @@ const ProgressParamsSchema = z.object({ id: z.uuid(), number: PartNumberParamSch
 
 type MediaRow = typeof media.$inferSelect;
 
-async function loadMedia(db: Db, id: string): Promise<MediaRow | undefined> {
+async function loadMedia(db: Db, id: string, viewer: SessionUser): Promise<MediaRow | undefined> {
   const [row] = await db.select().from(media).where(eq(media.id, id)).limit(1);
-  return row && row.moderation !== 'rejected' ? row : undefined;
+  return row && canViewMedia(row, viewer) ? row : undefined;
 }
 
 export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -58,7 +59,7 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
       await reply.status(401).send({ error: 'authentication required' });
       return undefined;
     }
-    const row = await loadMedia(db, id);
+    const row = await loadMedia(db, id, user);
     if (!row) {
       await reply.status(404).send({ error: 'media not found' });
       return undefined;

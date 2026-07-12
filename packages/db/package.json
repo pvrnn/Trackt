@@ -20,6 +20,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node dist/bin/migrate.js",
     "db:seed": "node dist/bin/seed.js",
+    "db:set-role": "node dist/bin/set-role.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

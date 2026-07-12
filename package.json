@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @trackt/db db:generate",
     "db:migrate": "pnpm --filter @trackt/db db:migrate",
-    "db:seed": "pnpm --filter @trackt/db db:seed"
+    "db:seed": "pnpm --filter @trackt/db db:seed",
+    "db:set-role": "pnpm --filter @trackt/db db:set-role"
   },
   "devDependencies": {
     "eslint": "^10.6.0",

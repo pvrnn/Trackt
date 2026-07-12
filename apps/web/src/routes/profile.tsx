@@ -65,6 +65,7 @@ function ProfilePage() {
     name: session.user.name,
     username: session.user.displayUsername ?? session.user.name,
     image: session.user.image,
+    role: session.user.role,
   };
 
   /** After an edit: re-pull the summary and the session (nav name/avatar). */
