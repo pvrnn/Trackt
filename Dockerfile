@@ -13,8 +13,8 @@ COPY apps ./apps
 COPY packages ./packages
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
-# Drop dev dependencies for the runtime image.
-RUN pnpm prune --prod
+# pnpm refuses to prune node_modules without a TTY unless CI=true is set.
+RUN CI=true pnpm prune --prod
 
 FROM base AS runtime
 ENV NODE_ENV=production
