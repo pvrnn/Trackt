@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { bigint, index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { MEDIA_KINDS, MEDIA_STATUSES, type ExternalIds } from '@trackt/shared';
 
@@ -39,5 +40,11 @@ export const catalogMedia = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [index('catalog_media_seq_idx').on(t.seq), index('catalog_media_kind_idx').on(t.kind)],
+  (t) => [
+    index('catalog_media_seq_idx').on(t.seq),
+    index('catalog_media_kind_idx').on(t.kind),
+    // Typo-tolerant title search via pg_trgm (extension created in a hand-written
+    // migration, ADR-0002) — mirrors the instance-side media_title_trgm_idx.
+    index('catalog_media_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
+  ],
 );

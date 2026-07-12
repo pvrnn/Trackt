@@ -53,13 +53,13 @@ describe('catalog app', () => {
     expect(response.statusCode).toBe(503);
   });
 
-  it('GET /v1/catalog/changes responds 503 without a database', async () => {
-    const response = await app.inject({ method: 'GET', url: '/v1/catalog/changes?since=0' });
+  it('GET /v1/catalog/search responds 503 without a database', async () => {
+    const response = await app.inject({ method: 'GET', url: '/v1/catalog/search?q=matrix' });
     expect(response.statusCode).toBe(503);
   });
 
-  it('GET /v1/catalog/changes validates the query', async () => {
-    const response = await app.inject({ method: 'GET', url: '/v1/catalog/changes?since=-1' });
+  it('GET /v1/catalog/search validates the query', async () => {
+    const response = await app.inject({ method: 'GET', url: '/v1/catalog/search' });
     expect(response.statusCode).toBe(400);
   });
 
@@ -105,6 +105,6 @@ describe('catalog app', () => {
     expect(response.statusCode).toBe(200);
     const doc = response.json();
     expect(doc.info.title).toBe('Trackt Catalog API');
-    expect(doc.paths['/v1/catalog/changes']).toBeDefined();
+    expect(doc.paths['/v1/catalog/search']).toBeDefined();
   });
 });
