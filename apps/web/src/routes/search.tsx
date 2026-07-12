@@ -4,6 +4,7 @@ import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
+import { CreateEntryDialog } from '../components/media/CreateEntryDialog';
 import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
 import { authClient } from '../lib/auth-client';
@@ -37,6 +38,7 @@ function SearchPage() {
   const { data: session, isPending } = authClient.useSession();
   const { q = '', kind } = Route.useSearch();
   const [input, setInput] = useState(q);
+  const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { status, results } = useMediaSearch(q, kind);
 
@@ -81,6 +83,7 @@ function SearchPage() {
             name: session.user.name,
             username: session.user.displayUsername ?? session.user.name,
             image: session.user.image,
+            role: session.user.role,
           }}
         />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
@@ -181,18 +184,27 @@ function SearchPage() {
               <p className="text-base font-bold">Can&apos;t find it?</p>
               <p className="mt-0.5 text-sm text-muted">
                 Add it yourself — webtoons and obscure titles welcome. Usable immediately, verified
-                by moderators. Coming soon.
+                by moderators.
               </p>
             </div>
-            <span
-              title="Coming soon"
-              className="cursor-not-allowed rounded-full bg-prism px-6 py-3 text-[13px] font-bold tracking-btn text-on-prism opacity-60"
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="cursor-pointer rounded-full bg-prism px-6 py-3 text-[13px] font-bold tracking-btn text-on-prism transition hover:brightness-110"
             >
               CREATE ENTRY
-            </span>
+            </button>
           </aside>
         </main>
       </div>
+      {creating && (
+        <CreateEntryDialog
+          initialTitle={q}
+          initialKind={kind}
+          onClose={() => setCreating(false)}
+          onCreated={(slug) => navigate({ to: '/media/$slug', params: { slug } })}
+        />
+      )}
     </div>
   );
 }

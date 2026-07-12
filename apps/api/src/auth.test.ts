@@ -94,6 +94,26 @@ describe('auth routes', () => {
     expect(session.json().user.email).toBe('paul@example.com');
   });
 
+  it('ignores a role smuggled into sign-up and defaults to user', async () => {
+    const response = await app.inject(
+      signUp({
+        name: 'Sneaky',
+        email: 'sneaky@example.com',
+        password: 'password123',
+        username: 'sneaky',
+        role: 'admin',
+      }),
+    );
+    expect(response.statusCode).toBe(200);
+    const cookie = String(response.headers['set-cookie']).split(';')[0];
+    const session = await app.inject({
+      method: 'GET',
+      url: '/api/auth/get-session',
+      headers: { cookie },
+    });
+    expect(session.json().user.role).toBe('user');
+  });
+
   it('rejects a wrong password', async () => {
     const response = await app.inject({
       method: 'POST',

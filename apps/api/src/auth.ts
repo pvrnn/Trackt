@@ -28,6 +28,14 @@ export function baseAuthOptions(env: Env) {
     emailAndPassword: {
       enabled: true,
     },
+    user: {
+      additionalFields: {
+        // Surface the per-instance role (PRD §7) on sessions. `input: false`
+        // is load-bearing: sign-up/update-user must never set it — promotion
+        // goes through `pnpm db:set-role`.
+        role: { type: 'string', input: false, defaultValue: 'user' } as const,
+      },
+    },
     plugins: [username()],
     advanced: {
       database: {

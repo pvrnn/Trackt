@@ -89,16 +89,22 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
     expect(results.length).toBeLessThanOrEqual(2);
   });
 
-  it('excludes rejected entries', async () => {
-    const { results: before } = await search('q=Cosmic%20Delivery%20Club');
-    expect(before.length).toBe(1);
-    const webtoonId = (before[0] as { id: string }).id;
+  it('hides non-verified entries from anonymous viewers, shows them once verified', async () => {
+    // The seed's community webtoon is unverified with no creator, so anonymous
+    // searches can't see it (creator+moderator visibility, lib/visibility.ts).
+    const webtoonId = '7b0c6d3e-2f41-4a9d-9c1c-8f4d2a6b5e10';
     const { media } = await import('@trackt/db');
     const { eq } = await import('drizzle-orm');
-    await db.update(media).set({ moderation: 'rejected' }).where(eq(media.id, webtoonId));
+    const { results: hidden } = await search('q=Cosmic%20Delivery%20Club');
+    expect(hidden).toEqual([]);
     try {
+      await db.update(media).set({ moderation: 'verified' }).where(eq(media.id, webtoonId));
       const { results } = await search('q=Cosmic%20Delivery%20Club');
-      expect(results).toEqual([]);
+      expect(results.length).toBe(1);
+
+      await db.update(media).set({ moderation: 'rejected' }).where(eq(media.id, webtoonId));
+      const { results: rejected } = await search('q=Cosmic%20Delivery%20Club');
+      expect(rejected).toEqual([]);
     } finally {
       await db.update(media).set({ moderation: 'unverified' }).where(eq(media.id, webtoonId));
     }

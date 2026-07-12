@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { UserRoleSchema, type UserRole } from '@trackt/shared';
 
 /** Convert Fastify's header map to a WHATWG Headers object (better-auth's input). */
 export function toWebHeaders(request: FastifyRequest): Headers {
@@ -14,6 +15,7 @@ export function toWebHeaders(request: FastifyRequest): Headers {
 export interface SessionUser {
   id: string;
   name: string;
+  role: UserRole;
 }
 
 /**
@@ -27,5 +29,12 @@ export async function getSessionUser(
   const auth = app.deps.auth;
   if (!auth) return null;
   const session = await auth.api.getSession({ headers: toWebHeaders(request) });
-  return session ? { id: session.user.id, name: session.user.name } : null;
+  if (!session) return null;
+  return {
+    id: session.user.id,
+    name: session.user.name,
+    // Defensive parse: sessions created before the role field existed (or an
+    // adapter quirk) fall back to the least-privileged role.
+    role: UserRoleSchema.catch('user').parse(session.user.role),
+  };
 }

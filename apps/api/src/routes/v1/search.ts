@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { ApiErrorSchema, SearchQuerySchema, SearchResultSchema } from '@trackt/shared';
 import { searchMedia } from '../../lib/search.js';
+import { getSessionUser } from '../../lib/session.js';
 
 /**
  * Catalog search against the instance's local `media` table (ADR-0001) — every
@@ -23,7 +24,8 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
-      return searchMedia(db, request.query);
+      const viewer = await getSessionUser(app, request);
+      return searchMedia(db, request.query, viewer);
     },
   );
 };
