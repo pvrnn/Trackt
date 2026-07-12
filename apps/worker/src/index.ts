@@ -1,15 +1,15 @@
-import { Queue, Worker } from 'bullmq';
+import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import pino from 'pino';
-import { createDb } from '@trackt/db';
 import { EnvValidationError, QUEUES, loadEnv } from '@trackt/shared';
-import { runCatalogSync } from './catalog-sync.js';
 
 /**
- * Background jobs (PRD §6): catalog sync, importers, notifications.
- * The catalog-sync job mirrors the central slim catalog into the local
- * `media` table (ADR-0001) — scheduled below, plus an immediate run on boot
- * so a fresh instance starts its initial full sync right away.
+ * Background jobs (PRD §6): importers, notifications (not yet built). Catalog
+ * population moved off this worker: search now queries the central catalog
+ * live from the API's request path and materializes hits on first sight
+ * (ADR-0002) — this process no longer mirrors the whole catalog on a
+ * schedule. The open Redis connection below is what keeps this process alive
+ * for docker/entrypoint.sh's liveness check until a real job lands on it.
  */
 
 let env;
@@ -31,57 +31,26 @@ const logger = pino({
 });
 
 const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
-const db = createDb(env.DATABASE_URL, { max: 3 });
 
-const catalogQueue = new Queue(QUEUES.catalogSync, { connection });
-
-// Remove the provider-refresh schedulers from the pre-pivot era (ADR-0001):
-// dev Redis volumes persist, so old schedulers would keep firing otherwise.
+// Remove schedulers from retired jobs: self-hosted Redis volumes persist
+// across upgrades, so old schedulers would keep firing otherwise.
 const legacyQueue = new Queue(QUEUES.metadataRefresh, { connection });
 await legacyQueue.removeJobScheduler('refresh-airing-daily');
 await legacyQueue.removeJobScheduler('refresh-ended-weekly');
 await legacyQueue.close();
 
-const catalogUrl = env.CATALOG_URL;
-if (catalogUrl) {
-  // Repeatable sync; BullMQ runs the first iteration immediately, which
-  // doubles as the initial full sync (cursor 0) on a fresh instance.
-  await catalogQueue.upsertJobScheduler(
-    'catalog-sync-repeat',
-    { every: 6 * 60 * 60 * 1000 },
-    { name: 'sync', opts: { attempts: 3, backoff: { type: 'exponential', delay: 30_000 } } },
-  );
-} else {
-  await catalogQueue.removeJobScheduler('catalog-sync-repeat');
-  logger.warn('CATALOG_URL is not set — catalog sync disabled, local search stays empty');
-}
+// 'catalog-sync' (bulk full-catalog mirror, ADR-0001) was retired by
+// ADR-0002 in favor of live federated search — no QUEUES entry for it
+// anymore, name kept here as a literal purely to clean up the scheduler an
+// already-upgraded instance may still have registered.
+const retiredCatalogQueue = new Queue('catalog-sync', { connection });
+await retiredCatalogQueue.removeJobScheduler('catalog-sync-repeat');
+await retiredCatalogQueue.close();
 
-const catalogWorker = new Worker(
-  QUEUES.catalogSync,
-  async (job) => {
-    if (!catalogUrl) {
-      logger.warn({ jobId: job.id }, 'skipping catalog sync: CATALOG_URL is not set');
-      return;
-    }
-    logger.info({ jobId: job.id, name: job.name }, 'catalog sync started');
-    return runCatalogSync({ db, catalogUrl, logger });
-  },
-  { connection },
-);
-
-catalogWorker.on('completed', (job) => {
-  logger.debug({ jobId: job.id, name: job.name }, 'job completed');
-});
-catalogWorker.on('failed', (job, error) => {
-  logger.error({ jobId: job?.id, name: job?.name, err: error }, 'job failed');
-});
-
-logger.info({ queue: QUEUES.catalogSync, catalogUrl }, 'worker started');
+logger.info('worker started');
 
 const shutdown = async (signal: string) => {
   logger.info(`received ${signal}, shutting down`);
-  await catalogWorker.close();
-  await catalogQueue.close();
   connection.disconnect();
   process.exit(0);
 };
