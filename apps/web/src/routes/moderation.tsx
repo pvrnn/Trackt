@@ -1,8 +1,7 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useState, type FormEvent } from 'react';
 import {
-  UserRoleSchema,
-  isModerator,
   type ModerationPatchBody,
   type ModerationQueueItem,
   type ModerationQueueQuery,
@@ -14,9 +13,9 @@ import { Chip } from '../components/ui/Chip';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { KindDot } from '../components/ui/KindDot';
-import { authClient } from '../lib/auth-client';
+import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
-import { fetchModerationQueue, moderateEntry } from '../lib/entries';
+import { moderateEntry, useModerationQueue } from '../lib/entries';
 
 export const Route = createFileRoute('/moderation')({
   head: () => ({ meta: [{ title: 'Moderation — Trackt' }] }),
@@ -31,49 +30,17 @@ type QueueStatus = ModerationQueueQuery['status'];
  * the REJECTED tab allows un-rejecting mistakes.
  */
 function ModerationPage() {
-  const navigate = useNavigate({ from: Route.fullPath });
-  const { data: session, isPending } = authClient.useSession();
+  const { isPending, navUser, isModerator } = useAuthedPage({ requireModerator: true });
   const [status, setStatus] = useState<QueueStatus>('unverified');
-  const [items, setItems] = useState<ModerationQueueItem[] | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const { data: items, isError: loadError } = useModerationQueue(status, { enabled: isModerator });
 
-  const role = UserRoleSchema.safeParse(session?.user.role);
-  const moderator = role.success && isModerator(role.data);
-
-  // Session guard as elsewhere, plus the role gate (server enforces it too).
-  useEffect(() => {
-    if (isPending) return;
-    if (!session) navigate({ to: '/login' });
-    else if (!moderator) navigate({ to: '/home' });
-  }, [isPending, session, moderator, navigate]);
-
-  const refresh = useCallback(async () => {
-    setLoadError(false);
-    try {
-      setItems(await fetchModerationQueue(status));
-    } catch {
-      setLoadError(true);
-    }
-  }, [status]);
-
-  useEffect(() => {
-    if (session && moderator) void refresh();
-  }, [session, moderator, refresh]);
-
-  if (isPending || !session || !moderator) return <div className="min-h-screen bg-ink" />;
+  if (isPending || !navUser || !isModerator) return <div className="min-h-screen bg-ink" />;
 
   return (
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
       <div className="relative">
-        <AppNav
-          user={{
-            name: session.user.name,
-            username: session.user.displayUsername ?? session.user.name,
-            image: session.user.image,
-            role: session.user.role,
-          }}
-        />
+        <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
           <div>
             <h1 className="font-display text-[64px] leading-none uppercase">Moderation</h1>
@@ -96,7 +63,7 @@ function ModerationPage() {
             <p role="alert" className="text-[15px] text-red-400">
               Couldn’t load the queue — is the instance API reachable?
             </p>
-          ) : items === null ? null : items.length === 0 ? (
+          ) : !items ? null : items.length === 0 ? (
             <p className="text-[15px] text-muted">
               {status === 'unverified'
                 ? 'Nothing waiting for review. Nice.'
@@ -105,7 +72,7 @@ function ModerationPage() {
           ) : (
             <ul className="flex flex-col gap-4">
               {items.map((item) => (
-                <QueueCard key={item.id} item={item} onResolved={refresh} />
+                <QueueCard key={item.id} item={item} status={status} />
               ))}
             </ul>
           )}
@@ -116,28 +83,35 @@ function ModerationPage() {
 }
 
 /** One queue entry: summary row, approve/reject, and an inline fix-up form. */
-function QueueCard({
-  item,
-  onResolved,
-}: {
-  item: ModerationQueueItem;
-  onResolved: () => Promise<void>;
-}) {
+function QueueCard({ item, status }: { item: ModerationQueueItem; status: QueueStatus }) {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryKey = ['moderation', status] as const;
 
-  const act = async (patch: ModerationPatchBody) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await moderateEntry(item.id, patch);
-      await onResolved();
-    } catch (actError) {
-      setError(actError instanceof Error ? actError.message : 'Action failed — try again.');
-      setBusy(false);
-    }
-  };
+  // Optimistically drop the item from the visible queue; roll back on error,
+  // re-sync on settle. No lingering per-card busy flag to get stuck (the bug
+  // the hand-rolled version had after a field-only save).
+  const moderate = useMutation({
+    mutationFn: (patch: ModerationPatchBody) => moderateEntry(item.id, patch),
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ModerationQueueItem[]>(queryKey);
+      // A verdict change moves the item out of this tab; a field-only fix keeps it.
+      if (patch.moderation && patch.moderation !== status) {
+        queryClient.setQueryData<ModerationQueueItem[]>(queryKey, (current) =>
+          current?.filter((entry) => entry.id !== item.id),
+        );
+      }
+      return { previous };
+    },
+    onError: (_error, _patch, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
+
+  const busy = moderate.isPending;
+  const act = (patch: ModerationPatchBody) => moderate.mutate(patch);
 
   const counts = [
     item.episodeCount !== null ? `${item.episodeCount} EP` : null,
@@ -209,9 +183,9 @@ function QueueCard({
         </div>
       </div>
 
-      {error && (
+      {moderate.isError && (
         <p role="alert" className="text-sm text-red-400">
-          {error}
+          {moderate.error instanceof Error ? moderate.error.message : 'Action failed — try again.'}
         </p>
       )}
 
@@ -219,10 +193,12 @@ function QueueCard({
         <EditFields
           item={item}
           busy={busy}
-          onSave={async (fields) => {
-            await act(fields);
-            setEditing(false);
-          }}
+          onSave={(fields) =>
+            moderate.mutateAsync(fields).then(
+              () => setEditing(false),
+              () => undefined,
+            )
+          }
         />
       )}
     </GlassCard>

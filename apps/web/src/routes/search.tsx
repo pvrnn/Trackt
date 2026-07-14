@@ -7,7 +7,7 @@ import { CoverCard } from '../components/media/CoverCard';
 import { CreateEntryDialog } from '../components/media/CreateEntryDialog';
 import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
-import { authClient } from '../lib/auth-client';
+import { useAuthedPage } from '../lib/auth-client';
 import { useMediaSearch } from '../lib/search';
 
 export interface SearchParams {
@@ -35,17 +35,12 @@ const KIND_LABELS: Record<MediaKind, string> = {
 
 function SearchPage() {
   const navigate = useNavigate({ from: Route.fullPath });
-  const { data: session, isPending } = authClient.useSession();
+  const { isPending, navUser } = useAuthedPage();
   const { q = '', kind } = Route.useSearch();
   const [input, setInput] = useState(q);
   const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { status, results } = useMediaSearch(q, kind);
-
-  // Same client-side session guard as home.tsx (see the note there re: SSR cookies).
-  useEffect(() => {
-    if (!isPending && !session) navigate({ to: '/login' });
-  }, [isPending, session, navigate]);
 
   // Keep the typed value in the URL (?q=…) so searches are shareable/back-able.
   useEffect(() => {
@@ -72,20 +67,13 @@ function SearchPage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  if (isPending || !session) return <div className="min-h-screen bg-ink" />;
+  if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
   return (
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
       <div className="relative">
-        <AppNav
-          user={{
-            name: session.user.name,
-            username: session.user.displayUsername ?? session.user.name,
-            image: session.user.image,
-            role: session.user.role,
-          }}
-        />
+        <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
           <h1 className="font-display text-[64px] leading-none uppercase">Discover</h1>
 

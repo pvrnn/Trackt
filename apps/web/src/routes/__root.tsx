@@ -1,9 +1,10 @@
-import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
+import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router';
+import type { QueryClient } from '@tanstack/react-query';
 import { domAnimation, LazyMotion, MotionConfig } from 'motion/react';
 import type { ReactNode } from 'react';
 import appCss from '../styles.css?url';
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
