@@ -44,7 +44,13 @@ async function searchCentralSafe(
   }
 }
 
-/** Materializes central-only hits one at a time so one bad row can't drop the rest. */
+/**
+ * Materializes central-only hits one at a time so one bad row can't drop the
+ * rest. Results are built from the rows as persisted, not from the central
+ * hit: the stored slug can differ (suffixed on a slug collision, or the id
+ * may already exist locally under another slug), and answering with the
+ * requested slug would navigate the client to the wrong media.
+ */
 async function materializeCentralHits(
   db: Db,
   hits: CatalogSearchHit[],
@@ -54,16 +60,20 @@ async function materializeCentralHits(
   for (const hit of hits) {
     const row = buildProviderMediaRow(hit);
     try {
-      await insertNewProviderMedia(db, [row]);
+      const [persisted] = await insertNewProviderMedia(db, [row]);
+      if (!persisted) {
+        logger.warn({ id: hit.id }, 'central catalog hit missing after materialization');
+        continue;
+      }
       materialized.push({
-        id: row.id,
-        slug: row.slug,
-        kind: row.kind,
-        title: row.title,
-        year: row.year ?? null,
-        status: row.status ?? null,
-        coverUrl: row.coverUrl ?? null,
-        description: row.description ?? null,
+        id: persisted.id,
+        slug: persisted.slug,
+        kind: persisted.kind,
+        title: persisted.title,
+        year: persisted.year,
+        status: persisted.status,
+        coverUrl: persisted.coverUrl,
+        description: persisted.description,
         rank: hit.rank,
       });
     } catch (error) {

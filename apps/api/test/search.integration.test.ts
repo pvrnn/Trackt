@@ -154,6 +154,35 @@ async function listen(server: Server): Promise<string> {
 }
 
 const centralOnlyId = '5b6e0f1a-2c3d-4e5f-8a9b-0c1d2e3f4a5b';
+const slugCollisionHitId = '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a';
+const slugOwnerLocalId = '1a2b3c4d-5e6f-4a8b-9c0d-1e2f3a4b5c6d';
+const existingUnderOtherSlugId = '2f3e4d5c-6b7a-4980-8b1c-2d3e4f5a6b7c';
+
+/** Full central-catalog hit with only the fields under test varying. */
+function slimHit(overrides: {
+  id: string;
+  kind?: string;
+  title: string;
+  year?: number;
+  rank?: number;
+}): Record<string, unknown> {
+  return {
+    kind: 'movie',
+    synonyms: [],
+    year: 2024,
+    status: 'ended',
+    genres: [],
+    episodeCount: null,
+    seasonCount: null,
+    chapterCount: null,
+    volumeCount: null,
+    externalIds: {},
+    description: null,
+    coverUrl: null,
+    rank: 0.9,
+    ...overrides,
+  };
+}
 
 describe.runIf(available)('GET /api/v1/search — federated with central catalog (postgres)', () => {
   let app: App;
@@ -172,7 +201,14 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
   });
 
   afterAll(async () => {
-    await db.delete(media).where(eq(media.id, centralOnlyId));
+    for (const id of [
+      centralOnlyId,
+      slugCollisionHitId,
+      slugOwnerLocalId,
+      existingUnderOtherSlugId,
+    ]) {
+      await db.delete(media).where(eq(media.id, id));
+    }
   });
 
   async function buildAppWithCatalog(catalogUrl: string): Promise<App> {
@@ -214,6 +250,74 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
 
     const [row] = await db.select().from(media).where(eq(media.id, centralOnlyId));
     expect(row).toMatchObject({ source: 'provider', moderation: 'verified' });
+  });
+
+  it('returns the suffixed slug when the natural slug is already taken by another work', async () => {
+    // A different local work already owns the slug the central hit would get.
+    await db.insert(media).values({
+      id: slugOwnerLocalId,
+      kind: 'movie',
+      title: 'Zzz Unrelated Slug Owner',
+      slug: 'slug-collision-film-2024',
+      source: 'user',
+      moderation: 'verified',
+    });
+    server = catalogStub(() => ({
+      results: [slimHit({ id: slugCollisionHitId, title: 'Slug Collision Film', year: 2024 })],
+    }));
+    app = await buildAppWithCatalog(await listen(server));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/search?q=Slug%20Collision%20Film',
+    });
+    expect(response.statusCode).toBe(200);
+    const results = response.json() as { id: string; slug: string }[];
+    const hit = results.find((r) => r.id === slugCollisionHitId);
+    const expectedSlug = `slug-collision-film-2024-${slugCollisionHitId.slice(0, 8)}`;
+    // The response must carry the slug that was actually persisted, not the colliding one.
+    expect(hit).toMatchObject({ id: slugCollisionHitId, slug: expectedSlug });
+
+    const [row] = await db.select().from(media).where(eq(media.id, slugCollisionHitId));
+    expect(row?.slug).toBe(expectedSlug);
+  });
+
+  it('returns the existing slug when the id is already materialized under another slug', async () => {
+    // The canonical id already exists locally with a slug that differs from
+    // what the central hit's title would produce; the insert is skipped and
+    // the response must point at the existing row's slug.
+    await db.insert(media).values({
+      id: existingUnderOtherSlugId,
+      kind: 'movie',
+      title: 'Zzz Existing Under Other Slug',
+      slug: 'zzz-existing-under-other-slug',
+      source: 'provider',
+      moderation: 'verified',
+    });
+    server = catalogStub(() => ({
+      results: [
+        slimHit({ id: existingUnderOtherSlugId, title: 'Central Duplicate Story', year: 2020 }),
+      ],
+    }));
+    app = await buildAppWithCatalog(await listen(server));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/search?q=Central%20Duplicate%20Story',
+    });
+    expect(response.statusCode).toBe(200);
+    const results = response.json() as { id: string; slug: string; title: string }[];
+    const hit = results.find((r) => r.id === existingUnderOtherSlugId);
+    expect(hit).toMatchObject({
+      id: existingUnderOtherSlugId,
+      slug: 'zzz-existing-under-other-slug',
+      title: 'Zzz Existing Under Other Slug',
+    });
+
+    // The skipped insert must not have overwritten the existing row.
+    const [row] = await db.select().from(media).where(eq(media.id, existingUnderOtherSlugId));
+    expect(row?.slug).toBe('zzz-existing-under-other-slug');
+    expect(row?.title).toBe('Zzz Existing Under Other Slug');
   });
 
   it('shows a row already local once, not duplicated, when central also returns it', async () => {
