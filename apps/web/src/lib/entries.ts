@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   CoverResponseSchema,
   CreateMediaResponseSchema,
@@ -8,6 +9,7 @@ import {
   type ModerationQueueItem,
   type ModerationQueueQuery,
 } from '@trackt/shared';
+import { authClient } from './auth-client';
 import { api, toError } from './http';
 
 /** User-created entries + moderation queue (PRD §3.5) — API fetch wrappers. */
@@ -43,6 +45,22 @@ export async function fetchModerationQueue(
   } catch (error) {
     throw await toError(error, 'moderation queue');
   }
+}
+
+/**
+ * Moderation queue query, keyed by status so switching tabs auto-cancels the
+ * previous tab's request. Gated on session and the caller's moderator check.
+ */
+export function useModerationQueue(
+  status: ModerationQueueQuery['status'],
+  options?: { enabled?: boolean },
+) {
+  const { data: session } = authClient.useSession();
+  return useQuery({
+    queryKey: ['moderation', status],
+    queryFn: () => fetchModerationQueue(status),
+    enabled: !!session && (options?.enabled ?? true),
+  });
 }
 
 /** Moderator: edit fields and/or set the verdict on a user entry. */

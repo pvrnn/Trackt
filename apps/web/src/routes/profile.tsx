@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   AVATAR_MIME_TYPES,
@@ -20,9 +21,9 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { KindDot } from '../components/ui/KindDot';
 import { StatCard } from '../components/ui/StatCard';
-import { authClient } from '../lib/auth-client';
+import { useAuthedPage } from '../lib/auth-client';
 import { relativeTime } from '../lib/home';
-import { fetchProfileSummary, removeAvatar, updateProfile, uploadAvatar } from '../lib/profile';
+import { removeAvatar, updateProfile, uploadAvatar, useProfileSummary } from '../lib/profile';
 
 export const Route = createFileRoute('/profile')({
   head: () => ({ meta: [{ title: 'Profile — Trackt' }] }),
@@ -44,33 +45,16 @@ const KIND_BLOCK_TITLES: Record<MediaKind, string> = {
 };
 
 function ProfilePage() {
-  const navigate = useNavigate();
-  const { data: session, isPending, refetch } = authClient.useSession();
-  const [summary, setSummary] = useState<ProfileSummary | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const queryClient = useQueryClient();
+  const { isPending, navUser, refetch } = useAuthedPage();
+  const { data: summary, isError: loadError } = useProfileSummary();
   const [editing, setEditing] = useState(false);
 
-  // Same client-side session guard as the other app pages.
-  useEffect(() => {
-    if (!isPending && !session) navigate({ to: '/login' });
-  }, [isPending, session, navigate]);
-
-  useEffect(() => {
-    if (session) fetchProfileSummary().then(setSummary, () => setLoadError(true));
-  }, [session]);
-
-  if (isPending || !session) return <div className="min-h-screen bg-ink" />;
-
-  const navUser = {
-    name: session.user.name,
-    username: session.user.displayUsername ?? session.user.name,
-    image: session.user.image,
-    role: session.user.role,
-  };
+  if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
   /** After an edit: re-pull the summary and the session (nav name/avatar). */
   const applyEdits = async () => {
-    setSummary(await fetchProfileSummary());
+    await queryClient.invalidateQueries({ queryKey: ['profile'] });
     refetch();
   };
 
@@ -296,7 +280,6 @@ function EditProfileDialog({
         SOCIAL_PLATFORM_KEYS.map((key) => [key, user.socialLinks[key] ?? '']),
       ) as Record<SocialPlatform, string>,
   );
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -308,34 +291,40 @@ function EditProfileDialog({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
-  const pickAvatar = async (file: File | undefined) => {
-    if (!file) return;
-    setBusy(true);
-    setError(null);
-    try {
-      setImage(await uploadAvatar(file));
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed');
-    } finally {
-      setBusy(false);
+  const avatarUpload = useMutation({
+    mutationFn: uploadAvatar,
+    onMutate: () => setError(null),
+    onSuccess: (url) => setImage(url),
+    onError: (uploadError) =>
+      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed'),
+    onSettled: () => {
       if (fileRef.current) fileRef.current.value = '';
-    }
+    },
+  });
+
+  const avatarRemove = useMutation({
+    mutationFn: removeAvatar,
+    onMutate: () => setError(null),
+    onSuccess: () => setImage(null),
+    onError: () => setError('Could not remove the photo — try again.'),
+  });
+
+  const profileSave = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: async () => {
+      await onSaved();
+      onClose();
+    },
+    onError: () => setError('Saving failed — check the links and try again.'),
+  });
+
+  const busy = avatarUpload.isPending || avatarRemove.isPending || profileSave.isPending;
+
+  const pickAvatar = (file: File | undefined) => {
+    if (file) avatarUpload.mutate(file);
   };
 
-  const dropAvatar = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await removeAvatar();
-      setImage(null);
-    } catch {
-      setError('Could not remove the photo — try again.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const save = async (event: FormEvent) => {
+  const save = (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim()) {
       setError('Name can’t be empty.');
@@ -351,16 +340,8 @@ function EditProfileDialog({
       }
       socialLinks[key] = url;
     }
-    setBusy(true);
     setError(null);
-    try {
-      await updateProfile({ name: name.trim(), bio: bio.trim() || null, socialLinks });
-      await onSaved();
-      onClose();
-    } catch {
-      setError('Saving failed — check the links and try again.');
-      setBusy(false);
-    }
+    profileSave.mutate({ name: name.trim(), bio: bio.trim() || null, socialLinks });
   };
 
   return (
@@ -402,7 +383,7 @@ function EditProfileDialog({
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={dropAvatar}
+                  onClick={() => avatarRemove.mutate()}
                   className="cursor-pointer text-left text-[13px] text-dim transition hover:text-pink"
                 >
                   Remove photo

@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import { MediaDetailSchema, type LogStatus, type MediaDetail } from '@trackt/shared';
+import { authClient } from './auth-client';
 import { api, toError } from './http';
 
 /**
  * Fetch helpers for the media detail page. Mutations return nothing — the page
- * applies optimistic state and re-syncs from `fetchMediaDetail` on error.
+ * applies optimistic cache updates and re-syncs by invalidating the query.
  */
 
 export async function fetchMediaDetail(idOrSlug: string): Promise<MediaDetail | null> {
@@ -13,6 +15,19 @@ export async function fetchMediaDetail(idOrSlug: string): Promise<MediaDetail | 
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`media responded ${response.status}`);
   return MediaDetailSchema.parse(await response.json());
+}
+
+/**
+ * Media detail query — gated on session. `data === null` means a real 404
+ * (the page shows "Not found"); a thrown error surfaces as `isError`.
+ */
+export function useMediaDetail(slug: string) {
+  const { data: session } = authClient.useSession();
+  return useQuery({
+    queryKey: ['media', slug],
+    queryFn: () => fetchMediaDetail(slug),
+    enabled: !!session,
+  });
 }
 
 async function mutate(path: string, method: 'PUT' | 'DELETE', body?: unknown): Promise<void> {
