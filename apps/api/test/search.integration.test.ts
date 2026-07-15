@@ -25,7 +25,12 @@ async function ensureTestDatabase(): Promise<boolean> {
     const exists = await admin`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;
     if (exists.length === 0) await admin.unsafe(`CREATE DATABASE "${testDbName}"`);
     return true;
-  } catch {
+  } catch (error) {
+    if (process.env.CI_REQUIRE_DB) {
+      throw new Error(`Postgres is unavailable but CI_REQUIRE_DB is set: ${String(error)}`, {
+        cause: error,
+      });
+    }
     return false;
   } finally {
     await admin.end();
