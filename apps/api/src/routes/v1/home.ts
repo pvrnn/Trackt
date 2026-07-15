@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { media, userMedia } from '@trackt/db';
 import {
@@ -62,7 +62,14 @@ export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         .from(userMedia)
         .innerJoin(media, eq(media.id, userMedia.mediaId))
-        .where(and(eq(userMedia.userId, user.id), eq(userMedia.status, 'in_progress')))
+        .where(
+          and(
+            eq(userMedia.userId, user.id),
+            eq(userMedia.status, 'in_progress'),
+            // Soft-deleted titles vanish from the shelves; the log row stays.
+            isNull(media.deletedAt),
+          ),
+        )
         .orderBy(desc(userMedia.updatedAt))
         .limit(IN_PROGRESS_LIMIT);
 

@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { media, users } from '@trackt/db';
@@ -61,7 +61,14 @@ export const moderationRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         .from(media)
         .leftJoin(users, eq(users.id, media.createdBy))
-        .where(and(eq(media.source, 'user'), eq(media.moderation, request.query.status)))
+        .where(
+          and(
+            eq(media.source, 'user'),
+            eq(media.moderation, request.query.status),
+            // Soft-deleted entries left the catalog entirely — nothing to moderate.
+            isNull(media.deletedAt),
+          ),
+        )
         .orderBy(asc(media.createdAt))
         .limit(QUEUE_LIMIT);
 
@@ -95,11 +102,14 @@ export const moderationRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const ctx = await requireModerator(app, request, reply);
       if (!ctx) return;
-      // Provider-synced rows stay off-limits: moderation only governs user entries.
+      // Provider-synced rows stay off-limits: moderation only governs user
+      // entries; soft-deleted ones are out of circulation and stay untouchable.
       const [row] = await ctx.db
         .select({ id: media.id })
         .from(media)
-        .where(and(eq(media.id, request.params.id), eq(media.source, 'user')))
+        .where(
+          and(eq(media.id, request.params.id), eq(media.source, 'user'), isNull(media.deletedAt)),
+        )
         .limit(1);
       if (!row) return reply.status(404).send({ error: 'media not found' });
 

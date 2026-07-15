@@ -54,7 +54,11 @@ export async function loadYearCheckinCounts(
   return { episodes, chapters };
 }
 
-/** The viewer's most recent check-ins/ratings/status changes, merged newest-first. */
+/**
+ * The viewer's most recent check-ins/ratings/status changes, merged
+ * newest-first. Soft-deleted media (`deleted_at` set) are hidden here like
+ * everywhere else — the underlying rows stay, they just don't render.
+ */
 export async function loadActivity(
   db: Db,
   userId: string,
@@ -65,7 +69,7 @@ export async function loadActivity(
       SELECT m.title, m.slug, mp.kind, mp.number, p.watched_at FROM progress p
       JOIN media_part mp ON mp.id = p.part_id
       JOIN media m ON m.id = mp.media_id
-      WHERE p.user_id = ${userId}
+      WHERE p.user_id = ${userId} AND m.deleted_at IS NULL
       ORDER BY p.watched_at DESC
       LIMIT ${limit}
     `),
@@ -73,13 +77,14 @@ export async function loadActivity(
       SELECT m.title, m.slug, r.score, r.updated_at FROM rating r
       JOIN media m ON m.id = r.target_id
       WHERE r.user_id = ${userId} AND r.target_type = 'media' AND r.score IS NOT NULL
+        AND m.deleted_at IS NULL
       ORDER BY r.updated_at DESC
       LIMIT ${limit}
     `),
     db.execute(sql`
       SELECT m.title, m.slug, um.status, um.updated_at FROM user_media um
       JOIN media m ON m.id = um.media_id
-      WHERE um.user_id = ${userId}
+      WHERE um.user_id = ${userId} AND m.deleted_at IS NULL
       ORDER BY um.updated_at DESC
       LIMIT ${limit}
     `),

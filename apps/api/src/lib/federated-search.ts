@@ -1,5 +1,10 @@
 import type { FastifyBaseLogger } from 'fastify';
-import { buildProviderMediaRow, insertNewProviderMedia, type Db } from '@trackt/db';
+import {
+  buildProviderMediaRow,
+  findSoftDeletedMediaIds,
+  insertNewProviderMedia,
+  type Db,
+} from '@trackt/db';
 import {
   fetchCatalogSearch,
   type CatalogSearchHit,
@@ -95,7 +100,16 @@ export async function searchFederated(
 
   const localIds = new Set(local.map((r) => r.id));
   const centralOnly = central.filter((hit) => !localIds.has(hit.id));
-  const materialized = await materializeCentralHits(db, centralOnly, options.logger);
+  // A soft-deleted local row is invisible to the local search above, so its
+  // central hit lands here — filter it out or federation would resurrect a
+  // title deliberately pulled from circulation. (The insert below couldn't
+  // overwrite the row anyway, but the hit must not display either.)
+  const softDeleted = await findSoftDeletedMediaIds(
+    db,
+    centralOnly.map((hit) => hit.id),
+  );
+  const insertable = centralOnly.filter((hit) => !softDeleted.has(hit.id));
+  const materialized = await materializeCentralHits(db, insertable, options.logger);
 
   return [...local, ...materialized]
     .sort((a, b) => b.rank - a.rank || a.title.localeCompare(b.title))

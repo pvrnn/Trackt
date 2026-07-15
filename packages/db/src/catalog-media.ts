@@ -1,3 +1,4 @@
+import { and, inArray, isNotNull } from 'drizzle-orm';
 import { mediaSlug, type SlimMedia } from '@trackt/shared';
 import { isUniqueViolation } from './errors.js';
 import { media } from './schema/media.js';
@@ -36,11 +37,26 @@ export function buildProviderMediaRow(hit: SlimMedia): ProviderMediaRow {
 }
 
 /**
+ * Ids among `ids` whose local row is soft-deleted (`deleted_at` set): pulled
+ * from circulation, so federated search must neither resurrect nor display
+ * them even while the central catalog still serves the work.
+ */
+export async function findSoftDeletedMediaIds(db: Db, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .select({ id: media.id })
+    .from(media)
+    .where(and(inArray(media.id, ids), isNotNull(media.deletedAt)));
+  return new Set(rows.map((row) => row.id));
+}
+
+/**
  * Insert rows discovered for the first time. Targets the conflict on `id`
- * only, so an already-materialized row is silently skipped while a slug
- * collision (a different work already owns the same title+year) still
- * surfaces and is retried with a deterministic id-fragment suffix — same
- * fallback shape the old catalog-sync job used.
+ * only, so an already-materialized row is silently skipped (a soft-deleted
+ * row therefore stays soft-deleted) while a slug collision (a different work
+ * already owns the same title+year) still surfaces and is retried with a
+ * deterministic id-fragment suffix — same fallback shape the old catalog-sync
+ * job used.
  */
 export async function insertNewProviderMedia(db: Db, rows: ProviderMediaRow[]): Promise<void> {
   if (rows.length === 0) return;

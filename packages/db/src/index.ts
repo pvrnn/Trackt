@@ -8,7 +8,11 @@ export { isUniqueViolation } from './errors.js';
 export { runMigrations } from './migrate.js';
 export { seedMedia } from './seed.js';
 export { SEED_MEDIA } from './seed-data.js';
-export { buildProviderMediaRow, insertNewProviderMedia } from './catalog-media.js';
+export {
+  buildProviderMediaRow,
+  findSoftDeletedMediaIds,
+  insertNewProviderMedia,
+} from './catalog-media.js';
 
 export interface CreateDbOptions {
   /** Max pool connections (default 10). */

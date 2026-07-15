@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDb, runMigrations, seedMedia, type Db } from '@trackt/db';
+import { eq } from 'drizzle-orm';
+import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
 import { canonicalMediaId, loadEnv, type MediaDetail, type ProfileSummary } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
@@ -143,6 +144,21 @@ describe.runIf(available)('profile + favourites (postgres)', () => {
     expect(profile.favorites.filter((entry) => entry.kind === 'anime')).toEqual([
       expect.objectContaining({ id: frierenId, rank: 1 }),
     ]);
+  });
+
+  it('hides soft-deleted media from the favourites shelves (the row stays)', async () => {
+    const before = await getProfile();
+    expect(before.favorites.map((entry) => entry.id)).toContain(frierenId);
+    try {
+      await db.update(media).set({ deletedAt: new Date() }).where(eq(media.id, frierenId));
+      const profile = await getProfile();
+      expect(profile.favorites.map((entry) => entry.id)).not.toContain(frierenId);
+    } finally {
+      await db.update(media).set({ deletedAt: null }).where(eq(media.id, frierenId));
+    }
+    // Back in circulation, the favourite row was never touched.
+    const restored = await getProfile();
+    expect(restored.favorites.map((entry) => entry.id)).toContain(frierenId);
   });
 
   it('updates display name and bio via PATCH, rejects empty updates', async () => {
