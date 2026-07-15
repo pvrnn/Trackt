@@ -37,6 +37,14 @@ async function searchCentralSafe(
       timeoutMs: options.timeoutMs,
       fetchImpl: options.fetchImpl,
     });
+    if (response.skipped.length > 0) {
+      // Forward-compat: a newer central catalog sent hits this build can't
+      // parse (e.g. an unknown media kind); the rest of the page still counts.
+      options.logger.warn(
+        { skipped: response.skipped },
+        'skipping central catalog hits that do not match this build (upgrade to pick them up)',
+      );
+    }
     return response.results;
   } catch (error) {
     options.logger.warn({ err: error }, 'central catalog search failed, degrading to local-only');

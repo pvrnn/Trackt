@@ -14,6 +14,8 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/search',
     {
+      // Anonymous and the most expensive read — tighter bucket than the global limit.
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: {
         tags: ['catalog'],
         querystring: SearchQuerySchema,

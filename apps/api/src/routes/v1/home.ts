@@ -4,6 +4,7 @@ import { media, userMedia } from '@trackt/db';
 import {
   ApiErrorSchema,
   HomeSummarySchema,
+  PART_KIND_BY_MEDIA,
   type HomeSummary,
   type MediaKind,
 } from '@trackt/shared';
@@ -19,13 +20,6 @@ import { getSessionUser } from '../../lib/session.js';
 const IN_PROGRESS_LIMIT = 12;
 const UP_NEXT_LIMIT = 3;
 const ACTIVITY_LIMIT = 6;
-
-const PART_KIND_BY_MEDIA: Partial<Record<MediaKind, 'episode' | 'chapter'>> = {
-  series: 'episode',
-  anime: 'episode',
-  manga: 'chapter',
-  webtoon: 'chapter',
-};
 
 function partTotal(row: {
   kind: MediaKind;

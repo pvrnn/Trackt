@@ -27,6 +27,17 @@ import { users } from './auth.js';
  * Provider-identified rows use deterministic canonical UUIDs and will be synced from
  * the central slim catalog (ADR-0001); user-created rows keep random UUIDs, start
  * `unverified`, and go through the per-instance moderation queue.
+ *
+ * DANGER — deleting a media row cascades into user data. `user_media`,
+ * `favorite`, `list_item`, and (via `media_part`) `progress` all cascade-delete
+ * from here, and the polymorphic tables (`rating`, `comment`, `activity`,
+ * `report`) reference media by bare (target_type, target_id) with no FK, so
+ * their rows silently dangle. Since ADR-0002 retired the bulk catalog mirror
+ * (and its tombstone deletes), NO code path deletes media rows at all —
+ * federated search only ever inserts. Any manual `DELETE FROM media` therefore
+ * irrecoverably wipes user check-ins/logs; don't do it. If a delete path ever
+ * returns, decide first whether these cascades should become soft-deletes or
+ * RESTRICT — that's an open product decision.
  */
 export const media = pgTable(
   'media',
@@ -66,6 +77,8 @@ export const media = pgTable(
   (t) => [
     uniqueIndex('media_slug_idx').on(t.slug),
     index('media_kind_idx').on(t.kind),
+    // The daily creation limit counts per-creator rows on every POST /media.
+    index('media_created_by_idx').on(t.createdBy),
     index('media_moderation_idx').on(t.moderation),
     index('media_external_ids_gin_idx').using('gin', t.externalIds),
     // Typo-tolerant title search via pg_trgm (extension created in the initial migration).

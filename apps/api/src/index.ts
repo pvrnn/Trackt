@@ -34,6 +34,12 @@ async function main(): Promise<void> {
     },
   });
 
+  // Without a listener ioredis 'error' events crash the process (unhandled
+  // 'error' on an EventEmitter); route them through the app logger instead.
+  redis.on('error', (error) => {
+    app.log.warn({ err: error }, 'redis connection error');
+  });
+
   // Monolith mode: everything that isn't an API route is proxied to the web SSR server.
   if (env.WEB_PROXY_UPSTREAM) {
     await app.register(httpProxy, {
@@ -48,9 +54,15 @@ async function main(): Promise<void> {
 
   const shutdown = async (signal: string) => {
     app.log.info(`received ${signal}, shutting down`);
-    await app.close();
-    redis.disconnect();
-    process.exit(0);
+    try {
+      // buildApp sets forceCloseConnections, so lingering keep-alives can't hang this.
+      await app.close();
+    } catch (error) {
+      app.log.error({ err: error }, 'error during shutdown');
+    } finally {
+      redis.disconnect();
+      process.exit(0);
+    }
   };
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));

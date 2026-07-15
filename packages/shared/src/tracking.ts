@@ -68,5 +68,11 @@ export type UpdateLogBody = z.infer<typeof UpdateLogBodySchema>;
 export const RateBodySchema = z.object({ score: RatingScoreSchema });
 export type RateBody = z.infer<typeof RateBodySchema>;
 
-/** Path param for check-ins: the 1-based episode/chapter number. */
-export const PartNumberParamSchema = z.coerce.number().int().positive();
+/**
+ * Path param for check-ins: the 1-based episode/chapter number.
+ * Capped well below the DB column limit (`media_part.number` is numeric(8,2),
+ * max 999999.99) so absurd numbers 400 instead of overflowing to a 500 —
+ * episodeCount/chapterCount is null for airing series and user entries, so the
+ * route can't always bound it.
+ */
+export const PartNumberParamSchema = z.coerce.number().int().positive().max(99999);

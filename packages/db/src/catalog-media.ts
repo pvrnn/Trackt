@@ -1,4 +1,5 @@
 import { mediaSlug, type SlimMedia } from '@trackt/shared';
+import { isUniqueViolation } from './errors.js';
 import { media } from './schema/media.js';
 import type { Db } from './index.js';
 
@@ -8,8 +9,6 @@ import type { Db } from './index.js';
  * canonical UUIDs make dedup by `id` trivial, so no background staleness
  * tracking is needed once a row lands here.
  */
-
-const UNIQUE_VIOLATION = '23505';
 
 /** Insert shape with the id required — provider rows always carry a canonical id. */
 type ProviderMediaRow = typeof media.$inferInsert & { id: string };
@@ -34,12 +33,6 @@ export function buildProviderMediaRow(hit: SlimMedia): ProviderMediaRow {
     source: 'provider',
     moderation: 'verified',
   };
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const { code, cause } = error as { code?: unknown; cause?: unknown };
-  return code === UNIQUE_VIOLATION || isUniqueViolation(cause);
 }
 
 /**

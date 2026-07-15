@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import {
@@ -9,6 +10,7 @@ import {
 } from 'fastify-type-provider-zod';
 import { APP_VERSION, type CatalogEnv } from '@trackt/shared';
 import type { CatalogDb } from './db/index.js';
+import { errorHandler } from './error-handler.js';
 import { healthRoutes } from './routes/health.js';
 import { v1Routes } from './routes/v1/index.js';
 
@@ -35,13 +37,24 @@ export async function buildApp(deps: CatalogAppDeps): Promise<FastifyInstance> {
         ? { transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss' } } }
         : {}),
     },
+    // Sever keep-alive connections on close() so shutdown can't hang until SIGKILL.
+    forceCloseConnections: true,
   });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+  app.setErrorHandler(errorHandler);
   app.decorate('deps', deps);
 
   await app.register(cors, { origin: true });
+
+  // Blunt per-IP abuse guard; health probes stay exempt. Instance sync pulls
+  // page every few seconds at most, so a generous ceiling is fine.
+  await app.register(rateLimit, {
+    max: 300,
+    timeWindow: '1 minute',
+    allowList: (request) => request.url === '/healthz' || request.url === '/readyz',
+  });
 
   await app.register(swagger, {
     openapi: {

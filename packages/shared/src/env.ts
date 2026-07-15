@@ -104,7 +104,9 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   const isProduction = raw.NODE_ENV === 'production';
 
   if (isProduction) {
-    const missing = (['DATABASE_URL', 'REDIS_URL', 'AUTH_SECRET'] as const).filter(
+    // APP_URL feeds better-auth's baseURL/trustedOrigins and the CORS allowlist:
+    // a localhost fallback boots green but breaks every sign-in, so require it.
+    const missing = (['DATABASE_URL', 'REDIS_URL', 'AUTH_SECRET', 'APP_URL'] as const).filter(
       (key) => !raw[key],
     );
     if (missing.length > 0) {

@@ -4,6 +4,7 @@ import * as schema from './schema/index.js';
 
 export * from './schema/index.js';
 export { schema };
+export { isUniqueViolation } from './errors.js';
 export { runMigrations } from './migrate.js';
 export { seedMedia } from './seed.js';
 export { SEED_MEDIA } from './seed-data.js';
