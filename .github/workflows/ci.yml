@@ -9,6 +9,37 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Mirror docker-compose.dev.yml so the Postgres-backed integration suites
+    # (which default to localhost:5432 app DB / localhost:5433 catalog DB and
+    # create their own trackt_*_test databases) actually run instead of
+    # self-skipping. CI_REQUIRE_DB makes a skip a hard failure.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: trackt
+          POSTGRES_PASSWORD: trackt
+          POSTGRES_DB: trackt
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd "pg_isready -U trackt -d trackt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      postgres-catalog:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: trackt
+          POSTGRES_PASSWORD: trackt
+          POSTGRES_DB: trackt_catalog
+        ports:
+          - '5433:5432'
+        options: >-
+          --health-cmd "pg_isready -U trackt -d trackt_catalog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,6 +53,8 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+        env:
+          CI_REQUIRE_DB: 'true'
 
   # Self-hosters never build from source (PRD §6): images are published to ghcr.io
   # with semver tags on releases and `main` for the bleeding edge.
