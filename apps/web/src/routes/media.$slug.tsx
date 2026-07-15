@@ -13,8 +13,21 @@ import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
 import { trackingApi, useMediaDetail } from '../lib/media';
 
+/** "attack-on-titan" → "Attack On Titan": a serviceable SSR title until the query resolves. */
+function titleFromSlug(slug: string): string {
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export const Route = createFileRoute('/media/$slug')({
-  head: () => ({ meta: [{ title: 'Trackt' }] }),
+  // The detail loads client-side (session-gated query), so the server-rendered
+  // title is derived from the slug; the effect below refines it once data lands.
+  head: ({ params }) => ({
+    meta: [{ title: `${titleFromSlug(params.slug) || 'Media'} — Trackt` }],
+  }),
   component: MediaPage,
 });
 
@@ -157,9 +170,13 @@ function MediaPage() {
   const total = partTotal(detail);
   const watchedSet = new Set(viewer.watched);
   const listLength = total ?? (viewer.watched.length > 0 ? Math.max(...viewer.watched) : 0);
+  // Candidates stop at the known part count — never offer "CHECK IN E13" on a
+  // 12-episode series (the server would reject it). Only an unknown total may
+  // extend one past the highest watched part.
   const next = noun
-    ? (Array.from({ length: listLength + 1 }, (_, i) => i + 1).find((n) => !watchedSet.has(n)) ??
-      null)
+    ? (Array.from({ length: total ?? listLength + 1 }, (_, i) => i + 1).find(
+        (n) => !watchedSet.has(n),
+      ) ?? null)
     : null;
   const checkable = noun !== null && listLength > 0;
   const progressRatio = checkable && total ? watchedSet.size / total : null;

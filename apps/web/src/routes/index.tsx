@@ -94,13 +94,14 @@ function Hero() {
           >
             START TRACKING
           </MotionLink>
-          <MotionLink
-            to="/register"
-            whileTap={{ scale: 0.97 }}
-            className={buttonClassName({ variant: 'secondary', size: 'lg' })}
+          {/* The TV Time importer (PRD §3.6) hasn't shipped — visibly inert, not a
+              disguised register link. */}
+          <span
+            title="The TV Time importer is coming soon"
+            className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-full border border-glass-border bg-glass px-8 py-4 font-sans text-sm font-bold tracking-btn text-muted"
           >
-            IMPORT FROM TV TIME
-          </MotionLink>
+            IMPORT FROM TV TIME · SOON
+          </span>
         </div>
         <p className="font-label text-[13px] text-dim">
           or self-host:{' '}

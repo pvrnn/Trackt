@@ -1,7 +1,7 @@
 import { createAuthClient } from 'better-auth/react';
 import { inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
 import { useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { UserRoleSchema, isModerator } from '@trackt/shared';
 import type { AppNavUser } from '../components/layout/AppNav';
 
@@ -39,16 +39,24 @@ export interface AuthedPage {
  */
 export function useAuthedPage(options?: { requireModerator?: boolean }): AuthedPage {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: session, isPending, refetch } = authClient.useSession();
   const role = UserRoleSchema.safeParse(session?.user.role);
   const moderator = role.success && isModerator(role.data);
   const requireModerator = options?.requireModerator ?? false;
+  // Deep link → login → back to the deep link, not dumped at /home.
+  const returnTo = location.href;
 
   useEffect(() => {
     if (isPending) return;
-    if (!session) navigate({ to: '/login' });
-    else if (requireModerator && !moderator) navigate({ to: '/home' });
-  }, [isPending, session, moderator, requireModerator, navigate]);
+    if (!session) {
+      navigate({
+        to: '/login',
+        search: returnTo === '/home' ? {} : { redirect: returnTo },
+        replace: true,
+      });
+    } else if (requireModerator && !moderator) navigate({ to: '/home' });
+  }, [isPending, session, moderator, requireModerator, navigate, returnTo]);
 
   const navUser: AppNavUser | null = session
     ? {

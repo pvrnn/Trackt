@@ -6,20 +6,33 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { authClient } from '../lib/auth-client';
 
+/** Only same-app paths survive as a post-login destination — never other origins. */
+function safeRedirect(value: unknown): string | undefined {
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+    ? value
+    : undefined;
+}
+
 export const Route = createFileRoute('/login')({
   head: () => ({ meta: [{ title: 'Sign in — Trackt' }] }),
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: safeRedirect(search.redirect),
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const { data: session } = authClient.useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (session) return <Navigate to="/home" />;
+  // The guard put the interrupted destination in ?redirect — honour it here
+  // (`href`, when set, takes precedence over `to` in the router).
+  if (session) return <Navigate to="/home" href={redirect} />;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -31,7 +44,8 @@ function LoginPage() {
       setFormError(error.message ?? 'Sign in failed');
       return;
     }
-    navigate({ to: '/home' });
+    if (redirect) navigate({ href: redirect });
+    else navigate({ to: '/home' });
   }
 
   return (
@@ -84,7 +98,10 @@ function LoginPage() {
   );
 }
 
-/** TV Time migration promo (PRD §3.6 — the importer is launch-critical). */
+/**
+ * TV Time migration promo (PRD §3.6 — the importer is launch-critical).
+ * The importer hasn't shipped yet, so the CTA is visibly inert — not a fake link.
+ */
 export function TvTimeCard() {
   return (
     <GlassCard className="flex items-center gap-4 px-5 py-4">
@@ -95,7 +112,12 @@ export function TvTimeCard() {
           Bring your GDPR export — 1,000 episodes import in under a minute.
         </p>
       </div>
-      <span className="text-[13px] font-bold text-pink">IMPORT →</span>
+      <span
+        title="The TV Time importer is coming soon"
+        className="cursor-not-allowed text-[13px] font-bold text-pink/50"
+      >
+        IMPORT · SOON
+      </span>
     </GlassCard>
   );
 }

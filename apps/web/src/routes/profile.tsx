@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
+  AVATAR_MAX_BYTES,
   AVATAR_MIME_TYPES,
   MEDIA_KINDS,
   normalizeSocialLink,
@@ -11,6 +12,7 @@ import {
   type ProfileSummary,
   type SocialLinks,
   type SocialPlatform,
+  type UpdateProfileBody,
 } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
@@ -20,6 +22,7 @@ import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { KindDot } from '../components/ui/KindDot';
+import { Modal } from '../components/ui/Modal';
 import { StatCard } from '../components/ui/StatCard';
 import { useAuthedPage } from '../lib/auth-client';
 import { relativeTime } from '../lib/home';
@@ -261,6 +264,14 @@ function ProfilePage() {
   );
 }
 
+/**
+ * What happens to the avatar when the form is saved. Nothing touches the
+ * server until SAVE — a picked file is only previewed locally, so CANCEL
+ * genuinely cancels (the old flow uploaded on pick and made CANCEL a lie).
+ */
+type AvatarChange =
+  { kind: 'keep' } | { kind: 'replace'; file: File; previewUrl: string } | { kind: 'remove' };
+
 /** Edit dialog: avatar upload/remove, display name, bio. Username stays fixed. */
 function EditProfileDialog({
   user,
@@ -273,7 +284,7 @@ function EditProfileDialog({
 }) {
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio ?? '');
-  const [image, setImage] = useState(user.image);
+  const [avatar, setAvatar] = useState<AvatarChange>({ kind: 'keep' });
   const [links, setLinks] = useState<Record<SocialPlatform, string>>(
     () =>
       Object.fromEntries(
@@ -283,45 +294,56 @@ function EditProfileDialog({
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  const image =
+    avatar.kind === 'replace' ? avatar.previewUrl : avatar.kind === 'remove' ? null : user.image;
 
-  const avatarUpload = useMutation({
-    mutationFn: uploadAvatar,
-    onMutate: () => setError(null),
-    onSuccess: (url) => setImage(url),
-    onError: (uploadError) =>
-      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed'),
-    onSettled: () => {
-      if (fileRef.current) fileRef.current.value = '';
-    },
-  });
+  const discardPreview = (current: AvatarChange) => {
+    if (current.kind === 'replace') URL.revokeObjectURL(current.previewUrl);
+  };
 
-  const avatarRemove = useMutation({
-    mutationFn: removeAvatar,
-    onMutate: () => setError(null),
-    onSuccess: () => setImage(null),
-    onError: () => setError('Could not remove the photo — try again.'),
-  });
+  // Release the last preview's object URL when the dialog unmounts.
+  const avatarRef = useRef(avatar);
+  avatarRef.current = avatar;
+  useEffect(() => () => discardPreview(avatarRef.current), []);
 
   const profileSave = useMutation({
-    mutationFn: updateProfile,
+    mutationFn: async ({ body, change }: { body: UpdateProfileBody; change: AvatarChange }) => {
+      if (change.kind === 'replace') await uploadAvatar(change.file);
+      else if (change.kind === 'remove' && user.image) await removeAvatar();
+      await updateProfile(body);
+    },
     onSuccess: async () => {
       await onSaved();
       onClose();
     },
-    onError: () => setError('Saving failed — check the links and try again.'),
+    onError: (saveError) =>
+      setError(saveError instanceof Error ? saveError.message : 'Saving failed — try again.'),
   });
 
-  const busy = avatarUpload.isPending || avatarRemove.isPending || profileSave.isPending;
+  const busy = profileSave.isPending;
 
   const pickAvatar = (file: File | undefined) => {
-    if (file) avatarUpload.mutate(file);
+    if (fileRef.current) fileRef.current.value = '';
+    if (!file) return;
+    if (file.size > AVATAR_MAX_BYTES) {
+      setError('That image is over 2MB — pick a smaller one.');
+      return;
+    }
+    setError(null);
+    setAvatar((current) => {
+      discardPreview(current);
+      return { kind: 'replace', file, previewUrl: URL.createObjectURL(file) };
+    });
+  };
+
+  const removePhoto = () => {
+    setError(null);
+    setAvatar((current) => {
+      discardPreview(current);
+      // Removing a just-picked file falls back to the saved photo; removing
+      // the saved photo marks it for deletion on save.
+      return current.kind === 'replace' && user.image ? { kind: 'keep' } : { kind: 'remove' };
+    });
   };
 
   const save = (event: FormEvent) => {
@@ -341,126 +363,118 @@ function EditProfileDialog({
       socialLinks[key] = url;
     }
     setError(null);
-    profileSave.mutate({ name: name.trim(), bio: bio.trim() || null, socialLinks });
+    profileSave.mutate({
+      body: { name: name.trim(), bio: bio.trim() || null, socialLinks },
+      change: avatar,
+    });
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal
-      aria-label="edit profile"
-      className="fixed inset-0 z-30 flex items-center justify-center bg-ink/70 p-6 backdrop-blur-sm"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <GlassCard
-        as="section"
-        className="max-h-[88vh] w-full max-w-lg overflow-y-auto bg-ink/90 p-7"
-      >
-        <form onSubmit={save} className="flex flex-col gap-5">
-          <h2 className="font-display text-[28px] uppercase">Edit profile</h2>
+    <Modal label="edit profile" onClose={onClose}>
+      <form onSubmit={save} className="flex flex-col gap-5">
+        <h2 className="font-display text-[28px] uppercase">Edit profile</h2>
 
-          <div className="flex items-center gap-5">
-            <Avatar name={user.username} src={image} size={120} className="size-20 text-2xl" />
-            <div className="flex flex-col gap-2">
-              <input
-                ref={fileRef}
-                type="file"
-                accept={AVATAR_MIME_TYPES.join(',')}
-                className="hidden"
-                onChange={(event) => pickAvatar(event.target.files?.[0])}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => fileRef.current?.click()}
-              >
-                {image ? 'CHANGE PHOTO' : 'UPLOAD PHOTO'}
-              </Button>
-              {image && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => avatarRemove.mutate()}
-                  className="cursor-pointer text-left text-[13px] text-dim transition hover:text-pink"
-                >
-                  Remove photo
-                </button>
-              )}
-              <p className="text-xs text-faint">PNG, JPEG, or WebP — 2MB max.</p>
-            </div>
-          </div>
-
-          <Input
-            label="Display name"
-            name="displayName"
-            value={name}
-            maxLength={80}
-            onChange={(event) => setName(event.target.value)}
-            required
-          />
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="bio"
-              className="font-label text-xs font-semibold tracking-label text-dim uppercase"
-            >
-              Bio
-            </label>
-            <textarea
-              id="bio"
-              rows={3}
-              maxLength={280}
-              value={bio}
-              placeholder="Watches too much neo-noir. Reads webtoons on the tram."
-              onChange={(event) => setBio(event.target.value)}
-              className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+        <div className="flex items-center gap-5">
+          <Avatar name={user.username} src={image} size={120} className="size-20 text-2xl" />
+          <div className="flex flex-col gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept={AVATAR_MIME_TYPES.join(',')}
+              className="hidden"
+              onChange={(event) => pickAvatar(event.target.files?.[0])}
             />
-            <p className="text-right text-xs text-faint">{bio.length}/280</p>
-          </div>
-
-          <fieldset className="flex flex-col gap-2.5">
-            <legend className="mb-1.5 font-label text-xs font-semibold tracking-label text-dim uppercase">
-              Social links
-            </legend>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {SOCIAL_PLATFORM_KEYS.map((key) => (
-                <label key={key} className="flex flex-col gap-1">
-                  <span className="font-label text-[10px] tracking-label text-faint uppercase">
-                    {SOCIAL_PLATFORMS[key].label}
-                  </span>
-                  <input
-                    type="text"
-                    value={links[key]}
-                    placeholder={SOCIAL_PLATFORMS[key].base ? '@handle or URL' : 'https://…'}
-                    onChange={(event) =>
-                      setLinks((current) => ({ ...current, [key]: event.target.value }))
-                    }
-                    className="rounded-cover border border-white/12 bg-white/6 px-3 py-2 font-sans text-[13px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
-                  />
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-faint">Leave a field empty to unlink it.</p>
-          </fieldset>
-
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}
+            >
+              {image ? 'CHANGE PHOTO' : 'UPLOAD PHOTO'}
+            </Button>
+            {image && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={removePhoto}
+                className="cursor-pointer text-left text-[13px] text-dim transition hover:text-pink"
+              >
+                {avatar.kind === 'replace' ? 'Discard new photo' : 'Remove photo'}
+              </button>
+            )}
+            <p className="text-xs text-faint">
+              PNG, JPEG, or WebP — 2MB max. Applies when you save.
             </p>
-          )}
-
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-              CANCEL
-            </Button>
-            <Button type="submit" disabled={busy}>
-              {busy ? 'SAVING…' : 'SAVE'}
-            </Button>
           </div>
-        </form>
-      </GlassCard>
-    </div>
+        </div>
+
+        <Input
+          label="Display name"
+          name="displayName"
+          value={name}
+          maxLength={80}
+          onChange={(event) => setName(event.target.value)}
+          required
+        />
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="bio"
+            className="font-label text-xs font-semibold tracking-label text-dim uppercase"
+          >
+            Bio
+          </label>
+          <textarea
+            id="bio"
+            rows={3}
+            maxLength={280}
+            value={bio}
+            placeholder="Watches too much neo-noir. Reads webtoons on the tram."
+            onChange={(event) => setBio(event.target.value)}
+            className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+          />
+          <p className="text-right text-xs text-faint">{bio.length}/280</p>
+        </div>
+
+        <fieldset className="flex flex-col gap-2.5">
+          <legend className="mb-1.5 font-label text-xs font-semibold tracking-label text-dim uppercase">
+            Social links
+          </legend>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {SOCIAL_PLATFORM_KEYS.map((key) => (
+              <label key={key} className="flex flex-col gap-1">
+                <span className="font-label text-[10px] tracking-label text-faint uppercase">
+                  {SOCIAL_PLATFORMS[key].label}
+                </span>
+                <input
+                  type="text"
+                  value={links[key]}
+                  placeholder={SOCIAL_PLATFORMS[key].base ? '@handle or URL' : 'https://…'}
+                  onChange={(event) =>
+                    setLinks((current) => ({ ...current, [key]: event.target.value }))
+                  }
+                  className="rounded-cover border border-white/12 bg-white/6 px-3 py-2 font-sans text-[13px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+                />
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-faint">Leave a field empty to unlink it.</p>
+        </fieldset>
+
+        {error && (
+          <p role="alert" className="text-sm text-red-400">
+            {error}
+          </p>
+        )}
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
+            CANCEL
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy ? 'SAVING…' : 'SAVE'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
