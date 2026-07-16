@@ -61,6 +61,29 @@ describe('catalog app', () => {
   it('GET /v1/catalog/search validates the query', async () => {
     const response = await app.inject({ method: 'GET', url: '/v1/catalog/search' });
     expect(response.statusCode).toBe(400);
+    // Validation failures use the documented {error} shape, not FST_ERR_VALIDATION.
+    const body = response.json();
+    expect(Object.keys(body)).toEqual(['error']);
+    expect(body.error).toMatch(/validation failed/);
+  });
+
+  it('returns an opaque {error} 500 for unexpected errors (no internals leaked)', async () => {
+    const failing = await buildApp({ env });
+    failing.get('/boom', async () => {
+      throw new Error('password authentication failed for user "trackt"');
+    });
+    const response = await failing.inject({ method: 'GET', url: '/boom' });
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({ error: 'Internal server error' });
+    expect(response.body).not.toContain('password');
+    await failing.close();
+  });
+
+  it('applies rate limiting outside the health endpoints', async () => {
+    const limited = await app.inject({ method: 'GET', url: '/v1/catalog/version' });
+    expect(limited.headers['x-ratelimit-limit']).toBeDefined();
+    const health = await app.inject({ method: 'GET', url: '/healthz' });
+    expect(health.headers['x-ratelimit-limit']).toBeUndefined();
   });
 
   it('POST /v1/admin/media rejects a missing or wrong token', async () => {

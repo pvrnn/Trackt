@@ -51,7 +51,20 @@ describe('loadEnv', () => {
     expect(attempt).toThrowError(EnvValidationError);
     expect(attempt).toThrowError(/DATABASE_URL/);
     expect(attempt).toThrowError(/AUTH_SECRET/);
+    expect(attempt).toThrowError(/APP_URL/);
     expect(attempt).toThrowError(/openssl rand/);
+  });
+
+  it('refuses to default APP_URL to localhost in production', () => {
+    const attempt = () =>
+      loadEnv({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgres://u:p@db:5432/trackt',
+        REDIS_URL: 'redis://redis:6379',
+        AUTH_SECRET: 'a-very-long-production-secret',
+      });
+    expect(attempt).toThrowError(EnvValidationError);
+    expect(attempt).toThrowError(/APP_URL/);
   });
 
   it('boots in production when critical variables are set', () => {

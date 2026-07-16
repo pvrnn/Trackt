@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -15,6 +16,7 @@ import {
 import { APP_VERSION, AVATAR_MAX_BYTES, type Env } from '@trackt/shared';
 import type { Db } from '@trackt/db';
 import type { Auth } from './auth.js';
+import { errorHandler } from './lib/error-handler.js';
 import { toWebHeaders } from './lib/session.js';
 import { healthRoutes } from './routes/health.js';
 import { v1Routes } from './routes/v1/index.js';
@@ -44,15 +46,26 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
         ? { transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss' } } }
         : {}),
     },
+    // Sever keep-alive connections on close() so shutdown can't hang until SIGKILL.
+    forceCloseConnections: true,
   });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+  app.setErrorHandler(errorHandler);
   app.decorate('deps', deps);
 
   await app.register(cors, {
     origin: env.NODE_ENV === 'production' ? [env.APP_URL] : true,
     credentials: true,
+  });
+
+  // Blunt per-IP abuse guard; health probes stay exempt. Search gets a tighter
+  // per-route bucket below (anonymous, and the most expensive read).
+  await app.register(rateLimit, {
+    max: 300,
+    timeWindow: '1 minute',
+    allowList: (request) => request.url === '/healthz' || request.url === '/readyz',
   });
 
   // User uploads (avatars; later, covers for user-created entries — PRD §6.1).

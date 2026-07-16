@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDb, runMigrations, seedMedia, type Db } from '@trackt/db';
+import { eq } from 'drizzle-orm';
+import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
 import { canonicalMediaId, loadEnv, type HomeSummary } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
@@ -154,6 +155,24 @@ describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
       watched: 28,
       total: 28,
     });
+  });
+
+  it('hides soft-deleted media from the shelves and activity but keeps the stats', async () => {
+    const before = await getSummary();
+    expect(before.inProgress.map((entry) => entry.id)).toContain(bebopId);
+    try {
+      await db.update(media).set({ deletedAt: new Date() }).where(eq(media.id, bebopId));
+
+      const summary = await getSummary();
+      expect(summary.inProgress.map((entry) => entry.id)).not.toContain(bebopId);
+      expect(summary.upNext.map((entry) => entry.id)).not.toContain(bebopId);
+      expect(summary.activity.map((entry) => entry.title)).not.toContain('Cowboy Bebop');
+      // Aggregates deliberately keep counting the user's own history.
+      expect(summary.stats.episodesThisYear).toBe(before.stats.episodesThisYear);
+      expect(summary.stats.dayStreak).toBe(before.stats.dayStreak);
+    } finally {
+      await db.update(media).set({ deletedAt: null }).where(eq(media.id, bebopId));
+    }
   });
 });
 
