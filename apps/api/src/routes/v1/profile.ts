@@ -1,4 +1,4 @@
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { favorite, media, users } from '@trackt/db';
 import {
@@ -63,7 +63,8 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
           })
           .from(favorite)
           .innerJoin(media, eq(media.id, favorite.mediaId))
-          .where(eq(favorite.userId, user.id))
+          // Soft-deleted titles vanish from the shelves; the favourite row stays.
+          .where(and(eq(favorite.userId, user.id), isNull(media.deletedAt)))
           .orderBy(asc(favorite.kind), asc(favorite.position)),
         loadYearCheckinCounts(db, user.id),
         loadStreak(db, user.id),

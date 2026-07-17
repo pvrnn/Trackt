@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "media_created_by_idx" ON "media" USING btree ("created_by");

@@ -25,7 +25,12 @@ async function ensureTestDatabase(): Promise<boolean> {
     const exists = await admin`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;
     if (exists.length === 0) await admin.unsafe(`CREATE DATABASE "${testDbName}"`);
     return true;
-  } catch {
+  } catch (error) {
+    if (process.env.CI_REQUIRE_DB) {
+      throw new Error(`Postgres is unavailable but CI_REQUIRE_DB is set: ${String(error)}`, {
+        cause: error,
+      });
+    }
     return false;
   } finally {
     await admin.end();
@@ -119,6 +124,30 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
     expect(results.length).toBeGreaterThan(0);
     for (const result of results) expect(() => SearchResultSchema.parse(result)).not.toThrow();
   });
+
+  it('hides soft-deleted media from search and the detail page', async () => {
+    const bebopId = canonicalMediaId('anime', 1);
+    const { results: before } = await search('q=Cowboy%20Bebop');
+    expect((before[0] as { id: string }).id).toBe(bebopId);
+    const [bebopRow] = await db
+      .select({ slug: media.slug })
+      .from(media)
+      .where(eq(media.id, bebopId));
+    const slug = bebopRow!.slug;
+    try {
+      await db.update(media).set({ deletedAt: new Date() }).where(eq(media.id, bebopId));
+
+      const { results } = await search('q=Cowboy%20Bebop');
+      expect(results.map((r) => (r as { id: string }).id)).not.toContain(bebopId);
+
+      const detail = await app.inject({ method: 'GET', url: `/api/v1/media/${slug}` });
+      expect(detail.statusCode).toBe(404);
+      const byId = await app.inject({ method: 'GET', url: `/api/v1/media/${bebopId}` });
+      expect(byId.statusCode).toBe(404);
+    } finally {
+      await db.update(media).set({ deletedAt: null }).where(eq(media.id, bebopId));
+    }
+  });
 });
 
 describe.runIf(!available)('search (postgres)', () => {
@@ -157,6 +186,7 @@ const centralOnlyId = '5b6e0f1a-2c3d-4e5f-8a9b-0c1d2e3f4a5b';
 const slugCollisionHitId = '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a';
 const slugOwnerLocalId = '1a2b3c4d-5e6f-4a8b-9c0d-1e2f3a4b5c6d';
 const existingUnderOtherSlugId = '2f3e4d5c-6b7a-4980-8b1c-2d3e4f5a6b7c';
+const softDeletedId = '6c7f1a2b-3d4e-4f5a-9b8c-1d2e3f4a5b6c';
 
 /** Full central-catalog hit with only the fields under test varying. */
 function slimHit(overrides: {
@@ -206,6 +236,7 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
       slugCollisionHitId,
       slugOwnerLocalId,
       existingUnderOtherSlugId,
+      softDeletedId,
     ]) {
       await db.delete(media).where(eq(media.id, id));
     }
@@ -351,6 +382,51 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
     });
     const results = response.json() as { id: string }[];
     expect(results.filter((r) => r.id === breakingBadId)).toHaveLength(1);
+  });
+
+  it('never resurrects a soft-deleted local row from a central hit', async () => {
+    // A title pulled from circulation locally, still served by the central catalog.
+    await db.insert(media).values({
+      id: softDeletedId,
+      kind: 'movie',
+      title: 'Withdrawn Film',
+      slug: 'withdrawn-film-2020',
+      year: 2020,
+      source: 'provider',
+      moderation: 'verified',
+      deletedAt: new Date(),
+    });
+    server = catalogStub(() => ({
+      results: [
+        {
+          id: softDeletedId,
+          kind: 'movie',
+          title: 'Withdrawn Film',
+          synonyms: [],
+          year: 2020,
+          status: 'ended',
+          genres: [],
+          episodeCount: null,
+          seasonCount: null,
+          chapterCount: null,
+          volumeCount: null,
+          externalIds: { tmdb: 424242 },
+          description: null,
+          coverUrl: null,
+          rank: 1,
+        },
+      ],
+    }));
+    app = await buildAppWithCatalog(await listen(server));
+
+    const response = await app.inject({ method: 'GET', url: '/api/v1/search?q=Withdrawn' });
+    expect(response.statusCode).toBe(200);
+    const results = response.json() as { id: string }[];
+    expect(results.map((r) => r.id)).not.toContain(softDeletedId);
+
+    // The local row stays exactly as it was: soft-deleted, not overwritten.
+    const [row] = await db.select().from(media).where(eq(media.id, softDeletedId));
+    expect(row?.deletedAt).not.toBeNull();
   });
 
   it('degrades to local-only results when the central catalog errors', async () => {

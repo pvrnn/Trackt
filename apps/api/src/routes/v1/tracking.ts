@@ -6,12 +6,11 @@ import { favorite, media, mediaPart, progress, rating, userMedia, type Db } from
 import {
   ApiErrorSchema,
   LogStatusSchema,
+  PART_KIND_BY_MEDIA,
   PartNumberParamSchema,
   RateBodySchema,
   RatingScoreSchema,
   UpdateLogBodySchema,
-  type MediaKind,
-  type PartKind,
 } from '@trackt/shared';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
 import { canViewMedia } from '../../lib/visibility.js';
@@ -22,15 +21,6 @@ import { canViewMedia } from '../../lib/visibility.js';
  * catalog's totals — flat numbered episodes/chapters until the catalog carries
  * per-part structure (titles, seasons).
  */
-
-/** The part kind check-ins create per media kind; null = not checkable (movies). */
-const PART_KIND_BY_MEDIA: Record<MediaKind, PartKind | null> = {
-  movie: null,
-  series: 'episode',
-  anime: 'episode',
-  manga: 'chapter',
-  webtoon: 'chapter',
-};
 
 const MediaIdParamsSchema = z.object({ id: z.uuid() });
 const ProgressParamsSchema = z.object({ id: z.uuid(), number: PartNumberParamSchema });

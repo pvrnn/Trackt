@@ -86,12 +86,18 @@ services:
     command: server /data --console-address ':9001'
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-trackt}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-trackt-minio}
+      # No default password: `:?` can't be used here (compose interpolates the
+      # whole file even when the profile is inactive, which would break plain
+      # `docker compose up`), so MinIO enforces it instead — it refuses to
+      # start while MINIO_ROOT_PASSWORD is unset. Set it in .env.
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
     volumes:
       - miniodata:/data
+    # Loopback only: S3 access is server-side; don't expose the console/API
+    # (root credentials) to the network. Front with a reverse proxy if needed.
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
 
 volumes:
   pgdata:

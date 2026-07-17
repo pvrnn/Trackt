@@ -30,6 +30,18 @@ export const PART_KINDS = ['season', 'episode', 'volume', 'chapter'] as const;
 export const PartKindSchema = z.enum(PART_KINDS);
 export type PartKind = z.infer<typeof PartKindSchema>;
 
+/** The part kind check-ins create per media kind; null = not checkable (movies). */
+export const PART_KIND_BY_MEDIA: Record<
+  MediaKind,
+  Extract<PartKind, 'episode' | 'chapter'> | null
+> = {
+  movie: null,
+  series: 'episode',
+  anime: 'episode',
+  manga: 'chapter',
+  webtoon: 'chapter',
+};
+
 /** Privacy levels, applied per profile section / list (PRD §3.4). */
 export const VISIBILITIES = ['public', 'followers', 'private'] as const;
 export const VisibilitySchema = z.enum(VISIBILITIES);

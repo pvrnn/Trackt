@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   AvatarResponseSchema,
   ProfileSummarySchema,
   type ProfileSummary,
   type UpdateProfileBody,
 } from '@trackt/shared';
+import { authClient } from './auth-client';
 import { api, toError } from './http';
 
 /** Fetch the authenticated own-profile summary. */
@@ -13,6 +15,12 @@ export async function fetchProfileSummary(): Promise<ProfileSummary> {
   } catch (error) {
     throw await toError(error, 'profile summary');
   }
+}
+
+/** Own-profile query — gated on session. */
+export function useProfileSummary() {
+  const { data: session } = authClient.useSession();
+  return useQuery({ queryKey: ['profile'], queryFn: fetchProfileSummary, enabled: !!session });
 }
 
 /** Update display name / bio. */

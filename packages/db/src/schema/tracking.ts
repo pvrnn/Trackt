@@ -15,6 +15,10 @@ import { media, mediaPart } from './media.js';
 /**
  * One row per user per media: the "log" (PRD §5).
  * `user_id` leads every user-owned table — the future shard key.
+ *
+ * NOTE: `media_id` cascade-deletes from `media` (as do `favorite`, `list_item`,
+ * and `progress` via `media_part`) — see the warning on the `media` table before
+ * deleting catalog rows.
  */
 export const userMedia = pgTable(
   'user_media',

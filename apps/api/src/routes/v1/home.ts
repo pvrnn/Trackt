@@ -1,9 +1,10 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { media, userMedia } from '@trackt/db';
 import {
   ApiErrorSchema,
   HomeSummarySchema,
+  PART_KIND_BY_MEDIA,
   type HomeSummary,
   type MediaKind,
 } from '@trackt/shared';
@@ -19,13 +20,6 @@ import { getSessionUser } from '../../lib/session.js';
 const IN_PROGRESS_LIMIT = 12;
 const UP_NEXT_LIMIT = 3;
 const ACTIVITY_LIMIT = 6;
-
-const PART_KIND_BY_MEDIA: Partial<Record<MediaKind, 'episode' | 'chapter'>> = {
-  series: 'episode',
-  anime: 'episode',
-  manga: 'chapter',
-  webtoon: 'chapter',
-};
 
 function partTotal(row: {
   kind: MediaKind;
@@ -68,7 +62,14 @@ export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         .from(userMedia)
         .innerJoin(media, eq(media.id, userMedia.mediaId))
-        .where(and(eq(userMedia.userId, user.id), eq(userMedia.status, 'in_progress')))
+        .where(
+          and(
+            eq(userMedia.userId, user.id),
+            eq(userMedia.status, 'in_progress'),
+            // Soft-deleted titles vanish from the shelves; the log row stays.
+            isNull(media.deletedAt),
+          ),
+        )
         .orderBy(desc(userMedia.updatedAt))
         .limit(IN_PROGRESS_LIMIT);
 

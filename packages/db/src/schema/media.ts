@@ -27,6 +27,23 @@ import { users } from './auth.js';
  * Provider-identified rows use deterministic canonical UUIDs and will be synced from
  * the central slim catalog (ADR-0001); user-created rows keep random UUIDs, start
  * `unverified`, and go through the per-instance moderation queue.
+ *
+ * Removing a title from circulation is a two-tier product decision:
+ *
+ * - SOFT DELETE (`deleted_at`) is the sanctioned way to pull a title. The row
+ *   and all dependent user data (logs, progress, favourites, list items) stay
+ *   intact; the media just stops being visible/discoverable — enforced at the
+ *   central visibility seam (apps/api/src/lib/visibility.ts) plus the
+ *   own-data joins that sit outside it (home/profile/activity/moderation).
+ *   Nothing sets `deleted_at` yet; this is groundwork. Federated search never
+ *   resurrects a soft-deleted row.
+ * - HARD `DELETE FROM media` remains cascade-by-design for deliberate purges
+ *   (spam, illegal content): `user_media`, `favorite`, `list_item`, and (via
+ *   `media_part`) `progress` cascade-delete, and the polymorphic tables
+ *   (`rating`, `comment`, `activity`, `report`) reference media by bare
+ *   (target_type, target_id) with no FK, so their rows silently dangle. That
+ *   wipes user check-ins/logs irrecoverably — reach for `deleted_at` unless
+ *   wiping is the point. No code path issues hard deletes today.
  */
 export const media = pgTable(
   'media',
@@ -57,6 +74,11 @@ export const media = pgTable(
     moderation: moderationStatusEnum('moderation').notNull().default('verified'),
     /** Link to a shared community-catalog entry (v2, PRD §4). */
     communityUuid: uuid('community_uuid'),
+    /**
+     * Soft-delete marker: non-null pulls the title from circulation (search,
+     * detail, shelves) while keeping user logs/progress intact. NULL = live.
+     */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
@@ -66,6 +88,8 @@ export const media = pgTable(
   (t) => [
     uniqueIndex('media_slug_idx').on(t.slug),
     index('media_kind_idx').on(t.kind),
+    // The daily creation limit counts per-creator rows on every POST /media.
+    index('media_created_by_idx').on(t.createdBy),
     index('media_moderation_idx').on(t.moderation),
     index('media_external_ids_gin_idx').using('gin', t.externalIds),
     // Typo-tolerant title search via pg_trgm (extension created in the initial migration).

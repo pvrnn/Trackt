@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
+import { favorite, isUniqueViolation, media, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
   CoverResponseSchema,
@@ -21,14 +21,6 @@ import { removeStoredUpload, storeUploadedImage } from '../../lib/uploads.js';
 import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Unique-violation SQLSTATE; drizzle wraps the driver error, so walk the cause chain. */
-const UNIQUE_VIOLATION = '23505';
-function isUniqueViolation(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const { code, cause } = error as { code?: unknown; cause?: unknown };
-  return code === UNIQUE_VIOLATION || isUniqueViolation(cause);
-}
 
 async function loadCommunity(db: Db, mediaId: string): Promise<MediaDetail['community']> {
   const [row] = await db
@@ -172,18 +164,6 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = await getSessionUser(app, request);
       if (!user) return reply.status(401).send({ error: 'authentication required' });
 
-      const [recent] = await db
-        .select({ created: count() })
-        .from(media)
-        .where(
-          and(eq(media.createdBy, user.id), sql`${media.createdAt} > now() - interval '1 day'`),
-        );
-      if ((recent?.created ?? 0) >= MEDIA_CREATE_DAILY_LIMIT) {
-        return reply
-          .status(429)
-          .send({ error: `entry limit reached (${MEDIA_CREATE_DAILY_LIMIT} per day)` });
-      }
-
       const body = request.body;
       const id = randomUUID();
       const values = {
@@ -206,16 +186,39 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         moderation: 'unverified' as const,
       };
       const slug = mediaSlug(body.title, body.year);
-      try {
-        await db.insert(media).values({ ...values, slug });
-        return reply.status(201).send({ id, slug, moderation: 'unverified' });
-      } catch (error) {
-        if (!isUniqueViolation(error)) throw error;
+
+      const outcome = await db.transaction(async (tx) => {
+        // Serialize creations per user so concurrent requests can't race the
+        // count below past the daily limit (check-then-insert was racy).
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${user.id}::text, 0))`);
+        const [recent] = await tx
+          .select({ created: count() })
+          .from(media)
+          .where(
+            and(eq(media.createdBy, user.id), sql`${media.createdAt} > now() - interval '1 day'`),
+          );
+        if ((recent?.created ?? 0) >= MEDIA_CREATE_DAILY_LIMIT) return { limited: true as const };
+        try {
+          // Savepoint (nested transaction): a slug collision must not abort the outer tx.
+          await tx.transaction(async (sp) => {
+            await sp.insert(media).values({ ...values, slug });
+          });
+          return { slug };
+        } catch (error) {
+          if (!isUniqueViolation(error)) throw error;
+        }
+        // Slug taken by another work — same retry convention as the catalog sync.
+        const suffixed = `${slug}-${id.slice(0, 8)}`;
+        await tx.insert(media).values({ ...values, slug: suffixed });
+        return { slug: suffixed };
+      });
+
+      if ('limited' in outcome) {
+        return reply
+          .status(429)
+          .send({ error: `entry limit reached (${MEDIA_CREATE_DAILY_LIMIT} per day)` });
       }
-      // Slug taken by another work — same retry convention as the catalog sync.
-      const suffixed = `${slug}-${id.slice(0, 8)}`;
-      await db.insert(media).values({ ...values, slug: suffixed });
-      return reply.status(201).send({ id, slug: suffixed, moderation: 'unverified' });
+      return reply.status(201).send({ id, slug: outcome.slug, moderation: 'unverified' });
     },
   );
 

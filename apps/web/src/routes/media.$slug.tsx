@@ -1,6 +1,7 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import clsx from 'clsx';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LOG_STATUSES, type LogStatus, type MediaDetail } from '@trackt/shared';
 import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
@@ -8,9 +9,9 @@ import { CoverCard } from '../components/media/CoverCard';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
-import { authClient } from '../lib/auth-client';
+import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
-import { fetchMediaDetail, trackingApi } from '../lib/media';
+import { trackingApi, useMediaDetail } from '../lib/media';
 
 export const Route = createFileRoute('/media/$slug')({
   head: () => ({ meta: [{ title: 'Trackt' }] }),
@@ -46,42 +47,29 @@ function partTotal(detail: MediaDetail): number | null {
   return null;
 }
 
+type ViewerPatch = Partial<NonNullable<MediaDetail['viewer']>>;
+
 function MediaPage() {
   const { slug } = Route.useParams();
-  const navigate = useNavigate();
-  const { data: session, isPending } = authClient.useSession();
-  const [detail, setDetail] = useState<MediaDetail | null>(null);
-  const [missing, setMissing] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { isPending: authPending, navUser } = useAuthedPage();
+  const { data, isError, refetch } = useMediaDetail(slug);
   const [visibleParts, setVisibleParts] = useState(CHECKLIST_CHUNK);
 
-  // Same client-side session guard as home/search (see the note in home.tsx).
-  useEffect(() => {
-    if (!isPending && !session) navigate({ to: '/login' });
-  }, [isPending, session, navigate]);
+  const queryKey = ['media', slug] as const;
 
-  const refresh = useCallback(async () => {
-    const loaded = await fetchMediaDetail(slug);
-    if (loaded === null) setMissing(true);
-    else setDetail(loaded);
-  }, [slug]);
-
-  useEffect(() => {
-    setDetail(null);
-    setMissing(false);
-    setVisibleParts(CHECKLIST_CHUNK);
-    if (session) refresh().catch(() => setActionError('Could not load this title.'));
-  }, [session, refresh]);
-
-  useEffect(() => {
-    if (detail) document.title = `${detail.title} — Trackt`;
-  }, [detail]);
-
-  /** Optimistically patch viewer state, run the mutation, re-sync from the API. */
-  const applyViewer = useCallback(
-    (patch: Partial<NonNullable<MediaDetail['viewer']>>, run: () => Promise<void>) => {
-      setActionError(null);
-      setDetail((current) =>
+  /**
+   * One optimistic mutation for every viewer action: patch the cached viewer,
+   * run the tracking call, roll back on error, and re-sync by invalidating.
+   * React Query serialises and cancels, so rapid check-ins can't clobber each
+   * other (the race the hand-rolled version had).
+   */
+  const viewerMutation = useMutation({
+    mutationFn: ({ run }: { patch: ViewerPatch; run: () => Promise<void> }) => run(),
+    onMutate: async ({ patch }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<MediaDetail | null>(queryKey);
+      queryClient.setQueryData<MediaDetail | null>(queryKey, (current) =>
         current
           ? {
               ...current,
@@ -96,26 +84,48 @@ function MediaPage() {
             }
           : current,
       );
-      run()
-        .then(refresh)
-        .catch(() => {
-          setActionError('That didn’t save — try again.');
-          refresh().catch(() => undefined);
-        });
+      return { previous };
     },
-    [refresh],
-  );
+    onError: (_error, _variables, context) => {
+      if (context) queryClient.setQueryData(queryKey, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
 
-  if (isPending || !session) return <div className="min-h-screen bg-ink" />;
+  const applyViewer = (patch: ViewerPatch, run: () => Promise<void>) =>
+    viewerMutation.mutate({ patch, run });
 
-  const navUser = {
-    name: session.user.name,
-    username: session.user.displayUsername ?? session.user.name,
-    image: session.user.image,
-    role: session.user.role,
-  };
+  useEffect(() => {
+    setVisibleParts(CHECKLIST_CHUNK);
+  }, [slug]);
 
-  if (missing) {
+  useEffect(() => {
+    if (data) document.title = `${data.title} — Trackt`;
+  }, [data]);
+
+  if (authPending || !navUser) return <div className="min-h-screen bg-ink" />;
+
+  if (isError) {
+    return (
+      <Shell user={navUser}>
+        <main className="mx-auto flex max-w-[1360px] flex-col items-start gap-4 px-10 pt-14 pb-20">
+          <h1 className="font-display text-[56px] leading-none uppercase">Couldn’t load</h1>
+          <p className="max-w-[540px] text-[15px] text-muted">
+            Something went wrong fetching this title — the instance API may be unreachable, or its
+            response wasn’t what we expected.
+          </p>
+          <div className="mt-2 flex items-center gap-5">
+            <Button onClick={() => refetch()}>RETRY</Button>
+            <Link to="/search" className="text-sm font-bold text-pink">
+              ← BACK TO DISCOVER
+            </Link>
+          </div>
+        </main>
+      </Shell>
+    );
+  }
+
+  if (data === null) {
     return (
       <Shell user={navUser}>
         <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-10 pt-14 pb-20">
@@ -131,8 +141,17 @@ function MediaPage() {
     );
   }
 
-  if (!detail) return <Shell user={navUser} />;
+  if (!data) {
+    return (
+      <Shell user={navUser}>
+        <main className="mx-auto max-w-[1360px] px-10 pt-14 pb-20">
+          <div className="h-40" aria-busy />
+        </main>
+      </Shell>
+    );
+  }
 
+  const detail = data;
   const viewer = detail.viewer ?? { status: null, score: null, watched: [], favorited: false };
   const noun = partNoun(detail);
   const total = partTotal(detail);
@@ -314,9 +333,9 @@ function MediaPage() {
                 ＋ LIST
               </span>
             </div>
-            {actionError && (
+            {viewerMutation.isError && (
               <p role="alert" className="text-sm text-red-400">
-                {actionError}
+                That didn’t save — try again.
               </p>
             )}
 

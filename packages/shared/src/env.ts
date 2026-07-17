@@ -104,7 +104,9 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   const isProduction = raw.NODE_ENV === 'production';
 
   if (isProduction) {
-    const missing = (['DATABASE_URL', 'REDIS_URL', 'AUTH_SECRET'] as const).filter(
+    // APP_URL feeds better-auth's baseURL/trustedOrigins and the CORS allowlist:
+    // a localhost fallback boots green but breaks every sign-in, so require it.
+    const missing = (['DATABASE_URL', 'REDIS_URL', 'AUTH_SECRET', 'APP_URL'] as const).filter(
       (key) => !raw[key],
     );
     if (missing.length > 0) {
@@ -113,6 +115,17 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
         `Missing required environment variables in production:\n${lines.join('\n')}`,
       );
     }
+  }
+
+  // NODE_ENV defaults to development, so a bare-metal deployment that forgets
+  // to set it would silently run on the well-known dev AUTH_SECRET. Warn loudly
+  // (the Docker image sets NODE_ENV=production and is unaffected).
+  if (raw.NODE_ENV === 'development' && !raw.AUTH_SECRET) {
+    console.warn(
+      '[trackt] NODE_ENV is "development" and AUTH_SECRET is unset — running with the ' +
+        'built-in development secret. If this is a real deployment, set NODE_ENV=production ' +
+        'and a unique AUTH_SECRET (openssl rand -base64 32).',
+    );
   }
 
   // Empty string means "unset" for optional keys (compose files pass them through as '').

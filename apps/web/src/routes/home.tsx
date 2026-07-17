@@ -1,5 +1,6 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useState } from 'react';
 import type { HomeSummary, UpNextEntry } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
@@ -9,8 +10,8 @@ import { Avatar } from '../components/ui/Avatar';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { StatCard } from '../components/ui/StatCard';
-import { authClient } from '../lib/auth-client';
-import { fetchHomeSummary, relativeTime } from '../lib/home';
+import { useAuthedPage } from '../lib/auth-client';
+import { relativeTime, useHomeSummary } from '../lib/home';
 import { trackingApi } from '../lib/media';
 
 export const Route = createFileRoute('/home')({
@@ -37,50 +38,30 @@ function inProgressSub(entry: HomeSummary['inProgress'][number]): string {
 }
 
 function HomePage() {
-  const navigate = useNavigate();
-  const { data: session, isPending } = authClient.useSession();
-  const [summary, setSummary] = useState<HomeSummary | null>(null);
+  const { isPending, navUser } = useAuthedPage();
+  const queryClient = useQueryClient();
+  const { data: summary, isError } = useHomeSummary();
   const [checkedIn, setCheckedIn] = useState<Set<string>>(new Set());
-  const [loadError, setLoadError] = useState(false);
 
-  // Same client-side session guard as search/media (SSR cookie note in the
-  // original stub applies until app pages move to server functions).
-  useEffect(() => {
-    if (!isPending && !session) navigate({ to: '/login' });
-  }, [isPending, session, navigate]);
+  const checkInMutation = useMutation({
+    mutationFn: (entry: UpNextEntry) => trackingApi.checkIn(entry.id, entry.next),
+    // Optimistically mark the card; roll back on failure, re-sync on settle.
+    onMutate: (entry) => setCheckedIn((current) => new Set(current).add(entry.id)),
+    onError: (_error, entry) =>
+      setCheckedIn((current) => {
+        const set = new Set(current);
+        set.delete(entry.id);
+        return set;
+      }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['home'] }),
+  });
 
-  const refresh = useCallback(async () => {
-    setSummary(await fetchHomeSummary());
-    setCheckedIn(new Set());
-  }, []);
+  if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
-  useEffect(() => {
-    if (session) refresh().catch(() => setLoadError(true));
-  }, [session, refresh]);
-
-  if (isPending || !session) return <div className="min-h-screen bg-ink" />;
-
-  const userName = session.user.displayUsername ?? session.user.name;
-  const navUser = {
-    name: session.user.name,
-    username: userName,
-    image: session.user.image,
-    role: session.user.role,
-  };
+  const userName = navUser.username;
 
   const checkIn = (entry: UpNextEntry) => {
-    if (checkedIn.has(entry.id)) return;
-    setCheckedIn((current) => new Set(current).add(entry.id));
-    trackingApi
-      .checkIn(entry.id, entry.next)
-      .then(refresh)
-      .catch(() => {
-        setCheckedIn((current) => {
-          const set = new Set(current);
-          set.delete(entry.id);
-          return set;
-        });
-      });
+    if (!checkedIn.has(entry.id)) checkInMutation.mutate(entry);
   };
 
   const pending = summary
@@ -108,7 +89,12 @@ function HomePage() {
       <div className="relative">
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-10 pt-12 pb-20">
-          {loadError ? (
+          {checkInMutation.isError && (
+            <p role="alert" className="text-[15px] text-red-400">
+              That check-in didn’t save — try again.
+            </p>
+          )}
+          {isError ? (
             <p role="alert" className="text-[15px] text-red-400">
               Couldn’t load your dashboard — is the instance API reachable?
             </p>

@@ -31,21 +31,62 @@ const logger = pino({
 });
 
 const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
+// ioredis retries forever by design (fine once running), but every failed
+// attempt emits 'error' — without a listener that would crash the process.
+connection.on('error', (error) => {
+  logger.warn({ err: error }, 'redis connection error (retrying)');
+});
 
-// Remove schedulers from retired jobs: self-hosted Redis volumes persist
-// across upgrades, so old schedulers would keep firing otherwise.
-const legacyQueue = new Queue(QUEUES.metadataRefresh, { connection });
-await legacyQueue.removeJobScheduler('refresh-airing-daily');
-await legacyQueue.removeJobScheduler('refresh-ended-weekly');
-await legacyQueue.close();
+/**
+ * Boot-time Redis calls hang forever when Redis is down (ioredis retries
+ * indefinitely), so "worker started" would never log and the hang is silent
+ * apart from the error listener above. Fail fast instead — the orchestrator
+ * restarts the container.
+ */
+async function withBootTimeout<T>(work: Promise<T>, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} timed out after 30s — is Redis reachable?`)),
+      30_000,
+    );
+  });
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-// 'catalog-sync' (bulk full-catalog mirror, ADR-0001) was retired by
-// ADR-0002 in favor of live federated search — no QUEUES entry for it
-// anymore, name kept here as a literal purely to clean up the scheduler an
-// already-upgraded instance may still have registered.
-const retiredCatalogQueue = new Queue('catalog-sync', { connection });
-await retiredCatalogQueue.removeJobScheduler('catalog-sync-repeat');
-await retiredCatalogQueue.close();
+try {
+  // Remove schedulers from retired jobs: self-hosted Redis volumes persist
+  // across upgrades, so old schedulers would keep firing otherwise.
+  const legacyQueue = new Queue(QUEUES.metadataRefresh, { connection });
+  await withBootTimeout(
+    (async () => {
+      await legacyQueue.removeJobScheduler('refresh-airing-daily');
+      await legacyQueue.removeJobScheduler('refresh-ended-weekly');
+      await legacyQueue.close();
+    })(),
+    'legacy scheduler cleanup',
+  );
+
+  // 'catalog-sync' (bulk full-catalog mirror, ADR-0001) was retired by
+  // ADR-0002 in favor of live federated search — no QUEUES entry for it
+  // anymore, name kept here as a literal purely to clean up the scheduler an
+  // already-upgraded instance may still have registered.
+  const retiredCatalogQueue = new Queue('catalog-sync', { connection });
+  await withBootTimeout(
+    (async () => {
+      await retiredCatalogQueue.removeJobScheduler('catalog-sync-repeat');
+      await retiredCatalogQueue.close();
+    })(),
+    'retired catalog-sync scheduler cleanup',
+  );
+} catch (error) {
+  logger.error({ err: error }, 'worker boot failed');
+  process.exit(1);
+}
 
 logger.info('worker started');
 
