@@ -4,6 +4,7 @@ import {
   TRACKT_CATALOG_NAMESPACE,
   canonicalMediaId,
   canonicalMediaKey,
+  canonicalSeriesSeasonId,
   uuidv5,
 } from '../src/canonical-id.js';
 
@@ -64,5 +65,22 @@ describe('canonicalMediaId', () => {
     expect(IDENTITY_PROVIDER_BY_KIND.webtoon).toBeNull();
     expect(() => canonicalMediaId('webtoon', 1)).toThrow(/identity provider/);
     expect(canonicalMediaId('webtoon', 1, 'mangaupdates')).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
+describe('canonicalSeriesSeasonId', () => {
+  it('keys a season on the composite show:season external id (ADR-0003)', () => {
+    expect(canonicalSeriesSeasonId(1396, 1)).toBe(
+      uuidv5(TRACKT_CATALOG_NAMESPACE, canonicalMediaKey('tmdb', 'series', '1396:1')),
+    );
+  });
+
+  it('gives each season of a show a distinct id', () => {
+    const seasons = [1, 2, 3, 4, 5].map((n) => canonicalSeriesSeasonId(1396, n));
+    expect(new Set(seasons).size).toBe(seasons.length);
+  });
+
+  it('is deterministic across number/string show ids', () => {
+    expect(canonicalSeriesSeasonId(1396, 2)).toBe(canonicalSeriesSeasonId('1396', 2));
   });
 });

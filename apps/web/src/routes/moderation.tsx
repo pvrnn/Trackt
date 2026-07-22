@@ -113,11 +113,11 @@ function QueueCard({ item, status }: { item: ModerationQueueItem; status: QueueS
   const busy = moderate.isPending;
   const act = (patch: ModerationPatchBody) => moderate.mutate(patch);
 
+  // One count, labelled by kind's part; series/anime may also show a season number (ADR-0003).
+  const partLabel = item.kind === 'manga' || item.kind === 'webtoon' ? 'CH' : 'EP';
   const counts = [
-    item.episodeCount !== null ? `${item.episodeCount} EP` : null,
-    item.seasonCount !== null ? `${item.seasonCount} SEASONS` : null,
-    item.chapterCount !== null ? `${item.chapterCount} CH` : null,
-    item.volumeCount !== null ? `${item.volumeCount} VOL` : null,
+    item.seasonNumber !== null ? `SEASON ${item.seasonNumber}` : null,
+    item.partCount !== null ? `${item.partCount} ${partLabel}` : null,
   ].filter(Boolean);
 
   return (

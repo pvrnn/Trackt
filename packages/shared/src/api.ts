@@ -32,6 +32,8 @@ export const SearchResultSchema = z.object({
   title: z.string(),
   year: z.number().int().nullable(),
   status: MediaStatusSchema.nullable(),
+  /** Season number for series/anime split per season (ADR-0003); null otherwise — lets cards label "Season N". */
+  seasonNumber: z.number().int().nullable(),
   coverUrl: z.string().nullable(),
   description: z.string().nullable(),
 });

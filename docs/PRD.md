@@ -130,6 +130,12 @@ A small central service — run by the project, optional to use — that only ho
 
 ### Core tables (simplified)
 
+> **Amended by [ADR-0003](adr/0003-per-season-media.md):** a `series`/`anime` media
+> is a single **season** (Breaking Bad S1 and S2 are separate rows/UUIDs), and the
+> media row carries one `part_count` (episodes or chapters) plus a `season_number`
+> instead of separate episode/season/chapter/volume counts. `media_part` stays as
+> the flat episode/chapter store below.
+
 ```sql
 media (
   id uuid pk,

@@ -124,3 +124,14 @@ export function canonicalMediaId(
   }
   return uuidv5(TRACKT_CATALOG_NAMESPACE, canonicalMediaKey(provider, kind, externalId));
 }
+
+/**
+ * Canonical ID for a single TV season, which is its own `series` media (ADR-0003):
+ * the composite external key is `<showTmdbId>:<seasonNumber>`, giving
+ * `tmdb:series:1396:1`. Frozen forever like every canonical key. Anime seasons
+ * need no equivalent — AniList already issues a distinct id per season/cour, so
+ * they go through `canonicalMediaId('anime', anilistId)` directly.
+ */
+export function canonicalSeriesSeasonId(showTmdbId: string | number, seasonNumber: number): string {
+  return canonicalMediaId('series', `${showTmdbId}:${seasonNumber}`);
+}

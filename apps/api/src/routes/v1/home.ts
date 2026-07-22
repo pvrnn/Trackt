@@ -21,14 +21,9 @@ const IN_PROGRESS_LIMIT = 12;
 const UP_NEXT_LIMIT = 3;
 const ACTIVITY_LIMIT = 6;
 
-function partTotal(row: {
-  kind: MediaKind;
-  episodeCount: number | null;
-  chapterCount: number | null;
-}) {
-  const partKind = PART_KIND_BY_MEDIA[row.kind];
-  if (!partKind) return null;
-  return partKind === 'episode' ? row.episodeCount : row.chapterCount;
+function partTotal(row: { kind: MediaKind; partCount: number | null }) {
+  // Movies have no parts to progress through; everything else counts in partCount.
+  return PART_KIND_BY_MEDIA[row.kind] ? row.partCount : null;
 }
 
 export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -57,8 +52,7 @@ export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
           kind: media.kind,
           title: media.title,
           coverUrl: media.coverUrl,
-          episodeCount: media.episodeCount,
-          chapterCount: media.chapterCount,
+          partCount: media.partCount,
         })
         .from(userMedia)
         .innerJoin(media, eq(media.id, userMedia.mediaId))

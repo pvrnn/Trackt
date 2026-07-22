@@ -19,7 +19,7 @@ export async function searchLocalMedia(
   viewer: SessionUser | null,
 ): Promise<LocalSearchResult[]> {
   const rows = await db.execute(sql`
-    SELECT id, slug, kind, title, year, status, cover_url, description,
+    SELECT id, slug, kind, title, year, status, season_number, cover_url, description,
            GREATEST(similarity(title, ${q}),
                     similarity(immutable_array_to_string(synonyms, ' '), ${q})) AS rank
     FROM media
@@ -39,6 +39,7 @@ export async function searchLocalMedia(
     title: row.title as string,
     year: row.year as number | null,
     status: row.status as SearchResult['status'],
+    seasonNumber: row.season_number as number | null,
     coverUrl: row.cover_url as string | null,
     description: row.description as string | null,
     rank: row.rank as number,

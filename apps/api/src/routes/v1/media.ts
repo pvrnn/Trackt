@@ -49,7 +49,7 @@ async function loadRelated(
   // Self-join on the source row: its genres never leave Postgres (array params
   // don't survive drizzle's sql interpolation).
   const rows = await db.execute(sql`
-    SELECT m.id, m.slug, m.kind, m.title, m.year, m.status, m.cover_url, m.description,
+    SELECT m.id, m.slug, m.kind, m.title, m.year, m.status, m.season_number, m.cover_url, m.description,
            cardinality(ARRAY(SELECT unnest(m.genres) INTERSECT SELECT unnest(src.genres))) AS overlap
     FROM media m
     JOIN media src ON src.id = ${row.id}
@@ -67,6 +67,7 @@ async function loadRelated(
     title: related.title as string,
     year: related.year as number | null,
     status: related.status as SearchResult['status'],
+    seasonNumber: related.season_number as number | null,
     coverUrl: related.cover_url as string | null,
     description: related.description as string | null,
   }));
@@ -174,10 +175,8 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         synonyms: body.synonyms ?? [],
         genres: body.genres ?? [],
         year: body.year ?? null,
-        episodeCount: body.episodeCount ?? null,
-        seasonCount: body.seasonCount ?? null,
-        chapterCount: body.chapterCount ?? null,
-        volumeCount: body.volumeCount ?? null,
+        partCount: body.partCount ?? null,
+        seasonNumber: body.seasonNumber ?? null,
         description: body.description ?? null,
         releaseDate: body.releaseDate ?? null,
         status: body.status ?? null,

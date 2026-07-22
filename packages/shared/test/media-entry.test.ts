@@ -29,24 +29,24 @@ describe('CreateMediaBodySchema', () => {
   });
 
   it.each([
-    ['movie', { episodeCount: 12 }, false],
-    ['movie', { chapterCount: 12 }, false],
+    // partCount applies to every kind except movie; seasonNumber only to series/anime (ADR-0003).
     ['movie', {}, true],
-    ['series', { episodeCount: 12, seasonCount: 2 }, true],
-    ['series', { chapterCount: 12 }, false],
-    ['anime', { episodeCount: 24 }, true],
-    ['anime', { volumeCount: 3 }, false],
-    ['manga', { chapterCount: 120, volumeCount: 14 }, true],
-    ['manga', { seasonCount: 1 }, false],
-    ['webtoon', { chapterCount: 550 }, true],
-    ['webtoon', { episodeCount: 5 }, false],
-  ] as const)('%s with %o → valid=%s', (kind, counts, valid) => {
-    const result = CreateMediaBodySchema.safeParse({ ...base, kind, ...counts });
+    ['movie', { partCount: 12 }, false],
+    ['movie', { seasonNumber: 1 }, false],
+    ['series', { partCount: 12, seasonNumber: 2 }, true],
+    ['series', { seasonNumber: 2 }, true],
+    ['anime', { partCount: 24, seasonNumber: 1 }, true],
+    ['manga', { partCount: 120 }, true],
+    ['manga', { seasonNumber: 1 }, false],
+    ['webtoon', { partCount: 550 }, true],
+    ['webtoon', { seasonNumber: 1 }, false],
+  ] as const)('%s with %o → valid=%s', (kind, fields, valid) => {
+    const result = CreateMediaBodySchema.safeParse({ ...base, kind, ...fields });
     expect(result.success).toBe(valid);
   });
 
-  it('ignores explicit nulls for non-applicable counts', () => {
-    const result = CreateMediaBodySchema.safeParse({ ...base, kind: 'movie', episodeCount: null });
+  it('ignores explicit nulls for non-applicable fields', () => {
+    const result = CreateMediaBodySchema.safeParse({ ...base, kind: 'movie', partCount: null });
     expect(result.success).toBe(true);
   });
 

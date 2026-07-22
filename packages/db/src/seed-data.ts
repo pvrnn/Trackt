@@ -1,4 +1,4 @@
-import { canonicalMediaId } from '@trackt/shared';
+import { canonicalMediaId, canonicalSeriesSeasonId } from '@trackt/shared';
 import type { media } from './schema/media.js';
 
 type MediaSeed = typeof media.$inferInsert;
@@ -6,10 +6,15 @@ type MediaSeed = typeof media.$inferInsert;
 /**
  * Dev/test fixture catalog spanning every media kind, keyed by canonical IDs so the
  * rows match what the central catalog will publish for the same works (ADR-0001).
- * The webtoon row is user-created and keeps a fixed random UUID.
+ *
+ * Per ADR-0003 a series/anime "media" is a single season: Breaking Bad S1 and S2 are
+ * two rows with distinct canonical IDs (`tmdb:series:<showId>:<seasonNumber>`), sharing
+ * the show title so a search for "breaking bad" returns both, labelled by seasonNumber.
+ * `partCount` is the one count (episodes or chapters); movies have none. The webtoon row
+ * is user-created and keeps a fixed random UUID.
  */
 export const SEED_MEDIA: MediaSeed[] = [
-  // Movies (identity provider: tmdb)
+  // Movies (identity provider: tmdb) — no parts.
   {
     id: canonicalMediaId('movie', 603),
     kind: 'movie',
@@ -49,53 +54,83 @@ export const SEED_MEDIA: MediaSeed[] = [
     externalIds: { tmdb: 129, imdb: 'tt0245429' },
     description: 'A girl wanders into a world of spirits and must free her parents.',
   },
-  // Series (identity provider: tmdb)
+  // Series (identity provider: tmdb) — one row per season (ADR-0003).
   {
-    id: canonicalMediaId('series', 1396),
+    id: canonicalSeriesSeasonId(1396, 1),
     kind: 'series',
     title: 'Breaking Bad',
-    slug: 'breaking-bad-2008',
+    slug: 'breaking-bad-2008-s1',
     synonyms: [],
     genres: ['crime', 'drama'],
     year: 2008,
     releaseDate: '2008-01-20',
     status: 'ended',
-    seasonCount: 5,
-    episodeCount: 62,
+    seasonNumber: 1,
+    partCount: 7,
     externalIds: { tmdb: 1396, imdb: 'tt0903747', tvdb: 81189 },
     description: 'A chemistry teacher turns to manufacturing methamphetamine.',
   },
   {
-    id: canonicalMediaId('series', 1438),
+    id: canonicalSeriesSeasonId(1396, 2),
+    kind: 'series',
+    title: 'Breaking Bad',
+    slug: 'breaking-bad-2009-s2',
+    synonyms: [],
+    genres: ['crime', 'drama'],
+    year: 2009,
+    releaseDate: '2009-03-08',
+    status: 'ended',
+    seasonNumber: 2,
+    partCount: 13,
+    externalIds: { tmdb: 1396, imdb: 'tt0903747', tvdb: 81189 },
+    description: 'A chemistry teacher turns to manufacturing methamphetamine.',
+  },
+  {
+    id: canonicalSeriesSeasonId(1438, 1),
     kind: 'series',
     title: 'The Wire',
-    slug: 'the-wire-2002',
+    slug: 'the-wire-2002-s1',
     synonyms: [],
     genres: ['crime', 'drama'],
     year: 2002,
     releaseDate: '2002-06-02',
     status: 'ended',
-    seasonCount: 5,
-    episodeCount: 60,
+    seasonNumber: 1,
+    partCount: 13,
     externalIds: { tmdb: 1438, imdb: 'tt0306414' },
     description: 'Baltimore through the eyes of drug dealers and law enforcement.',
   },
   {
-    id: canonicalMediaId('series', 95396),
+    id: canonicalSeriesSeasonId(95396, 1),
     kind: 'series',
     title: 'Severance',
-    slug: 'severance-2022',
+    slug: 'severance-2022-s1',
     synonyms: [],
     genres: ['drama', 'mystery', 'science fiction'],
     year: 2022,
     releaseDate: '2022-02-17',
-    status: 'airing',
-    seasonCount: 2,
-    episodeCount: 19,
+    status: 'ended',
+    seasonNumber: 1,
+    partCount: 9,
     externalIds: { tmdb: 95396, imdb: 'tt11280740' },
     description: 'Employees have their work and personal memories surgically divided.',
   },
-  // Anime (identity provider: anilist)
+  {
+    id: canonicalSeriesSeasonId(95396, 2),
+    kind: 'series',
+    title: 'Severance',
+    slug: 'severance-2025-s2',
+    synonyms: [],
+    genres: ['drama', 'mystery', 'science fiction'],
+    year: 2025,
+    releaseDate: '2025-01-17',
+    status: 'airing',
+    seasonNumber: 2,
+    partCount: 10,
+    externalIds: { tmdb: 95396, imdb: 'tt11280740' },
+    description: 'Employees have their work and personal memories surgically divided.',
+  },
+  // Anime (identity provider: anilist) — AniList already issues one id per season/cour.
   {
     id: canonicalMediaId('anime', 1),
     kind: 'anime',
@@ -106,8 +141,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     year: 1998,
     releaseDate: '1998-04-03',
     status: 'ended',
-    seasonCount: 1,
-    episodeCount: 26,
+    seasonNumber: 1,
+    partCount: 26,
     externalIds: { anilist: 1, mal: 1 },
     description: 'Bounty hunters drift through space aboard the Bebop.',
   },
@@ -121,8 +156,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     year: 2023,
     releaseDate: '2023-09-29',
     status: 'ended',
-    seasonCount: 1,
-    episodeCount: 28,
+    seasonNumber: 1,
+    partCount: 28,
     externalIds: { anilist: 154587, mal: 52991 },
     description: 'An elf mage outlives her companions and retraces their journey.',
   },
@@ -136,12 +171,12 @@ export const SEED_MEDIA: MediaSeed[] = [
     year: 2009,
     releaseDate: '2009-04-05',
     status: 'ended',
-    seasonCount: 1,
-    episodeCount: 64,
+    seasonNumber: 1,
+    partCount: 64,
     externalIds: { anilist: 5114, mal: 5114 },
     description: 'Two brothers seek the Philosopher’s Stone to restore their bodies.',
   },
-  // Manga (identity provider: anilist)
+  // Manga (identity provider: anilist) — whole work, counted in chapters.
   {
     id: canonicalMediaId('manga', 30002),
     kind: 'manga',
@@ -152,8 +187,7 @@ export const SEED_MEDIA: MediaSeed[] = [
     year: 1989,
     releaseDate: '1989-08-25',
     status: 'publishing',
-    volumeCount: 42,
-    chapterCount: 380,
+    partCount: 380,
     externalIds: { anilist: 30002, mal: 2 },
     description: 'A lone mercenary battles fate in a medieval dark-fantasy world.',
   },
@@ -167,8 +201,7 @@ export const SEED_MEDIA: MediaSeed[] = [
     year: 1997,
     releaseDate: '1997-07-22',
     status: 'publishing',
-    volumeCount: 110,
-    chapterCount: 1120,
+    partCount: 1120,
     externalIds: { anilist: 30013, mal: 13 },
     description: 'Monkey D. Luffy sails to find the One Piece and become Pirate King.',
   },
@@ -182,8 +215,7 @@ export const SEED_MEDIA: MediaSeed[] = [
     year: 2018,
     releaseDate: '2018-12-03',
     status: 'publishing',
-    volumeCount: 20,
-    chapterCount: 180,
+    partCount: 180,
     externalIds: { anilist: 105778, mal: 116778 },
     description: 'A devil hunter merges with his chainsaw devil to survive.',
   },
@@ -197,7 +229,7 @@ export const SEED_MEDIA: MediaSeed[] = [
     genres: ['comedy', 'slice of life'],
     year: 2024,
     status: 'publishing',
-    chapterCount: 47,
+    partCount: 47,
     externalIds: {},
     source: 'user',
     moderation: 'unverified',

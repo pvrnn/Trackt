@@ -55,9 +55,8 @@ function partNoun(detail: MediaDetail): { singular: string; prefix: string } | n
 }
 
 function partTotal(detail: MediaDetail): number | null {
-  if (detail.kind === 'series' || detail.kind === 'anime') return detail.episodeCount;
-  if (detail.kind === 'manga' || detail.kind === 'webtoon') return detail.chapterCount;
-  return null;
+  // Movies have no episodes/chapters; every other kind counts in partCount (ADR-0003).
+  return detail.kind === 'movie' ? null : detail.partCount;
 }
 
 type ViewerPatch = Partial<NonNullable<MediaDetail['viewer']>>;
@@ -186,10 +185,9 @@ function MediaPage() {
   const metaParts = [
     detail.year !== null ? String(detail.year) : null,
     detail.status ? detail.status.toUpperCase() : null,
-    countOf(detail.seasonCount, 'SEASON'),
-    countOf(detail.episodeCount, 'EPISODE'),
-    countOf(detail.chapterCount, 'CHAPTER'),
-    countOf(detail.volumeCount, 'VOLUME'),
+    detail.seasonNumber !== null ? `SEASON ${detail.seasonNumber}` : null,
+    // One count, labelled by kind's part (EPISODE/CHAPTER); movies have none (ADR-0003).
+    noun ? countOf(total, noun.singular.toUpperCase()) : null,
   ].filter(Boolean);
 
   const detailRows: [string, string][] = [

@@ -131,7 +131,7 @@ describe.runIf(available)('user-created entries + moderation (postgres)', () => 
         kind: 'webtoon',
         title,
         year: 2024,
-        chapterCount: 42,
+        partCount: 42,
         genres: ['comedy'],
         description: 'Couriers, but in space.',
       },
@@ -150,7 +150,7 @@ describe.runIf(available)('user-created entries + moderation (postgres)', () => 
 
   it('rejects count fields that do not fit the kind', async () => {
     const response = await createEntry(
-      { kind: 'movie', title: 'Oops', episodeCount: 3 },
+      { kind: 'movie', title: 'Oops', partCount: 3 },
       creatorCookie,
     );
     expect(response.statusCode).toBe(400);
