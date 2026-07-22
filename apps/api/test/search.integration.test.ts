@@ -3,7 +3,12 @@ import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { SearchResultSchema, canonicalMediaId, loadEnv } from '@trackt/shared';
+import {
+  SearchResultSchema,
+  canonicalMediaId,
+  canonicalSeriesSeasonId,
+  loadEnv,
+} from '@trackt/shared';
 import { buildApp, type App } from '../src/app.js';
 
 /**
@@ -66,12 +71,18 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
   it('finds an exact title', async () => {
     const { statusCode, results } = await search('q=Breaking%20Bad');
     expect(statusCode).toBe(200);
-    expect(results[0]).toMatchObject({
-      id: canonicalMediaId('series', 1396),
-      title: 'Breaking Bad',
-      kind: 'series',
-      year: 2008,
-    });
+    // Breaking Bad is two season-media now (ADR-0003) with identical title and
+    // rank, so the top hit is one of them in an unspecified order.
+    const seasonIds = new Set([canonicalSeriesSeasonId(1396, 1), canonicalSeriesSeasonId(1396, 2)]);
+    const top = results[0] as {
+      id: string;
+      title: string;
+      kind: string;
+      seasonNumber: number | null;
+    };
+    expect(top).toMatchObject({ title: 'Breaking Bad', kind: 'series' });
+    expect(seasonIds.has(top.id)).toBe(true);
+    expect(top.seasonNumber).not.toBeNull();
   });
 
   it('tolerates typos via trigram matching', async () => {
