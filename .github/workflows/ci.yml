@@ -103,3 +103,28 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
+
+  # apps/catalog (ADR-0001) is a separate, project-operated deployable — but
+  # unlike the self-hosted monolith above, nobody else ever pulls its image
+  # (only the project operator deploys the one central instance). This job
+  # is a regression net only: build + smoke-test on every PR/push, never
+  # publish. Push it yourself when you're actually ready to redeploy — see
+  # docs/catalog-hosting.md's "Deploying" section. A distinct cache scope
+  # keeps this job's GHA cache writes from clobbering the `docker` job's.
+  docker-catalog:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/catalog/Dockerfile
+          load: true
+          tags: trackt-catalog:smoke
+          cache-from: type=gha,scope=catalog
+          cache-to: type=gha,mode=max,scope=catalog
+      - name: Smoke test image (migrations + healthz/readyz/search)
+        run: docker/smoke-test-catalog.sh trackt-catalog:smoke

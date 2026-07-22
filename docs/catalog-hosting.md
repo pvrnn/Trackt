@@ -109,6 +109,98 @@ Two defensible picks, one clear loser set (Vercel/Supabase out; DO managed too e
 
 Whichever is picked, the deploy artifact is the same and platform-agnostic: `apps/catalog/Dockerfile` + CI image build + env docs — no platform lock-in in the repo itself.
 
+## Deploying
+
+Concrete walkthrough for the "Suggested: start on Scaleway + Neon" pick above.
+The deploy artifact itself — `apps/catalog/Dockerfile`, the `docker-catalog`
+CI job, `apps/catalog/.env.example` — is platform-agnostic; swap steps 2–3 for
+Railway (documented at the end) without touching the repo.
+
+### 1. Image
+
+CI (`docker-catalog` job, `.github/workflows/ci.yml`) builds and
+smoke-tests `apps/catalog/Dockerfile` on every PR/push as a regression net,
+but deliberately never publishes it — unlike the self-hosted monolith image,
+nobody but the project operator ever pulls this one, so there's no standing
+"many self-hosters need a pre-built image" reason to auto-publish on every
+merge. Publish it yourself, only when you're actually about to redeploy:
+
+    docker build -t ghcr.io/pvrnn/trackt-catalog:latest -f apps/catalog/Dockerfile .
+    docker/smoke-test-catalog.sh ghcr.io/pvrnn/trackt-catalog:latest   # sanity check before pushing
+    echo "$GHCR_PAT" | docker login ghcr.io -u pvrnn --password-stdin
+    docker push ghcr.io/pvrnn/trackt-catalog:latest
+
+ghcr.io packages default to **private**; either make `trackt-catalog` public
+(package Settings → Change visibility) or give the hosting platform a
+registry pull secret (a GitHub PAT with `read:packages`) before it can pull.
+
+If you pick Railway instead of Scaleway (see the fallback at the end of this
+section), skip this step entirely — Railway builds straight from
+`apps/catalog/Dockerfile` in the GitHub repo, no registry involved.
+
+### 2. Database — Neon
+
+1. Create a Neon project (EU region) at neon.tech.
+2. Create a database (or use the default, renamed if you like).
+3. Copy the **pooled** connection string (Neon's "Connect" panel → pooled
+   connection) — this becomes `DATABASE_URL`.
+4. No manual migration step: `apps/catalog` runs its own migrations at boot
+   (`runCatalogMigrations`, `apps/catalog/src/db/index.ts`). The first boot
+   against a fresh database creates `catalog_media` and its indexes/extensions
+   (`pg_trgm`) automatically — Neon's default role has the privileges needed
+   for `CREATE EXTENSION`.
+
+### 3. Container — Scaleway Serverless Containers
+
+1. Create a Serverless Container (Paris region `fr-par`), pointed at
+   `ghcr.io/pvrnn/trackt-catalog:latest` (whatever tag you pushed in step 1).
+2. Leave the port on Scaleway's injected `PORT` — the app already reads
+   `PORT` from env (default 3002) and binds `0.0.0.0`, so no extra config.
+3. Min scale 0 to start (matches the ~€0/mo estimate above); revisit per the
+   cold-start callout at the top of this doc once there's real self-hosted
+   search traffic.
+4. Environment variables:
+   - `NODE_ENV=production`
+   - `DATABASE_URL=<Neon pooled connection string>`
+   - `CATALOG_ADMIN_TOKEN=<openssl rand -base64 32>` — keep secret; gates
+     `POST /v1/admin/media`, wired up in the catalog-population sprint.
+   - `LOG_LEVEL=info` (optional)
+5. Health check path: `/healthz`.
+6. Deploy, then confirm:
+
+       curl https://<container-url>/healthz
+       curl https://<container-url>/readyz   # expect {"status":"ok","checks":{"database":"ok"}}
+       curl "https://<container-url>/v1/catalog/search?q=test"   # expect {"results":[]} on an empty catalog
+
+7. A custom domain is optional — the platform-issued URL is fine, since this
+   is only ever called server-to-server by self-hosted instances' backends,
+   never by browsers (`apps/catalog/src/app.ts` sets `cors: { origin: true }`
+   by design for exactly that reason).
+
+### 4. Wire up self-hosted instances
+
+Every self-hosted Trackt instance that wants federated search sets, in its
+own `.env` / `docker-compose.yml`:
+
+    CATALOG_URL=https://<the container's public URL>
+
+Left unset, `apps/api`'s federated search
+(`apps/api/src/lib/federated-search.ts`, ADR-0002) skips the central catalog
+and returns local-only results — there's no hard dependency, so this rolls
+out gradually and safely.
+
+### Fallback: Railway
+
+1. New Railway project → deploy from the same `ghcr.io/pvrnn/trackt-catalog`
+   image (or "Deploy from Dockerfile" pointed at `apps/catalog/Dockerfile`
+   in this repo).
+2. Add a Railway Postgres plugin to the project; wire its `DATABASE_URL`
+   into the catalog service's variables.
+3. Set `CATALOG_ADMIN_TOKEN` and `NODE_ENV=production` as service variables,
+   same values/generation as above.
+4. Railway auto-detects the listening port; health check path `/healthz`.
+5. Step 4 above (wiring `CATALOG_URL` into self-hosted instances) is identical.
+
 ## Sources
 
 - [Railway pricing plans](https://docs.railway.com/pricing/plans), [Railway pricing overview](https://www.srvrlss.io/provider/railway/)
