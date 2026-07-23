@@ -85,6 +85,7 @@ async function materializeCentralHits(
         title: persisted.title,
         year: persisted.year,
         status: persisted.status,
+        seasonNumber: persisted.seasonNumber,
         coverUrl: persisted.coverUrl,
         description: persisted.description,
         rank: hit.rank,

@@ -256,7 +256,7 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
           .status(400)
           .send({ error: `${ctx.row.kind} entries have no episodes/chapters to check in` });
       }
-      const total = partKind === 'episode' ? ctx.row.episodeCount : ctx.row.chapterCount;
+      const total = ctx.row.partCount;
       if (total !== null && number > total) {
         return reply.status(400).send({ error: `number exceeds the ${total} known parts` });
       }

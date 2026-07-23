@@ -19,10 +19,13 @@ export const SlimMediaSchema = z.object({
   year: z.number().int().nullable(),
   status: MediaStatusSchema.nullable(),
   genres: z.array(GenreSchema),
-  episodeCount: z.number().int().nullable(),
-  seasonCount: z.number().int().nullable(),
-  chapterCount: z.number().int().nullable(),
-  volumeCount: z.number().int().nullable(),
+  /**
+   * Episodes (series/anime season) or chapters (manga/webtoon); null for movies.
+   * The part kind is derived from `kind` (PART_KIND_BY_MEDIA) — one count, not four (ADR-0003).
+   */
+  partCount: z.number().int().nullable(),
+  /** Which season this row is, for series/anime split per season (ADR-0003); null otherwise. */
+  seasonNumber: z.number().int().nullable(),
   externalIds: ExternalIdsSchema,
   description: z.string().nullable(),
   coverUrl: z.string().nullable(),

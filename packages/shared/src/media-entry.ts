@@ -40,21 +40,36 @@ const EditableMediaFields = z.object({
   synonyms: TagListSchema,
   status: MediaStatusSchema.nullable(),
   releaseDate: z.iso.date().nullable(),
-  episodeCount: CountSchema.nullable(),
-  seasonCount: CountSchema.nullable(),
-  chapterCount: CountSchema.nullable(),
-  volumeCount: CountSchema.nullable(),
+  /** Episodes (series/anime season) or chapters (manga/webtoon); N/A for movies (ADR-0003). */
+  partCount: CountSchema.nullable(),
+  /** Season number for series/anime split per season (ADR-0003). */
+  seasonNumber: CountSchema.nullable(),
 });
 
-/** Count fields that make sense per kind; the rest must stay unset. */
-const COUNT_FIELDS_BY_KIND = {
-  movie: [],
-  series: ['episodeCount', 'seasonCount'],
-  anime: ['episodeCount', 'seasonCount'],
-  manga: ['chapterCount', 'volumeCount'],
-  webtoon: ['chapterCount', 'volumeCount'],
-} as const;
-const ALL_COUNT_FIELDS = ['episodeCount', 'seasonCount', 'chapterCount', 'volumeCount'] as const;
+/** Movies have no parts to count; only series/anime carry a season number (ADR-0003). */
+function checkEntryFields(
+  body: {
+    kind: z.infer<typeof MediaKindSchema>;
+    partCount?: number | null;
+    seasonNumber?: number | null;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (body.partCount != null && body.kind === 'movie') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['partCount'],
+      message: 'partCount does not apply to movie',
+    });
+  }
+  if (body.seasonNumber != null && body.kind !== 'series' && body.kind !== 'anime') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['seasonNumber'],
+      message: `seasonNumber only applies to series/anime, not ${body.kind}`,
+    });
+  }
+}
 
 /** `POST /api/v1/media` — create a user entry (starts `unverified`). */
 export const CreateMediaBodySchema = EditableMediaFields.partial()
@@ -62,18 +77,7 @@ export const CreateMediaBodySchema = EditableMediaFields.partial()
     kind: MediaKindSchema,
     title: TitleSchema,
   })
-  .superRefine((body, ctx) => {
-    const allowed: readonly string[] = COUNT_FIELDS_BY_KIND[body.kind];
-    for (const field of ALL_COUNT_FIELDS) {
-      if (body[field] != null && !allowed.includes(field)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: [field],
-          message: `${field} does not apply to ${body.kind}`,
-        });
-      }
-    }
-  });
+  .superRefine(checkEntryFields);
 export type CreateMediaBody = z.infer<typeof CreateMediaBodySchema>;
 
 export const CreateMediaResponseSchema = z.object({
@@ -110,10 +114,8 @@ export const ModerationQueueItemSchema = z.object({
   description: z.string().nullable(),
   genres: z.array(z.string()),
   synonyms: z.array(z.string()),
-  episodeCount: z.number().int().nullable(),
-  seasonCount: z.number().int().nullable(),
-  chapterCount: z.number().int().nullable(),
-  volumeCount: z.number().int().nullable(),
+  partCount: z.number().int().nullable(),
+  seasonNumber: z.number().int().nullable(),
   coverUrl: z.string().nullable(),
   moderation: ModerationStatusSchema,
   createdAt: z.iso.datetime(),

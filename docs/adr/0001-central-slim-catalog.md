@@ -2,6 +2,7 @@
 
 **Status:** Accepted — 2026-07-10
 **Supersedes:** PRD §4 "federated fetch-and-cache"
+**Amended by:** [ADR-0003](0003-per-season-media.md) — series/anime media are per-season; the four count fields collapse to one `part_count` (+ `season_number`); series-season canonical key is `tmdb:series:<showId>:<seasonNumber>`.
 
 ## Context
 

@@ -13,9 +13,8 @@ import { Chip } from '../ui/Chip';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 
-/** Kinds using episode/season counts; the others take chapters/volumes (movies: neither). */
+/** Series/anime count episodes and carry a season number; manga/webtoon count chapters (ADR-0003). */
 const EPISODIC: MediaKind[] = ['series', 'anime'];
-const PAGINATED: MediaKind[] = ['manga', 'webtoon'];
 
 const KIND_LABELS: Record<MediaKind, string> = {
   movie: 'MOVIE',
@@ -62,8 +61,8 @@ export function CreateEntryDialog({
   const [status, setStatus] = useState<'' | MediaStatus>('');
   const [genres, setGenres] = useState('');
   const [synonyms, setSynonyms] = useState('');
-  const [countA, setCountA] = useState(''); // episodes | chapters
-  const [countB, setCountB] = useState(''); // seasons  | volumes
+  const [partCount, setPartCount] = useState(''); // episodes | chapters
+  const [seasonNumber, setSeasonNumber] = useState(''); // series/anime only
   const [description, setDescription] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -71,7 +70,7 @@ export function CreateEntryDialog({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const episodic = EPISODIC.includes(kind);
-  const paginated = PAGINATED.includes(kind);
+  const hasParts = kind !== 'movie';
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -87,8 +86,8 @@ export function CreateEntryDialog({
       genres: toList(genres),
       synonyms: toList(synonyms),
       description: description.trim() || undefined,
-      ...(episodic ? { episodeCount: toCount(countA), seasonCount: toCount(countB) } : {}),
-      ...(paginated ? { chapterCount: toCount(countA), volumeCount: toCount(countB) } : {}),
+      ...(hasParts ? { partCount: toCount(partCount) } : {}),
+      ...(episodic ? { seasonNumber: toCount(seasonNumber) } : {}),
     };
     setBusy(true);
     setError(null);
@@ -170,24 +169,26 @@ export function CreateEntryDialog({
           </div>
         </div>
 
-        {(episodic || paginated) && (
+        {hasParts && (
           <div className="grid grid-cols-2 gap-3">
             <Input
               label={episodic ? 'Episodes' : 'Chapters'}
-              name="countA"
+              name="partCount"
               type="number"
               min={1}
-              value={countA}
-              onChange={(event) => setCountA(event.target.value)}
+              value={partCount}
+              onChange={(event) => setPartCount(event.target.value)}
             />
-            <Input
-              label={episodic ? 'Seasons' : 'Volumes'}
-              name="countB"
-              type="number"
-              min={1}
-              value={countB}
-              onChange={(event) => setCountB(event.target.value)}
-            />
+            {episodic && (
+              <Input
+                label="Season number"
+                name="seasonNumber"
+                type="number"
+                min={1}
+                value={seasonNumber}
+                onChange={(event) => setSeasonNumber(event.target.value)}
+              />
+            )}
           </div>
         )}
 

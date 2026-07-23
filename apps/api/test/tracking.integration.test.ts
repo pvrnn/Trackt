@@ -103,7 +103,7 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
 
   it('serves the detail by slug and by id, anonymous viewer null', async () => {
     const bySlug = await getDetail('cowboy-bebop-1998', false);
-    expect(bySlug).toMatchObject({ id: bebopId, kind: 'anime', episodeCount: 26, viewer: null });
+    expect(bySlug).toMatchObject({ id: bebopId, kind: 'anime', partCount: 26, viewer: null });
     expect(bySlug.community).toEqual({ averageScore: null, ratingCount: 0 });
     const byId = await getDetail(bebopId, false);
     expect(byId.slug).toBe('cowboy-bebop-1998');

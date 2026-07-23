@@ -19,10 +19,10 @@ export const catalogMedia = pgTable(
     year: integer('year'),
     status: text('status', { enum: MEDIA_STATUSES }),
     genres: text('genres').array().notNull().default([]),
-    episodeCount: integer('episode_count'),
-    seasonCount: integer('season_count'),
-    chapterCount: integer('chapter_count'),
-    volumeCount: integer('volume_count'),
+    /** Episodes (series/anime season) or chapters (manga/webtoon); null for movies (ADR-0003). */
+    partCount: integer('part_count'),
+    /** Which season this row is, for series/anime split per season (ADR-0003); null otherwise. */
+    seasonNumber: integer('season_number'),
     externalIds: jsonb('external_ids').$type<ExternalIds>().notNull().default({}),
     description: text('description'),
     coverUrl: text('cover_url'),

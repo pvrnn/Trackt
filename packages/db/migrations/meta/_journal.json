@@ -71,6 +71,13 @@
       "when": 1784139917796,
       "tag": "0009_sharp_lester",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784732400000,
+      "tag": "0010_per_season_partcount",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,9 @@ dist/
 # runtime data (uploads, local volumes)
 data/
 
+# local catalog seed/scrape data — never committed (redistribution, ADR-0001)
+apps/catalog/seed/
+
 # test
 coverage/
 
