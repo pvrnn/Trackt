@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SearchResultSchema } from './api.js';
+import { RelatedWorkSchema, SearchResultSchema } from './api.js';
 import {
   ExternalIdsSchema,
   LogStatusSchema,
@@ -56,7 +56,18 @@ export const MediaDetailSchema = z.object({
     averageScore: z.number().nullable(),
     ratingCount: z.number().int().nonnegative(),
   }),
-  /** Same-kind, genre-overlapping suggestions for the sidebar. */
+  /**
+   * Typed links to other works (ADR-0004), pre-labelled for display: a
+   * reverse-traversed edge already reads as prequel/source/parent. Empty for
+   * anything but adjacent series seasons until the catalog publishes edges —
+   * the client then falls back to `related` below.
+   */
+  relations: z.array(RelatedWorkSchema),
+  /**
+   * Same-kind, genre-overlapping *suggestions* — not relations. The labelled
+   * fallback the client renders ("You might also like") when `relations` is
+   * empty; always sent, so the payload's meaning never depends on hidden state.
+   */
   related: z.array(SearchResultSchema),
   viewer: ViewerStateSchema.nullable(),
 });

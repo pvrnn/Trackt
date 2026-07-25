@@ -1,11 +1,13 @@
 import { sql } from 'drizzle-orm';
 import {
+  check,
   date,
   index,
   integer,
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -15,6 +17,7 @@ import {
 import type { ExternalIds } from '@trackt/shared';
 import {
   mediaKindEnum,
+  mediaRelationTypeEnum,
   mediaSourceEnum,
   mediaStatusEnum,
   moderationStatusEnum,
@@ -92,6 +95,9 @@ export const media = pgTable(
     index('media_created_by_idx').on(t.createdBy),
     index('media_moderation_idx').on(t.moderation),
     index('media_external_ids_gin_idx').using('gin', t.externalIds),
+    // Derived season-sibling lookup, run on every series detail page (ADR-0004).
+    // The jsonb GIN index above serves containment, not `->>` equality.
+    index('media_external_tmdb_idx').on(sql`(${t.externalIds} ->> 'tmdb')`),
     // Typo-tolerant title search via pg_trgm (extension created in the initial migration).
     index('media_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
   ],
@@ -122,5 +128,47 @@ export const mediaPart = pgTable(
     // Unique so lazy part creation (tracking check-ins) can ON CONFLICT DO NOTHING.
     uniqueIndex('media_part_media_id_idx').on(t.mediaId, t.kind, t.number),
     index('media_part_parent_id_idx').on(t.parentId),
+  ],
+);
+
+/**
+ * Typed, directed edges between media rows (ADR-0004): how ADR-0003's flat
+ * per-season media reconnect (S1 →sequel→ S2) and how cross-kind works link
+ * (manga →adaptation→ anime). Stored in ONE direction only; the inverse reading
+ * (prequel/source/parent) comes from `relationLabel` in @trackt/shared.
+ *
+ * Every row here is a *published* fact, materialized once from the catalog's
+ * `/v1/catalog/relations` (ADR-0002's one-time-snapshot posture, extended to
+ * edges). Adjacent series seasons derivable from `external_ids.tmdb` +
+ * `season_number` are computed per request and deliberately never written, so
+ * this table needs no provenance column and "a stored edge wins over a derived
+ * one" is true by construction.
+ *
+ * Edges carry no visibility of their own: every read path must filter targets
+ * through `canViewMedia`/`visibleMediaSql`, or an `unverified` entry linked as a
+ * sequel would leak and a soft-deleted row would resurface through its sibling.
+ * Both endpoints cascade — unlike `media` itself, no user data hangs off an edge.
+ */
+export const mediaRelation = pgTable(
+  'media_relation',
+  {
+    fromId: uuid('from_id')
+      .notNull()
+      .references(() => media.id, { onDelete: 'cascade' }),
+    toId: uuid('to_id')
+      .notNull()
+      .references(() => media.id, { onDelete: 'cascade' }),
+    type: mediaRelationTypeEnum('type').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Type-inclusive so one pair can carry two true edges (a manga that is both
+    // an anime's source and related to it), and so materializing is idempotent.
+    primaryKey({ columns: [t.fromId, t.toId, t.type] }),
+    // Reverse half of the bidirectional detail-page lookup (`to_id = $1`).
+    index('media_relation_to_idx').on(t.toId),
+    // Load-bearing, not hygiene: with no self-edges possible, the read query's
+    // two branches are provably disjoint and can UNION ALL without a dedup sort.
+    check('media_relation_no_self', sql`${t.fromId} <> ${t.toId}`),
   ],
 );

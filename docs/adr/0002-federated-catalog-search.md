@@ -2,6 +2,7 @@
 
 **Status:** Accepted — 2026-07-12
 **Amends:** ADR-0001 (supersedes point 3 and the instance-side sync job it specified)
+**Amended by:** [ADR-0004](0004-typed-media-relations.md) — point 2's one-time materialization also fires for relation targets, so search is no longer the only discovery path.
 
 ## Context
 
@@ -64,7 +65,10 @@ changes: from periodic bulk-pull to live federated search.
   Redis connection for `docker/entrypoint.sh`'s liveness check.
 - `apps/api/src/routes/v1/tracking.ts` needed no changes: anything trackable
   was already materialized locally by a prior search, since search is the
-  only discovery path for provider-identified media.
+  only discovery path for provider-identified media. (Superseded by
+  [ADR-0004](0004-typed-media-relations.md): relation targets are a second
+  discovery path. The conclusion stands — every id handed to a client is still
+  a persisted local `media.id` — but it no longer follows from search alone.)
 - A locally-cached provider row can go stale relative to the central catalog
   (episode-count bumps, status changes, central deletions/merges) with no
   automatic correction — accepted for v1. A row only refreshes if it's

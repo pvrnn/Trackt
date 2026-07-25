@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MediaKindSchema, MediaStatusSchema } from './media.js';
+import { MediaKindSchema, MediaRelationLabelSchema, MediaStatusSchema } from './media.js';
 
 export const APP_VERSION = '0.1.0';
 
@@ -38,6 +38,16 @@ export const SearchResultSchema = z.object({
   description: z.string().nullable(),
 });
 export type SearchResult = z.infer<typeof SearchResultSchema>;
+
+/**
+ * A work linked to another by a typed relation (ADR-0004), with the direction
+ * already resolved into the label it renders under — a reverse-traversed
+ * `sequel` edge arrives as `prequel`, so clients never reimplement the flip.
+ */
+export const RelatedWorkSchema = SearchResultSchema.extend({
+  relation: MediaRelationLabelSchema,
+});
+export type RelatedWork = z.infer<typeof RelatedWorkSchema>;
 
 export const ApiErrorSchema = z.object({
   error: z.string(),

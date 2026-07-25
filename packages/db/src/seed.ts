@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from './index.js';
-import { media } from './schema/media.js';
-import { SEED_MEDIA } from './seed-data.js';
+import { media, mediaRelation } from './schema/media.js';
+import { SEED_MEDIA, SEED_MEDIA_RELATIONS } from './seed-data.js';
 
 /**
  * Insert the dev fixture catalog. Idempotent: deterministic IDs make re-seeding an
@@ -31,4 +31,13 @@ export async function seedMedia(db: Db): Promise<void> {
         updatedAt: new Date(),
       },
     });
+}
+
+/**
+ * Insert the dev relation fixtures (ADR-0004). Must run after `seedMedia` — both
+ * endpoints are FKs. `onConflictDoNothing` rather than an upsert: the primary key
+ * covers every column except `created_at`, so there is nothing to update.
+ */
+export async function seedMediaRelations(db: Db): Promise<void> {
+  await db.insert(mediaRelation).values(SEED_MEDIA_RELATIONS).onConflictDoNothing();
 }

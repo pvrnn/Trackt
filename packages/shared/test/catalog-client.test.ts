@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { fetchCatalogSearch } from '../src/catalog-client.js';
+import { fetchCatalogRelations, fetchCatalogSearch } from '../src/catalog-client.js';
 
 /**
- * Wire-contract tests for the federated-search client: hard failures (non-2xx,
+ * Wire-contract tests for the catalog clients: hard failures (non-2xx,
  * malformed envelope) throw so the caller can degrade to local-only, while
- * individual hits with unknown enum values (a newer central catalog) are
- * skipped without dropping the rest of the page.
+ * individual items with unknown enum values (a newer central catalog) are
+ * skipped without dropping the rest of the payload.
  */
 
 const validHit = {
@@ -91,5 +91,106 @@ describe('fetchCatalogSearch', () => {
     });
     expect(result.results).toHaveLength(0);
     expect(result.skipped).toEqual([{ id: null, reason: expect.any(String) }]);
+  });
+});
+
+const MEDIA_ID = '2e1c929b-ab13-5b76-9706-c68e438b6a03';
+
+/** A relation edge: the slim target plus the stored type and traversal direction. */
+const validEdge = {
+  id: '9e1c929b-ab13-5b76-9706-c68e438b6a09',
+  kind: 'anime',
+  title: 'Fullmetal Alchemist: Brotherhood',
+  synonyms: [],
+  year: 2009,
+  status: 'ended',
+  genres: ['action'],
+  partCount: 64,
+  seasonNumber: 1,
+  externalIds: { anilist: 5114 },
+  description: null,
+  coverUrl: null,
+  type: 'adaptation',
+  direction: 'forward',
+};
+
+describe('fetchCatalogRelations', () => {
+  it('throws on a non-2xx catalog response', async () => {
+    await expect(
+      fetchCatalogRelations('http://catalog.test', MEDIA_ID, {
+        ...OPTIONS,
+        fetchImpl: fetchReturning({}, 503),
+      }),
+    ).rejects.toThrow(/503/);
+  });
+
+  it('throws on a malformed envelope', async () => {
+    await expect(
+      fetchCatalogRelations('http://catalog.test', MEDIA_ID, {
+        ...OPTIONS,
+        fetchImpl: fetchReturning({ results: [] }),
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('parses edges and preserves the stored type and direction', async () => {
+    const reverse = { ...validEdge, direction: 'reverse' };
+    const result = await fetchCatalogRelations('http://catalog.test', MEDIA_ID, {
+      ...OPTIONS,
+      fetchImpl: fetchReturning({ relations: [validEdge, reverse] }),
+    });
+    expect(result.skipped).toHaveLength(0);
+    // The client never flips: turning {adaptation, reverse} into "source" is the
+    // consumer's job, so both directions arrive with the stored type intact.
+    expect(result.relations.map((edge) => [edge.type, edge.direction])).toEqual([
+      ['adaptation', 'forward'],
+      ['adaptation', 'reverse'],
+    ]);
+  });
+
+  it('skips an unknown relation type but keeps the rest', async () => {
+    const unknownType = {
+      ...validEdge,
+      id: '8e1c929b-ab13-5b76-9706-c68e438b6a08',
+      type: 'remake',
+    };
+    const result = await fetchCatalogRelations('http://catalog.test', MEDIA_ID, {
+      ...OPTIONS,
+      fetchImpl: fetchReturning({ relations: [unknownType, validEdge] }),
+    });
+    expect(result.relations.map((edge) => edge.id)).toEqual([validEdge.id]);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0]!.id).toBe(unknownType.id);
+    expect(result.skipped[0]!.reason).toMatch(/type/);
+  });
+
+  it('reports a null id for skipped edges without a usable id', async () => {
+    const result = await fetchCatalogRelations('http://catalog.test', MEDIA_ID, {
+      ...OPTIONS,
+      fetchImpl: fetchReturning({ relations: [{ garbage: true }] }),
+    });
+    expect(result.relations).toHaveLength(0);
+    expect(result.skipped).toEqual([{ id: null, reason: expect.any(String) }]);
+  });
+
+  it('sends the id, and a limit only when one is given', async () => {
+    const urls: string[] = [];
+    const spy: typeof fetch = async (input) => {
+      urls.push(String(input));
+      return new Response(JSON.stringify({ relations: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+    await fetchCatalogRelations('http://catalog.test', MEDIA_ID, { ...OPTIONS, fetchImpl: spy });
+    await fetchCatalogRelations('http://catalog.test', MEDIA_ID, {
+      ...OPTIONS,
+      limit: 12,
+      fetchImpl: spy,
+    });
+    expect(urls).toEqual([
+      `http://catalog.test/v1/catalog/relations?id=${MEDIA_ID}`,
+      `http://catalog.test/v1/catalog/relations?id=${MEDIA_ID}&limit=12`,
+    ]);
   });
 });

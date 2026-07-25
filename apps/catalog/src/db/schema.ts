@@ -1,6 +1,22 @@
 import { sql } from 'drizzle-orm';
-import { bigint, index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { MEDIA_KINDS, MEDIA_STATUSES, type ExternalIds } from '@trackt/shared';
+import {
+  bigint,
+  check,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import {
+  MEDIA_KINDS,
+  MEDIA_RELATION_TYPES,
+  MEDIA_STATUSES,
+  type ExternalIds,
+} from '@trackt/shared';
 
 /**
  * The central slim catalog (ADR-0001): one row per work, only redistributable facts.
@@ -46,5 +62,42 @@ export const catalogMedia = pgTable(
     // Typo-tolerant title search via pg_trgm (extension created in a hand-written
     // migration, ADR-0002) — mirrors the instance-side media_title_trgm_idx.
     index('catalog_media_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
+  ],
+);
+
+/**
+ * Typed, directed edges between catalog works (ADR-0004) — the navigation layer
+ * over ADR-0003's flat per-season rows. Stored in ONE direction only
+ * (`from_id →type→ to_id`); the inverse reading (prequel/source/parent) is
+ * derived by consumers via `relationLabel` in @trackt/shared, never stored.
+ * `type` is text rather than a pgEnum for the same reason kind/status are: the
+ * two databases stay decoupled.
+ *
+ * No `seq` and no `deleted_at`. The pull feed both would have served was removed
+ * in ADR-0002, catalog version stays defined as max(catalog_media.seq), and an
+ * edge has no lifecycle worth tombstoning — a bad one is a hard DELETE, and a
+ * tombstoned endpoint already drops its edges via the read route's join.
+ */
+export const catalogMediaRelation = pgTable(
+  'catalog_media_relation',
+  {
+    fromId: uuid('from_id')
+      .notNull()
+      .references(() => catalogMedia.id, { onDelete: 'cascade' }),
+    toId: uuid('to_id')
+      .notNull()
+      .references(() => catalogMedia.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: MEDIA_RELATION_TYPES }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Type-inclusive so one pair can carry two true edges (a manga that is both
+    // an anime's source and related to it), and so publishing is idempotent.
+    primaryKey({ columns: [t.fromId, t.toId, t.type] }),
+    // Reverse half of the bidirectional lookup (the `to_id = $1` branch).
+    index('catalog_media_relation_to_idx').on(t.toId),
+    // Load-bearing, not hygiene: with no self-edges possible, the read route's
+    // two branches are provably disjoint and can UNION ALL without a dedup sort.
+    check('catalog_media_relation_no_self', sql`${t.fromId} <> ${t.toId}`),
   ],
 );

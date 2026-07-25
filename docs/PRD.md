@@ -136,6 +136,12 @@ A small central service — run by the project, optional to use — that only ho
 > instead of separate episode/season/chapter/volume counts. `media_part` stays as
 > the flat episode/chapter store below.
 
+> **Amended by [ADR-0004](adr/0004-typed-media-relations.md):** a `media_relation`
+> table `(from_id, to_id, type)` links works — `sequel`/`adaptation`/`spinoff`/
+> `related`, stored one direction only, with the reverse read rendering as
+> `prequel`/`source`/`parent`/`related`. It is how the flat seasons above reconnect
+> and how cross-kind works (manga → anime) link.
+
 ```sql
 media (
   id uuid pk,

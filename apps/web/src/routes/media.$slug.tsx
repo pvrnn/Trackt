@@ -2,7 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-import { LOG_STATUSES, type LogStatus, type MediaDetail } from '@trackt/shared';
+import {
+  LOG_STATUSES,
+  MEDIA_RELATION_LABELS,
+  type LogStatus,
+  type MediaDetail,
+  type MediaRelationLabel,
+} from '@trackt/shared';
 import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
@@ -41,6 +47,27 @@ const STATUS_LABELS: Record<LogStatus, string> = {
 
 /** 0, 0.5, …, 10 — the half-point scale of PRD §3.2. */
 const SCORES = Array.from({ length: 21 }, (_, i) => i / 2);
+
+/** Sidebar heading per relation label (ADR-0004). Display copy, so it lives here. */
+const RELATION_HEADINGS: Record<MediaRelationLabel, string> = {
+  prequel: 'PREQUEL',
+  sequel: 'SEQUEL',
+  source: 'SOURCE MATERIAL',
+  adaptation: 'ADAPTATIONS',
+  spinoff: 'SPIN-OFFS',
+  parent: 'PARENT WORK',
+  related: 'RELATED',
+};
+
+/**
+ * Group relations into sidebar sections, in MEDIA_RELATION_LABELS order — the
+ * same order the API sorts by, so headings never reshuffle between renders.
+ */
+function groupRelations(relations: MediaDetail['relations']) {
+  return MEDIA_RELATION_LABELS.map(
+    (label) => [label, relations.filter((item) => item.relation === label)] as const,
+  ).filter(([, items]) => items.length > 0);
+}
 
 const CHECKLIST_CHUNK = 100;
 
@@ -179,6 +206,8 @@ function MediaPage() {
     : null;
   const checkable = noun !== null && listLength > 0;
   const progressRatio = checkable && total ? watchedSet.size / total : null;
+
+  const relationGroups = groupRelations(detail.relations);
 
   const countOf = (n: number | null, noun: string) =>
     n !== null ? `${n} ${noun}${n === 1 ? '' : 'S'}` : null;
@@ -491,9 +520,41 @@ function MediaPage() {
             </GlassCard>
           </section>
 
-          {detail.related.length > 0 && (
+          {relationGroups.map(([label, items]) => (
+            <section key={label} className="flex flex-col gap-3.5">
+              <h2 className="font-display text-2xl uppercase">{RELATION_HEADINGS[label]}</h2>
+              <div className="grid grid-cols-3 gap-3">
+                {items.map((item) => (
+                  <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
+                    <div className="relative">
+                      <CoverCard
+                        kind={item.kind}
+                        title={item.title}
+                        coverUrl={item.coverUrl ?? undefined}
+                        // Only when the kind differs — that's the cross-kind case
+                        // (a manga under SOURCE MATERIAL) that needs disambiguating.
+                        caption={
+                          item.kind === detail.kind ? undefined : (
+                            <KindDot kind={item.kind} showLabel />
+                          )
+                        }
+                      />
+                      {item.seasonNumber !== null && (
+                        <span className="absolute top-2.5 left-2.5 rounded-full bg-ink/80 px-2.5 py-0.5 font-display text-sm text-pink">
+                          S{item.seasonNumber}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ))}
+
+          {/* Genre-overlap suggestions — only when there's nothing typed to show (ADR-0004). */}
+          {detail.relations.length === 0 && detail.related.length > 0 && (
             <section className="flex flex-col gap-3.5">
-              <h2 className="font-display text-2xl uppercase">Related</h2>
+              <h2 className="font-display text-2xl uppercase">You might also like</h2>
               <div className="grid grid-cols-3 gap-3">
                 {detail.related.map((item) => (
                   <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
