@@ -1,5 +1,5 @@
 import { canonicalMediaId, canonicalSeriesSeasonId } from '@trackt/shared';
-import type { media } from './schema/media.js';
+import type { media, mediaRelation } from './schema/media.js';
 
 type MediaSeed = typeof media.$inferInsert;
 
@@ -178,6 +178,22 @@ export const SEED_MEDIA: MediaSeed[] = [
   },
   // Manga (identity provider: anilist) — whole work, counted in chapters.
   {
+    // The source of the anime above — the fixture pair for a cross-kind
+    // `adaptation` edge (ADR-0004), which reads as "source" from the anime side.
+    id: canonicalMediaId('manga', 30025),
+    kind: 'manga',
+    title: 'Fullmetal Alchemist',
+    slug: 'fullmetal-alchemist-2001',
+    synonyms: ['鋼の錬金術師', 'Hagane no Renkinjutsushi', 'FMA'],
+    genres: ['action', 'adventure', 'fantasy'],
+    year: 2001,
+    releaseDate: '2001-07-12',
+    status: 'ended',
+    partCount: 116,
+    externalIds: { anilist: 30025, mal: 25 },
+    description: 'Two alchemist brothers search for the Philosopher’s Stone.',
+  },
+  {
     id: canonicalMediaId('manga', 30002),
     kind: 'manga',
     title: 'Berserk',
@@ -234,5 +250,38 @@ export const SEED_MEDIA: MediaSeed[] = [
     source: 'user',
     moderation: 'unverified',
     description: 'A fictional dev-seed webtoon about couriers who deliver across galaxies.',
+  },
+];
+
+type MediaRelationSeed = typeof mediaRelation.$inferInsert;
+
+/**
+ * Relation fixtures (ADR-0004), all factually true — the dev seed is browsed by
+ * humans, so adversarial cases (wrong types, soft-deleted targets, season 0)
+ * belong in tests, not here.
+ *
+ * Stored one direction only; each row therefore exercises its reverse label too:
+ * the adaptation reads as "source" from the anime side, and the sequel reads as
+ * "prequel" from S2. Breaking Bad's seasons are deliberately *not* linked here —
+ * they're the fixture proving season siblings derive with no stored edge at all.
+ */
+export const SEED_MEDIA_RELATIONS: MediaRelationSeed[] = [
+  // Cross-kind: the manga is the source, the anime adapts it.
+  {
+    fromId: canonicalMediaId('manga', 30025),
+    toId: canonicalMediaId('anime', 5114),
+    type: 'adaptation',
+  },
+  // A stored series edge, so the stored path has coverage independent of derivation.
+  {
+    fromId: canonicalSeriesSeasonId(95396, 1),
+    toId: canonicalSeriesSeasonId(95396, 2),
+    type: 'sequel',
+  },
+  // Self-inverse: reads as `related` from both ends.
+  {
+    fromId: canonicalMediaId('manga', 30013),
+    toId: canonicalMediaId('manga', 105778),
+    type: 'related',
   },
 ];

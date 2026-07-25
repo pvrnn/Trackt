@@ -359,7 +359,13 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
   });
 
   it('shows a row already local once, not duplicated, when central also returns it', async () => {
-    const breakingBadId = canonicalMediaId('series', 1396);
+    // Must be a genuinely-local row, so use the seeded season id. The old
+    // whole-show key (`canonicalMediaId('series', 1396)`) is *not* in the seed:
+    // central would be the only source, so the hit got materialized instead of
+    // deduped — testing the wrong path, and leaving behind a season-less
+    // "Breaking Bad" row that outranked the seasons in the ranking test above on
+    // every subsequent run against the same database.
+    const breakingBadId = canonicalSeriesSeasonId(1396, 1);
     server = catalogStub(() => ({
       results: [
         {
@@ -370,9 +376,9 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
           year: 2008,
           status: 'ended',
           genres: [],
-          partCount: null,
-          seasonNumber: null,
-          externalIds: {},
+          partCount: 7,
+          seasonNumber: 1,
+          externalIds: { tmdb: 1396 },
           description: null,
           coverUrl: null,
           rank: 1,

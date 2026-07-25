@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { ExternalIdsSchema, MediaKindSchema, MediaStatusSchema } from './media.js';
+import {
+  ExternalIdsSchema,
+  MediaKindSchema,
+  MediaRelationTypeSchema,
+  MediaStatusSchema,
+  RelationDirectionSchema,
+} from './media.js';
 
 /** Free-form lowercase genre tags — deliberately not an enum, sources disagree too much. */
 export const GenreSchema = z.string().min(1).max(64);
@@ -62,3 +68,29 @@ export const CatalogSearchResponseSchema = z.object({
   results: z.array(CatalogSearchHitSchema),
 });
 export type CatalogSearchResponse = z.infer<typeof CatalogSearchResponseSchema>;
+
+/** Query for `GET /v1/catalog/relations` — edges touching one work (ADR-0004). */
+export const CatalogRelationsQuerySchema = z.object({
+  id: z.uuid(),
+  limit: z.coerce.number().int().min(1).max(50).default(24),
+});
+export type CatalogRelationsQuery = z.infer<typeof CatalogRelationsQuerySchema>;
+
+/**
+ * One edge as served: the *target* work in slim form, plus the stored type and
+ * which way the edge was traversed to reach it. Deliberately not a display
+ * label — turning `{sequel, reverse}` into "prequel" is the consumer's job
+ * (`relationLabel` in media.ts), so the display vocabulary lives in one place
+ * and this service stays a data service. Extending SlimMediaSchema is also what
+ * lets `buildProviderMediaRow` materialize a target with no adapter.
+ */
+export const CatalogRelationEdgeSchema = SlimMediaSchema.extend({
+  type: MediaRelationTypeSchema,
+  direction: RelationDirectionSchema,
+});
+export type CatalogRelationEdge = z.infer<typeof CatalogRelationEdgeSchema>;
+
+export const CatalogRelationsResponseSchema = z.object({
+  relations: z.array(CatalogRelationEdgeSchema),
+});
+export type CatalogRelationsResponse = z.infer<typeof CatalogRelationsResponseSchema>;

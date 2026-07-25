@@ -78,6 +78,13 @@
       "when": 1784732400000,
       "tag": "0010_per_season_partcount",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784990671178,
+      "tag": "0011_media_relations",
+      "breakpoints": true
     }
   ]
 }

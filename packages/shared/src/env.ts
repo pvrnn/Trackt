@@ -21,6 +21,13 @@ const RawEnvSchema = z.object({
   CATALOG_URL: z.preprocess((value) => (value === '' ? undefined : value), z.url().optional()),
   /** Timeout for live central-catalog search calls on the interactive search path (ADR-0002). */
   CATALOG_SEARCH_TIMEOUT_MS: z.coerce.number().int().positive().default(1500),
+  /**
+   * Timeout for live central-catalog relation calls on the media-detail path
+   * (ADR-0004). Tighter than search's: the page's primary content already
+   * renders from the local row, so relations are worth less waiting — and this
+   * lets an operator throttle the detail fan-out without crippling search.
+   */
+  CATALOG_RELATIONS_TIMEOUT_MS: z.coerce.number().int().positive().default(1000),
   TMDB_API_KEY: z.string().optional(),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   UPLOADS_DIR: z.string().default('./data/uploads'),
@@ -71,6 +78,7 @@ export interface Env {
   /** Central slim-catalog base URL; undefined (production only) disables federated search. */
   CATALOG_URL?: string | undefined;
   CATALOG_SEARCH_TIMEOUT_MS: number;
+  CATALOG_RELATIONS_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
   LOG_LEVEL: (typeof LOG_LEVELS)[number];
   UPLOADS_DIR: string;

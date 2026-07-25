@@ -6,12 +6,13 @@ export * from './schema/index.js';
 export { schema };
 export { isUniqueViolation } from './errors.js';
 export { runMigrations } from './migrate.js';
-export { seedMedia } from './seed.js';
-export { SEED_MEDIA } from './seed-data.js';
+export { seedMedia, seedMediaRelations } from './seed.js';
+export { SEED_MEDIA, SEED_MEDIA_RELATIONS } from './seed-data.js';
 export {
   buildProviderMediaRow,
   findSoftDeletedMediaIds,
   insertNewProviderMedia,
+  type PersistedMediaRow,
 } from './catalog-media.js';
 
 export interface CreateDbOptions {

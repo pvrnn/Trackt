@@ -42,6 +42,61 @@ export const PART_KIND_BY_MEDIA: Record<
   webtoon: 'chapter',
 };
 
+/**
+ * How one work relates to another (ADR-0004). An edge is always stored in the
+ * FORWARD direction: `A →sequel→ B` means B is A's sequel, `A →adaptation→ B`
+ * means B adapts A, `A →spinoff→ B` means B spins off A. `related` is symmetric
+ * and publishers emit it once. Reading an edge backwards never produces one of
+ * these values — it produces a label (see MEDIA_RELATION_LABELS).
+ */
+export const MEDIA_RELATION_TYPES = ['sequel', 'adaptation', 'spinoff', 'related'] as const;
+export const MediaRelationTypeSchema = z.enum(MEDIA_RELATION_TYPES);
+export type MediaRelationType = z.infer<typeof MediaRelationTypeSchema>;
+
+/** Which way an edge was traversed to reach the work being displayed. */
+export const RELATION_DIRECTIONS = ['forward', 'reverse'] as const;
+export const RelationDirectionSchema = z.enum(RELATION_DIRECTIONS);
+export type RelationDirection = z.infer<typeof RelationDirectionSchema>;
+
+/**
+ * The vocabulary a relation *renders* under: the four stored types plus the
+ * three reverse readings. Deliberately a separate type from
+ * MEDIA_RELATION_TYPES, which constrains database columns — `prequel` must
+ * never reach one. Listed in display order; consumers group sections by it.
+ */
+export const MEDIA_RELATION_LABELS = [
+  'prequel',
+  'sequel',
+  'source',
+  'adaptation',
+  'spinoff',
+  'parent',
+  'related',
+] as const;
+export const MediaRelationLabelSchema = z.enum(MEDIA_RELATION_LABELS);
+export type MediaRelationLabel = z.infer<typeof MediaRelationLabelSchema>;
+
+/** How a stored type reads when the edge is traversed backwards. */
+export const REVERSE_RELATION_LABEL: Record<MediaRelationType, MediaRelationLabel> = {
+  sequel: 'prequel',
+  adaptation: 'source',
+  spinoff: 'parent',
+  related: 'related',
+};
+
+/**
+ * The label an edge renders under, given the direction it was traversed. The
+ * `forward` branch returning `type` unchanged is what makes every stored type a
+ * valid label — the compiler enforces that superset relationship here, so it
+ * needs no runtime assertion.
+ */
+export function relationLabel(
+  type: MediaRelationType,
+  direction: RelationDirection,
+): MediaRelationLabel {
+  return direction === 'forward' ? type : REVERSE_RELATION_LABEL[type];
+}
+
 /** Privacy levels, applied per profile section / list (PRD §3.4). */
 export const VISIBILITIES = ['public', 'followers', 'private'] as const;
 export const VisibilitySchema = z.enum(VISIBILITIES);

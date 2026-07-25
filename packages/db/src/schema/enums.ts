@@ -2,6 +2,7 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 import {
   LOG_STATUSES,
   MEDIA_KINDS,
+  MEDIA_RELATION_TYPES,
   MEDIA_SOURCES,
   MEDIA_STATUSES,
   MODERATION_STATUSES,
@@ -14,6 +15,7 @@ import {
 export const mediaKindEnum = pgEnum('media_kind', MEDIA_KINDS);
 export const mediaStatusEnum = pgEnum('media_status', MEDIA_STATUSES);
 export const mediaSourceEnum = pgEnum('media_source', MEDIA_SOURCES);
+export const mediaRelationTypeEnum = pgEnum('media_relation_type', MEDIA_RELATION_TYPES);
 export const moderationStatusEnum = pgEnum('moderation_status', MODERATION_STATUSES);
 export const logStatusEnum = pgEnum('log_status', LOG_STATUSES);
 export const partKindEnum = pgEnum('part_kind', PART_KINDS);

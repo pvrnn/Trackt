@@ -16,6 +16,7 @@ import {
   type SearchResult,
   type ViewerState,
 } from '@trackt/shared';
+import { loadRelations } from '../../lib/relations.js';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
 import { removeStoredUpload, storeUploadedImage } from '../../lib/uploads.js';
 import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
@@ -39,7 +40,13 @@ async function loadCommunity(db: Db, mediaId: string): Promise<MediaDetail['comm
   return { averageScore: row?.averageScore ?? null, ratingCount: row?.ratingCount ?? 0 };
 }
 
-/** Same-kind suggestions sharing at least one genre, strongest overlap first. */
+/**
+ * Same-kind suggestions sharing at least one genre, strongest overlap first —
+ * the labelled fallback the client shows under "You might also like" when a work
+ * has no typed relations (ADR-0004). A suggestion heuristic, not a relation:
+ * always computed and always sent, so the payload's meaning never depends on
+ * whether `relations` happened to be empty.
+ */
 async function loadRelated(
   db: Db,
   row: { id: string; kind: string; genres: string[] },
@@ -129,13 +136,17 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         return reply.status(404).send({ error: 'media not found' });
       }
 
-      const [community, related, viewer] = await Promise.all([
+      const [community, relations, related, viewer] = await Promise.all([
         loadCommunity(db, row.id),
+        loadRelations(db, app.deps.env.CATALOG_URL, row, user, {
+          timeoutMs: app.deps.env.CATALOG_RELATIONS_TIMEOUT_MS,
+          logger: request.log,
+        }),
         loadRelated(db, row, user),
         user ? loadViewer(db, user.id, row.id) : Promise.resolve(null),
       ]);
 
-      return { ...row, community, related, viewer };
+      return { ...row, community, relations, related, viewer };
     },
   );
 

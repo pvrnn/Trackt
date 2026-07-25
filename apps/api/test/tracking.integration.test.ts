@@ -1,15 +1,24 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq, inArray } from 'drizzle-orm';
 import {
   createDb,
+  media,
+  mediaRelation,
   progress,
   rating,
   runMigrations,
   seedMedia,
+  seedMediaRelations,
   userMedia,
   type Db,
 } from '@trackt/db';
-import { canonicalMediaId, loadEnv, type MediaDetail } from '@trackt/shared';
+import {
+  canonicalMediaId,
+  canonicalSeriesSeasonId,
+  loadEnv,
+  type MediaDetail,
+} from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -56,16 +65,21 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   let app: App;
   let db: Db;
   let cookie: string;
+  let userId: string;
 
   beforeAll(async () => {
     await runMigrations(TEST_DATABASE_URL);
     db = createDb(TEST_DATABASE_URL, { max: 1 });
     await seedMedia(db);
+    await seedMediaRelations(db);
     // Tracking rows from previous runs would skew community stats.
     await db.delete(progress);
     await db.delete(rating);
     await db.delete(userMedia);
-    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
+    // No CATALOG_URL: this suite covers the two *local* relation paths (stored
+    // edges and derived season siblings). Federation has its own suite, and the
+    // dev default would otherwise make every detail fetch dial localhost:3002.
+    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error', CATALOG_URL: '' });
     app = await buildApp({ env, db, auth: createAuth(db, env) });
 
     // Unique per run — the test database persists between runs.
@@ -81,6 +95,7 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
       },
     });
     expect(signUp.statusCode).toBe(200);
+    userId = signUp.json().user.id;
     cookie = (signUp.headers['set-cookie'] as string[] | string | undefined)
       ?.toString()
       .split(';')[0] as string;
@@ -109,12 +124,161 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
     expect(byId.slug).toBe('cowboy-bebop-1998');
   });
 
-  it('suggests same-kind related titles by genre overlap', async () => {
+  it('offers genre-overlap suggestions as the fallback list', async () => {
     const detail = await getDetail('cowboy-bebop-1998', false);
     expect(detail.related.length).toBeGreaterThan(0);
     for (const item of detail.related) {
       expect(item.kind).toBe('anime');
       expect(item.id).not.toBe(bebopId);
+    }
+    // Bebop has no edges and no sibling season, so the client shows the fallback.
+    expect(detail.relations).toEqual([]);
+  });
+
+  it('always sends both lists, so the payload never depends on hidden state', async () => {
+    // Severance S1 has a stored sequel edge *and* genre overlap: the API sends
+    // both and lets the client decide which to render (ADR-0004 point 5).
+    const detail = await getDetail(canonicalSeriesSeasonId(95396, 1), false);
+    expect(detail.relations.length).toBeGreaterThan(0);
+    expect(detail.related.length).toBeGreaterThan(0);
+  });
+
+  it('derives adjacent series seasons with no stored edge', async () => {
+    // Breaking Bad S1/S2 are deliberately unlinked in the seed — these come from
+    // external_ids.tmdb + season_number alone.
+    const s1 = await getDetail(canonicalSeriesSeasonId(1396, 1), false);
+    expect(s1.relations).toEqual([
+      expect.objectContaining({
+        id: canonicalSeriesSeasonId(1396, 2),
+        relation: 'sequel',
+        seasonNumber: 2,
+      }),
+    ]);
+  });
+
+  it('labels the same derived edge as a prequel from the later season', async () => {
+    const s2 = await getDetail(canonicalSeriesSeasonId(1396, 2), false);
+    expect(s2.relations).toEqual([
+      expect.objectContaining({ id: canonicalSeriesSeasonId(1396, 1), relation: 'prequel' }),
+    ]);
+  });
+
+  it('reverses a stored adaptation edge into a source label', async () => {
+    const fmaMangaId = canonicalMediaId('manga', 30025);
+    const fmaAnimeId = canonicalMediaId('anime', 5114);
+
+    const manga = await getDetail(fmaMangaId, false);
+    expect(manga.relations).toEqual([
+      expect.objectContaining({ id: fmaAnimeId, relation: 'adaptation', kind: 'anime' }),
+    ]);
+
+    const anime = await getDetail(fmaAnimeId, false);
+    expect(anime.relations).toEqual([
+      expect.objectContaining({ id: fmaMangaId, relation: 'source', kind: 'manga' }),
+    ]);
+  });
+
+  it('reads a symmetric `related` edge as `related` from both ends', async () => {
+    const onePieceId = canonicalMediaId('manga', 30013);
+    const chainsawId = canonicalMediaId('manga', 105778);
+
+    const onePiece = await getDetail(onePieceId, false);
+    expect(onePiece.relations).toEqual([
+      expect.objectContaining({ id: chainsawId, relation: 'related' }),
+    ]);
+
+    const chainsaw = await getDetail(chainsawId, false);
+    expect(chainsaw.relations).toEqual([
+      expect.objectContaining({ id: onePieceId, relation: 'related' }),
+    ]);
+  });
+
+  it('lets a stored edge win over the derived season sibling, exactly once', async () => {
+    // An adversarial (and factually wrong) type on a pair that also derives as a
+    // sequel. Pins the merge key: one target, one heading, no duplicate card.
+    const s1 = canonicalSeriesSeasonId(1396, 1);
+    const s2 = canonicalSeriesSeasonId(1396, 2);
+    await db.insert(mediaRelation).values({ fromId: s1, toId: s2, type: 'spinoff' });
+    try {
+      const detail = await getDetail(s1, false);
+      const toS2 = detail.relations.filter((item) => item.id === s2);
+      expect(toS2).toHaveLength(1);
+      expect(toS2[0]!.relation).toBe('spinoff');
+    } finally {
+      await db.delete(mediaRelation).where(eq(mediaRelation.type, 'spinoff'));
+    }
+  });
+
+  it('hides a soft-deleted relation target from both local paths', async () => {
+    const s1 = canonicalSeriesSeasonId(1396, 1);
+    const s2 = canonicalSeriesSeasonId(1396, 2);
+    // Same pair reachable two ways: a stored edge and the derived sibling. A
+    // soft delete must suppress it in both.
+    await db.insert(mediaRelation).values({ fromId: s1, toId: s2, type: 'sequel' });
+    await db.update(media).set({ deletedAt: new Date() }).where(eq(media.id, s2));
+    try {
+      const detail = await getDetail(s1, false);
+      expect(detail.relations.map((item) => item.id)).not.toContain(s2);
+    } finally {
+      await db.update(media).set({ deletedAt: null }).where(eq(media.id, s2));
+      await db.delete(mediaRelation).where(eq(mediaRelation.fromId, s1));
+    }
+  });
+
+  it('hides an unverified relation target from a stranger but not its creator', async () => {
+    const s1 = canonicalSeriesSeasonId(1396, 1);
+    const s2 = canonicalSeriesSeasonId(1396, 2);
+    // Recast the seeded S2 as an unverified user entry owned by the signed-up
+    // user, reachable both by a stored edge and by season derivation.
+    await db.insert(mediaRelation).values({ fromId: s1, toId: s2, type: 'sequel' });
+    await db
+      .update(media)
+      .set({ source: 'user', moderation: 'unverified', createdBy: userId })
+      .where(eq(media.id, s2));
+    try {
+      const anonymous = await getDetail(s1, false);
+      expect(anonymous.relations.map((item) => item.id)).not.toContain(s2);
+
+      const asCreator = await getDetail(s1, true);
+      expect(asCreator.relations.map((item) => item.id)).toContain(s2);
+    } finally {
+      await db
+        .update(media)
+        .set({ source: 'provider', moderation: 'verified', createdBy: null })
+        .where(eq(media.id, s2));
+      await db.delete(mediaRelation).where(eq(mediaRelation.fromId, s1));
+    }
+  });
+
+  it('never treats season 0 specials as a prequel', async () => {
+    const showId = 424242;
+    const specials = canonicalSeriesSeasonId(showId, 0);
+    const first = canonicalSeriesSeasonId(showId, 1);
+    await db.insert(media).values([
+      {
+        id: specials,
+        kind: 'series',
+        title: 'Derivation Fixture',
+        slug: 'derivation-fixture-specials',
+        seasonNumber: 0,
+        partCount: 3,
+        externalIds: { tmdb: showId },
+      },
+      {
+        id: first,
+        kind: 'series',
+        title: 'Derivation Fixture',
+        slug: 'derivation-fixture-2020',
+        seasonNumber: 1,
+        partCount: 10,
+        externalIds: { tmdb: showId },
+      },
+    ]);
+    try {
+      const detail = await getDetail(first, false);
+      expect(detail.relations).toEqual([]);
+    } finally {
+      await db.delete(media).where(inArray(media.id, [specials, first]));
     }
   });
 
