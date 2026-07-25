@@ -20,8 +20,10 @@ import { buildApp, type App } from '../src/app.js';
  * rendering that as "source" is the consumer's job.
  */
 
+// Distinct from the api-side suite's TEST_DATABASE_URL_RELATIONS: that one names
+// the instance database on 5432, this one the catalog database on 5433.
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL_RELATIONS ??
+  process.env.TEST_DATABASE_URL_CATALOG_RELATIONS ??
   'postgres://trackt:trackt@localhost:5433/trackt_catalog_relations_test';
 
 async function ensureTestDatabase(): Promise<boolean> {
