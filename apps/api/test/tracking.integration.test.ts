@@ -396,6 +396,64 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
     expect((await getDetail(bebopId)).viewer?.status).toBe('paused');
   });
 
+  it('checks in every part when the status becomes completed', async () => {
+    const completed = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/log`,
+      headers: { cookie },
+      payload: { status: 'completed' },
+    });
+    expect(completed.statusCode).toBe(200);
+
+    const detail = await getDetail(bebopId);
+    // Cowboy Bebop carries 26 episodes in the seed.
+    expect(detail.viewer?.watched).toEqual(Array.from({ length: 26 }, (_, i) => i + 1));
+  });
+
+  it('clears every check-in when the status becomes planned', async () => {
+    await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/progress/3`,
+      headers: { cookie },
+    });
+    expect((await getDetail(bebopId)).viewer?.watched).toContain(3);
+
+    const planned = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/log`,
+      headers: { cookie },
+      payload: { status: 'planned' },
+    });
+    expect(planned.statusCode).toBe(200);
+    expect((await getDetail(bebopId)).viewer?.watched).toEqual([]);
+  });
+
+  it('leaves other statuses and other users’ progress alone', async () => {
+    await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/progress/4`,
+      headers: { cookie },
+    });
+    await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/log`,
+      headers: { cookie },
+      payload: { status: 'paused' },
+    });
+    expect((await getDetail(bebopId)).viewer?.watched).toEqual([4]);
+  });
+
+  it('completes a movie without error despite having no parts', async () => {
+    const completed = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${matrixId}/log`,
+      headers: { cookie },
+      payload: { status: 'completed' },
+    });
+    expect(completed.statusCode).toBe(200);
+    expect((await getDetail(matrixId)).viewer?.watched).toEqual([]);
+  });
+
   it('rejects out-of-range numbers and movie check-ins', async () => {
     const tooHigh = await app.inject({
       method: 'PUT',

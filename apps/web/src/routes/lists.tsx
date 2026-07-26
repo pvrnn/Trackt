@@ -7,7 +7,8 @@ import { Button } from '../components/ui/Button';
 import { Chip } from '../components/ui/Chip';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
-import { Modal } from '../components/ui/Modal';
+import { Modal, ModalTitle } from '../components/ui/Modal';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
 import { updatedLabel, useCreateList, useLists, visibilityLabel } from '../lib/lists';
@@ -60,13 +61,14 @@ function ListsPage() {
                   {scope.label}
                 </Chip>
               ) : (
-                <span
-                  key={scope.key}
-                  title="Coming soon"
-                  className="cursor-not-allowed rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-xs font-semibold tracking-label text-dim/60"
-                >
-                  {scope.label}
-                </span>
+                <Tooltip key={scope.key} label="Coming soon">
+                  <span
+                    tabIndex={0}
+                    className="cursor-not-allowed rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-xs font-semibold tracking-label text-dim/60"
+                  >
+                    {scope.label}
+                  </span>
+                </Tooltip>
               ),
             )}
           </div>
@@ -185,9 +187,9 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal label="new list" onClose={onClose}>
+    <Modal onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-5">
-        <h2 className="font-display text-[28px] uppercase">New list</h2>
+        <ModalTitle>New list</ModalTitle>
 
         <Input
           label="Title"

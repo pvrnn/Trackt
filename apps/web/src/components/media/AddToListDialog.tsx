@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
-import { Modal } from '../ui/Modal';
+import { Modal, ModalTitle } from '../ui/Modal';
 import { listsApi, useCreateList, useLists, useListsInvalidator } from '../../lib/lists';
 
 /**
@@ -58,9 +58,14 @@ export function AddToListDialog({
   };
 
   return (
-    <Modal label={`add ${mediaTitle} to a list`} onClose={onClose}>
+    <Modal onClose={onClose}>
       <div className="flex flex-col gap-5">
-        <h2 className="font-display text-[28px] uppercase">Add to list</h2>
+        <div>
+          <ModalTitle>Add to list</ModalTitle>
+          {/* Which title is being added was only in the old aria-label; on screen
+              the heading alone is ambiguous once the dialog covers the page. */}
+          <p className="mt-1 text-sm text-muted">{mediaTitle}</p>
+        </div>
 
         {isError ? (
           <p role="alert" className="text-[15px] text-red-400">

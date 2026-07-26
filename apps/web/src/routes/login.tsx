@@ -4,6 +4,7 @@ import { AuthDivider, AuthLayout } from '../components/layout/AuthLayout';
 import { Button, buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
+import { Tooltip } from '../components/ui/Tooltip';
 import { authClient } from '../lib/auth-client';
 
 /** Only same-app paths survive as a post-login destination — never other origins. */
@@ -112,12 +113,11 @@ export function TvTimeCard() {
           Bring your GDPR export — 1,000 episodes import in under a minute.
         </p>
       </div>
-      <span
-        title="The TV Time importer is coming soon"
-        className="cursor-not-allowed text-[13px] font-bold text-pink/50"
-      >
-        IMPORT · SOON
-      </span>
+      <Tooltip label="The TV Time importer is coming soon">
+        <span tabIndex={0} className="cursor-not-allowed text-[13px] font-bold text-pink/50">
+          IMPORT · SOON
+        </span>
+      </Tooltip>
     </GlassCard>
   );
 }

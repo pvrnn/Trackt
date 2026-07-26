@@ -13,12 +13,14 @@ import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { AddToListDialog } from '../components/media/AddToListDialog';
 import { CoverCard } from '../components/media/CoverCard';
+import { RatingPopover } from '../components/media/RatingPopover';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
+import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
-import { trackingApi, useMediaDetail } from '../lib/media';
+import { invalidateTracking, trackingApi, useMediaDetail } from '../lib/media';
 
 /** "attack-on-titan" → "Attack On Titan": a serviceable SSR title until the query resolves. */
 function titleFromSlug(slug: string): string {
@@ -46,8 +48,11 @@ const STATUS_LABELS: Record<LogStatus, string> = {
   paused: 'PAUSED',
 };
 
-/** 0, 0.5, …, 10 — the half-point scale of PRD §3.2. */
-const SCORES = Array.from({ length: 21 }, (_, i) => i / 2);
+/** The '' option clears the log; its label doubles as the resting pill text. */
+const LOG_ITEMS: SelectItem[] = [
+  { value: '', label: '＋ LOG' },
+  ...LOG_STATUSES.map((status) => ({ value: status, label: STATUS_LABELS[status] })),
+];
 
 /** Sidebar heading per relation label (ADR-0004). Display copy, so it lives here. */
 const RELATION_HEADINGS: Record<MediaRelationLabel, string> = {
@@ -130,7 +135,9 @@ function MediaPage() {
     onError: (_error, _variables, context) => {
       if (context) queryClient.setQueryData(queryKey, context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    // Not just this page: a check-in also moves the home dashboard and the
+    // profile activity feed, which would otherwise stay stale until reload.
+    onSettled: () => invalidateTracking(queryClient),
   });
 
   const applyViewer = (patch: ViewerPatch, run: () => Promise<void>) =>
@@ -312,46 +319,41 @@ function MediaPage() {
                   {next}
                 </Button>
               )}
-              <PillSelect
-                label="status"
+              <Select
+                variant="pill"
+                aria-label="status"
+                items={LOG_ITEMS}
                 value={viewer.status ?? ''}
                 selected={viewer.status !== null}
                 onChange={(value) => {
                   if (value === '') {
                     applyViewer({ status: null }, () => trackingApi.clearStatus(detail.id));
-                  } else {
-                    const status = value as LogStatus;
-                    applyViewer({ status }, () => trackingApi.setStatus(detail.id, status));
+                    return;
                   }
+                  const status = value as LogStatus;
+                  // The API sweeps progress for these two (PRD §3.1); mirror it
+                  // optimistically so the grid doesn't lag a refetch behind.
+                  const sweep: ViewerPatch =
+                    !checkable || listLength === 0
+                      ? {}
+                      : status === 'completed'
+                        ? { watched: Array.from({ length: listLength }, (_, i) => i + 1) }
+                        : status === 'planned'
+                          ? { watched: [] }
+                          : {};
+                  applyViewer({ status, ...sweep }, () => trackingApi.setStatus(detail.id, status));
                 }}
-              >
-                <option value="">＋ LOG</option>
-                {LOG_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {STATUS_LABELS[status]}
-                  </option>
-                ))}
-              </PillSelect>
-              <PillSelect
-                label="your rating"
-                value={viewer.score !== null ? String(viewer.score) : ''}
-                selected={viewer.score !== null}
-                onChange={(value) => {
-                  if (value === '') {
+              />
+              <RatingPopover
+                score={viewer.score}
+                onChange={(score) => {
+                  if (score === null) {
                     applyViewer({ score: null }, () => trackingApi.clearScore(detail.id));
                   } else {
-                    const score = Number(value);
                     applyViewer({ score }, () => trackingApi.setScore(detail.id, score));
                   }
                 }}
-              >
-                <option value="">RATE</option>
-                {SCORES.map((score) => (
-                  <option key={score} value={score}>
-                    ★ {score.toFixed(1)}
-                  </option>
-                ))}
-              </PillSelect>
+              />
               <button
                 type="button"
                 aria-pressed={viewer.favorited}
@@ -413,7 +415,10 @@ function MediaPage() {
           </h2>
           {checkable ? (
             <>
-              <ul className="flex flex-col gap-2">
+              {/* A tile grid rather than the mockup's full-width rows: at ~56px
+                  each, a 24-episode season ran past a full viewport, and manga
+                  routinely carry hundreds of chapters. */}
+              <ul className="flex flex-wrap gap-2">
                 {Array.from({ length: Math.min(listLength, visibleParts) }, (_, i) => i + 1).map(
                   (number) => {
                     const watched = watchedSet.has(number);
@@ -436,53 +441,45 @@ function MediaPage() {
                             )
                           }
                           aria-pressed={watched}
+                          // The tile shows a bare number; the label carries what
+                          // the row's WATCHED / UP NEXT text used to say.
+                          aria-label={`${noun!.singular} ${number}${
+                            watched ? ' — watched' : isNext ? ' — up next' : ''
+                          }`}
+                          title={`${noun!.singular} ${number}`}
                           className={clsx(
-                            'flex w-full cursor-pointer items-center gap-3.5 rounded-cover border px-4 py-3 text-left backdrop-blur-[16px] transition',
-                            isNext
-                              ? 'border-pink/50 bg-pink-row'
-                              : 'border-glass-border bg-glass hover:border-glass-border-strong',
+                            'flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-cover border px-2',
+                            'font-label text-[13px] font-semibold tabular-nums transition',
+                            watched
+                              ? 'border-pink bg-pink text-on-prism'
+                              : isNext
+                                ? 'border-pink bg-pink-row font-bold text-pink'
+                                : 'border-glass-border bg-glass text-muted hover:border-pink hover:text-pink',
                           )}
                         >
-                          <span
-                            aria-hidden
-                            className={clsx(
-                              'flex size-[22px] shrink-0 items-center justify-center rounded-full border text-[13px] font-bold text-on-prism',
-                              watched
-                                ? 'border-pink bg-pink'
-                                : isNext
-                                  ? 'border-pink bg-transparent'
-                                  : 'border-white/20 bg-transparent',
-                            )}
-                          >
-                            {watched ? '✓' : ''}
-                          </span>
-                          <span className="w-14 font-label text-xs text-dim">
-                            {noun!.prefix}
-                            {number}
-                          </span>
-                          <span
-                            className={clsx(
-                              'flex-1 text-sm',
-                              watched ? 'text-muted' : 'text-fg',
-                              isNext && 'font-semibold',
-                            )}
-                          >
-                            {noun!.singular} {number}
-                          </span>
-                          <span
-                            className={clsx(
-                              'font-label text-xs tracking-label',
-                              watched ? 'text-pink' : 'text-dim',
-                            )}
-                          >
-                            {watched ? 'WATCHED' : isNext ? 'UP NEXT' : ''}
-                          </span>
+                          {number}
                         </button>
                       </li>
                     );
                   },
                 )}
               </ul>
+              <div className="flex flex-wrap items-center gap-4 font-label text-[11px] tracking-label text-dim">
+                <span className="flex items-center gap-2">
+                  <span aria-hidden className="size-3 rounded-[4px] border border-pink bg-pink" />
+                  WATCHED
+                </span>
+                <span className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="size-3 rounded-[4px] border border-pink bg-pink-row"
+                  />
+                  UP NEXT
+                </span>
+                <span>
+                  {watchedSet.size} / {listLength} {noun!.singular.toUpperCase()}S
+                </span>
+              </div>
               {listLength > visibleParts && (
                 <Button variant="secondary" onClick={() => setVisibleParts(listLength)}>
                   SHOW ALL {listLength}
@@ -602,47 +599,5 @@ function Stat({ value, label, prism = false }: { value: string; label: string; p
       <div className={clsx('font-display text-[32px]', prism && 'text-prism')}>{value}</div>
       <div className="font-label text-[11px] tracking-label text-dim">{label}</div>
     </div>
-  );
-}
-
-/** Mockup's pill dropdowns (status, rate) as styled native selects — accessible for free. */
-function PillSelect({
-  label,
-  value,
-  selected,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  selected: boolean;
-  onChange: (value: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="relative inline-flex">
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={clsx(
-          'cursor-pointer appearance-none rounded-full border py-[11px] pr-9 pl-5 font-label text-xs font-semibold tracking-label transition',
-          selected
-            ? 'border-pink bg-pink-selected text-pink'
-            : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
-        )}
-      >
-        {children}
-      </select>
-      <span
-        aria-hidden
-        className={clsx(
-          'pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-[10px]',
-          selected ? 'text-pink' : 'text-dim',
-        )}
-      >
-        ▾
-      </span>
-    </span>
   );
 }

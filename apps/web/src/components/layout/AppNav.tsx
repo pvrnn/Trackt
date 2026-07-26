@@ -1,8 +1,11 @@
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Link, useLocation, useNavigate, type LinkProps } from '@tanstack/react-router';
+import clsx from 'clsx';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { UserRoleSchema, isModerator } from '@trackt/shared';
 import { authClient } from '../../lib/auth-client';
 import { Avatar } from '../ui/Avatar';
+import { Tooltip } from '../ui/Tooltip';
 import { Wordmark } from './Wordmark';
 
 interface NavItem {
@@ -54,9 +57,11 @@ export function AppNav({ user }: { user: AppNavUser }) {
               {item.label}
             </Link>
           ) : (
-            <span key={item.label} title="Coming soon" className="cursor-not-allowed text-dim/60">
-              {item.label}
-            </span>
+            <Tooltip key={item.label} label="Coming soon">
+              <span tabIndex={0} className="cursor-not-allowed text-dim/60">
+                {item.label}
+              </span>
+            </Tooltip>
           ),
         )}
       </div>
@@ -123,71 +128,52 @@ function NavSearch() {
   );
 }
 
-/** Avatar dropdown: identity header, Profile placeholder, sign out. */
+/** Focus/hover row treatment shared by the menu's actionable items. */
+const MENU_ITEM =
+  'block w-full cursor-pointer px-4.5 py-3 text-left text-sm text-fg outline-none transition ' +
+  'data-[highlighted]:bg-pink-row data-[highlighted]:text-pink';
+
+/**
+ * Avatar dropdown: identity header, Profile link, sign out. Radix owns the
+ * keyboard contract the hand-rolled version lacked — focus moves into the menu
+ * on open, ↑/↓ and typeahead move between items, and focus returns to the
+ * avatar on close.
+ */
 function AccountMenu({ user }: { user: AppNavUser }) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
-
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger
         aria-label="account menu"
-        onClick={() => setOpen((current) => !current)}
-        className="block cursor-pointer rounded-full transition hover:brightness-115"
+        className="block cursor-pointer rounded-full transition outline-none hover:brightness-115"
       >
         <Avatar name={user.username} src={user.image} size={32} className="size-9" />
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-20 mt-3 w-56 overflow-hidden rounded-card-sm border border-glass-border-strong bg-ink/90 shadow-xl backdrop-blur-[16px]"
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={12}
+          className="z-20 w-56 overflow-hidden rounded-card-sm border border-glass-border-strong bg-ink/90 shadow-xl backdrop-blur-[16px]"
         >
-          <div className="border-b border-divider px-4.5 py-3.5">
+          <DropdownMenu.Label className="border-b border-divider px-4.5 py-3.5">
             <p className="text-sm font-bold">{user.name}</p>
             <p className="text-[13px] text-dim">@{user.username}</p>
-          </div>
-          <Link
-            role="menuitem"
-            to="/profile"
-            onClick={() => setOpen(false)}
-            className="block px-4.5 py-3 text-sm text-fg transition hover:bg-pink-row hover:text-pink"
-          >
-            Profile
-          </Link>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() =>
+          </DropdownMenu.Label>
+          <DropdownMenu.Item asChild className={MENU_ITEM}>
+            <Link to="/profile">Profile</Link>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            onSelect={() =>
               authClient.signOut({
                 fetchOptions: { onSuccess: () => navigate({ to: '/login' }) },
               })
             }
-            className="block w-full cursor-pointer border-t border-divider px-4.5 py-3 text-left text-sm text-fg transition hover:bg-pink-row hover:text-pink"
+            className={clsx(MENU_ITEM, 'border-t border-divider')}
           >
             Sign out
-          </button>
-        </div>
-      )}
-    </div>
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
