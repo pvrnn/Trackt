@@ -14,9 +14,11 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ModerationRouteImport } from './routes/moderation'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ListsRouteImport } from './routes/lists'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
+import { Route as ListsIdRouteImport } from './routes/lists.$id'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -43,6 +45,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListsRoute = ListsRouteImport.update({
+  id: '/lists',
+  path: '/lists',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -58,36 +65,47 @@ const MediaSlugRoute = MediaSlugRouteImport.update({
   path: '/media/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListsIdRoute = ListsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ListsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/home': typeof HomeRoute
+  '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
   '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/home': typeof HomeRoute
+  '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
   '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/home': typeof HomeRoute
+  '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
   '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
 }
 export interface FileRouteTypes {
@@ -95,37 +113,44 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/home'
+    | '/lists'
     | '/login'
     | '/moderation'
     | '/profile'
     | '/register'
     | '/search'
+    | '/lists/$id'
     | '/media/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/home'
+    | '/lists'
     | '/login'
     | '/moderation'
     | '/profile'
     | '/register'
     | '/search'
+    | '/lists/$id'
     | '/media/$slug'
   id:
     | '__root__'
     | '/'
     | '/home'
+    | '/lists'
     | '/login'
     | '/moderation'
     | '/profile'
     | '/register'
     | '/search'
+    | '/lists/$id'
     | '/media/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HomeRoute: typeof HomeRoute
+  ListsRoute: typeof ListsRouteWithChildren
   LoginRoute: typeof LoginRoute
   ModerationRoute: typeof ModerationRoute
   ProfileRoute: typeof ProfileRoute
@@ -171,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lists': {
+      id: '/lists'
+      path: '/lists'
+      fullPath: '/lists'
+      preLoaderRoute: typeof ListsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/home': {
       id: '/home'
       path: '/home'
@@ -192,12 +224,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lists/$id': {
+      id: '/lists/$id'
+      path: '/$id'
+      fullPath: '/lists/$id'
+      preLoaderRoute: typeof ListsIdRouteImport
+      parentRoute: typeof ListsRoute
+    }
   }
 }
+
+interface ListsRouteChildren {
+  ListsIdRoute: typeof ListsIdRoute
+}
+
+const ListsRouteChildren: ListsRouteChildren = {
+  ListsIdRoute: ListsIdRoute,
+}
+
+const ListsRouteWithChildren = ListsRoute._addFileChildren(ListsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HomeRoute: HomeRoute,
+  ListsRoute: ListsRouteWithChildren,
   LoginRoute: LoginRoute,
   ModerationRoute: ModerationRoute,
   ProfileRoute: ProfileRoute,
