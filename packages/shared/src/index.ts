@@ -5,6 +5,7 @@ export * from './catalog-client.js';
 export * from './env.js';
 export * from './env-catalog.js';
 export * from './home.js';
+export * from './lists.js';
 export * from './media.js';
 export * from './media-entry.js';
 export * from './profile.js';

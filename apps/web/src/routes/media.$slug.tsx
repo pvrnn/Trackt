@@ -11,6 +11,7 @@ import {
 } from '@trackt/shared';
 import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
+import { AddToListDialog } from '../components/media/AddToListDialog';
 import { CoverCard } from '../components/media/CoverCard';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -94,6 +95,7 @@ function MediaPage() {
   const { isPending: authPending, navUser } = useAuthedPage();
   const { data, isError, refetch } = useMediaDetail(slug);
   const [visibleParts, setVisibleParts] = useState(CHECKLIST_CHUNK);
+  const [addingToList, setAddingToList] = useState(false);
 
   const queryKey = ['media', slug] as const;
 
@@ -370,12 +372,13 @@ function MediaPage() {
               >
                 {viewer.favorited ? '♥ FAVOURITE' : '♡ FAVOURITE'}
               </button>
-              <span
-                title="Lists are coming soon"
-                className="cursor-not-allowed rounded-full border border-glass-border-strong bg-glass px-5 py-[11px] text-[13px] font-bold tracking-btn text-fg/60"
+              <button
+                type="button"
+                onClick={() => setAddingToList(true)}
+                className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-5 py-[11px] text-[13px] font-bold tracking-btn text-fg transition hover:border-pink hover:text-pink"
               >
                 ＋ LIST
-              </span>
+              </button>
             </div>
             {viewerMutation.isError && (
               <p role="alert" className="text-sm text-red-400">
@@ -570,6 +573,13 @@ function MediaPage() {
           )}
         </aside>
       </main>
+      {addingToList && (
+        <AddToListDialog
+          mediaId={detail.id}
+          mediaTitle={detail.title}
+          onClose={() => setAddingToList(false)}
+        />
+      )}
     </Shell>
   );
 }
