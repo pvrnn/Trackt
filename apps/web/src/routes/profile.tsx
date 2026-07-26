@@ -22,8 +22,9 @@ import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { KindDot } from '../components/ui/KindDot';
-import { Modal } from '../components/ui/Modal';
+import { Modal, ModalTitle } from '../components/ui/Modal';
 import { StatCard } from '../components/ui/StatCard';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
 import { relativeTime } from '../lib/home';
 import { removeAvatar, updateProfile, uploadAvatar, useProfileSummary } from '../lib/profile';
@@ -175,14 +176,15 @@ function ProfilePage() {
                           </div>
                         </Link>
                       ))}
-                      <Link
-                        to="/search"
-                        search={{ kind: block.kind }}
-                        title="Find more to favourite"
-                        className="flex aspect-2/3 items-center justify-center rounded-cover border border-dashed border-white/20 text-2xl text-faint transition hover:border-pink hover:text-pink"
-                      >
-                        ＋
-                      </Link>
+                      <Tooltip label="Find more to favourite">
+                        <Link
+                          to="/search"
+                          search={{ kind: block.kind }}
+                          className="flex aspect-2/3 items-center justify-center rounded-cover border border-dashed border-white/20 text-2xl text-faint transition hover:border-pink hover:text-pink"
+                        >
+                          ＋
+                        </Link>
+                      </Tooltip>
                     </div>
                   </section>
                 ))
@@ -240,12 +242,14 @@ function ProfilePage() {
                     <span className="font-label text-xs tracking-label text-dim">
                       PROFILE VISIBILITY
                     </span>
-                    <span
-                      title="Coming soon — profiles are private until the social layer"
-                      className="cursor-not-allowed font-label text-xs font-semibold text-dim/60"
-                    >
-                      PRIVATE
-                    </span>
+                    <Tooltip label="Coming soon — profiles are private until the social layer">
+                      <span
+                        tabIndex={0}
+                        className="cursor-not-allowed font-label text-xs font-semibold text-dim/60"
+                      >
+                        PRIVATE
+                      </span>
+                    </Tooltip>
                   </GlassCard>
                 </section>
               </div>
@@ -370,9 +374,9 @@ function EditProfileDialog({
   };
 
   return (
-    <Modal label="edit profile" onClose={onClose}>
+    <Modal onClose={onClose}>
       <form onSubmit={save} className="flex flex-col gap-5">
-        <h2 className="font-display text-[28px] uppercase">Edit profile</h2>
+        <ModalTitle>Edit profile</ModalTitle>
 
         <div className="flex items-center gap-5">
           <Avatar name={user.username} src={image} size={120} className="size-20 text-2xl" />

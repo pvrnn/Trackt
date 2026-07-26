@@ -8,6 +8,7 @@ import { MarketingNav } from '../components/layout/MarketingNav';
 import { UpNextCard } from '../components/media/UpNextCard';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
+import { Tooltip } from '../components/ui/Tooltip';
 import { coverGradient } from '../lib/cover';
 
 const MotionLink = m.create(Link);
@@ -96,12 +97,14 @@ function Hero() {
           </MotionLink>
           {/* The TV Time importer (PRD §3.6) hasn't shipped — visibly inert, not a
               disguised register link. */}
-          <span
-            title="The TV Time importer is coming soon"
-            className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-full border border-glass-border bg-glass px-8 py-4 font-sans text-sm font-bold tracking-btn text-muted"
-          >
-            IMPORT FROM TV TIME · SOON
-          </span>
+          <Tooltip label="The TV Time importer is coming soon">
+            <span
+              tabIndex={0}
+              className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-full border border-glass-border bg-glass px-8 py-4 font-sans text-sm font-bold tracking-btn text-muted"
+            >
+              IMPORT FROM TV TIME · SOON
+            </span>
+          </Tooltip>
         </div>
         <p className="font-label text-[13px] text-dim">
           or self-host:{' '}

@@ -6,7 +6,7 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
-import { Modal } from '../components/ui/Modal';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
 import {
@@ -156,32 +156,22 @@ function ListDetailPage() {
       )}
 
       {confirmingDelete && (
-        <Modal label="delete list" onClose={() => setConfirmingDelete(false)}>
-          <div className="flex flex-col gap-5">
-            <h2 className="font-display text-[28px] uppercase">Delete this list?</h2>
-            <p className="text-[15px] text-muted">
-              “{list.title}” and its {list.entries.length}{' '}
-              {list.entries.length === 1 ? 'title' : 'titles'} go away. Your logs, ratings and
-              check-ins are untouched.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setConfirmingDelete(false)} disabled={busy}>
-                CANCEL
-              </Button>
-              <Button
-                disabled={busy}
-                onClick={() =>
-                  run(async () => {
-                    await listsApi.remove(list.id);
-                    await navigate({ to: '/lists' });
-                  })
-                }
-              >
-                {busy ? 'DELETING…' : 'DELETE'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
+        <ConfirmDialog
+          title="Delete this list?"
+          confirmLabel={busy ? 'DELETING…' : 'DELETE'}
+          busy={busy}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() =>
+            run(async () => {
+              await listsApi.remove(list.id);
+              await navigate({ to: '/lists' });
+            })
+          }
+        >
+          “{list.title}” and its {list.entries.length}{' '}
+          {list.entries.length === 1 ? 'title' : 'titles'} go away. Your logs, ratings and check-ins
+          are untouched.
+        </ConfirmDialog>
       )}
     </Shell>
   );

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { MediaDetailSchema, type LogStatus, type MediaDetail } from '@trackt/shared';
 import { authClient } from './auth-client';
 import { api, toError } from './http';
@@ -28,6 +28,21 @@ export function useMediaDetail(slug: string) {
     queryFn: () => fetchMediaDetail(slug),
     enabled: !!session,
   });
+}
+
+/**
+ * Every cached view derived from tracking data. One check-in changes the media
+ * detail, the home dashboard (up next, in progress, stats) *and* the profile
+ * activity feed — so a mutation that invalidates only its own page leaves the
+ * others serving stale cache. That cache survives client-side navigation, so
+ * the staleness lasted until a hard reload built a fresh QueryClient.
+ *
+ * `['media']` is a prefix: it matches every `['media', slug]` entry.
+ */
+const TRACKING_KEYS = [['media'], ['home'], ['profile']] as const;
+
+export async function invalidateTracking(queryClient: QueryClient): Promise<void> {
+  await Promise.all(TRACKING_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
 }
 
 async function mutate(path: string, method: 'PUT' | 'DELETE', body?: unknown): Promise<void> {

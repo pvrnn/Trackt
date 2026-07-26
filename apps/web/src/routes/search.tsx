@@ -1,3 +1,4 @@
+import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
@@ -23,6 +24,9 @@ export const Route = createFileRoute('/search')({
   }),
   component: SearchPage,
 });
+
+/** Toggle-group value for the unfiltered state; `kind` stays undefined in the URL. */
+const ALL_KINDS = 'all';
 
 /** Filter chip labels per the mockup — plural forms of the media kinds. */
 const KIND_LABELS: Record<MediaKind, string> = {
@@ -95,25 +99,32 @@ function SearchPage() {
                 ⌘K
               </kbd>
             </label>
-            <div className="flex flex-wrap gap-2.5">
-              <Chip
-                selected={kind === undefined}
-                onClick={() =>
-                  navigate({ search: (previous) => ({ ...previous, kind: undefined }) })
-                }
-              >
-                ALL
-              </Chip>
+            <ToggleGroup.Root
+              type="single"
+              aria-label="filter by kind"
+              value={kind ?? ALL_KINDS}
+              onValueChange={(value) => {
+                // Radix emits '' when the active item is pressed again; a filter
+                // row has no "nothing selected" state, so ignore it.
+                if (!value) return;
+                navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    kind: value === ALL_KINDS ? undefined : (value as MediaKind),
+                  }),
+                });
+              }}
+              className="flex flex-wrap gap-2.5"
+            >
+              <ToggleGroup.Item value={ALL_KINDS} asChild>
+                <Chip selected={kind === undefined}>ALL</Chip>
+              </ToggleGroup.Item>
               {MEDIA_KINDS.map((value) => (
-                <Chip
-                  key={value}
-                  selected={kind === value}
-                  onClick={() => navigate({ search: (previous) => ({ ...previous, kind: value }) })}
-                >
-                  {KIND_LABELS[value]}
-                </Chip>
+                <ToggleGroup.Item key={value} value={value} asChild>
+                  <Chip selected={kind === value}>{KIND_LABELS[value]}</Chip>
+                </ToggleGroup.Item>
               ))}
-            </div>
+            </ToggleGroup.Root>
           </div>
 
           <div className="flex items-baseline justify-between">

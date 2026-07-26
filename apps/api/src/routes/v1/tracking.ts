@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
@@ -30,6 +30,64 @@ type MediaRow = typeof media.$inferSelect;
 async function loadMedia(db: Db, id: string, viewer: SessionUser): Promise<MediaRow | undefined> {
   const [row] = await db.select().from(media).where(eq(media.id, id)).limit(1);
   return row && canViewMedia(row, viewer) ? row : undefined;
+}
+
+/** Postgres caps a statement at 65535 bind parameters; long manga run to thousands of parts. */
+const BULK_CHUNK = 1000;
+
+function chunked<T>(items: T[], size = BULK_CHUNK): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+/**
+ * Check in, or clear, every part of a work at once — what `completed` and
+ * `planned` mean for progress (PRD §3.1). Done server-side so it stays one
+ * request and one consistent state; per-part calls would be N round trips.
+ *
+ * Clearing is destructive and has no undo: `planned` discards existing check-ins.
+ */
+async function setAllProgress(
+  db: Db,
+  userId: string,
+  row: MediaRow,
+  watched: boolean,
+): Promise<void> {
+  const partKind = PART_KIND_BY_MEDIA[row.kind];
+  if (!partKind) return; // movies have no parts
+
+  const partsOfMedia = db
+    .select({ id: mediaPart.id })
+    .from(mediaPart)
+    .where(and(eq(mediaPart.mediaId, row.id), eq(mediaPart.kind, partKind)));
+
+  if (!watched) {
+    await db
+      .delete(progress)
+      .where(and(eq(progress.userId, userId), inArray(progress.partId, partsOfMedia)));
+    return;
+  }
+
+  // Nothing to complete against until the catalog knows how many parts exist.
+  const total = row.partCount;
+  if (total === null || total <= 0) return;
+
+  const numbers = Array.from({ length: total }, (_, i) => i + 1);
+  for (const chunk of chunked(numbers)) {
+    await db
+      .insert(mediaPart)
+      .values(chunk.map((number) => ({ mediaId: row.id, kind: partKind, number: String(number) })))
+      .onConflictDoNothing();
+  }
+
+  const parts = await partsOfMedia;
+  for (const chunk of chunked(parts)) {
+    await db
+      .insert(progress)
+      .values(chunk.map((part) => ({ userId, partId: part.id })))
+      .onConflictDoNothing();
+  }
 }
 
 export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -83,6 +141,9 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
           target: [userMedia.userId, userMedia.mediaId],
           set: { status, updatedAt: new Date() },
         });
+      // `completed` means every part is seen; `planned` means none is yet.
+      if (status === 'completed') await setAllProgress(ctx.db, ctx.user.id, ctx.row, true);
+      else if (status === 'planned') await setAllProgress(ctx.db, ctx.user.id, ctx.row, false);
       return { status };
     },
   );

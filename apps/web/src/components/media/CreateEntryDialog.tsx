@@ -11,7 +11,8 @@ import { createEntry, uploadCover } from '../../lib/entries';
 import { Button } from '../ui/Button';
 import { Chip } from '../ui/Chip';
 import { Input } from '../ui/Input';
-import { Modal } from '../ui/Modal';
+import { Modal, ModalTitle } from '../ui/Modal';
+import { SelectField, type SelectItem } from '../ui/Select';
 
 /** Series/anime count episodes and carry a season number; manga/webtoon count chapters (ADR-0003). */
 const EPISODIC: MediaKind[] = ['series', 'anime'];
@@ -23,6 +24,12 @@ const KIND_LABELS: Record<MediaKind, string> = {
   manga: 'MANGA',
   webtoon: 'WEBTOON',
 };
+
+/** The '' option leaves status unset, which the API reads as unknown. */
+const STATUS_ITEMS: SelectItem[] = [
+  { value: '', label: 'UNKNOWN' },
+  ...MEDIA_STATUSES.map((value) => ({ value, label: value.toUpperCase() })),
+];
 
 /** '12' → 12, '' → undefined; lets the server reject garbage with a message. */
 function toCount(value: string): number | undefined {
@@ -105,10 +112,10 @@ export function CreateEntryDialog({
   };
 
   return (
-    <Modal label="create entry" onClose={onClose}>
+    <Modal onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-5">
         <div>
-          <h2 className="font-display text-[28px] uppercase">Create entry</h2>
+          <ModalTitle>Create entry</ModalTitle>
           <p className="mt-1 text-sm text-muted">
             Usable immediately — only you can see it until a moderator verifies it.
           </p>
@@ -146,27 +153,13 @@ export function CreateEntryDialog({
             value={year}
             onChange={(event) => setYear(event.target.value)}
           />
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="entry-status"
-              className="font-label text-xs font-semibold tracking-label text-dim uppercase"
-            >
-              Status
-            </label>
-            <select
-              id="entry-status"
-              value={status}
-              onChange={(event) => setStatus(event.target.value as '' | MediaStatus)}
-              className="rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg transition-colors outline-none focus:border-pink/60"
-            >
-              <option value="">UNKNOWN</option>
-              {MEDIA_STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {value.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Status"
+            id="entry-status"
+            items={STATUS_ITEMS}
+            value={status}
+            onChange={(value) => setStatus(value as '' | MediaStatus)}
+          />
         </div>
 
         {hasParts && (

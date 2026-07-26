@@ -10,9 +10,10 @@ import { Avatar } from '../components/ui/Avatar';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { StatCard } from '../components/ui/StatCard';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
 import { relativeTime, useHomeSummary } from '../lib/home';
-import { trackingApi } from '../lib/media';
+import { invalidateTracking, trackingApi } from '../lib/media';
 
 export const Route = createFileRoute('/home')({
   head: () => ({ meta: [{ title: 'Home — Trackt' }] }),
@@ -53,7 +54,9 @@ function HomePage() {
         set.delete(entry.id);
         return set;
       }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['home'] }),
+    // Same sweep as the media page: a check-in here also changes that title's
+    // detail and the profile activity feed.
+    onSettled: () => invalidateTracking(queryClient),
   });
 
   if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
@@ -145,12 +148,14 @@ function HomePage() {
                 <>
                   <div className="mt-6 flex items-baseline justify-between">
                     <h2 className="font-display text-[32px] uppercase">In progress</h2>
-                    <span
-                      title="Lists are coming soon"
-                      className="cursor-not-allowed font-label text-[13px] font-bold tracking-label text-pink/50"
-                    >
-                      VIEW ALL →
-                    </span>
+                    <Tooltip label="Lists are coming soon">
+                      <span
+                        tabIndex={0}
+                        className="cursor-not-allowed font-label text-[13px] font-bold tracking-label text-pink/50"
+                      >
+                        VIEW ALL →
+                      </span>
+                    </Tooltip>
                   </div>
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                     {summary.inProgress.map((entry) => (
