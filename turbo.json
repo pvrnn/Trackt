@@ -9,13 +9,25 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "AUTH_SECRET",
+        "CATALOG_URL",
+        "APP_URL",
+        "PORT",
+        "LOG_LEVEL",
+        "TMDB_API_KEY",
+        "UPLOADS_DIR"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "env": ["CI_REQUIRE_DB", "TEST_DATABASE_URL", "TEST_DATABASE_URL_*"]
     }
   }
 }
