@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { m } from 'motion/react';
 import type { MediaKind } from '@trackt/shared';
@@ -11,31 +12,68 @@ export interface UpNextCardProps {
   progressLine: string;
   checkedIn: boolean;
   onCheckIn: () => void;
+  /** Links the thumb and title to the media page. Omitted by the landing demo. */
+  slug?: string;
   className?: string;
 }
 
-/** Up-next card: 96×136 generated-cover thumb, meta column, one-tap check-in pill. */
+/**
+ * Up-next card: 96×136 generated-cover thumb, meta column, one-tap check-in pill.
+ *
+ * The thumb and title link to the media page; the card as a whole deliberately
+ * does not, since the check-in button lives inside it and a button nested in an
+ * anchor is invalid markup that would navigate on every check-in.
+ */
 export function UpNextCard({
   kind,
   title,
   progressLine,
   checkedIn,
   onCheckIn,
+  slug,
   className,
 }: UpNextCardProps) {
+  const coverClass = 'flex h-[136px] w-24 shrink-0 items-end p-2';
+  const coverStyle = { background: coverGradient(kind, title) };
+  const coverTitle = (
+    <span className="font-display text-xs leading-[1.15] text-white/92 uppercase">{title}</span>
+  );
+
   return (
     <GlassCard className={clsx('flex overflow-hidden', className)}>
-      <div
-        className="flex h-[136px] w-24 shrink-0 items-end p-2"
-        style={{ background: coverGradient(kind, title) }}
-      >
-        <span className="font-display text-xs leading-[1.15] text-white/92 uppercase">{title}</span>
-      </div>
+      {slug ? (
+        // Same destination as the title link below, so it's kept out of the tab
+        // order and the accessible tree rather than announced twice.
+        <Link
+          to="/media/$slug"
+          params={{ slug }}
+          aria-hidden
+          tabIndex={-1}
+          className={coverClass}
+          style={coverStyle}
+        >
+          {coverTitle}
+        </Link>
+      ) : (
+        <div className={coverClass} style={coverStyle}>
+          {coverTitle}
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-1.5 px-4.5 py-4">
         <span className="font-label text-[11px] font-bold tracking-label text-dim uppercase">
           {kind}
         </span>
-        <span className="text-base leading-tight font-bold">{title}</span>
+        {slug ? (
+          <Link
+            to="/media/$slug"
+            params={{ slug }}
+            className="text-base leading-tight font-bold transition-colors hover:text-pink"
+          >
+            {title}
+          </Link>
+        ) : (
+          <span className="text-base leading-tight font-bold">{title}</span>
+        )}
         <span className="text-[13px] text-muted">{progressLine}</span>
         <span className="flex-1" />
         <div className="flex">

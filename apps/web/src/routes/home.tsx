@@ -130,6 +130,7 @@ function HomePage() {
                   {summary.upNext.map((entry) => (
                     <UpNextCard
                       key={entry.id}
+                      slug={entry.slug}
                       kind={entry.kind}
                       title={entry.title}
                       progressLine={progressLine(entry)}
