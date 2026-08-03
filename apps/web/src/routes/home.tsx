@@ -126,6 +126,7 @@ function HomePage() {
                       slug={entry.slug}
                       kind={entry.kind}
                       title={entry.title}
+                      coverUrl={entry.coverUrl}
                       progressLine={progressLine(entry)}
                       checkedIn={checkedIn.has(entry.id)}
                       onCheckIn={() => checkIn(entry)}
