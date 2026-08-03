@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@trackt/db';
-import type { ActivityEntry } from '@trackt/shared';
+import type { ActivityEntry, MediaKind } from '@trackt/shared';
 
 /** Viewer-scoped tracking aggregates shared by the home and profile summaries. */
 
@@ -55,9 +55,30 @@ export async function loadYearCheckinCounts(
 }
 
 /**
+ * `detail` for a run of check-ins collapsed into one entry: 'CH2' for a single
+ * part, 'CH2–12' when the run is contiguous, '11 chapters' when it has gaps
+ * (a range would overstate what was actually read).
+ */
+function checkinDetail(partKind: string, from: number, to: number, partCount: number): string {
+  const prefix = partKind === 'chapter' ? 'CH' : 'E';
+  if (partCount === 1) return `${prefix}${from}`;
+  // Parts are numeric(8,2) (chapter 10.5 exists), so a contiguous run is only
+  // provable for whole numbers; fractional runs fall back to the count.
+  const contiguous = Number.isInteger(from) && Number.isInteger(to) && to - from + 1 === partCount;
+  if (contiguous) return `${prefix}${from}–${to}`;
+  return `${partCount} ${partKind === 'chapter' ? 'chapters' : 'episodes'}`;
+}
+
+/**
  * The viewer's most recent check-ins/ratings/status changes, merged
  * newest-first. Soft-deleted media (`deleted_at` set) are hidden here like
  * everywhere else — the underlying rows stay, they just don't render.
+ *
+ * Check-ins are grouped per title per UTC day before the limit is applied:
+ * binging 12 chapters is one line ('CH2–12'), not 12. Grouping has to happen
+ * in SQL rather than in the client, because `limit` caps the merged feed — a
+ * raw-row query would spend the whole budget on one title and push every
+ * rating and status change out of the response entirely.
  */
 export async function loadActivity(
   db: Db,
@@ -66,15 +87,23 @@ export async function loadActivity(
 ): Promise<ActivityEntry[]> {
   const [checkins, ratings, logs] = await Promise.all([
     db.execute(sql`
-      SELECT m.title, m.slug, mp.kind, mp.number, p.watched_at FROM progress p
+      SELECT m.title, m.slug,
+             m.kind  AS media_kind,
+             mp.kind AS part_kind,
+             min(mp.number) AS from_number,
+             max(mp.number) AS to_number,
+             count(*)::int  AS part_count,
+             max(p.watched_at) AS watched_at
+      FROM progress p
       JOIN media_part mp ON mp.id = p.part_id
       JOIN media m ON m.id = mp.media_id
       WHERE p.user_id = ${userId} AND m.deleted_at IS NULL
-      ORDER BY p.watched_at DESC
+      GROUP BY m.id, m.title, m.slug, m.kind, mp.kind, (p.watched_at AT TIME ZONE 'UTC')::date
+      ORDER BY watched_at DESC
       LIMIT ${limit}
     `),
     db.execute(sql`
-      SELECT m.title, m.slug, r.score, r.updated_at FROM rating r
+      SELECT m.title, m.slug, m.kind AS media_kind, r.score, r.updated_at FROM rating r
       JOIN media m ON m.id = r.target_id
       WHERE r.user_id = ${userId} AND r.target_type = 'media' AND r.score IS NOT NULL
         AND m.deleted_at IS NULL
@@ -82,7 +111,7 @@ export async function loadActivity(
       LIMIT ${limit}
     `),
     db.execute(sql`
-      SELECT m.title, m.slug, um.status, um.updated_at FROM user_media um
+      SELECT m.title, m.slug, m.kind AS media_kind, um.status, um.updated_at FROM user_media um
       JOIN media m ON m.id = um.media_id
       WHERE um.user_id = ${userId} AND m.deleted_at IS NULL
       ORDER BY um.updated_at DESC
@@ -95,13 +124,21 @@ export async function loadActivity(
       verb: 'checked_in' as const,
       title: row.title as string,
       slug: row.slug as string,
-      detail: `${row.kind === 'chapter' ? 'CH' : 'E'}${Number(row.number)}`,
+      kind: row.media_kind as MediaKind,
+      // `part_kind` is the episode/chapter of the run, not the media kind above.
+      detail: checkinDetail(
+        row.part_kind as string,
+        Number(row.from_number),
+        Number(row.to_number),
+        row.part_count as number,
+      ),
       at: new Date(row.watched_at as string).toISOString(),
     })),
     ...[...ratings].map((row) => ({
       verb: 'rated' as const,
       title: row.title as string,
       slug: row.slug as string,
+      kind: row.media_kind as MediaKind,
       detail: `★ ${Number(row.score).toFixed(1)}`,
       at: new Date(row.updated_at as string).toISOString(),
     })),
@@ -109,6 +146,7 @@ export async function loadActivity(
       verb: 'status' as const,
       title: row.title as string,
       slug: row.slug as string,
+      kind: row.media_kind as MediaKind,
       detail: (row.status as string).replace('_', ' '),
       at: new Date(row.updated_at as string).toISOString(),
     })),

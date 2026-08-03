@@ -169,7 +169,7 @@ function ListDetailPage() {
           }
         >
           “{list.title}” and its {list.entries.length}{' '}
-          {list.entries.length === 1 ? 'title' : 'titles'} go away. Your logs, ratings and check-ins
+          {list.entries.length === 1 ? 'title' : 'titles'} go away. Your logs, ratings and progress
           are untouched.
         </ConfirmDialog>
       )}

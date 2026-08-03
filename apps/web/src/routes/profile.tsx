@@ -26,19 +26,13 @@ import { Modal, ModalTitle } from '../components/ui/Modal';
 import { StatCard } from '../components/ui/StatCard';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
-import { relativeTime } from '../lib/home';
+import { activityVerbLabel, relativeTime } from '../lib/home';
 import { removeAvatar, updateProfile, uploadAvatar, useProfileSummary } from '../lib/profile';
 
 export const Route = createFileRoute('/profile')({
   head: () => ({ meta: [{ title: 'Profile — Trackt' }] }),
   component: ProfilePage,
 });
-
-const VERB_LABELS: Record<ProfileSummary['activity'][number]['verb'], string> = {
-  checked_in: 'Checked in',
-  rated: 'Rated',
-  status: 'Marked',
-};
 
 const KIND_BLOCK_TITLES: Record<MediaKind, string> = {
   movie: 'Favourite movies',
@@ -210,7 +204,7 @@ function ProfilePage() {
                           className="flex items-center gap-3.5 rounded-card-sm px-4.5 py-3.5"
                         >
                           <p className="flex-1 text-sm text-muted">
-                            {VERB_LABELS[entry.verb]}{' '}
+                            {activityVerbLabel(entry)}{' '}
                             <Link
                               to="/media/$slug"
                               params={{ slug: entry.slug }}
@@ -228,7 +222,7 @@ function ProfilePage() {
                     </ul>
                   ) : (
                     <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                      Your check-ins, ratings, and status changes show up here.
+                      What you watch and read, your ratings, and status changes show up here.
                     </GlassCard>
                   )}
                 </section>

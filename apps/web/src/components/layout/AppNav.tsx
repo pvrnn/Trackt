@@ -14,12 +14,19 @@ interface NavItem {
   to?: LinkProps['to'];
 }
 
-/** Order and labels from the app mockups (Home/Search/Lists/Profile navs). */
+/**
+ * Order from the app mockups (Home/Search/Lists/Profile navs). The mockups
+ * label the fourth item ACTIVITY, but it goes to `/profile` — a page that is
+ * a profile (identity, favourites, badges, visibility) with activity as one
+ * section. Reading it as "the activity feed" sends people to the avatar menu
+ * to look for their profile, so it says PROFILE here. ACTIVITY becomes its
+ * own item pointing at the real feed when that ships (ROADMAP, v1.x).
+ */
 const NAV_ITEMS: NavItem[] = [
   { label: 'HOME', to: '/home' },
   { label: 'DISCOVER', to: '/search' },
   { label: 'LISTS', to: '/lists' },
-  { label: 'ACTIVITY', to: '/profile' },
+  { label: 'PROFILE', to: '/profile' },
 ];
 
 export interface AppNavUser {

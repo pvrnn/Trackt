@@ -20,6 +20,13 @@ export const UpNextEntrySchema = z.object({
 });
 export type UpNextEntry = z.infer<typeof UpNextEntrySchema>;
 
+/**
+ * How many in-progress titles the home shelf carries. Shared so the page can
+ * tell a complete shelf from a truncated one — the "there is more than this"
+ * notice would otherwise be a guess.
+ */
+export const IN_PROGRESS_LIMIT = 12;
+
 export const InProgressEntrySchema = z.object({
   id: z.uuid(),
   slug: z.string(),
@@ -35,6 +42,8 @@ export const ActivityEntrySchema = z.object({
   verb: z.enum(['checked_in', 'rated', 'status']),
   title: z.string(),
   slug: z.string(),
+  /** The media's own kind, so the feed can say "watched" or "read" per row. */
+  kind: MediaKindSchema,
   /** Human fragment after the title, e.g. 'E5', '★ 8.5', 'completed'. */
   detail: z.string(),
   at: z.iso.datetime(),

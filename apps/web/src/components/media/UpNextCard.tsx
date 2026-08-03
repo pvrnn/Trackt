@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { m } from 'motion/react';
-import type { MediaKind } from '@trackt/shared';
+import { trackingVerbLabel, type MediaKind } from '@trackt/shared';
 import { coverGradient } from '../../lib/cover';
 import { GlassCard } from '../ui/GlassCard';
 
@@ -14,11 +14,13 @@ export interface UpNextCardProps {
   onCheckIn: () => void;
   /** Links the thumb and title to the media page. Omitted by the landing demo. */
   slug?: string;
+  /** Real artwork replaces the generated gradient, as on CoverCard. */
+  coverUrl?: string | null;
   className?: string;
 }
 
 /**
- * Up-next card: 96×136 generated-cover thumb, meta column, one-tap check-in pill.
+ * Up-next card: 96×136 cover thumb, meta column, one-tap check-in pill.
  *
  * The thumb and title link to the media page; the card as a whole deliberately
  * does not, since the check-in button lives inside it and a button nested in an
@@ -31,11 +33,16 @@ export function UpNextCard({
   checkedIn,
   onCheckIn,
   slug,
+  coverUrl,
   className,
 }: UpNextCardProps) {
-  const coverClass = 'flex h-[136px] w-24 shrink-0 items-end p-2';
-  const coverStyle = { background: coverGradient(kind, title) };
-  const coverTitle = (
+  const coverClass = 'flex h-[136px] w-24 shrink-0 items-end bg-cover bg-center p-2';
+  const coverStyle = coverUrl
+    ? { backgroundImage: `url(${coverUrl})` }
+    : { background: coverGradient(kind, title) };
+  // The gradient carries the title because it has no other identity; real
+  // artwork already shows it, and the meta column repeats it either way.
+  const coverTitle = coverUrl ? null : (
     <span className="font-display text-xs leading-[1.15] text-white/92 uppercase">{title}</span>
   );
 
@@ -86,7 +93,11 @@ export function UpNextCard({
               checkedIn ? 'bg-white/25 text-fg' : 'bg-prism text-on-prism hover:brightness-115',
             )}
           >
-            {checkedIn ? '✓ CHECKED IN' : '✓ CHECK IN'}
+            {/* 'MARK WATCHED' / 'MARK READ' before, the bare past tense after —
+                'READ' alone would be ambiguous as a call to action. */}
+            {checkedIn
+              ? `✓ ${trackingVerbLabel(kind).toUpperCase()}`
+              : `✓ MARK ${trackingVerbLabel(kind).toUpperCase()}`}
           </m.button>
         </div>
       </div>
