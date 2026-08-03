@@ -165,7 +165,7 @@ function CheckInBand() {
           <h2 className="font-display text-section uppercase">
             Two taps.
             <br />
-            You&apos;re checked in.
+            It&apos;s logged.
           </h2>
           <p className="max-w-[440px] leading-relaxed text-muted">
             Per-episode for series and anime, per-chapter for manga and webtoons, rewatch counters,

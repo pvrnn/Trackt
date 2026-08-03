@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { m } from 'motion/react';
-import type { MediaKind } from '@trackt/shared';
+import { trackingVerbLabel, type MediaKind } from '@trackt/shared';
 import { coverGradient } from '../../lib/cover';
 import { GlassCard } from '../ui/GlassCard';
 
@@ -86,7 +86,11 @@ export function UpNextCard({
               checkedIn ? 'bg-white/25 text-fg' : 'bg-prism text-on-prism hover:brightness-115',
             )}
           >
-            {checkedIn ? '✓ CHECKED IN' : '✓ CHECK IN'}
+            {/* 'MARK WATCHED' / 'MARK READ' before, the bare past tense after —
+                'READ' alone would be ambiguous as a call to action. */}
+            {checkedIn
+              ? `✓ ${trackingVerbLabel(kind).toUpperCase()}`
+              : `✓ MARK ${trackingVerbLabel(kind).toUpperCase()}`}
           </m.button>
         </div>
       </div>

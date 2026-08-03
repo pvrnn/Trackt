@@ -1,5 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { HomeSummarySchema, type HomeSummary } from '@trackt/shared';
+import {
+  HomeSummarySchema,
+  trackingVerbLabel,
+  type ActivityEntry,
+  type HomeSummary,
+} from '@trackt/shared';
 import { authClient } from './auth-client';
 import { api, toError } from './http';
 
@@ -16,6 +21,22 @@ export async function fetchHomeSummary(): Promise<HomeSummary> {
 export function useHomeSummary() {
   const { data: session } = authClient.useSession();
   return useQuery({ queryKey: ['home'], queryFn: fetchHomeSummary, enabled: !!session });
+}
+
+/**
+ * The verb an activity row reads as, capitalised: a check-in says 'Watched' or
+ * 'Read' depending on the media kind. Shared by the home and profile feeds,
+ * which differ only in casing (`.toLowerCase()` mid-sentence).
+ */
+export function activityVerbLabel(entry: ActivityEntry): string {
+  switch (entry.verb) {
+    case 'checked_in':
+      return trackingVerbLabel(entry.kind);
+    case 'rated':
+      return 'Rated';
+    case 'status':
+      return 'Marked';
+  }
 }
 
 /** Compact relative timestamp for activity rows: 2H, 1D, 3W. */

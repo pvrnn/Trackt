@@ -12,19 +12,13 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { StatCard } from '../components/ui/StatCard';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
-import { relativeTime, useHomeSummary } from '../lib/home';
+import { activityVerbLabel, relativeTime, useHomeSummary } from '../lib/home';
 import { invalidateTracking, trackingApi } from '../lib/media';
 
 export const Route = createFileRoute('/home')({
   head: () => ({ meta: [{ title: 'Home — Trackt' }] }),
   component: HomePage,
 });
-
-const VERB_LABELS: Record<HomeSummary['activity'][number]['verb'], string> = {
-  checked_in: 'checked in',
-  rated: 'rated',
-  status: 'marked',
-};
 
 function progressLine(entry: UpNextEntry): string {
   const noun = entry.partKind === 'episode' ? 'Episode' : 'Chapter';
@@ -94,7 +88,7 @@ function HomePage() {
         <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-10 pt-12 pb-20">
           {checkInMutation.isError && (
             <p role="alert" className="text-[15px] text-red-400">
-              That check-in didn’t save — try again.
+              Couldn’t save your progress — try again.
             </p>
           )}
           {isError ? (
@@ -141,7 +135,7 @@ function HomePage() {
                 </div>
               ) : (
                 <GlassCard className="px-6 py-5 text-[15px] text-muted">
-                  All caught up — every known episode and chapter is checked in.
+                  All caught up — you’ve watched or read every known episode and chapter.
                 </GlassCard>
               )}
 
@@ -194,7 +188,7 @@ function HomePage() {
                       >
                         <Avatar name={userName} size={32} />
                         <p className="flex-1 text-sm text-muted">
-                          You {VERB_LABELS[entry.verb]}{' '}
+                          You {activityVerbLabel(entry).toLowerCase()}{' '}
                           <Link
                             to="/media/$slug"
                             params={{ slug: entry.slug }}
@@ -212,7 +206,7 @@ function HomePage() {
                   </ul>
                 ) : (
                   <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                    Check-ins, ratings, and status changes show up here.
+                    What you watch and read, ratings, and status changes show up here.
                   </GlassCard>
                 )}
               </section>

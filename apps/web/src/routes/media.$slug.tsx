@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   LOG_STATUSES,
   MEDIA_RELATION_LABELS,
+  trackingVerbLabel,
   type LogStatus,
   type MediaDetail,
   type MediaRelationLabel,
@@ -214,6 +215,8 @@ function MediaPage() {
       ) ?? null)
     : null;
   const checkable = noun !== null && listLength > 0;
+  /** 'Watched' or 'Read', per kind — the checklist's done state, in words. */
+  const doneLabel = trackingVerbLabel(detail.kind);
   const progressRatio = checkable && total ? watchedSet.size / total : null;
 
   const relationGroups = groupRelations(detail.relations);
@@ -315,7 +318,7 @@ function MediaPage() {
                     )
                   }
                 >
-                  ✓ CHECK IN {noun!.prefix}
+                  ✓ {trackingVerbLabel(detail.kind, 'present').toUpperCase()} {noun!.prefix}
                   {next}
                 </Button>
               )}
@@ -444,7 +447,7 @@ function MediaPage() {
                           // The tile shows a bare number; the label carries what
                           // the row's WATCHED / UP NEXT text used to say.
                           aria-label={`${noun!.singular} ${number}${
-                            watched ? ' — watched' : isNext ? ' — up next' : ''
+                            watched ? ` — ${doneLabel.toLowerCase()}` : isNext ? ' — up next' : ''
                           }`}
                           title={`${noun!.singular} ${number}`}
                           className={clsx(
@@ -467,7 +470,7 @@ function MediaPage() {
               <div className="flex flex-wrap items-center gap-4 font-label text-[11px] tracking-label text-dim">
                 <span className="flex items-center gap-2">
                   <span aria-hidden className="size-3 rounded-[4px] border border-pink bg-pink" />
-                  WATCHED
+                  {doneLabel.toUpperCase()}
                 </span>
                 <span className="flex items-center gap-2">
                   <span
@@ -490,7 +493,7 @@ function MediaPage() {
             <GlassCard className="px-6 py-5 text-[15px] text-muted">
               {detail.kind === 'movie'
                 ? 'Movies track in one step — set the status above to Completed when you’ve watched it.'
-                : 'This entry has no episode or chapter count yet, so there’s nothing granular to check in. Set a status above to track it.'}
+                : 'This entry has no episode or chapter count yet, so there’s nothing granular to tick off. Set a status above to track it.'}
             </GlassCard>
           )}
         </section>
