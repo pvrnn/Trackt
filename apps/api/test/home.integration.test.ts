@@ -142,6 +142,50 @@ describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
     const verbs = new Set(summary.activity.map((entry) => entry.verb));
     expect(verbs).toContain('rated');
     expect(verbs).toContain('checked_in');
+
+    // Each row carries its media kind, so the feed can word it "watched" or
+    // "read". The check-in query selects two `kind` columns — this catches the
+    // part kind ('episode'/'chapter') leaking into the media kind.
+    expect(
+      summary.activity.find((entry) => entry.verb === 'checked_in' && entry.title === 'Berserk'),
+    ).toMatchObject({ kind: 'manga', detail: 'CH1' });
+    expect(
+      summary.activity.find(
+        (entry) => entry.verb === 'checked_in' && entry.title === 'Cowboy Bebop',
+      ),
+    ).toMatchObject({ kind: 'anime', detail: 'E1–2' });
+    expect(
+      summary.activity.find((entry) => entry.verb === 'rated' && entry.title === 'The Matrix'),
+    ).toMatchObject({ kind: 'movie' });
+  });
+
+  it('collapses a binge into one activity entry instead of one per part', async () => {
+    const fmaId = canonicalMediaId('manga', 30025); // 116 chapters
+    for (let chapter = 1; chapter <= 12; chapter++) {
+      await track('PUT', `/api/v1/media/${fmaId}/progress/${chapter}`);
+    }
+
+    const summary = await getSummary();
+    const fmaEntries = summary.activity.filter(
+      (entry) => entry.verb === 'checked_in' && entry.title === 'Fullmetal Alchemist',
+    );
+    // One line for all 12, so the 6-slot feed still has room for other titles.
+    expect(fmaEntries).toHaveLength(1);
+    expect(fmaEntries[0]?.detail).toBe('CH1–12');
+  });
+
+  it('counts a gapped run rather than implying an unread range', async () => {
+    const onePieceId = canonicalMediaId('manga', 30013); // 1120 chapters
+    for (const chapter of [1, 2, 9]) {
+      await track('PUT', `/api/v1/media/${onePieceId}/progress/${chapter}`);
+    }
+
+    const summary = await getSummary();
+    const entry = summary.activity.find(
+      (item) => item.verb === 'checked_in' && item.title === 'One Piece',
+    );
+    // 'CH1–9' would claim nine chapters when only three were read.
+    expect(entry?.detail).toBe('3 chapters');
   });
 
   it('drops fully-watched titles from up next but keeps them in progress', async () => {

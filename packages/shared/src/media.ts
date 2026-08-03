@@ -42,6 +42,37 @@ export const PART_KIND_BY_MEDIA: Record<
   webtoon: 'chapter',
 };
 
+/** Whether a kind is watched or read — the user-facing verb for tracking it. */
+export type TrackingVerb = 'watch' | 'read';
+
+/**
+ * The verb each media kind is tracked with. Exhaustive over MediaKind on
+ * purpose: a newly added kind must pick a side here rather than fall through a
+ * default and silently render "Watched" on a comic.
+ */
+export const TRACKING_VERB_BY_MEDIA: Record<MediaKind, TrackingVerb> = {
+  movie: 'watch',
+  series: 'watch',
+  anime: 'watch',
+  manga: 'read',
+  webtoon: 'read',
+};
+
+const TRACKING_VERB_FORMS: Record<TrackingVerb, Record<'present' | 'past', string>> = {
+  watch: { present: 'Watch', past: 'Watched' },
+  read: { present: 'Read', past: 'Read' },
+};
+
+/**
+ * The word a check-in reads as for a kind: 'Watch'/'Watched' for video,
+ * 'Read' for print (its past tense is spelt the same). Returned capitalised;
+ * callers case it for their surface — `.toUpperCase()` on buttons,
+ * `.toLowerCase()` mid-sentence.
+ */
+export function trackingVerbLabel(kind: MediaKind, tense: 'present' | 'past' = 'past'): string {
+  return TRACKING_VERB_FORMS[TRACKING_VERB_BY_MEDIA[kind]][tense];
+}
+
 /**
  * How one work relates to another (ADR-0004). An edge is always stored in the
  * FORWARD direction: `A →sequel→ B` means B is A's sequel, `A →adaptation→ B`

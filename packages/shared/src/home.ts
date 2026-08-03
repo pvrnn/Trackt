@@ -35,6 +35,8 @@ export const ActivityEntrySchema = z.object({
   verb: z.enum(['checked_in', 'rated', 'status']),
   title: z.string(),
   slug: z.string(),
+  /** The media's own kind, so the feed can say "watched" or "read" per row. */
+  kind: MediaKindSchema,
   /** Human fragment after the title, e.g. 'E5', '★ 8.5', 'completed'. */
   detail: z.string(),
   at: z.iso.datetime(),
