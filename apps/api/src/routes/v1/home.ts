@@ -4,6 +4,7 @@ import { media, userMedia } from '@trackt/db';
 import {
   ApiErrorSchema,
   HomeSummarySchema,
+  IN_PROGRESS_LIMIT,
   PART_KIND_BY_MEDIA,
   type HomeSummary,
   type MediaKind,
@@ -17,7 +18,6 @@ import { getSessionUser } from '../../lib/session.js';
  * (PRD §3.1). The Friends feed arrives with the v1.x follow system.
  */
 
-const IN_PROGRESS_LIMIT = 12;
 const UP_NEXT_LIMIT = 3;
 const ACTIVITY_LIMIT = 6;
 

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
-import type { HomeSummary, UpNextEntry } from '@trackt/shared';
+import { IN_PROGRESS_LIMIT, type HomeSummary, type UpNextEntry } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
@@ -10,7 +10,6 @@ import { Avatar } from '../components/ui/Avatar';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { StatCard } from '../components/ui/StatCard';
-import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
 import { activityVerbLabel, relativeTime, useHomeSummary } from '../lib/home';
 import { invalidateTracking, trackingApi } from '../lib/media';
@@ -141,16 +140,19 @@ function HomePage() {
 
               {summary.inProgress.length > 0 && (
                 <>
-                  <div className="mt-6 flex items-baseline justify-between">
+                  <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h2 className="font-display text-[32px] uppercase">In progress</h2>
-                    <Tooltip label="Lists are coming soon">
-                      <span
-                        tabIndex={0}
-                        className="cursor-not-allowed font-label text-[13px] font-bold tracking-label text-pink/50"
-                      >
-                        VIEW ALL →
-                      </span>
-                    </Tooltip>
+                    {/* The shelf is capped server-side and nothing lists the
+                        overflow yet, so a truncated shelf says so in plain text.
+                        This used to be a `VIEW ALL →` that went nowhere behind a
+                        "Lists are coming soon" tooltip — lists shipped, and they
+                        were never this shelf anyway. It becomes a real link when
+                        the library page lands (ROADMAP backlog). */}
+                    {summary.inProgress.length >= IN_PROGRESS_LIMIT && (
+                      <p className="font-label text-[13px] tracking-label text-dim">
+                        NEWEST {IN_PROGRESS_LIMIT} · A LIBRARY PAGE FOR THE REST IS COMING
+                      </p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                     {summary.inProgress.map((entry) => (

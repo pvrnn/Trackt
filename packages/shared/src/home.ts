@@ -20,6 +20,13 @@ export const UpNextEntrySchema = z.object({
 });
 export type UpNextEntry = z.infer<typeof UpNextEntrySchema>;
 
+/**
+ * How many in-progress titles the home shelf carries. Shared so the page can
+ * tell a complete shelf from a truncated one — the "there is more than this"
+ * notice would otherwise be a guess.
+ */
+export const IN_PROGRESS_LIMIT = 12;
+
 export const InProgressEntrySchema = z.object({
   id: z.uuid(),
   slug: z.string(),
