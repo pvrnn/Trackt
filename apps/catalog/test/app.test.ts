@@ -111,14 +111,51 @@ describe('catalog app', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('POST /v1/admin/media responds 501 with a valid token (publishing not built)', async () => {
+  it('POST /v1/admin/media responds 503 without a database', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/media',
       payload: slimMediaBody,
       headers: { authorization: 'Bearer test-admin-token-16chars' },
     });
-    expect(response.statusCode).toBe(501);
+    expect(response.statusCode).toBe(503);
+  });
+
+  it('POST /v1/admin/relations rejects a missing or wrong token', async () => {
+    const relationBody = {
+      fromId: '11111111-1111-5111-8111-111111111111',
+      toId: '22222222-2222-5222-8222-222222222222',
+      type: 'adaptation',
+    };
+    const noToken = await app.inject({
+      method: 'POST',
+      url: '/v1/admin/relations',
+      payload: relationBody,
+    });
+    expect(noToken.statusCode).toBe(401);
+
+    const wrongToken = await app.inject({
+      method: 'POST',
+      url: '/v1/admin/relations',
+      payload: relationBody,
+      headers: { authorization: 'Bearer wrong' },
+    });
+    expect(wrongToken.statusCode).toBe(401);
+  });
+
+  it('POST /v1/admin/relations rejects an unknown relation type', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/admin/relations',
+      payload: {
+        fromId: '11111111-1111-5111-8111-111111111111',
+        toId: '22222222-2222-5222-8222-222222222222',
+        // 'prequel' is a read-time label, never a stored type (ADR-0004).
+        type: 'prequel',
+      },
+      headers: { authorization: 'Bearer test-admin-token-16chars' },
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   it('serves the generated OpenAPI document', async () => {

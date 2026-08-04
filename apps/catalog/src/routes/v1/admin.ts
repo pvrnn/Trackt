@@ -1,22 +1,25 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { and, inArray, isNull, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { ApiErrorSchema, SlimMediaSchema } from '@trackt/shared';
+import {
+  ApiErrorSchema,
+  CatalogPublishMediaResponseSchema,
+  CatalogPublishRelationResponseSchema,
+  CatalogPublishRelationSchema,
+  SlimMediaSchema,
+} from '@trackt/shared';
+import { catalogMedia, catalogMediaRelation } from '../../db/index.js';
+import { requireAdmin } from '../../lib/admin-auth.js';
+import { checkCanonicalId } from '../../lib/canonical-id.js';
 
 /**
- * Constant-time token comparison: hashing both sides first makes the buffers
- * equal-length (timingSafeEqual requires that) without leaking length via an
- * early return.
- */
-function tokenMatches(presented: string, expected: string): boolean {
-  const a = createHash('sha256').update(presented).digest();
-  const b = createHash('sha256').update(expected).digest();
-  return timingSafeEqual(a, b);
-}
-
-/**
- * Publish surface stub — validates the contract and the token, but publishing
- * itself lands with the population sprint (ADR-0001). The publish path must stay
- * single-writer so seq values commit in order.
+ * The project-operated publish surface (ADR-0001). Instances only ever read the
+ * catalog; everything that puts data *into* it comes through here, behind
+ * `CATALOG_ADMIN_TOKEN`.
+ *
+ * Both routes are idempotent by design. Importers replay batches — after a
+ * partial failure, a re-run, or a source that re-emits unchanged records — so a
+ * repeat publish is a normal event, not a conflict. The response says which it
+ * was via `created`.
  */
 export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
@@ -25,17 +28,138 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['admin'],
         body: SlimMediaSchema,
-        response: { 401: ApiErrorSchema, 501: ApiErrorSchema },
+        response: {
+          200: CatalogPublishMediaResponseSchema,
+          400: ApiErrorSchema,
+          401: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
       },
+      preHandler: requireAdmin,
     },
     async (request, reply) => {
-      const token = app.deps.env.CATALOG_ADMIN_TOKEN;
-      const header = request.headers.authorization;
-      const presented = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
-      if (!token || presented === undefined || !tokenMatches(presented, token)) {
-        return reply.status(401).send({ error: 'unauthorized' });
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+
+      const media = request.body;
+      const check = checkCanonicalId(media);
+      if (!check.ok) return reply.status(400).send({ error: check.error });
+
+      const row = await db.transaction(async (tx) => {
+        // Single-writer publish path. `seq` is assigned by a BEFORE trigger from a
+        // sequence, so two concurrent writers can draw 5 and 6 and commit them in
+        // the other order — leaving a window where max(seq) has advanced past a row
+        // that isn't visible yet. One catalog-wide lock (not per row) because
+        // ordering is a property of the cursor, not of any single work. The bulk
+        // pull feed this protected is gone (ADR-0002), but `/v1/catalog/version`
+        // still reports max(seq) and the schema documents the requirement.
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended('catalog-publish', 0))`);
+
+        const [inserted] = await tx
+          .insert(catalogMedia)
+          .values({
+            id: media.id,
+            kind: media.kind,
+            title: media.title,
+            synonyms: media.synonyms,
+            year: media.year,
+            status: media.status,
+            genres: media.genres,
+            partCount: media.partCount,
+            seasonNumber: media.seasonNumber,
+            externalIds: media.externalIds,
+            description: media.description,
+            coverUrl: media.coverUrl,
+          })
+          .onConflictDoUpdate({
+            target: catalogMedia.id,
+            set: {
+              kind: media.kind,
+              title: media.title,
+              synonyms: media.synonyms,
+              year: media.year,
+              status: media.status,
+              genres: media.genres,
+              partCount: media.partCount,
+              seasonNumber: media.seasonNumber,
+              externalIds: media.externalIds,
+              description: media.description,
+              coverUrl: media.coverUrl,
+              // Republishing resurrects a tombstoned work: the id is derived from
+              // the external id, so this is provably the same work coming back,
+              // and leaving the tombstone would silently drop the publish.
+              deletedAt: null,
+              // Set explicitly — Drizzle's $onUpdate hook covers .update(), not
+              // the conflict branch of an upsert.
+              updatedAt: new Date(),
+            },
+          })
+          .returning({
+            id: catalogMedia.id,
+            seq: catalogMedia.seq,
+            // Postgres leaves xmax at 0 on a freshly inserted tuple and sets it to
+            // the locking xid on the ON CONFLICT branch — the standard way to tell
+            // an upsert's two paths apart without a prior SELECT.
+            created: sql<boolean>`xmax = 0`,
+          });
+        return inserted;
+      });
+
+      if (!row) return reply.status(503).send({ error: 'publish failed' });
+      return { id: row.id, seq: row.seq, created: row.created };
+    },
+  );
+
+  app.post(
+    '/admin/relations',
+    {
+      schema: {
+        tags: ['admin'],
+        body: CatalogPublishRelationSchema,
+        response: {
+          200: CatalogPublishRelationResponseSchema,
+          400: ApiErrorSchema,
+          401: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+      preHandler: requireAdmin,
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+
+      const { fromId, toId, type } = request.body;
+      // The table's no-self CHECK would reject this too, but that surfaces as an
+      // opaque 500; and the read route's UNION ALL depends on the constraint
+      // holding, so it is worth a clear error rather than a raised exception.
+      if (fromId === toId) {
+        return reply.status(400).send({ error: 'a work cannot relate to itself' });
       }
-      return reply.status(501).send({ error: 'publishing not implemented yet' });
+
+      // Edges carry no visibility of their own, so a tombstoned endpoint must not
+      // gain new ones — the read route already drops them via its join, which
+      // would make the write a silent no-op from a publisher's point of view.
+      const endpoints = await db
+        .select({ id: catalogMedia.id })
+        .from(catalogMedia)
+        .where(and(inArray(catalogMedia.id, [fromId, toId]), isNull(catalogMedia.deletedAt)));
+      const present = new Set(endpoints.map((endpoint) => endpoint.id));
+      const missing = [fromId, toId].filter((id) => !present.has(id));
+      if (missing.length > 0) {
+        return reply.status(404).send({ error: `unknown or deleted media: ${missing.join(', ')}` });
+      }
+
+      // No publish lock here: catalog_media_relation carries no seq, so there is
+      // no ordering to protect (see the table's schema comment).
+      const inserted = await db
+        .insert(catalogMediaRelation)
+        .values({ fromId, toId, type })
+        .onConflictDoNothing()
+        .returning({ fromId: catalogMediaRelation.fromId });
+
+      return { created: inserted.length > 0 };
     },
   );
 };

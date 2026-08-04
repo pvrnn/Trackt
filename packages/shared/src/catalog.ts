@@ -94,3 +94,36 @@ export const CatalogRelationsResponseSchema = z.object({
   relations: z.array(CatalogRelationEdgeSchema),
 });
 export type CatalogRelationsResponse = z.infer<typeof CatalogRelationsResponseSchema>;
+
+/**
+ * Result of `POST /v1/admin/media`. Publishing is an upsert keyed on the
+ * canonical id, so a re-send is a success with `created: false` rather than a
+ * conflict — importers can replay a batch without special-casing what they
+ * already sent. `seq` is the cursor the write landed at, echoed back so a
+ * publisher can confirm the row actually changed.
+ */
+export const CatalogPublishMediaResponseSchema = z.object({
+  id: z.uuid(),
+  seq: z.number().int().nonnegative(),
+  created: z.boolean(),
+});
+export type CatalogPublishMediaResponse = z.infer<typeof CatalogPublishMediaResponseSchema>;
+
+/**
+ * Body for `POST /v1/admin/relations`. Always the FORWARD direction (ADR-0004):
+ * `{fromId: manga, toId: anime, type: 'adaptation'}` means the anime adapts the
+ * manga. There is no way to publish a `prequel`/`source`/`parent` edge because
+ * those are read-time labels, never rows — publish the forward edge instead.
+ */
+export const CatalogPublishRelationSchema = z.object({
+  fromId: z.uuid(),
+  toId: z.uuid(),
+  type: MediaRelationTypeSchema,
+});
+export type CatalogPublishRelation = z.infer<typeof CatalogPublishRelationSchema>;
+
+/** `created: false` means the edge was already published, not that it failed. */
+export const CatalogPublishRelationResponseSchema = z.object({
+  created: z.boolean(),
+});
+export type CatalogPublishRelationResponse = z.infer<typeof CatalogPublishRelationResponseSchema>;
