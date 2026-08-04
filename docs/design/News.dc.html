@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #948da1;">HOME</a>
+    <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="News.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">NEWS</a>
+    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
+    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
+  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
+</div>
+
+<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; align-items: baseline; gap: 16px;">
+    <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">News</div>
+    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700; letter-spacing: 0.06em;">{{ headerLabel }}</div>
+  </div>
+
+  <!-- media kind tabs -->
+  <div style="display: flex; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.09);">
+    <sc-for list="{{ kindTabs }}" as="t" hint-placeholder-count="6">
+      <div onClick="{{ t.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; padding: 12px 20px; color: {{ t.fg }}; border-bottom: 2px solid {{ t.line }}; margin-bottom: -1px; cursor: pointer;" style-hover="color: #d96bb0;">{{ t.label }}</div>
+    </sc-for>
+  </div>
+
+  <!-- date filter -->
+  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 8px;">
+      <sc-for list="{{ rangeChips }}" as="r" hint-placeholder-count="4">
+        <div onClick="{{ r.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: {{ r.bg }}; color: {{ r.fg }}; box-shadow: {{ r.ring }}; cursor: pointer;">{{ r.label }}</div>
+      </sc-for>
+    </div>
+    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 999px; padding: 6px 14px;">
+      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">FROM</span>
+      <input type="date" value="{{ from }}" onChange="{{ onFrom }}" style="background: transparent; border: none; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 12px; color-scheme: dark;">
+      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">TO</span>
+      <input type="date" value="{{ to }}" onChange="{{ onTo }}" style="background: transparent; border: none; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 12px; color-scheme: dark;">
+    </div>
+    <div onClick="{{ clearDates }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #948da1; cursor: pointer; display: {{ clearDisplay }};" style-hover="color: #d96bb0;">CLEAR</div>
+  </div>
+
+  <!-- masonry feed -->
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">{{ feedTitle }}</div>
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.08em; color: #948da1;">{{ rangeLabel }}</div>
+    </div>
+
+    <div style="display: flex; gap: 16px; align-items: flex-start; margin-top: 4px;">
+      <sc-for list="{{ columns }}" as="col" hint-placeholder-count="4">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+      <sc-for list="{{ col.items }}" as="n" hint-placeholder-count="3">
+        <div style="background: {{ n.cardBg }}; border-radius: 16px; overflow: hidden; backdrop-filter: blur(16px); box-shadow: {{ n.cardRing }}; position: relative;">
+          <sc-if value="{{ n.hasCover }}" hint-placeholder-val="{{ true }}">
+            <a href="Media Detail.dc.html" style="display: block; height: {{ n.coverH }}; background: {{ n.grad }}; position: relative;">
+              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(10,8,14,0.72) 100%);"></div>
+              <span style="position: absolute; left: 16px; right: 16px; bottom: 14px; font-family: Anton; font-size: {{ n.coverType }}; line-height: 1.08; text-transform: uppercase; color: #fff;">{{ n.title }}</span>
+              <div style="position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                <sc-if value="{{ n.inLibrary }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; padding: {{ n.trackPad }}; border-radius: 999px; background: rgba(14,12,16,0.8); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.5);">
+                    <div style="width: 5px; height: 5px; border-radius: 999px; background: #d96bb0;"></div>
+                    <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; display: {{ n.trackLabelDisplay }};">TRACKING</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ n.countdown }}" hint-placeholder-val="{{ false }}">
+                  <div style="min-width: 0; padding: 4px 10px; border-radius: 999px; background: rgba(14,12,16,0.8); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.5); font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ n.countdown }}</div>
+                </sc-if>
+              </div>
+            </a>
+          </sc-if>
+          <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; padding: 3px 10px; border-radius: 999px; background: {{ n.tagBg }}; color: {{ n.tagFg }};">{{ n.tag }}</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">{{ n.kind }} · {{ n.date }}</div>
+            </div>
+            <a href="Media Detail.dc.html" style="font-weight: 700; font-size: {{ n.titleSize }}; line-height: 1.3;">{{ n.headline }}</a>
+            <div style="color: #b8b1c4; font-size: 13px; line-height: 1.55;">{{ n.body }}</div>
+            <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+              <div onClick="{{ n.plan }}" style="background: {{ n.planBg }}; color: {{ n.planFg }}; box-shadow: {{ n.planRing }}; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; padding: 8px 16px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">{{ n.planLabel }}</div>
+              <div style="color: #948da1; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; cursor: pointer;" style-hover="color: #d96bb0;">DETAILS →</div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+      </div>
+      </sc-for>
+    </div>
+
+    <!-- empty state -->
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 40px 32px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; backdrop-filter: blur(16px);">
+        <div style="font-family: Anton; font-size: 32px; text-transform: uppercase; color: #6a6478;">Nothing yet</div>
+        <div style="color: #b8b1c4; font-size: 14px; max-width: 420px;">{{ emptyBody }}</div>
+        <a href="Search.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px;">BROWSE DISCOVER →</a>
+      </div>
+    </sc-if>
+
+    <!-- pagination -->
+    <div style="align-items: center; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; display: {{ pagerDisplay }};">
+      <div onClick="{{ goPrev }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 10px 20px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); color: {{ prevFg }}; cursor: {{ prevCursor }};" style-hover="color: #d96bb0;">← PREV</div>
+      <sc-for list="{{ pages }}" as="p" hint-placeholder-count="3">
+        <div onClick="{{ p.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; min-width: 38px; text-align: center; padding: 10px 0; border-radius: 999px; background: {{ p.bg }}; box-shadow: {{ p.ring }}; color: {{ p.fg }}; cursor: pointer;">{{ p.n }}</div>
+      </sc-for>
+      <div onClick="{{ goNext }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 10px 20px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); color: {{ nextFg }}; cursor: {{ nextCursor }};" style-hover="color: #d96bb0;">NEXT →</div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { kindTab: 'ALL', planned: {}, page: 1, range: 'ALL TIME', from: '', to: '' };
+  PER_PAGE = 16;
+  TODAY = '2026-08-03';
+
+  // shortest-column-first packing so recency still reads left-to-right
+  packColumns(items, n) {
+    const cols = Array.from({ length: n }, () => ({ items: [], h: 0 }));
+    items.forEach((it) => {
+      const cover = it.hasCover ? parseInt(it.coverH, 10) : 0;
+      const est = cover + 150 + Math.ceil((it.headline.length + it.body.length) / 42) * 20;
+      let target = cols[0];
+      for (const c of cols) if (c.h < target.h) target = c;
+      target.items.push(it);
+      target.h += est + 14;
+    });
+    return cols;
+  }
+
+  renderVals() {
+    const TAGS = {
+      season: { label: 'NEW SEASON', bg: 'rgba(217,107,176,0.18)', fg: '#d96bb0' },
+      adaptation: { label: 'ADAPTATION', bg: 'rgba(139,92,246,0.2)', fg: '#b298ff' },
+      announce: { label: 'ANNOUNCED', bg: 'rgba(217,164,65,0.18)', fg: '#d9a441' },
+      date: { label: 'RELEASE DATE', bg: 'rgba(74,110,232,0.2)', fg: '#8fa5f0' },
+      finale: { label: 'FINALE', bg: 'rgba(255,255,255,0.1)', fg: '#b8b1c4' },
+      casting: { label: 'CASTING', bg: 'rgba(232,135,74,0.18)', fg: '#e8874a' },
+    };
+    const G = {
+      violet: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)',
+      blue: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+      navy: 'linear-gradient(160deg, #2a4a8c 0%, #080d17 100%)',
+      indigo: 'linear-gradient(160deg, #2a3a8c 0%, #0a0c17 100%)',
+      purple: 'linear-gradient(160deg, #55309a 0%, #0d0817 100%)',
+      plum: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)',
+      gold: 'linear-gradient(160deg, #8a5c2a 20%, #17100a 100%)',
+      amber: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)',
+      bronze: 'linear-gradient(160deg, #8c5a2a 0%, #140f08 100%)',
+      brass: 'linear-gradient(160deg, #c48a2a 0%, #141008 100%)',
+      magenta: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)',
+      rose: 'linear-gradient(160deg, #a03a7a 0%, #170812 100%)',
+    };
+    const lib = [
+      { id: 'nh3', iso: '2026-08-01', title: 'Neon Harbor', kind: 'SERIES', tag: 'season', date: 'AUG 1',
+        headline: 'Neon Harbor renewed for Season 3', countdown: 'IN 62 DAYS',
+        body: 'Harbor Studios confirms a 10-episode third season. Production starts this fall; L. Okafor returns as showrunner.',
+        grad: G.violet },
+      { id: 'mca', iso: '2026-07-30', title: 'Moonlit Courier', kind: 'WEBTOON → ANIME', tag: 'adaptation', date: 'JUL 30',
+        headline: 'Moonlit Courier gets an anime adaptation', countdown: '',
+        body: 'The studio behind Glass Orchard adapts the webtoon\'s first two arcs. The anime entry is already linked to your webtoon progress.',
+        grad: G.magenta },
+      { id: 'ac2', iso: '2026-07-28', title: 'Ashfall Chronicle', kind: 'ANIME', tag: 'date', date: 'JUL 28',
+        headline: 'Ashfall Chronicle S2 premieres January 9', countdown: 'IN 159 DAYS',
+        body: 'The cour-two split is over — a full 24-episode second season with the original cast.',
+        grad: G.gold },
+    ];
+    const rest = [
+      { id: 'sc2', iso: '2026-08-02', title: 'Sable Coast', kind: 'SERIES', tag: 'season', date: 'AUG 2', size: 'L',
+        headline: 'Sable Coast S2 confirmed for eight episodes', body: 'Same writing team returns, filming already underway on the north shore sets.', grad: G.navy },
+      { id: 'pcf', iso: '2026-08-01', title: 'Paper Cities', kind: 'MANGA → SERIES', tag: 'adaptation', date: 'AUG 1', size: 'M',
+        headline: 'Paper Cities live-action series in development', body: 'A streaming original adapting volumes 1–3.', grad: G.plum },
+      { id: 'hv', iso: '2026-07-31', title: 'Harbor Vigil', kind: 'SERIES', tag: 'announce', date: 'JUL 31', size: 'S',
+        headline: 'New neo-noir "Harbor Vigil" announced', body: 'From the writers of The Long Static. 2027 target.', grad: G.blue },
+      { id: 'cv', iso: '2026-07-29', title: 'Copper Veil', kind: 'WEBTOON', tag: 'date', date: 'JUL 29', size: 'M',
+        headline: 'Copper Veil returns from hiatus September 4', body: 'Weekly chapters resume with a double release.', grad: G.rose },
+      { id: 'go', iso: '2026-07-27', title: 'Glass Orchard', kind: 'ANIME', tag: 'finale', date: 'JUL 27', size: 'L',
+        headline: 'Glass Orchard finale airs next week', body: 'Episode 13 closes the season; a film sequel is teased in the post-credits.', grad: G.amber },
+      { id: 'nt', iso: '2026-07-25', title: 'Ninth Tide', kind: 'MANGA', tag: 'announce', date: 'JUL 25', size: 'S',
+        headline: 'Ninth Tide author announces new series', body: 'Untitled maritime fantasy, serialization in winter.', grad: G.bronze },
+      { id: 'lsc', iso: '2026-07-24', title: 'The Long Static', kind: 'MOVIE', tag: 'casting', date: 'JUL 24', size: 'M',
+        headline: 'The Long Static sequel adds three to its cast', body: 'Two returning leads confirmed alongside a new antagonist.', grad: G.blue, noCover: true },
+      { id: 'sb', iso: '2026-07-23', title: 'Static Bloom', kind: 'WEBTOON → ANIME', tag: 'adaptation', date: 'JUL 23', size: 'L',
+        headline: 'Static Bloom anime slated for spring', body: 'Twelve episodes covering the first three arcs, directed by the Ashfall team.', grad: G.brass },
+      { id: 'fy', iso: '2026-07-22', title: 'The Ferry Years', kind: 'SERIES', tag: 'finale', date: 'JUL 22', size: 'S',
+        headline: 'The Ferry Years ends after five seasons', body: 'A 90-minute series finale in October.', grad: G.indigo },
+      { id: 'hs', iso: '2026-07-21', title: 'Hollow Signal', kind: 'MOVIE', tag: 'date', date: 'JUL 21', size: 'M',
+        headline: 'Hollow Signal hits streaming November 12', body: 'The festival cut arrives uncut, with a director commentary track.', grad: G.purple },
+      { id: 'pc4', iso: '2026-07-20', title: 'Paper Cities', kind: 'MANGA', tag: 'date', date: 'JUL 20', size: 'S',
+        headline: 'Paper Cities Vol 5 out August 19', body: 'Final arc begins.', grad: G.plum, noCover: true },
+      { id: 'go2', iso: '2026-07-19', title: 'Glass Orchard', kind: 'ANIME', tag: 'announce', date: 'JUL 19', size: 'M',
+        headline: 'Glass Orchard film sequel greenlit', body: 'Original staff return for a theatrical continuation in 2028.', grad: G.amber },
+      { id: 'nh0', iso: '2026-07-18', title: 'Neon Harbor', kind: 'SERIES', tag: 'casting', date: 'JUL 18', size: 'S',
+        headline: 'Neon Harbor casts its S3 antagonist', body: 'A stage actor makes their screen debut.', grad: G.violet, noCover: true },
+      { id: 'mcx', iso: '2026-07-17', title: 'Moonlit Courier', kind: 'WEBTOON', tag: 'date', date: 'JUL 17', size: 'M',
+        headline: 'Moonlit Courier chapter 133 drops Friday', body: 'The arc-closing chapter is double length.', grad: G.magenta },
+      { id: 'ntm', iso: '2026-07-16', title: 'Ninth Tide', kind: 'MANGA → ANIME', tag: 'adaptation', date: 'JUL 16', size: 'L',
+        headline: 'Ninth Tide anime adaptation confirmed', body: 'A 24-episode run covering the full manga, airing next autumn.', grad: G.bronze },
+      { id: 'sca', iso: '2026-07-15', title: 'Sable Coast', kind: 'SERIES', tag: 'announce', date: 'JUL 15', size: 'S',
+        headline: 'Sable Coast spin-off in early talks', body: 'Focused on the harbor patrol crew.', grad: G.navy, noCover: true },
+    ];
+
+    const kt = this.state.kindTab;
+    const kindOf = (n) => {
+      const k = n.kind.toUpperCase();
+      if (k.includes('WEBTOON')) return 'WEBTOONS';
+      if (k.includes('ANIME')) return 'ANIME';
+      if (k.includes('MANGA')) return 'MANGA';
+      if (k.includes('MOVIE')) return 'MOVIES';
+      return 'SERIES';
+    };
+    const match = (n) => kt === 'ALL' || kindOf(n) === kt;
+
+    const SIZES = { S: { h: '130px', t: '17px', ts: '15px' }, M: { h: '180px', t: '20px', ts: '15px' }, L: { h: '250px', t: '25px', ts: '17px' } };
+    const decorate = (n) => {
+      const t = TAGS[n.tag];
+      const s = SIZES[n.size || 'M'];
+      const planned = this.state.planned[n.id];
+      return Object.assign({}, n, {
+        tag: t.label, tagBg: t.bg, tagFg: t.fg,
+        hasCover: !n.noCover,
+        trackLabelDisplay: n.countdown ? 'none' : 'inline',
+        trackPad: n.countdown ? '5px' : '4px 10px 4px 8px',
+        coverH: s.h, coverType: s.t, titleSize: s.ts,
+        cardBg: n.inLibrary ? 'rgba(217,107,176,0.06)' : 'rgba(255,255,255,0.05)',
+        cardRing: n.inLibrary
+          ? 'inset 0 0 0 1.5px rgba(217,107,176,0.85)'
+          : 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+        planLabel: planned ? '✓ PLANNED' : '＋ PLAN TO WATCH',
+        planBg: planned
+          ? 'rgba(217,107,176,0.18)'
+          : (n.inLibrary ? 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)' : 'rgba(255,255,255,0.06)'),
+        planFg: planned ? '#d96bb0' : (n.inLibrary ? '#14101a' : '#f0edf4'),
+        planRing: planned
+          ? 'inset 0 0 0 1px rgba(217,107,176,0.5)'
+          : (n.inLibrary ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.15)'),
+        plan: () => this.setState((s2) => ({ planned: Object.assign({}, s2.planned, { [n.id]: !s2.planned[n.id] }) })),
+      });
+    };
+
+    const kindTabs = ['ALL', 'SERIES', 'MOVIES', 'ANIME', 'MANGA', 'WEBTOONS'].map((k) => ({
+      label: k,
+      fg: k === kt ? '#f0edf4' : '#948da1',
+      line: k === kt ? '#d96bb0' : 'transparent',
+      pick: () => this.setState({ kindTab: k, page: 1 }),
+    }));
+
+    const shift = (days) => {
+      const d = new Date(this.TODAY + 'T00:00:00');
+      d.setDate(d.getDate() - days);
+      return d.toISOString().slice(0, 10);
+    };
+    const RANGES = { 'TODAY': 0, 'THIS WEEK': 7, 'THIS MONTH': 30 };
+    const st = this.state;
+    let lo = st.from, hi = st.to;
+    if (!lo && !hi && st.range !== 'ALL TIME') { lo = shift(RANGES[st.range]); hi = this.TODAY; }
+    const inRange = (n) => (!lo || n.iso >= lo) && (!hi || n.iso <= hi);
+
+    const rangeChips = ['TODAY', 'THIS WEEK', 'THIS MONTH', 'ALL TIME'].map((r) => {
+      const on = !st.from && !st.to && st.range === r;
+      return {
+        label: r,
+        bg: on ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
+        fg: on ? '#d96bb0' : '#b8b1c4',
+        ring: on ? 'inset 0 0 0 1px #d96bb0' : 'inset 0 0 0 1px rgba(255,255,255,0.12)',
+        pick: () => this.setState({ range: r, from: '', to: '', page: 1 }),
+      };
+    });
+
+    const libItems = lib.map((n) => Object.assign({ inLibrary: true, size: 'L' }, n));
+    const allFeed = libItems.concat(rest).filter(match).filter(inRange);
+    const libraryNews = libItems.filter(match).filter(inRange);
+
+    const per = this.PER_PAGE;
+    const pageCount = Math.max(1, Math.ceil(allFeed.length / per));
+    const page = Math.min(st.page, pageCount);
+    const start = (page - 1) * per;
+    const pageItems = allFeed.slice(start, start + per);
+    const pages = Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => ({
+      n: String(n),
+      bg: n === page ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
+      ring: n === page ? 'inset 0 0 0 1px #d96bb0' : 'inset 0 0 0 1px rgba(255,255,255,0.12)',
+      fg: n === page ? '#d96bb0' : '#b8b1c4',
+      pick: () => this.setState({ page: n }),
+    }));
+
+    return {
+      kindTabs,
+      headerLabel: libraryNews.length
+        ? libraryNews.length + (libraryNews.length === 1 ? ' UPDATE' : ' UPDATES') + ' FROM YOUR LIBRARY'
+        : 'NOTHING FROM YOUR LIBRARY',
+      feedTitle: 'Latest',
+      columns: this.packColumns(pageItems.map(decorate), 4),
+      rangeChips,
+      from: st.from, to: st.to,
+      onFrom: (e) => this.setState({ from: e.target.value, page: 1 }),
+      onTo: (e) => this.setState({ to: e.target.value, page: 1 }),
+      clearDates: () => this.setState({ from: '', to: '', range: 'ALL TIME', page: 1 }),
+      clearDisplay: (st.from || st.to) ? 'block' : 'none',
+      rangeLabel: allFeed.length
+        ? (start + 1) + '–' + (start + pageItems.length) + ' OF ' + allFeed.length + (allFeed.length === 1 ? ' STORY' : ' STORIES')
+        : '',
+      pagerDisplay: pageCount > 1 ? 'flex' : 'none',
+      pages,
+      goPrev: page > 1 ? () => this.setState({ page: page - 1 }) : null,
+      goNext: page < pageCount ? () => this.setState({ page: page + 1 }) : null,
+      prevFg: page > 1 ? '#b8b1c4' : '#4a4550',
+      nextFg: page < pageCount ? '#b8b1c4' : '#4a4550',
+      prevCursor: page > 1 ? 'pointer' : 'default',
+      nextCursor: page < pageCount ? 'pointer' : 'default',
+      isEmpty: allFeed.length === 0,
+      emptyBody: (lo || hi)
+        ? 'No news in this date range. Widen the dates or clear the filter.'
+        : kt === 'ALL'
+        ? 'No news in the feed right now. Check back soon, or follow more titles to get updates here.'
+        : 'No ' + ({ MOVIES: 'movie', SERIES: 'series', ANIME: 'anime', MANGA: 'manga', WEBTOONS: 'webtoon' }[kt] || 'related') + ' news right now. Track more titles and their announcements will land here.',
+    };
+  }
+}
+</script>
+</body>
+</html>
