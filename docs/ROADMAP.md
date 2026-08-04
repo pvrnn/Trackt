@@ -44,6 +44,7 @@ The living record of what's built and what's next. **Every PR/sprint that comple
 - Library page: the viewer's whole tracked collection, filterable by status/kind — the home IN PROGRESS shelf is capped at 12 and no route or endpoint lists the rest (`GET /api/v1/me/home` and `/me/profile` are both summaries). Restores a working `VIEW ALL` on the home shelf
 - User-entry follow-ups: merge-into-catalog tool (re-point progress/ratings at the canonical row), creator self-edits while unverified
 - Radix adoption, blocked on features that don't exist yet (`docs/radix-adoption.md`): lists scope tabs → `tabs` (needs the v1.x follow system before FOLLOWING/COLLABORATIVE are tabs rather than placeholders), profile visibility → `switch` (needs v1.x visibility)
+- News section + newsroom agent — plan written, not started ([docs/news-and-newsroom-plan.md](news-and-newsroom-plan.md)): a project-operated `/news` surface served from `apps/catalog` and read live by instances (same shape as ADR-0002), plus an `apps/newsroom` agent that turns registered RSS/Atom sources into drafts a human publishes. Carries ROADMAP item 1's owed `POST /v1/admin/media` and `POST /v1/admin/relations` publish paths, and adds a provider-agnostic `packages/llm` port so the model is swappable by config
 - TV Time importer; full account export (JSON/CSV)
 - Per-instance enrichment (descriptions/posters via instance's TMDB key — repurpose parked `packages/providers`)
 - Activity feed, comments, episode rating graphs, airing calendar + notifications (v1.x per PRD §9)
