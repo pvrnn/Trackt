@@ -1,22 +1,46 @@
-import { canonicalMediaId, canonicalSeriesSeasonId } from '@trackt/shared';
+import { canonicalMediaId } from '@trackt/shared';
 import type { media, mediaRelation } from './schema/media.js';
 
 type MediaSeed = typeof media.$inferInsert;
+
+/**
+ * Derive each fixture's canonical id from the row itself (ADR-0005) rather than
+ * restating the identity attributes beside it. Two reasons: a fixture can never
+ * drift out of agreement with the publish guard, which recomputes the same key
+ * from the same fields; and editing a title without editing its id — which would
+ * mint a row the catalog would reject — becomes impossible.
+ *
+ * `id` may still be passed explicitly for user-created rows, which have no
+ * derivable identity and keep a random UUID.
+ */
+const seed = (row: Omit<MediaSeed, 'id'> & { id?: string }): MediaSeed => ({
+  ...row,
+  id:
+    row.id ??
+    canonicalMediaId({
+      kind: row.kind,
+      title: row.title,
+      year: row.year ?? null,
+      seasonNumber: row.seasonNumber ?? null,
+    }),
+});
 
 /**
  * Dev/test fixture catalog spanning every media kind, keyed by canonical IDs so the
  * rows match what the central catalog will publish for the same works (ADR-0001).
  *
  * Per ADR-0003 a series/anime "media" is a single season: Breaking Bad S1 and S2 are
- * two rows with distinct canonical IDs (`tmdb:series:<showId>:<seasonNumber>`), sharing
+ * two rows with distinct canonical IDs (`series:breaking bad:<year>:s<n>`), sharing
  * the show title so a search for "breaking bad" returns both, labelled by seasonNumber.
  * `partCount` is the one count (episodes or chapters); movies have none. The webtoon row
  * is user-created and keeps a fixed random UUID.
+ *
+ * Since ADR-0005 the `externalIds` on these rows are cross-references only — they no
+ * longer take any part in deriving the ids above them.
  */
 export const SEED_MEDIA: MediaSeed[] = [
   // Movies (identity provider: tmdb) — no parts.
-  {
-    id: canonicalMediaId('movie', 603),
+  seed({
     kind: 'movie',
     title: 'The Matrix',
     slug: 'the-matrix-1999',
@@ -27,9 +51,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     status: 'ended',
     externalIds: { tmdb: 603, imdb: 'tt0133093' },
     description: 'A hacker learns the true nature of his reality.',
-  },
-  {
-    id: canonicalMediaId('movie', 157336),
+  }),
+  seed({
     kind: 'movie',
     title: 'Interstellar',
     slug: 'interstellar-2014',
@@ -40,9 +63,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     status: 'ended',
     externalIds: { tmdb: 157336, imdb: 'tt0816692' },
     description: 'Explorers travel through a wormhole in search of a new home for humanity.',
-  },
-  {
-    id: canonicalMediaId('movie', 129),
+  }),
+  seed({
     kind: 'movie',
     title: 'Spirited Away',
     slug: 'spirited-away-2001',
@@ -53,10 +75,9 @@ export const SEED_MEDIA: MediaSeed[] = [
     status: 'ended',
     externalIds: { tmdb: 129, imdb: 'tt0245429' },
     description: 'A girl wanders into a world of spirits and must free her parents.',
-  },
+  }),
   // Series (identity provider: tmdb) — one row per season (ADR-0003).
-  {
-    id: canonicalSeriesSeasonId(1396, 1),
+  seed({
     kind: 'series',
     title: 'Breaking Bad',
     slug: 'breaking-bad-2008-s1',
@@ -69,9 +90,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 7,
     externalIds: { tmdb: 1396, imdb: 'tt0903747', tvdb: 81189 },
     description: 'A chemistry teacher turns to manufacturing methamphetamine.',
-  },
-  {
-    id: canonicalSeriesSeasonId(1396, 2),
+  }),
+  seed({
     kind: 'series',
     title: 'Breaking Bad',
     slug: 'breaking-bad-2009-s2',
@@ -84,9 +104,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 13,
     externalIds: { tmdb: 1396, imdb: 'tt0903747', tvdb: 81189 },
     description: 'A chemistry teacher turns to manufacturing methamphetamine.',
-  },
-  {
-    id: canonicalSeriesSeasonId(1438, 1),
+  }),
+  seed({
     kind: 'series',
     title: 'The Wire',
     slug: 'the-wire-2002-s1',
@@ -99,9 +118,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 13,
     externalIds: { tmdb: 1438, imdb: 'tt0306414' },
     description: 'Baltimore through the eyes of drug dealers and law enforcement.',
-  },
-  {
-    id: canonicalSeriesSeasonId(95396, 1),
+  }),
+  seed({
     kind: 'series',
     title: 'Severance',
     slug: 'severance-2022-s1',
@@ -114,9 +132,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 9,
     externalIds: { tmdb: 95396, imdb: 'tt11280740' },
     description: 'Employees have their work and personal memories surgically divided.',
-  },
-  {
-    id: canonicalSeriesSeasonId(95396, 2),
+  }),
+  seed({
     kind: 'series',
     title: 'Severance',
     slug: 'severance-2025-s2',
@@ -129,10 +146,9 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 10,
     externalIds: { tmdb: 95396, imdb: 'tt11280740' },
     description: 'Employees have their work and personal memories surgically divided.',
-  },
+  }),
   // Anime (identity provider: anilist) — AniList already issues one id per season/cour.
-  {
-    id: canonicalMediaId('anime', 1),
+  seed({
     kind: 'anime',
     title: 'Cowboy Bebop',
     slug: 'cowboy-bebop-1998',
@@ -145,9 +161,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 26,
     externalIds: { anilist: 1, mal: 1 },
     description: 'Bounty hunters drift through space aboard the Bebop.',
-  },
-  {
-    id: canonicalMediaId('anime', 154587),
+  }),
+  seed({
     kind: 'anime',
     title: 'Frieren: Beyond Journey’s End',
     slug: 'frieren-beyond-journeys-end-2023',
@@ -160,9 +175,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 28,
     externalIds: { anilist: 154587, mal: 52991 },
     description: 'An elf mage outlives her companions and retraces their journey.',
-  },
-  {
-    id: canonicalMediaId('anime', 5114),
+  }),
+  seed({
     kind: 'anime',
     title: 'Fullmetal Alchemist: Brotherhood',
     slug: 'fullmetal-alchemist-brotherhood-2009',
@@ -175,12 +189,11 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 64,
     externalIds: { anilist: 5114, mal: 5114 },
     description: 'Two brothers seek the Philosopher’s Stone to restore their bodies.',
-  },
+  }),
   // Manga (identity provider: anilist) — whole work, counted in chapters.
-  {
+  seed({
     // The source of the anime above — the fixture pair for a cross-kind
     // `adaptation` edge (ADR-0004), which reads as "source" from the anime side.
-    id: canonicalMediaId('manga', 30025),
     kind: 'manga',
     title: 'Fullmetal Alchemist',
     slug: 'fullmetal-alchemist-2001',
@@ -192,9 +205,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 116,
     externalIds: { anilist: 30025, mal: 25 },
     description: 'Two alchemist brothers search for the Philosopher’s Stone.',
-  },
-  {
-    id: canonicalMediaId('manga', 30002),
+  }),
+  seed({
     kind: 'manga',
     title: 'Berserk',
     slug: 'berserk-1989',
@@ -206,9 +218,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 380,
     externalIds: { anilist: 30002, mal: 2 },
     description: 'A lone mercenary battles fate in a medieval dark-fantasy world.',
-  },
-  {
-    id: canonicalMediaId('manga', 30013),
+  }),
+  seed({
     kind: 'manga',
     title: 'One Piece',
     slug: 'one-piece-1997',
@@ -220,9 +231,8 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 1120,
     externalIds: { anilist: 30013, mal: 13 },
     description: 'Monkey D. Luffy sails to find the One Piece and become Pirate King.',
-  },
-  {
-    id: canonicalMediaId('manga', 105778),
+  }),
+  seed({
     kind: 'manga',
     title: 'Chainsaw Man',
     slug: 'chainsaw-man-2018',
@@ -234,9 +244,9 @@ export const SEED_MEDIA: MediaSeed[] = [
     partCount: 180,
     externalIds: { anilist: 105778, mal: 116778 },
     description: 'A devil hunter merges with his chainsaw devil to survive.',
-  },
+  }),
   // Webtoon — user-created: fixed random UUID (no identity provider for webtoons).
-  {
+  seed({
     id: '7b0c6d3e-2f41-4a9d-9c1c-8f4d2a6b5e10',
     kind: 'webtoon',
     title: 'Cosmic Delivery Club',
@@ -250,8 +260,22 @@ export const SEED_MEDIA: MediaSeed[] = [
     source: 'user',
     moderation: 'unverified',
     description: 'A fictional dev-seed webtoon about couriers who deliver across galaxies.',
-  },
+  }),
 ];
+
+/**
+ * Look a fixture's canonical id up by slug. Relations reference rows by their
+ * stable slug rather than re-deriving an id from title+year, so a fixture edit
+ * can't leave an edge pointing at a work that no longer exists (ADR-0005 makes
+ * ids move whenever an identity attribute changes, which the old provider-keyed
+ * ids never did).
+ */
+export const seedId = (slug: string): string => {
+  const row = SEED_MEDIA.find((m) => m.slug === slug);
+  // `id` is optional on the insert type but `seed()` always fills it in.
+  if (!row?.id) throw new Error(`No seed media with slug '${slug}'`);
+  return row.id;
+};
 
 type MediaRelationSeed = typeof mediaRelation.$inferInsert;
 
@@ -268,20 +292,20 @@ type MediaRelationSeed = typeof mediaRelation.$inferInsert;
 export const SEED_MEDIA_RELATIONS: MediaRelationSeed[] = [
   // Cross-kind: the manga is the source, the anime adapts it.
   {
-    fromId: canonicalMediaId('manga', 30025),
-    toId: canonicalMediaId('anime', 5114),
+    fromId: seedId('fullmetal-alchemist-2001'),
+    toId: seedId('fullmetal-alchemist-brotherhood-2009'),
     type: 'adaptation',
   },
   // A stored series edge, so the stored path has coverage independent of derivation.
   {
-    fromId: canonicalSeriesSeasonId(95396, 1),
-    toId: canonicalSeriesSeasonId(95396, 2),
+    fromId: seedId('severance-2022-s1'),
+    toId: seedId('severance-2025-s2'),
     type: 'sequel',
   },
   // Self-inverse: reads as `related` from both ends.
   {
-    fromId: canonicalMediaId('manga', 30013),
-    toId: canonicalMediaId('manga', 105778),
+    fromId: seedId('one-piece-1997'),
+    toId: seedId('chainsaw-man-2018'),
     type: 'related',
   },
 ];

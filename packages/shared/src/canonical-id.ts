@@ -8,17 +8,33 @@ import type { MediaKind } from './media.js';
 export const TRACKT_CATALOG_NAMESPACE = 'f8d11238-d681-551c-875d-5ac53892f6e7';
 
 /**
- * The single provider whose external ID defines a work's canonical identity, per kind.
- * Webtoons have no upstream identity provider: entries are user-created and keep
- * random UUIDs (ADR-0001).
+ * Identity is derived from the work's own attributes — kind, title, year — and is
+ * deliberately NOT tied to any upstream provider's numbering (ADR-0005, superseding
+ * ADR-0001 point 2). `external_ids` survives as enrichment/cross-reference data, but
+ * nothing about a work's identity depends on TMDB or AniList existing.
+ *
+ * The trade this makes: a provider ID is a guaranteed-unique handle, whereas
+ * kind+title+year is not. Two distinct works CAN share all three (remakes, generic
+ * titles, anthologies), so the key carries an explicit `discriminator` for the second
+ * and later claimants, and the catalog resolves genuine duplicates through the alias
+ * table rather than by re-minting IDs.
  */
-export const IDENTITY_PROVIDER_BY_KIND: Record<MediaKind, string | null> = {
-  movie: 'tmdb',
-  series: 'tmdb',
-  anime: 'anilist',
-  manga: 'anilist',
-  webtoon: null,
-};
+
+/** Fields of a work that together determine its canonical identity. */
+export interface CanonicalMediaIdentity {
+  kind: MediaKind;
+  title: string;
+  /** Release/publication year; null only when genuinely unknown. */
+  year: number | null;
+  /** Which season this row is, for per-season series/anime rows (ADR-0003). */
+  seasonNumber?: number | null;
+  /**
+   * Set ONLY to break a collision with an already-published work of the same
+   * kind+title+year(+season). Absent for the first claimant, so the common case
+   * stays clean. Stored on the row: without it the key is not reproducible.
+   */
+  discriminator?: string | null;
+}
 
 /**
  * Pure-TS SHA-1 (RFC 3174). This package is the shared contract for servers AND
@@ -98,40 +114,81 @@ export function uuidv5(namespace: string, name: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-/** Canonical key for a work, e.g. 'tmdb:movie:603'. */
-export function canonicalMediaKey(
-  provider: string,
-  kind: MediaKind,
-  externalId: string | number,
-): string {
-  return `${provider}:${kind}:${externalId}`;
+/**
+ * Fold a title to its identity form. FROZEN FOREVER: this function's output feeds
+ * every canonical ID, so any change to it silently re-identifies the entire catalog.
+ *
+ * Deliberately NOT `mediaSlug` — that one strips every non-latin character, so
+ * 葬送のフリーレン and 鬼滅の刃 both reduce to the same stem. Fine for a URL, fatal
+ * for identity. Here we keep all Unicode letters and digits and only fold away the
+ * things that are pure typography:
+ *
+ * - NFKC, so full-width and ligature forms match their plain equivalents
+ * - case, via locale-independent `toLowerCase` (never `toLocaleLowerCase` — a
+ *   Turkish locale would fold 'I' to 'ı' and mint different IDs on different hosts)
+ * - apostrophes, so `Howl's` and `Howls` agree
+ * - every other punctuation/symbol run collapses to a single space
+ */
+export function normalizeCanonicalTitle(title: string): string {
+  const normalized = title
+    .normalize('NFKC')
+    .toLowerCase()
+    .replaceAll(/['’‘`´]/gu, '')
+    .replaceAll(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  if (!normalized) {
+    throw new Error(`Title '${title}' normalizes to nothing — it cannot identify a work.`);
+  }
+  return normalized;
+}
+
+/**
+ * Canonical key for a work, e.g. `movie:the matrix:1999` or
+ * `series:breaking bad:2008:s2`. Frozen forever.
+ *
+ * `year` is part of the key rather than optional-and-ignored: dropping it for
+ * unknown-year works would make every untitled-year work of the same name collide,
+ * so a null year is spelled explicitly as an empty segment and stays distinct from
+ * any real year.
+ */
+export function canonicalMediaKey(identity: CanonicalMediaIdentity): string {
+  const { kind, title, year, seasonNumber, discriminator } = identity;
+  let key = `${kind}:${normalizeCanonicalTitle(title)}:${year ?? ''}`;
+  if (seasonNumber != null) key += `:s${seasonNumber}`;
+  if (discriminator) key += `:#${normalizeCanonicalTitle(discriminator)}`;
+  return key;
 }
 
 /**
  * Deterministic canonical media ID: every instance derives the same UUID for the
  * same work with no coordination, which is what keeps catalogs interchangeable
- * across instances (ADR-0001). `provider` defaults to the kind's identity provider.
+ * across instances (ADR-0001 point 2, as amended by ADR-0005).
+ *
+ * This is a SEED, not a live function of the row. Derive it once when a work is
+ * first published, store it, and never re-derive: correcting a title typo must not
+ * re-mint the ID and orphan every user's tracking history. Renames are a display
+ * concern; identity is settled at first publish.
  */
-export function canonicalMediaId(
-  kind: MediaKind,
-  externalId: string | number,
-  provider: string = IDENTITY_PROVIDER_BY_KIND[kind] ?? '',
-): string {
-  if (!provider) {
-    throw new Error(
-      `Media kind '${kind}' has no identity provider — user-created entries keep random UUIDs.`,
-    );
-  }
-  return uuidv5(TRACKT_CATALOG_NAMESPACE, canonicalMediaKey(provider, kind, externalId));
+export function canonicalMediaId(identity: CanonicalMediaIdentity): string {
+  return uuidv5(TRACKT_CATALOG_NAMESPACE, canonicalMediaKey(identity));
 }
 
 /**
- * Canonical ID for a single TV season, which is its own `series` media (ADR-0003):
- * the composite external key is `<showTmdbId>:<seasonNumber>`, giving
- * `tmdb:series:1396:1`. Frozen forever like every canonical key. Anime seasons
- * need no equivalent — AniList already issues a distinct id per season/cour, so
- * they go through `canonicalMediaId('anime', anilistId)` directly.
+ * Canonical ID for a single TV season, which is its own `series` media (ADR-0003).
+ * The show title is shared across seasons by design (ADR-0003 point 4), so the
+ * season number is what separates them: `series:breaking bad:2008:s2`.
+ *
+ * `year` is the ROW's own year — for a season row that is the season's air year
+ * (Breaking Bad S1 = 2008, S2 = 2009), not the show's. Using the show year would
+ * be marginally more stable, but the row doesn't store it, and the publish guard
+ * has to reproduce the key from the row alone. Deriving identity from a field the
+ * row doesn't carry is how a guard silently stops guarding.
  */
-export function canonicalSeriesSeasonId(showTmdbId: string | number, seasonNumber: number): string {
-  return canonicalMediaId('series', `${showTmdbId}:${seasonNumber}`);
+export function canonicalSeriesSeasonId(
+  title: string,
+  year: number | null,
+  seasonNumber: number,
+  discriminator?: string | null,
+): string {
+  return canonicalMediaId({ kind: 'series', title, year, seasonNumber, discriminator });
 }

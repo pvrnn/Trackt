@@ -37,7 +37,7 @@ export const relationsRoutes: FastifyPluginAsyncZod = async (app) => {
       const { id, limit } = request.query;
       const rows = await db.execute(sql`
         SELECT t.id, t.kind, t.title, t.synonyms, t.year, t.status, t.genres,
-               t.part_count, t.season_number,
+               t.part_count, t.season_number, t.discriminator,
                t.external_ids, t.description, t.cover_url,
                r.type, r.direction
         FROM (
@@ -62,6 +62,7 @@ export const relationsRoutes: FastifyPluginAsyncZod = async (app) => {
         genres: row.genres as string[],
         partCount: row.part_count as number | null,
         seasonNumber: row.season_number as number | null,
+        discriminator: row.discriminator as string | null,
         externalIds: row.external_ids as ExternalIds,
         description: row.description as string | null,
         coverUrl: row.cover_url as string | null,

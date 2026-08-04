@@ -64,6 +64,8 @@ export const media = pgTable(
     partCount: integer('part_count'),
     /** Which season this row is, for series/anime split per season (ADR-0003); null otherwise. */
     seasonNumber: integer('season_number'),
+    /** Collision breaker for canonical identity (ADR-0005); null for the first claimant. */
+    discriminator: text('discriminator'),
     description: text('description'),
     coverUrl: text('cover_url'),
     releaseDate: date('release_date'),

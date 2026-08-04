@@ -1,13 +1,8 @@
 import postgres from 'postgres';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDb, media, runMigrations, seedMedia, users, type Db } from '@trackt/db';
-import {
-  MEDIA_CREATE_DAILY_LIMIT,
-  canonicalMediaId,
-  loadEnv,
-  type MediaDetail,
-} from '@trackt/shared';
+import { createDb, media, runMigrations, seedId, seedMedia, type Db, users } from '@trackt/db';
+import { MEDIA_CREATE_DAILY_LIMIT, loadEnv, type MediaDetail } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -45,7 +40,7 @@ async function ensureTestDatabase(): Promise<boolean> {
 
 const available = await ensureTestDatabase();
 
-const bebopId = canonicalMediaId('anime', 1); // verified seed row (provider source)
+const bebopId = seedId('cowboy-bebop-1998'); // verified seed row (provider source)
 
 describe.runIf(available)('user-created entries + moderation (postgres)', () => {
   let app: App;

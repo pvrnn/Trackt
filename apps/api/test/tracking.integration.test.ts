@@ -8,17 +8,13 @@ import {
   progress,
   rating,
   runMigrations,
+  seedId,
   seedMedia,
   seedMediaRelations,
-  userMedia,
   type Db,
+  userMedia,
 } from '@trackt/db';
-import {
-  canonicalMediaId,
-  canonicalSeriesSeasonId,
-  loadEnv,
-  type MediaDetail,
-} from '@trackt/shared';
+import { canonicalSeriesSeasonId, loadEnv, type MediaDetail } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -57,9 +53,9 @@ async function ensureTestDatabase(): Promise<boolean> {
 
 const available = await ensureTestDatabase();
 
-const bebopId = canonicalMediaId('anime', 1); // Cowboy Bebop, 26 episodes in the seed
-const matrixId = canonicalMediaId('movie', 603);
-const frierenId = canonicalMediaId('anime', 154587);
+const bebopId = seedId('cowboy-bebop-1998'); // Cowboy Bebop, 26 episodes in the seed
+const matrixId = seedId('the-matrix-1999');
+const frierenId = seedId('frieren-beyond-journeys-end-2023');
 
 describe.runIf(available)('media detail + tracking (postgres)', () => {
   let app: App;
@@ -138,7 +134,7 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   it('always sends both lists, so the payload never depends on hidden state', async () => {
     // Severance S1 has a stored sequel edge *and* genre overlap: the API sends
     // both and lets the client decide which to render (ADR-0004 point 5).
-    const detail = await getDetail(canonicalSeriesSeasonId(95396, 1), false);
+    const detail = await getDetail(seedId('severance-2022-s1'), false);
     expect(detail.relations.length).toBeGreaterThan(0);
     expect(detail.related.length).toBeGreaterThan(0);
   });
@@ -146,10 +142,10 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   it('derives adjacent series seasons with no stored edge', async () => {
     // Breaking Bad S1/S2 are deliberately unlinked in the seed — these come from
     // external_ids.tmdb + season_number alone.
-    const s1 = await getDetail(canonicalSeriesSeasonId(1396, 1), false);
+    const s1 = await getDetail(seedId('breaking-bad-2008-s1'), false);
     expect(s1.relations).toEqual([
       expect.objectContaining({
-        id: canonicalSeriesSeasonId(1396, 2),
+        id: seedId('breaking-bad-2009-s2'),
         relation: 'sequel',
         seasonNumber: 2,
       }),
@@ -157,15 +153,15 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   });
 
   it('labels the same derived edge as a prequel from the later season', async () => {
-    const s2 = await getDetail(canonicalSeriesSeasonId(1396, 2), false);
+    const s2 = await getDetail(seedId('breaking-bad-2009-s2'), false);
     expect(s2.relations).toEqual([
-      expect.objectContaining({ id: canonicalSeriesSeasonId(1396, 1), relation: 'prequel' }),
+      expect.objectContaining({ id: seedId('breaking-bad-2008-s1'), relation: 'prequel' }),
     ]);
   });
 
   it('reverses a stored adaptation edge into a source label', async () => {
-    const fmaMangaId = canonicalMediaId('manga', 30025);
-    const fmaAnimeId = canonicalMediaId('anime', 5114);
+    const fmaMangaId = seedId('fullmetal-alchemist-2001');
+    const fmaAnimeId = seedId('fullmetal-alchemist-brotherhood-2009');
 
     const manga = await getDetail(fmaMangaId, false);
     expect(manga.relations).toEqual([
@@ -179,8 +175,8 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   });
 
   it('reads a symmetric `related` edge as `related` from both ends', async () => {
-    const onePieceId = canonicalMediaId('manga', 30013);
-    const chainsawId = canonicalMediaId('manga', 105778);
+    const onePieceId = seedId('one-piece-1997');
+    const chainsawId = seedId('chainsaw-man-2018');
 
     const onePiece = await getDetail(onePieceId, false);
     expect(onePiece.relations).toEqual([
@@ -196,8 +192,8 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   it('lets a stored edge win over the derived season sibling, exactly once', async () => {
     // An adversarial (and factually wrong) type on a pair that also derives as a
     // sequel. Pins the merge key: one target, one heading, no duplicate card.
-    const s1 = canonicalSeriesSeasonId(1396, 1);
-    const s2 = canonicalSeriesSeasonId(1396, 2);
+    const s1 = seedId('breaking-bad-2008-s1');
+    const s2 = seedId('breaking-bad-2009-s2');
     await db.insert(mediaRelation).values({ fromId: s1, toId: s2, type: 'spinoff' });
     try {
       const detail = await getDetail(s1, false);
@@ -210,8 +206,8 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   });
 
   it('hides a soft-deleted relation target from both local paths', async () => {
-    const s1 = canonicalSeriesSeasonId(1396, 1);
-    const s2 = canonicalSeriesSeasonId(1396, 2);
+    const s1 = seedId('breaking-bad-2008-s1');
+    const s2 = seedId('breaking-bad-2009-s2');
     // Same pair reachable two ways: a stored edge and the derived sibling. A
     // soft delete must suppress it in both.
     await db.insert(mediaRelation).values({ fromId: s1, toId: s2, type: 'sequel' });
@@ -226,8 +222,8 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   });
 
   it('hides an unverified relation target from a stranger but not its creator', async () => {
-    const s1 = canonicalSeriesSeasonId(1396, 1);
-    const s2 = canonicalSeriesSeasonId(1396, 2);
+    const s1 = seedId('breaking-bad-2008-s1');
+    const s2 = seedId('breaking-bad-2009-s2');
     // Recast the seeded S2 as an unverified user entry owned by the signed-up
     // user, reachable both by a stored edge and by season derivation.
     await db.insert(mediaRelation).values({ fromId: s1, toId: s2, type: 'sequel' });
@@ -252,8 +248,10 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
 
   it('never treats season 0 specials as a prequel', async () => {
     const showId = 424242;
-    const specials = canonicalSeriesSeasonId(showId, 0);
-    const first = canonicalSeriesSeasonId(showId, 1);
+    // Ad-hoc fixture, not a seed row: derive its ids the same way the catalog
+    // would, from the title/year/season it is inserted with (these carry no year).
+    const specials = canonicalSeriesSeasonId('Derivation Fixture', null, 0);
+    const first = canonicalSeriesSeasonId('Derivation Fixture', null, 1);
     await db.insert(media).values([
       {
         id: specials,

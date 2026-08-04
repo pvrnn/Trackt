@@ -1,8 +1,8 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { canonicalMediaId, loadEnv, type MediaDetail, type ProfileSummary } from '@trackt/shared';
+import { createDb, media, runMigrations, seedId, seedMedia, type Db } from '@trackt/db';
+import { loadEnv, type MediaDetail, type ProfileSummary } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -39,9 +39,9 @@ async function ensureTestDatabase(): Promise<boolean> {
 
 const available = await ensureTestDatabase();
 
-const bebopId = canonicalMediaId('anime', 1);
-const frierenId = canonicalMediaId('anime', 154587);
-const berserkId = canonicalMediaId('manga', 30002);
+const bebopId = seedId('cowboy-bebop-1998');
+const frierenId = seedId('frieren-beyond-journeys-end-2023');
+const berserkId = seedId('berserk-1989');
 
 describe.runIf(available)('profile + favourites (postgres)', () => {
   let app: App;

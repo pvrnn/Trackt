@@ -39,6 +39,8 @@ export const catalogMedia = pgTable(
     partCount: integer('part_count'),
     /** Which season this row is, for series/anime split per season (ADR-0003); null otherwise. */
     seasonNumber: integer('season_number'),
+    /** Collision breaker for canonical identity (ADR-0005); null for the first claimant. */
+    discriminator: text('discriminator'),
     externalIds: jsonb('external_ids').$type<ExternalIds>().notNull().default({}),
     description: text('description'),
     coverUrl: text('cover_url'),
@@ -99,5 +101,39 @@ export const catalogMediaRelation = pgTable(
     // Load-bearing, not hygiene: with no self-edges possible, the read route's
     // two branches are provably disjoint and can UNION ALL without a dedup sort.
     check('catalog_media_relation_no_self', sql`${t.fromId} <> ${t.toId}`),
+  ],
+);
+
+/**
+ * Redirects a retired canonical id to the work that superseded it (ADR-0005).
+ *
+ * Under provider-keyed identity this table would have been optional — a TMDB id
+ * was a stable handle, so a work's id essentially never moved. Attribute-derived
+ * identity gives that up: an id is a function of kind+title+year, so a corrected
+ * title, a corrected year, or two rows discovered to be the same work all leave
+ * an id that instances have already handed out and users have already tracked
+ * against. Deleting it would silently orphan that history, and re-minting under
+ * the corrected attributes without a forwarding pointer would strand it.
+ *
+ * So: the superseded id is never reused and never deleted, it is aliased. Sync
+ * resolves through this table, which makes the identity scheme's one structural
+ * weakness recoverable instead of permanent.
+ */
+export const catalogMediaAlias = pgTable(
+  'catalog_media_alias',
+  {
+    /** The retired id. Not a FK — its `catalog_media` row is gone by definition. */
+    aliasId: uuid('alias_id').primaryKey(),
+    canonicalId: uuid('canonical_id')
+      .notNull()
+      .references(() => catalogMedia.id, { onDelete: 'cascade' }),
+    /** Why the id moved — a title correction, a merge, a discriminator fix. */
+    reason: text('reason'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // A self-alias is an infinite redirect, and resolution has no cycle guard.
+    check('catalog_media_alias_no_self', sql`${t.aliasId} <> ${t.canonicalId}`),
+    index('catalog_media_alias_canonical_idx').on(t.canonicalId),
   ],
 );

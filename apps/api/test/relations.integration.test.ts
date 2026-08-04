@@ -2,8 +2,16 @@ import { createServer, type Server } from 'node:http';
 import { eq, inArray } from 'drizzle-orm';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createDb, media, mediaRelation, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { canonicalMediaId, loadEnv, type MediaDetail } from '@trackt/shared';
+import {
+  createDb,
+  media,
+  mediaRelation,
+  runMigrations,
+  seedId,
+  seedMedia,
+  type Db,
+} from '@trackt/db';
+import { loadEnv, type MediaDetail } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -46,7 +54,7 @@ async function ensureTestDatabase(): Promise<boolean> {
 const available = await ensureTestDatabase();
 
 /** The seeded work whose detail page we load throughout. */
-const bebopId = canonicalMediaId('anime', 1);
+const bebopId = seedId('cowboy-bebop-1998');
 const bebopSlug = 'cowboy-bebop-1998';
 
 const absentTargetId = '5b6e0f1a-2c3d-4e5f-8a9b-0c1d2e3f4a5b';
@@ -99,6 +107,7 @@ function edge(overrides: {
     genres: [],
     partCount: 12,
     seasonNumber: null,
+    discriminator: null,
     externalIds: {},
     description: null,
     coverUrl: null,
@@ -295,7 +304,7 @@ describe.runIf(available)('media detail relations — federated (postgres)', () 
 
   it('skips the fan-out for a work that already has stored edges', async () => {
     let calls = 0;
-    const frierenId = canonicalMediaId('anime', 154587);
+    const frierenId = seedId('frieren-beyond-journeys-end-2023');
     await db.insert(mediaRelation).values({ fromId: bebopId, toId: frierenId, type: 'related' });
     server = catalogStub(
       () => ({ relations: [edge({ id: absentTargetId, title: 'Should Not Be Fetched' })] }),

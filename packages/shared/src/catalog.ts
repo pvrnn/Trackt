@@ -32,6 +32,18 @@ export const SlimMediaSchema = z.object({
   partCount: z.number().int().nullable(),
   /** Which season this row is, for series/anime split per season (ADR-0003); null otherwise. */
   seasonNumber: z.number().int().nullable(),
+  /**
+   * Collision breaker for identity (ADR-0005): null for the first work published
+   * under a given kind+title+year(+season), set for any later work that genuinely
+   * shares all of them. Part of the canonical key, so it must travel with the row —
+   * without it the id cannot be recomputed and the publish guard cannot verify it.
+   */
+  discriminator: z.string().min(1).nullable(),
+  /**
+   * Provider cross-references (tmdb, anilist, imdb, …), kept for enrichment and
+   * dedup. Explicitly NOT identity since ADR-0005 — a work keeps its id whether or
+   * not any provider ever lists it.
+   */
   externalIds: ExternalIdsSchema,
   description: z.string().nullable(),
   coverUrl: z.string().nullable(),

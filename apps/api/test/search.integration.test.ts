@@ -2,13 +2,8 @@ import { createServer, type Server } from 'node:http';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
-import {
-  SearchResultSchema,
-  canonicalMediaId,
-  canonicalSeriesSeasonId,
-  loadEnv,
-} from '@trackt/shared';
+import { createDb, media, runMigrations, seedId, seedMedia, type Db } from '@trackt/db';
+import { SearchResultSchema, loadEnv } from '@trackt/shared';
 import { buildApp, type App } from '../src/app.js';
 
 /**
@@ -73,7 +68,7 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
     expect(statusCode).toBe(200);
     // Breaking Bad is two season-media now (ADR-0003) with identical title and
     // rank, so the top hit is one of them in an unspecified order.
-    const seasonIds = new Set([canonicalSeriesSeasonId(1396, 1), canonicalSeriesSeasonId(1396, 2)]);
+    const seasonIds = new Set([seedId('breaking-bad-2008-s1'), seedId('breaking-bad-2009-s2')]);
     const top = results[0] as {
       id: string;
       title: string;
@@ -88,7 +83,7 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
   it('tolerates typos via trigram matching', async () => {
     const { results } = await search('q=cowbay%20bebop');
     expect(results[0]).toMatchObject({
-      id: canonicalMediaId('anime', 1),
+      id: seedId('cowboy-bebop-1998'),
       title: 'Cowboy Bebop',
     });
   });
@@ -137,7 +132,7 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
   });
 
   it('hides soft-deleted media from search and the detail page', async () => {
-    const bebopId = canonicalMediaId('anime', 1);
+    const bebopId = seedId('cowboy-bebop-1998');
     const { results: before } = await search('q=Cowboy%20Bebop');
     expect((before[0] as { id: string }).id).toBe(bebopId);
     const [bebopRow] = await db
@@ -215,6 +210,7 @@ function slimHit(overrides: {
     genres: [],
     partCount: null,
     seasonNumber: null,
+    discriminator: null,
     externalIds: {},
     description: null,
     coverUrl: null,
@@ -271,6 +267,7 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
           genres: ['drama'],
           partCount: null,
           seasonNumber: null,
+          discriminator: null,
           externalIds: { tmdb: 999999 },
           description: null,
           coverUrl: null,
@@ -360,12 +357,12 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
 
   it('shows a row already local once, not duplicated, when central also returns it', async () => {
     // Must be a genuinely-local row, so use the seeded season id. The old
-    // whole-show key (`canonicalMediaId('series', 1396)`) is *not* in the seed:
+    // whole-show key (a season-less `series:breaking bad:2008`) is *not* in the seed:
     // central would be the only source, so the hit got materialized instead of
     // deduped — testing the wrong path, and leaving behind a season-less
     // "Breaking Bad" row that outranked the seasons in the ranking test above on
     // every subsequent run against the same database.
-    const breakingBadId = canonicalSeriesSeasonId(1396, 1);
+    const breakingBadId = seedId('breaking-bad-2008-s1');
     server = catalogStub(() => ({
       results: [
         {
@@ -378,6 +375,7 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
           genres: [],
           partCount: 7,
           seasonNumber: 1,
+          discriminator: null,
           externalIds: { tmdb: 1396 },
           description: null,
           coverUrl: null,
@@ -419,6 +417,7 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
           genres: [],
           partCount: null,
           seasonNumber: null,
+          discriminator: null,
           externalIds: { tmdb: 424242 },
           description: null,
           coverUrl: null,

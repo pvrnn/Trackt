@@ -2,6 +2,7 @@
 
 **Status:** Accepted — 2026-07-22
 **Amends:** ADR-0001 (point 1's slim contract, point 2's canonical key format)
+**Amended by:** [ADR-0005](0005-attribute-derived-identity.md) — the series-season key becomes `series:<title>:<year>:s<n>`, dropping the TMDB show id.
 **Amended by:** [ADR-0004](0004-typed-media-relations.md) — typed relation edges supply the navigation layer flat seasons lack; adjacent series seasons are derived from `external_ids.tmdb` + `season_number`, cross-kind and anime links come from published edges.
 
 ## Context

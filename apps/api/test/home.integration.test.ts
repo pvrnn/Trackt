@@ -1,8 +1,8 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { canonicalMediaId, loadEnv, type HomeSummary } from '@trackt/shared';
+import { createDb, media, runMigrations, seedId, seedMedia, type Db } from '@trackt/db';
+import { loadEnv, type HomeSummary } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -39,9 +39,9 @@ async function ensureTestDatabase(): Promise<boolean> {
 
 const available = await ensureTestDatabase();
 
-const bebopId = canonicalMediaId('anime', 1); // 26 episodes
-const berserkId = canonicalMediaId('manga', 30002); // 380 chapters
-const matrixId = canonicalMediaId('movie', 603);
+const bebopId = seedId('cowboy-bebop-1998'); // 26 episodes
+const berserkId = seedId('berserk-1989'); // 380 chapters
+const matrixId = seedId('the-matrix-1999');
 
 describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
   let app: App;
@@ -160,7 +160,7 @@ describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
   });
 
   it('collapses a binge into one activity entry instead of one per part', async () => {
-    const fmaId = canonicalMediaId('manga', 30025); // 116 chapters
+    const fmaId = seedId('fullmetal-alchemist-2001'); // 116 chapters
     for (let chapter = 1; chapter <= 12; chapter++) {
       await track('PUT', `/api/v1/media/${fmaId}/progress/${chapter}`);
     }
@@ -175,7 +175,7 @@ describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
   });
 
   it('counts a gapped run rather than implying an unread range', async () => {
-    const onePieceId = canonicalMediaId('manga', 30013); // 1120 chapters
+    const onePieceId = seedId('one-piece-1997'); // 1120 chapters
     for (const chapter of [1, 2, 9]) {
       await track('PUT', `/api/v1/media/${onePieceId}/progress/${chapter}`);
     }
@@ -189,7 +189,7 @@ describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
   });
 
   it('drops fully-watched titles from up next but keeps them in progress', async () => {
-    const frierenId = canonicalMediaId('anime', 154587); // 28 episodes
+    const frierenId = seedId('frieren-beyond-journeys-end-2023'); // 28 episodes
     for (let episode = 1; episode <= 28; episode++) {
       await track('PUT', `/api/v1/media/${frierenId}/progress/${episode}`);
     }

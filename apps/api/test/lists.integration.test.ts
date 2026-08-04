@@ -1,8 +1,8 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
-import { createDb, list, media, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { canonicalMediaId, loadEnv, type ListDetail, type ListSummary } from '@trackt/shared';
+import { createDb, list, media, runMigrations, seedId, seedMedia, type Db } from '@trackt/db';
+import { loadEnv, type ListDetail, type ListSummary } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -40,9 +40,9 @@ async function ensureTestDatabase(): Promise<boolean> {
 
 const available = await ensureTestDatabase();
 
-const matrixId = canonicalMediaId('movie', 603);
-const bebopId = canonicalMediaId('anime', 1);
-const berserkId = canonicalMediaId('manga', 30002);
+const matrixId = seedId('the-matrix-1999');
+const bebopId = seedId('cowboy-bebop-1998');
+const berserkId = seedId('berserk-1989');
 const webtoonId = '7b0c6d3e-2f41-4a9d-9c1c-8f4d2a6b5e10';
 
 describe.runIf(available)('lists (postgres)', () => {

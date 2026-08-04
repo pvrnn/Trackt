@@ -7,7 +7,7 @@ export { schema };
 export { isUniqueViolation } from './errors.js';
 export { runMigrations } from './migrate.js';
 export { seedMedia, seedMediaRelations } from './seed.js';
-export { SEED_MEDIA, SEED_MEDIA_RELATIONS } from './seed-data.js';
+export { SEED_MEDIA, SEED_MEDIA_RELATIONS, seedId } from './seed-data.js';
 export {
   buildProviderMediaRow,
   findSoftDeletedMediaIds,

@@ -9,7 +9,8 @@ const env = loadCatalogEnv({
 });
 
 const slimMediaBody = {
-  id: '2e1c929b-ab13-5b76-9706-c68e438b6a03',
+  // = canonicalMediaId({ kind: 'movie', title: 'The Matrix', year: 1999 })
+  id: '99f6d720-8808-5dbb-b7e6-711b6c586106',
   kind: 'movie',
   title: 'The Matrix',
   synonyms: ['Matrix'],
@@ -18,6 +19,7 @@ const slimMediaBody = {
   genres: ['action'],
   partCount: null,
   seasonNumber: null,
+  discriminator: null,
   externalIds: { tmdb: 603 },
   description: null,
   coverUrl: null,

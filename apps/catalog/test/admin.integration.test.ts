@@ -57,7 +57,7 @@ const available = await ensureTestDatabase();
 /** The Matrix — the movie fixture the unit tests use, with a real derived id. */
 function movie(overrides: Partial<SlimMedia> = {}): SlimMedia {
   return {
-    id: canonicalMediaId('movie', 603),
+    id: canonicalMediaId({ kind: 'movie', title: 'The Matrix', year: 1999 }),
     kind: 'movie',
     title: 'The Matrix',
     synonyms: ['Matrix'],
@@ -66,6 +66,7 @@ function movie(overrides: Partial<SlimMedia> = {}): SlimMedia {
     genres: ['action'],
     partCount: null,
     seasonNumber: null,
+    discriminator: null,
     externalIds: { tmdb: 603 },
     description: null,
     coverUrl: null,
@@ -75,7 +76,7 @@ function movie(overrides: Partial<SlimMedia> = {}): SlimMedia {
 
 function manga(overrides: Partial<SlimMedia> = {}): SlimMedia {
   return {
-    id: canonicalMediaId('manga', 30025),
+    id: canonicalMediaId({ kind: 'manga', title: 'Fullmetal Alchemist', year: 2001 }),
     kind: 'manga',
     title: 'Fullmetal Alchemist',
     synonyms: [],
@@ -84,6 +85,7 @@ function manga(overrides: Partial<SlimMedia> = {}): SlimMedia {
     genres: ['action'],
     partCount: 116,
     seasonNumber: null,
+    discriminator: null,
     externalIds: { anilist: 30025 },
     description: null,
     coverUrl: null,
@@ -147,7 +149,10 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
     it('publishes a new work and reports created', async () => {
       const response = await publishMedia(movie());
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toMatchObject({ id: canonicalMediaId('movie', 603), created: true });
+      expect(response.json()).toMatchObject({
+        id: canonicalMediaId({ kind: 'movie', title: 'The Matrix', year: 1999 }),
+        created: true,
+      });
       expect(response.json().seq).toBeGreaterThan(0);
 
       const [row] = await db.select().from(catalogMedia);
@@ -156,6 +161,8 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
 
     it('is idempotent: a re-send updates in place and reports created: false', async () => {
       const first = await publishMedia(movie());
+      // A rename keeps the original id: identity is frozen at first publish, so
+      // the guard does not re-derive it (ADR-0005).
       const second = await publishMedia(movie({ title: 'The Matrix (Remastered)' }));
 
       expect(second.statusCode).toBe(200);
@@ -179,21 +186,25 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
     });
 
     it('rejects an id that does not derive from its own external id', async () => {
-      const response = await publishMedia(movie({ id: canonicalMediaId('movie', 604) }));
+      const response = await publishMedia(
+        movie({ id: canonicalMediaId({ kind: 'movie', title: 'A Different Film', year: 1999 }) }),
+      );
       expect(response.statusCode).toBe(400);
       expect(response.json().error).toMatch(/canonical id mismatch/);
       expect(await db.select().from(catalogMedia)).toHaveLength(0);
     });
 
-    it('rejects a work missing the external id that defines its identity', async () => {
-      const response = await publishMedia(movie({ externalIds: { imdb: 'tt0133093' } }));
-      expect(response.statusCode).toBe(400);
-      expect(response.json().error).toMatch(/missing externalIds\.tmdb/);
+    it('accepts a work with no external ids — identity is not provider-derived', async () => {
+      // The inverse of the old rule (ADR-0005): externalIds are cross-references,
+      // so a work nobody has catalogued upstream still publishes under a real id.
+      const response = await publishMedia(movie({ externalIds: {} }));
+      expect(response.statusCode).toBe(200);
+      expect(response.json().created).toBe(true);
     });
 
     it('derives a series id from the show id AND the season number (ADR-0003)', async () => {
       const season2 = {
-        id: canonicalSeriesSeasonId(1396, 2),
+        id: canonicalSeriesSeasonId('Breaking Bad', 2009, 2),
         kind: 'series' as const,
         title: 'Breaking Bad',
         synonyms: [],
@@ -202,34 +213,38 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
         genres: ['drama'],
         partCount: 13,
         seasonNumber: 2,
+        discriminator: null,
         externalIds: { tmdb: 1396 },
         description: null,
         coverUrl: null,
       };
-      expect((await publishMedia(season2)).statusCode).toBe(200);
-
-      // The show id alone is not an identity: season 1 must not collide with it.
+      // The season number is part of identity, so an id derived for S2 does not
+      // match a body describing S1. Checked BEFORE S2 exists: the guard runs on
+      // create only, so once the id is taken this same post is a legal update.
       const collision = await publishMedia({ ...season2, seasonNumber: 1 });
       expect(collision.statusCode).toBe(400);
       expect(collision.json().error).toMatch(/canonical id mismatch/);
+
+      expect((await publishMedia(season2)).statusCode).toBe(200);
     });
 
     it('rejects a series with no season number', async () => {
       const response = await publishMedia({
         ...movie(),
-        id: canonicalMediaId('series', 1396),
+        id: canonicalMediaId({ kind: 'series', title: 'The Matrix', year: 1999 }),
         kind: 'series',
         externalIds: { tmdb: 1396 },
         seasonNumber: null,
+        discriminator: null,
       });
       expect(response.statusCode).toBe(400);
       expect(response.json().error).toMatch(/seasonNumber/);
     });
 
-    it('accepts a webtoon under a random id — it has no identity provider', async () => {
+    it('derives a webtoon id like any other kind — no provider needed', async () => {
       const response = await publishMedia({
         ...movie(),
-        id: '9f1b6c2e-0000-4000-8000-0000000000aa',
+        id: canonicalMediaId({ kind: 'webtoon', title: 'Tower of God', year: 1999 }),
         kind: 'webtoon',
         title: 'Tower of God',
         partCount: 600,
@@ -252,8 +267,14 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
   });
 
   describe('POST /v1/admin/relations', () => {
-    const mangaId = canonicalMediaId('manga', 30025);
-    const animeId = canonicalMediaId('anime', 5114);
+    const mangaId = canonicalMediaId({ kind: 'manga', title: 'Fullmetal Alchemist', year: 2001 });
+    const animeId = canonicalMediaId({
+      kind: 'anime',
+      title: 'Fullmetal Alchemist: Brotherhood',
+      year: 2009,
+      // The fixture below is a season row, and the season number is part of the key.
+      seasonNumber: 1,
+    });
 
     async function seedPair() {
       await publishMedia(manga());
@@ -262,8 +283,12 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
         id: animeId,
         kind: 'anime',
         title: 'Fullmetal Alchemist: Brotherhood',
+        // Spread from manga(), which is a 2001 work — the anime is 2009, and the
+        // year is part of the id, so it has to be overridden alongside the title.
+        year: 2009,
         partCount: 64,
         seasonNumber: 1,
+        discriminator: null,
         externalIds: { anilist: 5114 },
       });
     }

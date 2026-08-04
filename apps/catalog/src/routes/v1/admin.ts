@@ -1,4 +1,4 @@
-import { and, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import {
   ApiErrorSchema,
@@ -42,8 +42,24 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
 
       const media = request.body;
-      const check = checkCanonicalId(media);
-      if (!check.ok) return reply.status(400).send({ error: check.error });
+
+      // The identity guard runs on CREATE only (ADR-0005). Identity is settled at
+      // first publish and frozen thereafter, so an update must be free to correct
+      // the title or year of a work that instances already track — recomputing the
+      // key on every publish would make every rename a 400 and leave typos
+      // permanent. The trade is deliberate: an update trusts the id it is given,
+      // and a work that turns out to be *misidentified* (not merely mistitled) is
+      // resolved by publishing under the corrected id plus a `catalog_media_alias`
+      // row, never by mutating the id in place.
+      const [existing] = await db
+        .select({ id: catalogMedia.id })
+        .from(catalogMedia)
+        .where(eq(catalogMedia.id, media.id))
+        .limit(1);
+      if (!existing) {
+        const check = checkCanonicalId(media);
+        if (!check.ok) return reply.status(400).send({ error: check.error });
+      }
 
       const row = await db.transaction(async (tx) => {
         // Single-writer publish path. `seq` is assigned by a BEFORE trigger from a
@@ -67,6 +83,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
             genres: media.genres,
             partCount: media.partCount,
             seasonNumber: media.seasonNumber,
+            discriminator: media.discriminator,
             externalIds: media.externalIds,
             description: media.description,
             coverUrl: media.coverUrl,
@@ -82,12 +99,13 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
               genres: media.genres,
               partCount: media.partCount,
               seasonNumber: media.seasonNumber,
+              discriminator: media.discriminator,
               externalIds: media.externalIds,
               description: media.description,
               coverUrl: media.coverUrl,
-              // Republishing resurrects a tombstoned work: the id is derived from
-              // the external id, so this is provably the same work coming back,
-              // and leaving the tombstone would silently drop the publish.
+              // Republishing resurrects a tombstoned work: the id was derived from
+              // the work's own identity attributes, so this is provably the same
+              // work coming back, and leaving the tombstone would drop the publish.
               deletedAt: null,
               // Set explicitly — Drizzle's $onUpdate hook covers .update(), not
               // the conflict branch of an upsert.
