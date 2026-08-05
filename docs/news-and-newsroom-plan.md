@@ -23,9 +23,10 @@ provider-only features on the critical path.
 
 Two existing facts shape the rest:
 
-1. **`POST /v1/admin/media` is a 501 stub** (`apps/catalog/src/routes/v1/admin.ts`) and
-   `POST /v1/admin/relations` doesn't exist. ROADMAP item 1 explicitly owes both. The agent
-   needs them, so this work delivers the publish path the roadmap was already waiting on.
+1. **The catalog publish path already exists** — `POST /v1/admin/media` and
+   `POST /v1/admin/relations` (`apps/catalog/src/routes/v1/admin.ts`) shipped ahead of this
+   work, along with the shared `requireAdmin` guard. Phase 2 below therefore only adds the
+   *news* admin routes; the two publish routes it used to owe are struck through there.
 2. **Canonical media IDs are frozen forever** — `uuidv5(namespace, "provider:kind:externalId")`
    (`packages/shared/src/canonical-id.ts`). No model can invent one. Media creation from a
    news item is only possible once a TMDB/AniList ID exists; that constraint is built into the
@@ -216,21 +217,20 @@ Migration `apps/catalog/migrations/0005_news.sql` via `pnpm --filter @trackt/cat
 
 ### Shared admin auth (`apps/catalog/src/lib/admin-auth.ts`)
 
-Lift the existing `tokenMatches` + bearer check out of `routes/v1/admin.ts` into a
-`requireAdmin(app, request, reply)` guard so every admin route reuses one timing-safe
-comparison. Behaviour and the 401 body are unchanged.
+~~Lift the existing `tokenMatches` + bearer check out of `routes/v1/admin.ts` into a
+`requireAdmin` guard so every admin route reuses one timing-safe comparison.~~ **Delivered.**
+It landed as a Fastify `preHandler` rather than an in-handler call, so a route cannot forget
+to check its return value. The news admin routes below just declare `preHandler: requireAdmin`.
 
 ### Admin routes (`apps/catalog/src/routes/v1/admin.ts`)
 
-- **`POST /v1/admin/media`** — replaces the 501. Validates `SlimMediaSchema`, and **verifies
-  the id**: recompute `canonicalMediaId(kind, externalId, provider)` from `externalIds` and
-  reject a mismatch (`400 canonical id mismatch`) unless `kind === 'webtoon'`, which has no
-  identity provider. Upsert on `id` inside a transaction holding
-  `pg_advisory_xact_lock(hashtextextended('catalog-publish', 0))` — the single-writer
-  requirement the `seq` trigger needs (ADR-0001), same lock idiom as `lists.ts`. Idempotent.
-- **`POST /v1/admin/relations`** — the path ROADMAP item 1 owes. Body `{ fromId, toId, type }`,
-  always forward-direction; `ON CONFLICT DO NOTHING` on the three-column PK; 404 if either
-  endpoint is missing or tombstoned; 400 on self-edge.
+- ~~**`POST /v1/admin/media`** — replaces the 501, verifying the canonical id against the
+  body's own `externalIds` and upserting under the single-writer publish lock.~~
+  **Delivered** — see the ROADMAP row. Note the id check is per-kind: `series` derives from
+  `canonicalSeriesSeasonId(showId, seasonNumber)` (ADR-0003), not `canonicalMediaId` alone.
+- ~~**`POST /v1/admin/relations`** — `{ fromId, toId, type }`, forward-direction only,
+  `ON CONFLICT DO NOTHING`, 404 on a missing or tombstoned endpoint, 400 on a self-edge.~~
+  **Delivered.**
 - **`POST /v1/admin/news`** — create a draft (`status: 'draft'`), its sources, its resolved
   media links, and its `mediaProposals`; marks the referenced `news_source_item` rows `used`.
   Slug via `packages/shared/src/slug.ts`, de-duplicated with a numeric suffix.
