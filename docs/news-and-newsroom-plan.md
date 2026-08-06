@@ -1,7 +1,10 @@
 # Plan — News section + provider-agnostic newsroom agent
 
-> **Status:** proposed, not yet implemented. This is the implementation plan; the
-> architectural decisions it settles will be recorded as ADR-0005 when the work lands.
+> **Status:** **Phases 1–3 shipped** (contracts, catalog service, instance API + web) —
+> recorded as [ADR-0005](adr/0005-news-and-newsroom-agent.md), which is authoritative
+> where it and this plan disagree. **Phases 0, 4 and 5 — `packages/llm`, `apps/newsroom`,
+> and the MCP server — are not built**; the sections below are still the plan for them.
+> Deltas the implementation settled differently are noted inline as **[shipped: …]**.
 > Deeper context: [PRD](PRD.md), [ROADMAP](ROADMAP.md), [ADR-0001](adr/0001-central-slim-catalog.md),
 > [ADR-0002](adr/0002-federated-catalog-search.md), [ADR-0003](adr/0003-per-season-media.md),
 > [ADR-0004](adr/0004-typed-media-relations.md).
@@ -167,7 +170,18 @@ round-tripped JSON — the fastest way to validate a new key.
 
 ---
 
-## Phase 1 — Contracts (`packages/shared`)
+## Phase 1 — Contracts (`packages/shared`) — **shipped**
+
+> **[shipped: deltas]** `NewsMediaRefSchema` is a full `SlimMedia` + role, not a
+> four-field pick — that is what lets an instance materialize a work it has never
+> seen, without which a chip has no local slug to link to. The single
+> `NewsArticleSchema` became two: `NewsArticleSummarySchema` for feed pages (no
+> body/sources/media) and `NewsArticleSchema` for one article. `NewsDraftSchema`
+> carries no `mediaProposals` — that is Phase 4, and an unapplied field would be
+> dead contract. `NewsListQuerySchema` gained `from`/`to` for the mockup's date
+> filter. The cursor codec uses `btoa`/`atob`, not `Buffer`, to keep the package
+> browser-safe.
+
 
 New `packages/shared/src/news.ts`, exported from `src/index.ts`, following the style of
 `src/catalog.ts` (Zod, JSDoc citing the ADR, strict envelope + forward-compatible items):
@@ -191,7 +205,15 @@ envelope parse, **per-item `safeParse` so one unknown enum value doesn't drop th
 Tests mirroring `packages/shared/test/catalog-client.test.ts`. Also export `NEWS_PAGE_LIMIT`,
 the way `IN_PROGRESS_LIMIT` is exported today.
 
-## Phase 2 — Catalog service (`apps/catalog`)
+## Phase 2 — Catalog service (`apps/catalog`) — **shipped**
+
+> **[shipped: deltas]** Migration is `0005_news.sql`; the admin routes live in a new
+> `routes/v1/admin-news.ts` rather than growing `admin.ts`. `news_source_item.article_id`
+> is `ON DELETE SET NULL`, not cascade — a deleted article must not take its ledger row
+> with it, or the next run treats the entry as unseen and rewrites the story. The publish
+> PATCH keeps the original `published_at` on republish. Two guardrails are enforced at the
+> route: no sources → 400, and a title copying a source headline verbatim → 400.
+
 
 ### Schema (`apps/catalog/src/db/schema.ts`)
 
@@ -257,7 +279,18 @@ Register in `apps/catalog/src/routes/v1/index.ts`. Tighter per-route rate limit 
 route, matching the `/search` precedent
 (`config: { rateLimit: { max: 60, timeWindow: '1 minute' } }`).
 
-## Phase 3 — Instance API + web
+## Phase 3 — Instance API + web — **shipped**
+
+> **[shipped: deltas]** The article route resolves linked works against local `media`,
+> materializing unseen ones (ADR-0005 point 5) — the plan did not account for slugs being
+> instance-local. It answers 503 for a degraded catalog and 404 for a missing article,
+> rather than degrading. The feed uses LOAD MORE, not the mockup's numbered pager (keyset
+> cursors cannot address a page by number). Per-topic tag colours were dropped for the
+> existing selected-chip treatment (no new tokens), and the `＋ PLAN TO WATCH` card button
+> is absent (a feed summary carries no per-viewer tracking state). `/news` is public, via a
+> new `useOptionalSession`. The "In the news" media-detail strip was **not** built, though
+> `/v1/news/by-media` that would back it is.
+
 
 ### API (`apps/api/src/routes/v1/news.ts` + `src/lib/news.ts`)
 

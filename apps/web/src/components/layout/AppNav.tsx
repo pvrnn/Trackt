@@ -25,6 +25,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'HOME', to: '/home' },
   { label: 'DISCOVER', to: '/search' },
+  { label: 'NEWS', to: '/news' },
   { label: 'LISTS', to: '/lists' },
   { label: 'PROFILE', to: '/profile' },
 ];

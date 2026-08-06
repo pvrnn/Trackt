@@ -28,6 +28,13 @@ const RawEnvSchema = z.object({
    * lets an operator throttle the detail fan-out without crippling search.
    */
   CATALOG_RELATIONS_TIMEOUT_MS: z.coerce.number().int().positive().default(1000),
+  /**
+   * Timeout for live central-catalog news calls (ADR-0005). The most generous of
+   * the three: the news page has no local content to fall back on, so a slow
+   * answer still beats an empty one — and a 60s in-process memo means few
+   * requests pay it.
+   */
+  CATALOG_NEWS_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
   TMDB_API_KEY: z.string().optional(),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   UPLOADS_DIR: z.string().default('./data/uploads'),
@@ -79,6 +86,7 @@ export interface Env {
   CATALOG_URL?: string | undefined;
   CATALOG_SEARCH_TIMEOUT_MS: number;
   CATALOG_RELATIONS_TIMEOUT_MS: number;
+  CATALOG_NEWS_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
   LOG_LEVEL: (typeof LOG_LEVELS)[number];
   UPLOADS_DIR: string;
