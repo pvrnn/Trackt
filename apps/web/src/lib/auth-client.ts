@@ -69,3 +69,22 @@ export function useAuthedPage(options?: { requireModerator?: boolean }): AuthedP
 
   return { isPending, session, navUser, isModerator: moderator, refetch };
 }
+
+/**
+ * The same session resolution without the gate, for pages that are public but
+ * render differently when signed in — News is the first (ADR-0005). Signing in
+ * is not a precondition, so a `null` navUser means "show the marketing nav",
+ * not "redirect to /login".
+ */
+export function useOptionalSession(): Pick<AuthedPage, 'isPending' | 'session' | 'navUser'> {
+  const { data: session, isPending } = authClient.useSession();
+  const navUser: AppNavUser | null = session
+    ? {
+        name: session.user.name,
+        username: session.user.displayUsername ?? session.user.name,
+        image: session.user.image,
+        role: session.user.role,
+      }
+    : null;
+  return { isPending, session, navUser };
+}

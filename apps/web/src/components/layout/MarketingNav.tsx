@@ -6,6 +6,8 @@ import { Wordmark } from './Wordmark';
 const MotionLink = m.create(Link);
 
 const links = [
+  // News is public (ADR-0005), so signed-out visitors get a real link, not a teaser.
+  { label: 'NEWS', href: '/news' },
   { label: 'SELF-HOST', href: '#pillars' },
   { label: 'API', href: '/docs' },
   { label: 'GITHUB', href: 'https://github.com/pvrnn/Trackt' },

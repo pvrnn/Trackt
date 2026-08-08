@@ -54,7 +54,7 @@ apps/
   web/        TanStack Start PWA (SSR for public pages, installable on mobile)
   api/        Fastify public REST API — OpenAPI generated from Zod schemas at /docs
   worker/     BullMQ background jobs: catalog sync, importers, notifications
-  catalog/    Central slim catalog service (project-operated, not self-hosted)
+  catalog/    Central slim catalog service, and the News surface (project-operated, not self-hosted)
 packages/
   shared/     Zod schemas, shared types, env validation — single source of truth
   db/         Drizzle ORM schema + migrations (PostgreSQL 16)
@@ -64,6 +64,7 @@ packages/
 ### Architecture notes
 
 - **Central slim catalog** ([ADR-0001](docs/adr/0001-central-slim-catalog.md)): a project-operated service holds the shared catalog of redistributable facts (titles, synonyms, years, genres, counts, external IDs); every instance syncs it, so all instances share the same catalog and the same deterministic canonical media IDs (UUIDv5). Instance search runs entirely on the local Postgres.
+- **News** ([ADR-0005](docs/adr/0005-news-and-newsroom-agent.md)): articles live only in the central catalog and are published by the project operator through a human-gated admin path; instances read `/news` live and degrade to an empty feed if the catalog is unreachable. Nothing is mirrored, and self-hosters run no news infrastructure.
 - **Shard-friendly schema** (PRD §5): UUIDs everywhere, `user_id` on every user-owned table, no cross-user joins in hot paths. Scaling ladder: partitioning → read replicas → Citus, without an app rewrite.
 - **Monolith image**: one container runs API (public port), web SSR, and worker; the API proxies non-API routes to the SSR server. Separate processes remain the advanced path.
 - **Config via env vars only**, Zod-validated at startup with actionable errors.
