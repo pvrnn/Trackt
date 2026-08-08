@@ -63,6 +63,14 @@
   color: transparent;
 }
 
+/* Keeps a row horizontally scrollable on narrow screens without the scrollbar chrome. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   html {
     color-scheme: dark;

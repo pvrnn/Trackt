@@ -18,7 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ListsRouteImport } from './routes/lists'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
 import { Route as ListsIdRouteImport } from './routes/lists.$id'
 
@@ -68,9 +68,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsSlugRoute = NewsSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => NewsRoute,
+  id: '/news_/$slug',
+  path: '/news/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const MediaSlugRoute = MediaSlugRouteImport.update({
   id: '/media/$slug',
@@ -89,7 +89,7 @@ export interface FileRoutesByFullPath {
   '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
   '/moderation': typeof ModerationRoute
-  '/news': typeof NewsRouteWithChildren
+  '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
@@ -103,7 +103,7 @@ export interface FileRoutesByTo {
   '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
   '/moderation': typeof ModerationRoute
-  '/news': typeof NewsRouteWithChildren
+  '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
@@ -118,13 +118,13 @@ export interface FileRoutesById {
   '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
   '/moderation': typeof ModerationRoute
-  '/news': typeof NewsRouteWithChildren
+  '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
-  '/news/$slug': typeof NewsSlugRoute
+  '/news_/$slug': typeof NewsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,7 +168,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/lists/$id'
     | '/media/$slug'
-    | '/news/$slug'
+    | '/news_/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,11 +177,12 @@ export interface RootRouteChildren {
   ListsRoute: typeof ListsRouteWithChildren
   LoginRoute: typeof LoginRoute
   ModerationRoute: typeof ModerationRoute
-  NewsRoute: typeof NewsRouteWithChildren
+  NewsRoute: typeof NewsRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
   MediaSlugRoute: typeof MediaSlugRoute
+  NewsSlugRoute: typeof NewsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -249,12 +250,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/news/$slug': {
-      id: '/news/$slug'
-      path: '/$slug'
+    '/news_/$slug': {
+      id: '/news_/$slug'
+      path: '/news/$slug'
       fullPath: '/news/$slug'
       preLoaderRoute: typeof NewsSlugRouteImport
-      parentRoute: typeof NewsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/media/$slug': {
       id: '/media/$slug'
@@ -283,27 +284,18 @@ const ListsRouteChildren: ListsRouteChildren = {
 
 const ListsRouteWithChildren = ListsRoute._addFileChildren(ListsRouteChildren)
 
-interface NewsRouteChildren {
-  NewsSlugRoute: typeof NewsSlugRoute
-}
-
-const NewsRouteChildren: NewsRouteChildren = {
-  NewsSlugRoute: NewsSlugRoute,
-}
-
-const NewsRouteWithChildren = NewsRoute._addFileChildren(NewsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HomeRoute: HomeRoute,
   ListsRoute: ListsRouteWithChildren,
   LoginRoute: LoginRoute,
   ModerationRoute: ModerationRoute,
-  NewsRoute: NewsRouteWithChildren,
+  NewsRoute: NewsRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
   MediaSlugRoute: MediaSlugRoute,
+  NewsSlugRoute: NewsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

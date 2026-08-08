@@ -11,7 +11,13 @@ import { useOptionalSession } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
 import { useNewsArticle } from '../lib/news';
 
-export const Route = createFileRoute('/news/$slug')({
+/**
+ * `news_.` opts this route out of nesting under `/news`: the feed is a
+ * standalone page with no `<Outlet />`, so as a child this component never
+ * rendered — the URL changed and the feed stayed on screen.
+ */
+export const Route = createFileRoute('/news_/$slug')({
+  head: () => ({ meta: [{ title: 'Article — Trackt' }] }),
   component: ArticlePage,
 });
 

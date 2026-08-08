@@ -1,18 +1,17 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
-import { MEDIA_KINDS, NEWS_TOPICS, type MediaKind, type NewsTopic } from '@trackt/shared';
+import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
-import { NewsCard, TOPIC_LABELS } from '../components/news/NewsCard';
+import { NewsCard } from '../components/news/NewsCard';
 import { Chip } from '../components/ui/Chip';
 import { useOptionalSession } from '../lib/auth-client';
 import { useNewsFeed } from '../lib/news';
 
 export interface NewsSearchParams {
   kind?: MediaKind;
-  topic?: NewsTopic;
   from?: string;
   to?: string;
 }
@@ -27,9 +26,6 @@ export const Route = createFileRoute('/news')({
   head: () => ({ meta: [{ title: 'News — Trackt' }] }),
   validateSearch: (search: Record<string, unknown>): NewsSearchParams => ({
     kind: MEDIA_KINDS.includes(search.kind as MediaKind) ? (search.kind as MediaKind) : undefined,
-    topic: NEWS_TOPICS.includes(search.topic as NewsTopic)
-      ? (search.topic as NewsTopic)
-      : undefined,
     from: asDate(search.from),
     to: asDate(search.to),
   }),
@@ -77,9 +73,9 @@ function packColumns<T>(items: T[], columns: number): T[][] {
 
 function NewsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
-  const { kind, topic, from, to } = Route.useSearch();
+  const { kind, from, to } = Route.useSearch();
   const { isPending, navUser } = useOptionalSession();
-  const feed = useNewsFeed({ kind, topic, from, to });
+  const feed = useNewsFeed({ kind, from, to });
 
   const setSearch = (patch: Partial<NewsSearchParams>) => {
     navigate({ search: (previous) => ({ ...previous, ...patch }) });
@@ -113,7 +109,7 @@ function NewsPage() {
               if (!value) return;
               setSearch({ kind: value === ALL_KINDS ? undefined : (value as MediaKind) });
             }}
-            className="flex gap-1 overflow-x-auto border-b border-divider"
+            className="scrollbar-none flex gap-1 overflow-x-auto border-b border-divider"
           >
             {[ALL_KINDS, ...MEDIA_KINDS].map((value) => {
               const selected = (kind ?? ALL_KINDS) === value;
@@ -134,67 +130,49 @@ function NewsPage() {
             })}
           </ToggleGroup.Root>
 
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {RANGES.map((range) => (
-                <Chip
-                  key={range.label}
-                  selected={activeRange?.label === range.label}
-                  onClick={() =>
-                    setSearch({
-                      from: range.days === null ? undefined : isoDaysAgo(range.days),
-                      to: undefined,
-                    })
-                  }
-                >
-                  {range.label}
-                </Chip>
-              ))}
-              <span aria-hidden className="mx-1 h-5 w-px bg-glass-border-strong" />
-              <label className="flex items-center gap-2 rounded-full border border-glass-border-strong bg-glass px-3.5 py-1.5">
-                <span className="font-label text-[10px] font-bold tracking-label text-dim">
-                  FROM
-                </span>
-                <input
-                  type="date"
-                  value={from ?? ''}
-                  onChange={(event) => setSearch({ from: event.target.value || undefined })}
-                  className="bg-transparent font-label text-xs text-fg [color-scheme:dark] outline-none"
-                />
-              </label>
-              <label className="flex items-center gap-2 rounded-full border border-glass-border-strong bg-glass px-3.5 py-1.5">
-                <span className="font-label text-[10px] font-bold tracking-label text-dim">TO</span>
-                <input
-                  type="date"
-                  value={to ?? ''}
-                  onChange={(event) => setSearch({ to: event.target.value || undefined })}
-                  className="bg-transparent font-label text-xs text-fg [color-scheme:dark] outline-none"
-                />
-              </label>
-              {(from || to) && (
-                <button
-                  type="button"
-                  onClick={() => setSearch({ from: undefined, to: undefined })}
-                  className="cursor-pointer font-label text-[11px] font-semibold tracking-label text-dim hover:text-pink"
-                >
-                  CLEAR
-                </button>
-              )}
-            </div>
-
-            <ToggleGroup.Root
-              type="single"
-              aria-label="filter by topic"
-              value={topic ?? ''}
-              onValueChange={(value) => setSearch({ topic: (value || undefined) as NewsTopic })}
-              className="flex flex-wrap gap-2"
-            >
-              {NEWS_TOPICS.map((value) => (
-                <ToggleGroup.Item key={value} value={value} asChild>
-                  <Chip selected={topic === value}>{TOPIC_LABELS[value]}</Chip>
-                </ToggleGroup.Item>
-              ))}
-            </ToggleGroup.Root>
+          <div className="flex flex-wrap items-center gap-2">
+            {RANGES.map((range) => (
+              <Chip
+                key={range.label}
+                selected={activeRange?.label === range.label}
+                onClick={() =>
+                  setSearch({
+                    from: range.days === null ? undefined : isoDaysAgo(range.days),
+                    to: undefined,
+                  })
+                }
+              >
+                {range.label}
+              </Chip>
+            ))}
+            <span aria-hidden className="mx-1 h-5 w-px bg-glass-border-strong" />
+            <label className="flex items-center gap-2 rounded-full border border-glass-border-strong bg-glass px-3.5 py-1.5">
+              <span className="font-label text-[10px] font-bold tracking-label text-dim">FROM</span>
+              <input
+                type="date"
+                value={from ?? ''}
+                onChange={(event) => setSearch({ from: event.target.value || undefined })}
+                className="bg-transparent font-label text-xs text-fg [color-scheme:dark] outline-none"
+              />
+            </label>
+            <label className="flex items-center gap-2 rounded-full border border-glass-border-strong bg-glass px-3.5 py-1.5">
+              <span className="font-label text-[10px] font-bold tracking-label text-dim">TO</span>
+              <input
+                type="date"
+                value={to ?? ''}
+                onChange={(event) => setSearch({ to: event.target.value || undefined })}
+                className="bg-transparent font-label text-xs text-fg [color-scheme:dark] outline-none"
+              />
+            </label>
+            {(from || to) && (
+              <button
+                type="button"
+                onClick={() => setSearch({ from: undefined, to: undefined })}
+                className="cursor-pointer font-label text-[11px] font-semibold tracking-label text-dim hover:text-pink"
+              >
+                CLEAR
+              </button>
+            )}
           </div>
 
           <div className="flex items-baseline justify-between gap-4">
@@ -216,7 +194,7 @@ function NewsPage() {
               News failed to load — is this instance&apos;s API reachable? Try again in a moment.
             </p>
           ) : feed.articles.length === 0 ? (
-            <EmptyFeed filtered={Boolean(kind || topic || from || to)} />
+            <EmptyFeed filtered={Boolean(kind || from || to)} />
           ) : (
             <>
               <div className="flex items-start gap-4">
@@ -260,7 +238,7 @@ function EmptyFeed({ filtered }: { filtered: boolean }) {
       <p className="font-display text-[32px] text-faint uppercase">Nothing yet</p>
       <p className="max-w-[420px] text-sm text-muted">
         {filtered
-          ? 'No stories match these filters. Widen the dates, or clear the kind and topic.'
+          ? 'No stories match these filters. Widen the dates, or clear the kind.'
           : 'No news has been published yet. Stories appear here once the central catalog starts publishing them.'}
       </p>
       <Link
