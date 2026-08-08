@@ -53,7 +53,12 @@ export const catalogMedia = pgTable(
      * publish path: concurrent writers can commit seq values out of order.
      */
     seq: bigint('seq', { mode: 'number' }).notNull().default(0),
-    /** Tombstone — deletions must propagate through /v1/catalog/changes. */
+    /**
+     * Tombstone. The `/v1/catalog/changes` feed it was built to propagate
+     * through is gone (ADR-0002); it now only hides a row from search and
+     * relation reads, and blocks it as a relation endpoint. Republishing the
+     * same canonical id clears it.
+     */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })

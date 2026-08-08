@@ -1,7 +1,7 @@
 # Handoff: Trackt — AURA PRISM Design System & Core Screens
 
 ## Overview
-Full visual design for **Trackt**, an open-source, self-hostable media tracker (movies, series, anime, manga, webtoons) with per-episode/per-chapter check-ins, ratings, lists, and social activity. This package contains the design system plus 7 hi-fi screens in the **AURA PRISM** direction: near-black base washed with diffuse violet/pink/gold radial "aura" glows under a film of grain, glassy panels, pill-shaped actions, condensed uppercase display type.
+Full visual design for **Trackt**, an open-source, self-hostable media tracker (movies, series, anime, manga, webtoons) with per-episode/per-chapter check-ins, ratings, lists, and social activity. This package contains the design system plus 8 hi-fi screens in the **AURA PRISM** direction: near-black base washed with diffuse violet/pink/gold radial "aura" glows under a film of grain, glassy panels, pill-shaped actions, condensed uppercase display type.
 
 ## About the Design Files
 The `.dc.html` files in this bundle are **design references created in HTML** — interactive prototypes showing intended look and behavior, NOT production code to copy directly. Your task is to **recreate these designs in the target codebase's existing environment** (the Trackt repo: React + TanStack Router + Tailwind, `apps/web`) using its established patterns and libraries. The HTML files open in a browser (keep `support.js` and `noise.svg` alongside them) and can be inspected for exact values.
@@ -74,6 +74,11 @@ Hero: 240×360 cover, kind dot + meta line, 72px Anton title, synopsis, action r
 ### Profile (`Profile.dc.html`)
 Header: 120px round gradient avatar, 56px Anton name, bio, followers/following + pink streak. 5 glass stat cards (gradient Anton numbers). Favourites blocks per kind (ranked covers with pill rank badges 01/02…, dashed ＋ add slot). Bottom 2:1: Recent activity rows (kind dot, verb + title, date) | Badges (round gradient-tinted icon chips) + visibility setting row.
 
+### News (`News.dc.html`)
+Editorial feed. "NEWS" title, kind + topic filter chips, article cards (cover, topic tag, headline, dek, outlet/date meta, linked-work chips with kind dots), numbered pager at the bottom; article view has a hero, dek, long-form body, and an attributed source list.
+
+Two deliberate deviations shipped, recorded in [ADR-0005](../adr/0005-news-and-newsroom-agent.md): the **numbered pager is a LOAD MORE button** (the feed is keyset-paginated, so a page cannot be addressed by number), and the **per-topic tag colours were dropped** in favour of the existing selected-chip treatment — nine new palette entries would break the token set's finality below. The `＋ PLAN TO WATCH` card button is also absent: a feed summary carries no per-viewer tracking state.
+
 ## Interactions & Behavior
 - Check-in buttons toggle checked state (label + background change); production: optimistic mutation
 - Episode circle toggles watched; "next episode" highlight recomputes to first unwatched, non-future episode
@@ -96,7 +101,7 @@ Header: 120px round gradient avatar, 56px Anton name, bio, followers/following +
 
 ## Files
 - `Design System.dc.html` — token reference + component gallery (start here)
-- `Landing.dc.html`, `Login.dc.html`, `Home.dc.html`, `Search.dc.html`, `Media Detail.dc.html`, `Lists.dc.html`, `Profile.dc.html`
+- `Landing.dc.html`, `Login.dc.html`, `Home.dc.html`, `Search.dc.html`, `Media Detail.dc.html`, `Lists.dc.html`, `Profile.dc.html`, `News.dc.html`
 - `support.js` — prototype runtime (needed to open the files; not part of the design)
 - `noise.svg` — grain texture asset (IS part of the design)
 

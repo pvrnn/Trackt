@@ -1,7 +1,8 @@
-# PRD — Open-Source Media Tracker (working title: "Logbook")
+# PRD — Open-Source Media Tracker ("Trackt")
 
 **Version:** 0.1 draft · **Date:** July 2026
-**Context:** TV Time shuts down July 15, 2026, deleting all user data. 25M+ users are exporting their history via GDPR tools with no open, community-owned home to migrate to. Existing self-hosted trackers (Ryot, Yamtrack, MediaTracker) are single-user/small-group tools with weak social features and no webtoon support.
+**Status:** the original product spec, kept as written except where a later decision is recorded inline. Where this document and an [ADR](adr/) disagree, the ADR wins. Live status lives in [ROADMAP.md](ROADMAP.md).
+**Context:** TV Time shut down July 15, 2026, deleting all user data. 25M+ users exported their history via GDPR tools with no open, community-owned home to migrate to. Existing self-hosted trackers (Ryot, Yamtrack, MediaTracker) are single-user/small-group tools with weak social features and no webtoon support.
 
 ---
 
@@ -13,7 +14,7 @@ A community-owned, open-source tracker for **movies, series, anime, manga, and w
 
 1. **Data portability is sacred.** Full export at any time, in an open documented format. Public API from day one. The reason this project exists is that TV Time users lost everything.
 2. **Self-hostable in one command.** `docker compose up` or a Railway one-click template. No mandatory external services beyond free metadata API keys.
-3. **Open source (AGPLv3 recommended)** so hosted forks must contribute back.
+3. **Open source** so hosted forks must contribute back. *(Decided: **GPL-3.0-only** — see `LICENSE`. This section originally recommended AGPLv3.)*
 4. **Community catalog.** Users can add what the big databases don't have (webtoons especially), and instances can share those entries.
 
 **Non-goals (v1):** streaming/playback, scrobbling from Plex/Jellyfin (v2), mobile native apps (PWA first), recommendations engine.
@@ -219,7 +220,7 @@ Shard-friendly design rules (enforced from day one):
 | Layer      | Choice                                                                 | Why                                                                                                                                                                                                                                           |
 | ---------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Language   | **TypeScript everywhere**                                              | team decision; shared types/Zod schemas                                                                                                                                                                                                       |
-| Monorepo   | **pnpm workspaces + Turborepo**                                        | apps/web, apps/api, packages/db, packages/providers                                                                                                                                                                                           |
+| Monorepo   | **pnpm workspaces + Turborepo**                                        | apps/web, apps/api, apps/worker, apps/catalog (ADR-0001); packages/shared, packages/db, packages/providers                                                                                                                                     |
 | Frontend   | **TanStack Start** (+ TanStack Query) as PWA                           | SSR required for public media/profile pages (SEO drives instance discovery), installable on mobile                                                                                                                                            |
 | Styling    | **Tailwind CSS v4**                                                    | zero-runtime, SSR/streaming-safe, design tokens as `@theme` CSS variables (see docs/design), widest contributor familiarity                                                                                                                   |
 | Animation  | **Motion** (formerly Framer Motion) + native View Transitions          | Motion for component interactions (tap feedback on check-ins, slide-in panels, `AnimatePresence`); TanStack Router's built-in View Transitions for page navigation; plain CSS for hover/focus micro-states; respects `prefers-reduced-motion` |
@@ -270,7 +271,7 @@ Shard-friendly design rules (enforced from day one):
 
 ## 10. Open Questions
 
-1. License: AGPLv3 (protects against closed SaaS forks) vs MIT (max adoption)?
-2. Does the project run a flagship hosted instance? If so, funding model (donations/OpenCollective) must be decided early — sustainability is the whole lesson of TV Time.
-3. Ratings aggregation across instances: per-instance only, or federated via the community service?
-4. Name + trademark check.
+1. ~~License: AGPLv3 (protects against closed SaaS forks) vs MIT (max adoption)?~~ **Resolved: GPL-3.0-only.**
+2. Does the project run a flagship hosted instance? If so, funding model (donations/OpenCollective) must be decided early — sustainability is the whole lesson of TV Time. **Still open** — note the project already operates one always-on dependency (the central catalog, ADR-0001), so there is a small standing cost regardless (`docs/catalog-hosting.md`).
+3. Ratings aggregation across instances: per-instance only, or federated via the community service? **Still open.**
+4. ~~Name + trademark check.~~ **Name resolved: Trackt.** Trademark check still outstanding.
