@@ -25,7 +25,7 @@ Migrations run automatically on boot; upgrading is `docker compose pull && docke
 
 ## Development
 
-Requirements: Node 22+, pnpm 10 (`corepack enable`), Docker.
+Requirements: Node 22+, pnpm 11 (`corepack enable` — the exact version is pinned in `package.json`'s `packageManager`), Docker.
 
 ```sh
 pnpm install
@@ -53,7 +53,7 @@ No `.env` needed in development — every variable has a dev default (see `packa
 apps/
   web/        TanStack Start PWA (SSR for public pages, installable on mobile)
   api/        Fastify public REST API — OpenAPI generated from Zod schemas at /docs
-  worker/     BullMQ background jobs: catalog sync, importers, notifications
+  worker/     BullMQ background jobs: importers, notifications (none built yet)
   catalog/    Central slim catalog service, and the News surface (project-operated, not self-hosted)
 packages/
   shared/     Zod schemas, shared types, env validation — single source of truth
@@ -63,7 +63,9 @@ packages/
 
 ### Architecture notes
 
-- **Central slim catalog** ([ADR-0001](docs/adr/0001-central-slim-catalog.md)): a project-operated service holds the shared catalog of redistributable facts (titles, synonyms, years, genres, counts, external IDs); every instance syncs it, so all instances share the same catalog and the same deterministic canonical media IDs (UUIDv5). Instance search runs entirely on the local Postgres.
+- **Central slim catalog** ([ADR-0001](docs/adr/0001-central-slim-catalog.md)): a project-operated service holds the shared catalog of redistributable facts (titles, synonyms, years, genres, counts, external IDs), keyed by deterministic canonical media IDs (UUIDv5) that every instance derives identically with zero coordination.
+- **Federated search, no mirror** ([ADR-0002](docs/adr/0002-federated-catalog-search.md)): an instance queries its local Postgres _and_ the central catalog live, in parallel, merges by canonical id, and writes central-only hits into local `media` on first sight. Every central call is timeout-bounded and degrades rather than failing — an unreachable catalog costs you central results, never a 500.
+- **One media row is one trackable unit** ([ADR-0003](docs/adr/0003-per-season-media.md)): a `series`/`anime` row is a single **season** with its own canonical ID and one `part_count`; there is no parent show row. [ADR-0004](docs/adr/0004-typed-media-relations.md) adds the typed `sequel`/`adaptation`/`spinoff`/`related` edges that reconnect them, stored one direction only with the inverse rendered as a derived label.
 - **News** ([ADR-0005](docs/adr/0005-news-and-newsroom-agent.md)): articles live only in the central catalog and are published by the project operator through a human-gated admin path; instances read `/news` live and degrade to an empty feed if the catalog is unreachable. Nothing is mirrored, and self-hosters run no news infrastructure.
 - **Shard-friendly schema** (PRD §5): UUIDs everywhere, `user_id` on every user-owned table, no cross-user joins in hot paths. Scaling ladder: partitioning → read replicas → Citus, without an app rewrite.
 - **Monolith image**: one container runs API (public port), web SSR, and worker; the API proxies non-API routes to the SSR server. Separate processes remain the advanced path.

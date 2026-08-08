@@ -1,15 +1,22 @@
-import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import pino from 'pino';
-import { EnvValidationError, QUEUES, loadEnv } from '@trackt/shared';
+import { EnvValidationError, loadEnv } from '@trackt/shared';
 
 /**
  * Background jobs (PRD §6): importers, notifications (not yet built). Catalog
  * population moved off this worker: search now queries the central catalog
  * live from the API's request path and materializes hits on first sight
  * (ADR-0002) — this process no longer mirrors the whole catalog on a
- * schedule. The open Redis connection below is what keeps this process alive
- * for docker/entrypoint.sh's liveness check until a real job lands on it.
+ * schedule, and runs no jobs at all today. The open Redis connection below is
+ * what keeps this process alive for docker/entrypoint.sh's liveness check
+ * until a real job lands on it.
+ *
+ * This file used to unregister the schedulers of two retired jobs
+ * (`metadata-refresh`'s crons, then `catalog-sync-repeat`) on every boot, to
+ * stop them firing on self-hosted Redis volumes that survived an upgrade.
+ * Removed: the project is pre-launch, so no such instance exists. Reinstate
+ * that cleanup — for whichever queue — only once a released version has
+ * actually registered a scheduler in the wild.
  */
 
 let env;
@@ -59,30 +66,10 @@ async function withBootTimeout<T>(work: Promise<T>, label: string): Promise<T> {
 }
 
 try {
-  // Remove schedulers from retired jobs: self-hosted Redis volumes persist
-  // across upgrades, so old schedulers would keep firing otherwise.
-  const legacyQueue = new Queue(QUEUES.metadataRefresh, { connection });
-  await withBootTimeout(
-    (async () => {
-      await legacyQueue.removeJobScheduler('refresh-airing-daily');
-      await legacyQueue.removeJobScheduler('refresh-ended-weekly');
-      await legacyQueue.close();
-    })(),
-    'legacy scheduler cleanup',
-  );
-
-  // 'catalog-sync' (bulk full-catalog mirror, ADR-0001) was retired by
-  // ADR-0002 in favor of live federated search — no QUEUES entry for it
-  // anymore, name kept here as a literal purely to clean up the scheduler an
-  // already-upgraded instance may still have registered.
-  const retiredCatalogQueue = new Queue('catalog-sync', { connection });
-  await withBootTimeout(
-    (async () => {
-      await retiredCatalogQueue.removeJobScheduler('catalog-sync-repeat');
-      await retiredCatalogQueue.close();
-    })(),
-    'retired catalog-sync scheduler cleanup',
-  );
+  // Nothing to register yet, so this is purely the liveness assertion: prove
+  // Redis is actually reachable rather than letting ioredis retry silently
+  // behind a "worker started" log.
+  await withBootTimeout(connection.ping(), 'redis connectivity check');
 } catch (error) {
   logger.error({ err: error }, 'worker boot failed');
   process.exit(1);

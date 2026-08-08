@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Build, launch, and drive Trackt's services end-to-end (catalog → worker sync → API search) to verify changes at their runtime surface.
+description: Build, launch, and drive Trackt's services end-to-end (catalog → federated API search / relations / news) to verify changes at their runtime surface.
 ---
 
 # Verifying Trackt changes
@@ -24,15 +24,35 @@ DATABASE_URL=... node apps/worker/dist/index.js   # pino logs to stdout
 
 Use a scratch instance database (`CREATE DATABASE trackt_verify` via `docker exec trackt-postgres-1 psql -U trackt -d trackt`, then `DATABASE_URL=...trackt_verify pnpm --dir packages/db db:migrate`) so dev data stays untouched. Drop it afterwards.
 
-## Driving the catalog → sync → search flow
+## Driving the catalog → instance flow
 
-1. Publish into the catalog db directly (importers may not exist yet; single-writer path): `docker exec trackt-postgres-catalog-1 psql -U trackt -d trackt_catalog -c "INSERT INTO catalog_media (id, kind, title, ...) VALUES (...)"` — a trigger assigns `seq`. Canonical ids: `node -e "import('@trackt/shared').then(m => console.log(m.canonicalMediaId('series', 1396)))"` (run from an app dir that depends on @trackt/shared, e.g. apps/worker).
-2. Start the worker — the `catalog-sync-repeat` job scheduler fires immediately on first boot; watch for the `catalog sync finished` log with `{cursor, upserted, deleted}`.
-3. To force another immediate run: kill the worker, delete its queue state (`docker exec trackt-redis-1 redis-cli --scan --pattern 'bull:catalog-sync:*' | xargs -r docker exec trackt-redis-1 redis-cli del`), restart.
-4. Observe downstream via the API: `curl 'http://localhost:3011/api/v1/search?q=...'`.
+There is **no sync step** — ADR-0002 deleted it. The instance reads the catalog
+live, per request, and materializes what it sees into local `media` on first
+sight. So the loop is: put a row in the catalog, then hit the instance API and
+watch it appear locally.
+
+1. Publish through the admin API (preferred — it verifies canonical ids the way an importer will):
+
+       curl -X POST localhost:3002/v1/admin/media \
+         -H "Authorization: Bearer $CATALOG_ADMIN_TOKEN" \
+         -H 'content-type: application/json' -d @media.json
+
+   Or insert into `catalog_media` directly for a quick fixture (`docker exec trackt-postgres-catalog-1 psql -U trackt -d trackt_catalog -c "INSERT INTO catalog_media ..."`) — a trigger assigns `seq`. Canonical ids: `node -e "import('@trackt/shared').then(m => console.log(m.canonicalMediaId('series', 1396)))"` from an app dir that depends on `@trackt/shared`. Series seasons use `canonicalSeriesSeasonId(showId, seasonNumber)` (ADR-0003), not the show id alone.
+
+2. Search through the instance API — the central hit should appear and be written into local `media`:
+
+       curl 'http://localhost:3001/api/v1/search?q=...'
+
+3. Verify the materialization actually happened (this is the ADR-0002 behaviour worth checking, not just the response): `psql -U trackt -d <instance-db> -c "SELECT id, title, source FROM media WHERE title ILIKE '%...%'"` — expect `source = 'provider'`.
+4. Relations (ADR-0004): `curl localhost:3002/v1/catalog/relations?id=<uuid>` for the central edge, then `curl localhost:3001/api/v1/media/<slug>` and check the `relations` array; targets materialize the same way.
+5. News (ADR-0005): everything lands `draft`, so publish explicitly — `POST /v1/admin/news`, then `PATCH /v1/admin/news/:id '{"status":"published"}'` — then `curl localhost:3001/api/v1/news`.
+
+**Degradation is a feature and worth verifying:** stop the catalog container and confirm search still answers 200 with local-only results, and `/api/v1/news` answers 200 with an empty list. A 500 anywhere here is a bug.
 
 ## Gotchas
 
 - `sleep` is blocked in the harness sandbox; use `/bin/sleep`.
-- Kill background node processes and clean redis `bull:catalog-sync:*` keys + catalog rows you inserted when done.
-- Integration tests (`apps/worker`, `apps/api`) self-skip without Postgres — a green run proves nothing unless compose is up.
+- The API caches news for 60s in-process (ADR-0005) — restart it rather than waiting when a publish doesn't show.
+- `apps/worker` runs no jobs at all (ADR-0002 removed the only one); it staying alive on its Redis connection is the expected state, not a hang.
+- Kill background node processes and clean up catalog rows you inserted when done.
+- Integration tests (`apps/api`, `apps/catalog`) self-skip without Postgres — a green run proves nothing unless compose is up.

@@ -1,8 +1,13 @@
 # ADR-0001: Central slim catalog with deterministic canonical IDs
 
-**Status:** Accepted — 2026-07-10
+**Status:** Accepted — 2026-07-10 (point 3 superseded, see below)
 **Supersedes:** PRD §4 "federated fetch-and-cache"
-**Amended by:** [ADR-0003](0003-per-season-media.md) — series/anime media are per-season; the four count fields collapse to one `part_count` (+ `season_number`); series-season canonical key is `tmdb:series:<showId>:<seasonNumber>`.
+**Amended by:**
+
+- [ADR-0002](0002-federated-catalog-search.md) — **supersedes point 3 entirely**: search is federated (local + live central), and the instance-side sync job and `/v1/catalog/changes` feed it specified were removed.
+- [ADR-0003](0003-per-season-media.md) — series/anime media are per-season; the four count fields collapse to one `part_count` (+ `season_number`); series-season canonical key is `tmdb:series:<showId>:<seasonNumber>`.
+- [ADR-0004](0004-typed-media-relations.md) — typed relation edges join the slim contract, stored in `catalog_media_relation` alongside the media table of point 1.
+- [ADR-0005](0005-news-and-newsroom-agent.md) — the catalog gains a second payload (news) published through the same project-operated admin path.
 
 ## Context
 
@@ -50,12 +55,20 @@ the access method.
    Every instance derives the same ID with zero coordination. Implementation:
    `packages/shared/src/canonical-id.ts`.
 
-3. **Instance search is local-only.** `GET /api/v1/search` queries the instance's
-   own `media` table (pg_trgm on title + synonyms). No upstream calls at request
-   time. Instances will receive the catalog via a sync job (v0.2) pulling
-   `GET /v1/catalog/changes?since=<seq>` — one endpoint serves both the initial
-   snapshot (`since=0`, paged) and incremental deltas. Deletions propagate as
-   tombstones (`deletedAt`).
+3. ~~**Instance search is local-only.** `GET /api/v1/search` queries the
+   instance's own `media` table (pg_trgm on title + synonyms). No upstream calls
+   at request time. Instances will receive the catalog via a sync job (v0.2)
+   pulling `GET /v1/catalog/changes?since=<seq>` — one endpoint serves both the
+   initial snapshot (`since=0`, paged) and incremental deltas. Deletions
+   propagate as tombstones (`deletedAt`).~~
+
+   > **Superseded by [ADR-0002](0002-federated-catalog-search.md).** Search is
+   > federated: the instance queries its local `media` table *and* the central
+   > catalog live, in parallel. The sync job, the `/v1/catalog/changes` feed and
+   > the `sync_state` cursor table were all removed. Kept here unedited because
+   > ADR-0002's Context is written as a rebuttal of it — "no upstream calls at
+   > request time" is still true of *provider* APIs, which is the part ADR-0002
+   > deliberately did not change.
 
 4. **Versioning** — catalog version = `max(seq)`, a monotonic bigint bumped by a
    database trigger on every write. Caveat: sequence values can commit out of
@@ -68,14 +81,20 @@ the access method.
 
 ## Consequences
 
-- Search on a fresh instance is empty until the sync job lands; development and
-  tests use `pnpm db:seed` (fixture catalog with canonical IDs).
+- ~~Search on a fresh instance is empty until the sync job lands~~; development
+  and tests use `pnpm db:seed` (fixture catalog with canonical IDs). Per
+  ADR-0002 a fresh instance is no longer empty: it reaches the central catalog
+  live on the first search, so the seed is a dev/test convenience rather than
+  the only way to get results.
 - Canonical IDs are forever: the namespace, key format, and identity-provider
   table must never change. Merges (e.g. a tmdb-keyed and an anilist-keyed row
   turning out to be the same work) are a catalog-service concern, resolved
   centrally, not per-instance.
 - The catalog service is a new deployable (own Postgres, own migrations inside
-  the app); its deployment artifact is a later sprint. The shared contract with
-  instances is the zod schemas in `packages/shared/src/catalog.ts`, not tables.
-- Instance-side sync job (BullMQ queue `catalog-sync`) and catalog population are
-  explicitly out of scope of the sprint that introduced this ADR.
+  the app); its deployment artifact is a later sprint (delivered —
+  `apps/catalog/Dockerfile` and `docs/catalog-hosting.md`). The shared contract
+  with instances is the zod schemas in `packages/shared/src/catalog.ts`, not
+  tables.
+- ~~Instance-side sync job (BullMQ queue `catalog-sync`)~~ and catalog population
+  are explicitly out of scope of the sprint that introduced this ADR. The sync
+  job was never built for real: ADR-0002 retired the design before it shipped.

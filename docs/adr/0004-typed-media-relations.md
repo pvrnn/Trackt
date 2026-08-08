@@ -2,6 +2,7 @@
 
 **Status:** Accepted — 2026-07-25
 **Amends:** ADR-0003 (adds the navigation layer its flat seasons need), ADR-0002 (point 2's materialization gains a second trigger)
+**Since accepted:** the publish path this ADR left owing has shipped — `POST /v1/admin/relations` (`apps/catalog/src/routes/v1/admin.ts`) writes forward-direction edges, and `POST /v1/admin/media` is no longer a 501 stub. The Context and final Consequence below still describe the world before that; nothing else changed.
 
 ## Context
 
@@ -103,8 +104,9 @@ the bulk pull feed, so instances learn about central data live, per request.
   soft-deleted row would resurface through its sibling.
 - A materialized edge target is permanent, inheriting ADR-0002's accepted
   staleness tradeoff: nothing re-reads it, and no tombstone propagates.
-- Catalog population owes a relations publish endpoint (there is no
-  `POST /v1/admin/relations`) and must normalize provider vocabularies into the
+- Catalog population owes a relations publish endpoint (~~there is no
+  `POST /v1/admin/relations`~~ — since delivered) and must normalize provider
+  vocabularies into the
   four stored types **always in the forward direction** — AniList's
   `SEQUEL`/`PREQUEL` both become one stored `sequel` on whichever work comes
   first, `SOURCE`/`ADAPTATION` one stored `adaptation`, `SIDE_STORY`/`PARENT`

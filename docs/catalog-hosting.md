@@ -1,31 +1,34 @@
 # Catalog service hosting — provider comparison
 
-Decision doc for ROADMAP item 1 (**Catalog service deployment**). Prices checked July 2026; cloud pricing drifts, re-verify before committing a card.
+Decision doc behind the shipped **catalog service deployment** (ROADMAP → Done, Infra). Prices checked July 2026; cloud pricing drifts, re-verify before committing a card.
 
-> **Traffic-shape update (ADR-0002):** the assumption below — background polling,
-> cold starts tolerated by retry/backoff — no longer holds. Search now queries
-> the central catalog live from every self-hosted instance's request path
-> (`GET /v1/catalog/search`, via `apps/api/src/lib/federated-search.ts`), bounded
-> by a short client-side timeout (`CATALOG_SEARCH_TIMEOUT_MS`). Traffic is still
-> instance-bounded (browsers never see `CATALOG_URL`), but a cold start now
-> eats into a live user's search latency instead of a background job's retry
-> budget. This strengthens the case for an always-on floor tier (e.g. Scaleway
-> min-scale 1) over pure scale-to-zero once there's real self-hosted adoption —
-> not re-evaluated here, just flagged for whoever picks this doc back up.
+> **Read this first — the traffic shape changed after the comparison was made.**
+> This doc was written when instances polled `GET /v1/catalog/changes` every 6
+> hours and cold starts were absorbed by a background job's retry/backoff.
+> **ADR-0002 deleted that feed.** The catalog is now on the *interactive request
+> path* of every self-hosted instance, through three live reads:
+>
+> | Read | Timeout | Degrades to |
+> | --- | --- | --- |
+> | `GET /v1/catalog/search` (ADR-0002) | `CATALOG_SEARCH_TIMEOUT_MS`, 1500 ms | local-only results |
+> | `GET /v1/catalog/relations` (ADR-0004) | `CATALOG_RELATIONS_TIMEOUT_MS`, 1000 ms | locally-known edges |
+> | `GET /v1/news`, `/v1/news/:slug` (ADR-0005) | `CATALOG_NEWS_TIMEOUT_MS`, 2000 ms | an empty feed |
+>
+> Traffic is still instance-bounded — browsers never see `CATALOG_URL` — but a
+> cold start now eats a live user's latency budget rather than a cron's. The
+> per-provider comparison below is unaffected (the prices and the shape of each
+> platform's offer haven't changed); what *is* affected is the scale-to-zero
+> recommendation, revised at the bottom.
 
 ## What we're hosting
 
 `apps/catalog` is deliberately easy to host (see [ADR-0001](adr/0001-central-slim-catalog.md)):
 
 - One tiny Fastify container (Node 22), self-migrates on boot, `/healthz` + `/readyz`.
-- One small dedicated Postgres (`catalog_media`, single table). Populated catalog likely **0.5–2 GB** (anime-offline-database + TVmaze + Wikidata movies + manga ≈ a few hundred thousand slim rows).
-- **Read path is now live, not polled** (ADR-0002): instances query `GET /v1/catalog/search` on every user search, timeout-bounded and degrading to local-only results if the catalog is slow or down. See the callout above — this replaces the old "instances poll `/v1/catalog/changes` every 6h, cold starts are fine" assumption.
-- Write path is a single-writer importer hitting `POST /v1/admin/media` occasionally (next sprint).
+- One small dedicated Postgres. Seven tables: `catalog_media`, `catalog_media_relation` (ADR-0004) and the five `news_*` tables (ADR-0005). Populated catalog likely **0.5–2 GB**, essentially all of it `catalog_media` (anime-offline-database + TVmaze + Wikidata movies + manga ≈ a few hundred thousand slim rows); relations and news are rounding errors beside it.
+- **Read path is live, not polled** — the three endpoints in the callout above, each timeout-bounded and each degrading rather than failing.
+- Write path is a single-writer admin path (`POST /v1/admin/media`, `/v1/admin/relations`, `/v1/admin/news`), hit occasionally by the operator or an importer.
 - No PII in the catalog, but EU hosting is a nice-to-have (project operator is in France).
-
-Scale-to-zero is still viable at low traffic, but the cold-start tolerance this
-section used to lean on is gone — re-check the always-on-floor-tier tradeoff
-once there's real self-hosted search volume.
 
 ## TL;DR comparison
 
@@ -51,8 +54,8 @@ once there's real self-hosted search volume.
 
 ### Scaleway — cheapest, EU, ~€0–5/mo
 
-- **Serverless Containers**: €0.00001/vCPU-s + €0.000002/GB-s **after a free tier of 200k vCPU-s + 400k GB-s per month**. With scale-to-zero (min-scale 0), our 6-hourly poll traffic stays comfortably inside the free tier → **~€0**. Pinned always-on at 0.25 vCPU/256 MB ≈ **€5/mo**.
-- Cold starts (~a few seconds, plus migration check on boot) are absorbed by the worker's retry/backoff.
+- **Serverless Containers**: €0.00001/vCPU-s + €0.000002/GB-s **after a free tier of 200k vCPU-s + 400k GB-s per month**. With scale-to-zero (min-scale 0) and today's traffic (no self-hosted adoption yet) this stays inside the free tier → **~€0**. Pinned always-on at 0.25 vCPU/256 MB ≈ **€5/mo**.
+- Cold starts are ~a few seconds plus a migration check on boot. That used to be free — a background job just retried. It is now paid for by whoever is typing in a search box, and it exceeds all three client timeouts, so a cold start is a *degraded response*, not a slow one.
 - DB options:
   - **Scaleway Serverless SQL Database** (Postgres protocol): storage ~€0.10/GB-mo, compute billed per active query time → near-zero for our load. Keeps everything in one French provider.
   - Or **Neon free tier** (below) — also ~€0.
@@ -72,14 +75,14 @@ once there's real self-hosted search volume.
 
 ### Neon — the DB half, not the whole answer
 
-- Serverless Postgres, scale-to-zero after 5 min idle. **Free tier: 100 CU-hours/mo + 0.5 GB storage** — our 6-hourly sync queries barely dent the compute budget.
+- Serverless Postgres, scale-to-zero after 5 min idle. **Free tier: 100 CU-hours/mo + 0.5 GB storage** — comfortable at current query volume, though its own idle-suspend adds a second cold start under the container's (see the recommendation).
 - 2026 pricing removed the paid-plan floor: **Launch is purely usage-based** ($0.106/CU-h, $0.35/GB-mo storage). If the populated catalog outgrows 0.5 GB, we'd pay **single-digit $/mo**, mostly storage.
 - No app hosting — pairs with Scaleway/Railway/anything for the Fastify container.
 
 ### Supabase — more product than we need
 
 - Free tier: 500 MB database, then the project **goes read-only**; a populated catalog will blow past that, and the next step is a **$25/mo Pro** plan — paying for auth/storage/realtime features the catalog will never use.
-- Also: direct Postgres connections are IPv6-first (external hosts often need their pooler), and free projects pause after ~1 week idle (our 6 h sync would keep it alive, but it's a footgun).
+- Also: direct Postgres connections are IPv6-first (external hosts often need their pooler), and free projects pause after ~1 week idle — a footgun for a service whose traffic is entirely other people's instances.
 - Verdict: great BaaS, wrong tool — if we want serverless Postgres, Neon is the leaner pick.
 
 ### Vercel — architectural mismatch
@@ -87,7 +90,7 @@ once there's real self-hosted search volume.
 - Built for serverless/edge functions, not a long-running Fastify server: we'd wrap the app in a handler, migrations-on-boot would run per cold start, and Hobby caps execution at 10 s.
 - **Hobby is restricted to non-commercial use**, and there's no bundled Postgres — you'd add Neon anyway. At that point, pairing Neon with a real container host is strictly better. Skip.
 
-## Cost scenarios (populated catalog, a handful of instances syncing)
+## Cost scenarios (populated catalog, a handful of instances reading live)
 
 | Setup | Monthly |
 | --- | --- |
@@ -102,10 +105,16 @@ once there's real self-hosted search volume.
 
 Two defensible picks, one clear loser set (Vercel/Supabase out; DO managed too expensive):
 
-1. **Cheapest / EU: Scaleway Serverless Container (min-scale 0) + Neon free tier.** ~€0/mo until the project has real traction, Paris + EU regions, and the sync protocol was *designed* to tolerate exactly this (cold starts, retries). Cost of admission: a Dockerfile, a registry push, and a ~30-line GitHub Action.
+1. **Cheapest / EU: Scaleway Serverless Container (min-scale 0) + Neon free tier.** ~€0/mo, Paris + EU regions. Cost of admission: a Dockerfile, a registry push, and a ~30-line GitHub Action.
 2. **Simplest: Railway (app + Postgres together).** ~$7–12/mo, one dashboard, GitHub-integrated deploys, matches the PRD §6.1 platform choice. Pay ~€100/yr for near-zero ops thought.
 
-**Suggested: start on Scaleway + Neon.** The service is a background dependency nobody watches — paying a monthly floor for instant responses to a 6-hourly cron is waste. If operating two providers ever grates, the Dockerfile and env contract (`DATABASE_URL`, `CATALOG_ADMIN_TOKEN`, `PORT`) move to Railway unchanged in an afternoon.
+**Suggested: start on Scaleway + Neon at min-scale 0, and move to min-scale 1 the moment a third party actually runs an instance.**
+
+The original reasoning for scale-to-zero — "a background dependency nobody watches; paying a monthly floor for instant responses to a 6-hourly cron is waste" — **no longer applies.** ADR-0002 put this service on the interactive path, so a cold start is now a user-visible degradation: search silently drops to local-only results, the relations rail thins out, the news feed renders empty. Nothing errors, which is by design and also means **nobody will report it.**
+
+Scale-to-zero is still right *today*, because the only instance reading this catalog is the operator's own and a €5/mo floor buys nothing. It stops being right the moment the read traffic belongs to someone else. Two compounding cold starts make this sharper than it looks: Neon suspends after 5 minutes idle underneath a container that has also scaled to zero, so the first search after a quiet period pays both. Budget **~€5–7/mo** (Scaleway min-scale 1 + Neon Launch) as the real steady-state cost, not €0.
+
+If operating two providers ever grates, the Dockerfile and env contract (`DATABASE_URL`, `CATALOG_ADMIN_TOKEN`, `PORT`) move to Railway unchanged in an afternoon — and Railway has no scale-to-zero, so it sidesteps this tradeoff by charging for it.
 
 Whichever is picked, the deploy artifact is the same and platform-agnostic: `apps/catalog/Dockerfile` + CI image build + env docs — no platform lock-in in the repo itself.
 
@@ -156,14 +165,14 @@ section), skip this step entirely — Railway builds straight from
    `ghcr.io/pvrnn/trackt-catalog:latest` (whatever tag you pushed in step 1).
 2. Leave the port on Scaleway's injected `PORT` — the app already reads
    `PORT` from env (default 3002) and binds `0.0.0.0`, so no extra config.
-3. Min scale 0 to start (matches the ~€0/mo estimate above); revisit per the
-   cold-start callout at the top of this doc once there's real self-hosted
-   search traffic.
+3. Min scale 0 to start (matches the ~€0/mo estimate above); switch to 1 once
+   anyone but you runs an instance, per the recommendation above.
 4. Environment variables:
    - `NODE_ENV=production`
    - `DATABASE_URL=<Neon pooled connection string>`
-   - `CATALOG_ADMIN_TOKEN=<openssl rand -base64 32>` — keep secret; gates
-     `POST /v1/admin/media`, wired up in the catalog-population sprint.
+   - `CATALOG_ADMIN_TOKEN=<openssl rand -base64 32>` — keep secret; gates every
+     write route: `POST /v1/admin/media`, `POST /v1/admin/relations` and the
+     `/v1/admin/news` surface, all behind one `requireAdmin` preHandler.
    - `LOG_LEVEL=info` (optional)
 5. Health check path: `/healthz`.
 6. Deploy, then confirm:
@@ -171,6 +180,7 @@ section), skip this step entirely — Railway builds straight from
        curl https://<container-url>/healthz
        curl https://<container-url>/readyz   # expect {"status":"ok","checks":{"database":"ok"}}
        curl "https://<container-url>/v1/catalog/search?q=test"   # expect {"results":[]} on an empty catalog
+       curl "https://<container-url>/v1/news"                    # expect {"articles":[],"nextCursor":null}
 
 7. A custom domain is optional — the platform-issued URL is fine, since this
    is only ever called server-to-server by self-hosted instances' backends,
@@ -179,15 +189,19 @@ section), skip this step entirely — Railway builds straight from
 
 ### 4. Wire up self-hosted instances
 
-Every self-hosted Trackt instance that wants federated search sets, in its
-own `.env` / `docker-compose.yml`:
+One variable turns on every central read — federated search (ADR-0002), typed
+relations (ADR-0004) and the News section (ADR-0005) all travel over it. In the
+instance's own `.env` / `docker-compose.yml`:
 
     CATALOG_URL=https://<the container's public URL>
 
-Left unset, `apps/api`'s federated search
-(`apps/api/src/lib/federated-search.ts`, ADR-0002) skips the central catalog
-and returns local-only results — there's no hard dependency, so this rolls
-out gradually and safely.
+Left unset, each of those degrades independently and silently: search returns
+local-only results, relations fall back to the genre-overlap list, and `/news`
+renders its empty state. There's no hard dependency, so this rolls out
+gradually and safely. The three timeouts
+(`CATALOG_SEARCH_TIMEOUT_MS`, `CATALOG_RELATIONS_TIMEOUT_MS`,
+`CATALOG_NEWS_TIMEOUT_MS`) are optional overrides — raise them if the container
+runs at min-scale 0 and cold starts are being tolerated deliberately.
 
 ### Fallback: Railway
 
