@@ -123,7 +123,7 @@ export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
             AND updated_at >= date_trunc('year', now())
         `),
         loadStreak(db, user.id),
-        loadActivity(db, user.id, ACTIVITY_LIMIT),
+        loadActivity(db, user.id, ACTIVITY_LIMIT, user),
       ]);
 
       return {

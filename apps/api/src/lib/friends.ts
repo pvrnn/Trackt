@@ -47,6 +47,21 @@ export async function areFriends(db: Db, userId1: string, userId2: string): Prom
   return rows.length > 0;
 }
 
+/** The raw row for a pair, or undefined — the public-profile `friendState` reads this directly. */
+export async function loadFriendshipRow(
+  db: Db,
+  userId1: string,
+  userId2: string,
+): Promise<FriendshipRow | undefined> {
+  const [lo, hi] = pairKey(userId1, userId2);
+  const [row] = await db.execute(sql`
+    SELECT status, requested_by FROM friendship
+    WHERE user_a_id = ${lo}::uuid AND user_b_id = ${hi}::uuid
+  `);
+  if (!row) return undefined;
+  return { status: row.status as FriendshipStatus, requestedBy: row.requested_by as string };
+}
+
 /**
  * Send (or, if the other side already asked, auto-accept) a friend request.
  * Race-free by construction: the PK plus `ON CONFLICT ... WHERE` collapses
@@ -121,6 +136,25 @@ export async function countPendingOutgoing(db: Db, userId: string): Promise<numb
   const [row] = await db.execute(sql`
     SELECT count(*)::int AS count FROM friendship
     WHERE status = 'pending' AND requested_by = ${userId}::uuid
+  `);
+  return Number(row?.count ?? 0);
+}
+
+/** Accepted friendships, either side of the pair — the profile header badge. */
+export async function countFriends(db: Db, userId: string): Promise<number> {
+  const [row] = await db.execute(sql`
+    SELECT count(*)::int AS count FROM friendship
+    WHERE (user_a_id = ${userId}::uuid OR user_b_id = ${userId}::uuid) AND status = 'accepted'
+  `);
+  return Number(row?.count ?? 0);
+}
+
+/** Pending requests from someone else, waiting on this user — the own-profile badge. */
+export async function countIncomingRequests(db: Db, userId: string): Promise<number> {
+  const [row] = await db.execute(sql`
+    SELECT count(*)::int AS count FROM friendship
+    WHERE status = 'pending' AND requested_by <> ${userId}::uuid
+      AND (user_a_id = ${userId}::uuid OR user_b_id = ${userId}::uuid)
   `);
   return Number(row?.count ?? 0);
 }

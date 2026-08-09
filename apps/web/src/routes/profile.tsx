@@ -17,6 +17,7 @@ import {
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
+import { AddFriendDialog } from '../components/social/AddFriendDialog';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -26,6 +27,7 @@ import { Modal, ModalTitle } from '../components/ui/Modal';
 import { StatCard } from '../components/ui/StatCard';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
+import { useFriends } from '../lib/friends';
 import { activityVerbLabel, relativeTime } from '../lib/home';
 import { removeAvatar, updateProfile, uploadAvatar, useProfileSummary } from '../lib/profile';
 
@@ -46,7 +48,9 @@ function ProfilePage() {
   const queryClient = useQueryClient();
   const { isPending, navUser, refetch } = useAuthedPage();
   const { data: summary, isError: loadError } = useProfileSummary();
+  const { data: friendsOverview } = useFriends();
   const [editing, setEditing] = useState(false);
+  const [addingFriend, setAddingFriend] = useState(false);
 
   if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
@@ -99,6 +103,19 @@ function ProfilePage() {
                       <span className="font-semibold text-fg">{summary.stats.titlesTracked}</span>{' '}
                       TITLES TRACKED
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setAddingFriend(true)}
+                      className="cursor-pointer hover:text-fg"
+                    >
+                      <span className="font-semibold text-fg">{summary.stats.friendCount}</span>{' '}
+                      {summary.stats.friendCount === 1 ? 'FRIEND' : 'FRIENDS'}
+                      {summary.stats.incomingRequestCount > 0 && (
+                        <span className="ml-1.5 rounded-full bg-pink px-1.5 py-0.5 text-[10px] font-bold text-on-prism">
+                          {summary.stats.incomingRequestCount}
+                        </span>
+                      )}
+                    </button>
                     {summary.stats.dayStreak > 0 && (
                       <span className="text-pink">● {summary.stats.dayStreak}-DAY STREAK</span>
                     )}
@@ -226,26 +243,52 @@ function ProfilePage() {
                     </GlassCard>
                   )}
                 </section>
-                <section className="flex flex-col gap-4">
-                  <h2 className="font-heading text-[32px] uppercase">Badges</h2>
-                  <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                    Badges land with the v1.x social layer — streaks, importer feats, cataloguer
-                    credits.
-                  </GlassCard>
-                  <GlassCard className="flex items-center justify-between rounded-card-sm px-5 py-4">
-                    <span className="font-label text-xs tracking-label text-dim">
-                      PROFILE VISIBILITY
-                    </span>
-                    <Tooltip label="Coming soon — profiles are private until the social layer">
-                      <span
-                        tabIndex={0}
-                        className="cursor-not-allowed font-label text-xs font-semibold text-dim/60"
-                      >
-                        PRIVATE
+                <div className="flex flex-col gap-10">
+                  <section className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-heading text-[32px] uppercase">Friends</h2>
+                      <Button variant="ghost" onClick={() => setAddingFriend(true)}>
+                        ＋ ADD FRIEND
+                      </Button>
+                    </div>
+                    {friendsOverview && friendsOverview.friends.length > 0 ? (
+                      <ul className="flex flex-wrap gap-3">
+                        {friendsOverview.friends.map((friend) => (
+                          <li key={friend.id} className="flex flex-col items-center gap-1.5">
+                            <Avatar name={friend.username} src={friend.image} size={44} />
+                            <span className="max-w-16 truncate text-xs text-muted">
+                              {friend.username}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
+                        No friends yet — search by name or handle to send a request.
+                      </GlassCard>
+                    )}
+                  </section>
+                  <section className="flex flex-col gap-4">
+                    <h2 className="font-heading text-[32px] uppercase">Badges</h2>
+                    <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
+                      Badges land with the v1.x social layer — streaks, importer feats, cataloguer
+                      credits.
+                    </GlassCard>
+                    <GlassCard className="flex items-center justify-between rounded-card-sm px-5 py-4">
+                      <span className="font-label text-xs tracking-label text-dim">
+                        PROFILE VISIBILITY
                       </span>
-                    </Tooltip>
-                  </GlassCard>
-                </section>
+                      <Tooltip label="Anyone with your profile link can view it — no per-user visibility setting yet (ADR-0006)">
+                        <span
+                          tabIndex={0}
+                          className="cursor-help font-label text-xs font-semibold text-dim/60"
+                        >
+                          PUBLIC
+                        </span>
+                      </Tooltip>
+                    </GlassCard>
+                  </section>
+                </div>
               </div>
             </main>
             {editing && (
@@ -255,6 +298,7 @@ function ProfilePage() {
                 onSaved={applyEdits}
               />
             )}
+            {addingFriend && <AddFriendDialog onClose={() => setAddingFriend(false)} />}
           </>
         )}
       </div>

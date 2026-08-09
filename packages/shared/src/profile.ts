@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { FriendStateSchema } from './friends.js';
 import { ActivityEntrySchema } from './home.js';
 import { MediaKindSchema } from './media.js';
 
 /**
- * Own-profile summary (`GET /api/v1/me/profile`). Followers/badges/visibility
- * wait for the v1.x social layer; everything here derives from the viewer's
- * account and tracking rows.
+ * Own-profile summary (`GET /api/v1/me/profile`) and public profile
+ * (`GET /api/v1/users/:username/profile`, ADR-0006 phase 3). Badges wait for
+ * the v1.x social layer; everything else derives from the subject's account
+ * and tracking rows, plus (for the public route) the viewer's relationship
+ * to them.
  */
 
 export const FavoriteEntrySchema = z.object({
@@ -54,29 +57,53 @@ export function normalizeSocialLink(platform: SocialPlatform, input: string): st
   return `${base}${value.replace(/^@/, '')}`;
 }
 
+export const ProfileUserSchema = z.object({
+  name: z.string(),
+  username: z.string(),
+  bio: z.string().nullable(),
+  image: z.string().nullable(),
+  socialLinks: SocialLinksSchema,
+  joinedAt: z.iso.datetime(),
+});
+export type ProfileUser = z.infer<typeof ProfileUserSchema>;
+
+export const ProfileStatsSchema = z.object({
+  episodesThisYear: z.number().int().nonnegative(),
+  chaptersThisYear: z.number().int().nonnegative(),
+  completed: z.number().int().nonnegative(),
+  titlesTracked: z.number().int().nonnegative(),
+  /** Mean of the subject's media ratings, null while unrated. */
+  meanRating: z.number().nullable(),
+  dayStreak: z.number().int().nonnegative(),
+});
+export type ProfileStats = z.infer<typeof ProfileStatsSchema>;
+
 export const ProfileSummarySchema = z.object({
-  user: z.object({
-    name: z.string(),
-    username: z.string(),
-    bio: z.string().nullable(),
-    image: z.string().nullable(),
-    socialLinks: SocialLinksSchema,
-    joinedAt: z.iso.datetime(),
-  }),
-  stats: z.object({
-    episodesThisYear: z.number().int().nonnegative(),
-    chaptersThisYear: z.number().int().nonnegative(),
-    completed: z.number().int().nonnegative(),
-    titlesTracked: z.number().int().nonnegative(),
-    /** Mean of the viewer's media ratings, null while unrated. */
-    meanRating: z.number().nullable(),
-    dayStreak: z.number().int().nonnegative(),
+  user: ProfileUserSchema,
+  stats: ProfileStatsSchema.extend({
+    friendCount: z.number().int().nonnegative(),
+    incomingRequestCount: z.number().int().nonnegative(),
   }),
   /** Grouped client-side by kind; ordered by kind then rank. */
   favorites: z.array(FavoriteEntrySchema),
   activity: z.array(ActivityEntrySchema),
 });
 export type ProfileSummary = z.infer<typeof ProfileSummarySchema>;
+
+/**
+ * Anonymous-readable (ADR-0006 point 3): nothing here is gated by friend
+ * status, `friendState`/`friendCount` are just extra context the viewer sees
+ * alongside it. `friendState` is `'none'` for a signed-out visitor.
+ */
+export const PublicProfileSchema = z.object({
+  user: ProfileUserSchema,
+  stats: ProfileStatsSchema,
+  favorites: z.array(FavoriteEntrySchema),
+  activity: z.array(ActivityEntrySchema),
+  friendState: FriendStateSchema,
+  friendCount: z.number().int().nonnegative(),
+});
+export type PublicProfile = z.infer<typeof PublicProfileSchema>;
 
 /** Editable profile fields (`PATCH /api/v1/me/profile`). Username is fixed. */
 export const UpdateProfileBodySchema = z
