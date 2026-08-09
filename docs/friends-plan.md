@@ -1,7 +1,9 @@
 # Plan — Mutual friends (request + accept) and `followers` list visibility
 
-> **Status:** Not started — planning only. Deeper context: [PRD](PRD.md), [ROADMAP](ROADMAP.md).
-> The data-model and visibility decisions here should be recorded as **ADR-0006** when Phase 1 lands.
+> **Status:** Phase 1 landed (data model + friends API + ADR-0006, branch
+> `feat/mutual-friends-phase1`). Phases 2–4 (`followers` visibility unblock,
+> public profile endpoint, `/users/$username`) not started. Deeper context:
+> [PRD](PRD.md), [ROADMAP](ROADMAP.md).
 
 ## Context
 

@@ -13,7 +13,7 @@ import {
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
-import { reportStatusEnum, targetTypeEnum } from './enums.js';
+import { friendshipStatusEnum, reportStatusEnum, targetTypeEnum } from './enums.js';
 import { users } from './auth.js';
 
 /**
@@ -76,21 +76,40 @@ export const comment = pgTable(
   ],
 );
 
-export const follow = pgTable(
-  'follow',
+/**
+ * Mutual friendship, request + accept (ADR-0006). Canonical-pair rather than a
+ * directed `(requester, addressee)` row: is-friend is a single PK probe, and
+ * the reverse-request race is impossible by construction — A requesting B
+ * while B requests A hits the PK and resolves in one `ON CONFLICT` statement
+ * instead of a racy read-then-write.
+ */
+export const friendship = pgTable(
+  'friendship',
   {
-    followerId: uuid('follower_id')
+    /** Ordered pair: user_a_id < user_b_id, so one row is the *whole* relationship. */
+    userAId: uuid('user_a_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    followeeId: uuid('followee_id')
+    userBId: uuid('user_b_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    /** Who sent the request — the only asymmetry a mutual relationship keeps. */
+    requestedBy: uuid('requested_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: friendshipStatusEnum('status').notNull().default('pending'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
   },
   (t) => [
-    primaryKey({ columns: [t.followerId, t.followeeId] }),
-    index('follow_followee_idx').on(t.followeeId),
-    check('follow_no_self', sql`${t.followerId} <> ${t.followeeId}`),
+    primaryKey({ columns: [t.userAId, t.userBId] }),
+    index('friendship_user_b_idx').on(t.userBId, t.status),
+    // The ordering invariant that makes one-row-per-pair possible; subsumes a no-self check.
+    check('friendship_pair_ordered', sql`${t.userAId} < ${t.userBId}`),
+    check(
+      'friendship_requester_member',
+      sql`${t.requestedBy} = ${t.userAId} OR ${t.requestedBy} = ${t.userBId}`,
+    ),
   ],
 );
 
