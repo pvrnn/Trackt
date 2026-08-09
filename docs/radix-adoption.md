@@ -58,9 +58,11 @@ Notes worth keeping:
 
 `routes/lists.tsx:57-74`
 
-MY LISTS is hardcoded `selected`; FOLLOWING and COLLABORATIVE are inert (now tooltipped)
-spans, because both need the v1.x follow system. These aren't tabs yet — they're one
-active chip and two placeholders. Adopt `Tabs` when the scopes actually switch panels.
+MY LISTS is hardcoded `selected`; FRIENDS and COLLABORATIVE are inert (now tooltipped)
+spans, because FRIENDS needs a friends-scoped lists endpoint (ADR-0006 phases 1–2 landed
+the relationship layer, not this) and COLLABORATIVE needs a membership table. These
+aren't tabs yet — they're one active chip and two placeholders. Adopt `Tabs` when the
+scopes actually switch panels.
 
 ### Profile visibility → `switch`
 

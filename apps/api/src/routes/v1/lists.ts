@@ -16,6 +16,7 @@ import {
   type ListEntry,
   type ListSummary,
 } from '@trackt/shared';
+import { areFriends } from '../../lib/friends.js';
 import { canEditList, canViewList } from '../../lib/list-visibility.js';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
 import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
@@ -282,7 +283,14 @@ export const listRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
       const viewer = await getSessionUser(app, request);
       const row = await loadList(db, request.params.id);
-      if (!row || !canViewList(row, viewer)) {
+      const isFriend =
+        row !== undefined &&
+        row.visibility === 'followers' &&
+        viewer !== null &&
+        row.ownerId !== viewer.id
+          ? await areFriends(db, viewer.id, row.ownerId)
+          : false;
+      if (!row || !canViewList(row, viewer, isFriend)) {
         return reply.status(404).send({ error: 'list not found' });
       }
       return loadListDetail(db, row, viewer);
