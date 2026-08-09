@@ -1,9 +1,9 @@
 # Plan — Mutual friends (request + accept) and `followers` list visibility
 
-> **Status:** Phase 1 landed (data model + friends API + ADR-0006, branch
-> `feat/mutual-friends-phase1`). Phases 2–4 (`followers` visibility unblock,
-> public profile endpoint, `/users/$username`) not started. Deeper context:
-> [PRD](PRD.md), [ROADMAP](ROADMAP.md).
+> **Status:** Phases 1–2 landed (data model + friends API + ADR-0006 on
+> `feat/mutual-friends-phase1`; `followers` list visibility unblocked on
+> `feat/mutual-friends-phase2`). Phases 3–4 (public profile endpoint,
+> `/users/$username`) not started. Deeper context: [PRD](PRD.md), [ROADMAP](ROADMAP.md).
 
 ## Context
 

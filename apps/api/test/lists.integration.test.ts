@@ -69,6 +69,15 @@ describe.runIf(available)('lists (postgres)', () => {
       .split(';')[0] as string;
   }
 
+  async function usernameFor(cookie: string): Promise<string> {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/me/profile',
+      headers: { cookie },
+    });
+    return (response.json() as { user: { username: string } }).user.username;
+  }
+
   beforeAll(async () => {
     await runMigrations(TEST_DATABASE_URL);
     db = createDb(TEST_DATABASE_URL, { max: 1 });
@@ -241,9 +250,26 @@ describe.runIf(available)('lists (postgres)', () => {
     expect((await detail(owner, priv.id)).statusCode).toBe(200);
   });
 
-  it('fails closed on `followers` until the follow system exists', async () => {
+  it('shows `followers`-visibility lists to accepted friends and 404s for a stranger', async () => {
+    const friend = await signUp('bestie');
+    const friendUsername = await usernameFor(friend);
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/me/friends/requests',
+      headers: { cookie: owner },
+      payload: { username: friendUsername },
+    });
+    const ownerUsername = await usernameFor(owner);
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/me/friends/requests',
+      headers: { cookie: friend },
+      payload: { username: ownerUsername },
+    });
+
     const followersOnly = await createList(owner, { title: 'Followers', visibility: 'followers' });
     expect((await detail(stranger, followersOnly.id)).statusCode).toBe(404);
+    expect((await detail(friend, followersOnly.id)).statusCode).toBe(200);
     expect((await detail(owner, followersOnly.id)).statusCode).toBe(200);
   });
 

@@ -7,8 +7,9 @@ import { MediaKindSchema, VisibilitySchema } from './media.js';
  * predate this contract, so every field here maps to a column that already
  * exists — no migration.
  *
- * Two scopes the Lists mockup draws are not served yet: FOLLOWING needs the
- * v1.x follow system and COLLABORATIVE needs a membership table, so
+ * Two scopes the Lists mockup draws are not served yet: FRIENDS needs a
+ * friends-scoped lists endpoint (out of scope for ADR-0006 phase 2 — see
+ * `docs/friends-plan.md`) and COLLABORATIVE needs a membership table, so
  * `ListsQuerySchema.scope` deliberately admits only `mine` rather than
  * pretending. The UI renders those tabs visibly inert.
  */

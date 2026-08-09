@@ -19,20 +19,21 @@ export const Route = createFileRoute('/lists')({
 });
 
 /**
- * The mockup's three scopes. Only MY LISTS has a backing feature: FOLLOWING
- * needs the v1.x follow system and COLLABORATIVE needs a membership table, so
+ * The mockup's three scopes. Only MY LISTS has a backing feature: FRIENDS
+ * needs a friends-scoped lists endpoint (out of scope for ADR-0006 phase 2 —
+ * see `docs/friends-plan.md`) and COLLABORATIVE needs a membership table, so
  * both render visibly inert rather than as controls that quietly do nothing.
  */
 const SCOPES = [
   { key: 'mine', label: 'MY LISTS', ready: true },
-  { key: 'following', label: 'FOLLOWING', ready: false },
+  { key: 'following', label: 'FRIENDS', ready: false },
   { key: 'collaborative', label: 'COLLABORATIVE', ready: false },
 ] as const;
 
-/** Human copy for each visibility, including the caveat `followers` currently carries. */
+/** Human copy for each visibility. */
 const VISIBILITY_HELP: Record<Visibility, string> = {
   public: 'Anyone with the link can see this list.',
-  followers: 'Followers only — until the follow system ships, that means just you.',
+  followers: 'Friends only — visible to accepted friends.',
   private: 'Only you can see this list.',
 };
 
