@@ -1,5 +1,6 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
+  FRIENDSHIP_STATUSES,
   LOG_STATUSES,
   MEDIA_KINDS,
   MEDIA_RELATION_TYPES,
@@ -23,3 +24,4 @@ export const targetTypeEnum = pgEnum('target_type', RATING_TARGETS);
 export const visibilityEnum = pgEnum('visibility', VISIBILITIES);
 export const userRoleEnum = pgEnum('user_role', USER_ROLES);
 export const reportStatusEnum = pgEnum('report_status', ['open', 'resolved', 'dismissed']);
+export const friendshipStatusEnum = pgEnum('friendship_status', FRIENDSHIP_STATUSES);

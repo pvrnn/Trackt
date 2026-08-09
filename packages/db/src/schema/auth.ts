@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { boolean, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { userRoleEnum } from './enums.js';
 
@@ -7,26 +8,35 @@ import { userRoleEnum } from './enums.js';
  * a UUID generateId so these stay shard-friendly (PRD §5).
  */
 
-export const users = pgTable('user', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').notNull().default(false),
-  image: text('image'),
-  // Trackt profile fields (PRD §3.4, §7)
-  username: text('username').unique(),
-  /** Raw-cased username as typed at signup; `username` holds the lowercase form (better-auth username plugin). */
-  displayUsername: text('display_username'),
-  bio: text('bio'),
-  /** {"x": "https://x.com/…", "anilist": …} — platform keys from @trackt/shared SOCIAL_PLATFORMS. */
-  socialLinks: jsonb('social_links').$type<Record<string, string>>().notNull().default({}),
-  role: userRoleEnum('role').notNull().default('user'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const users = pgTable(
+  'user',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    image: text('image'),
+    // Trackt profile fields (PRD §3.4, §7)
+    username: text('username').unique(),
+    /** Raw-cased username as typed at signup; `username` holds the lowercase form (better-auth username plugin). */
+    displayUsername: text('display_username'),
+    bio: text('bio'),
+    /** {"x": "https://x.com/…", "anilist": …} — platform keys from @trackt/shared SOCIAL_PLATFORMS. */
+    socialLinks: jsonb('social_links').$type<Record<string, string>>().notNull().default({}),
+    role: userRoleEnum('role').notNull().default('user'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    // Typo-tolerant handle/name search for friend discovery (pg_trgm, extension
+    // created in migration 0000).
+    index('user_username_trgm_idx').using('gin', sql`${t.username} gin_trgm_ops`),
+    index('user_name_trgm_idx').using('gin', sql`${t.name} gin_trgm_ops`),
+  ],
+);
 
 export const sessions = pgTable(
   'session',

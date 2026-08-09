@@ -85,6 +85,20 @@
       "when": 1784990671178,
       "tag": "0011_media_relations",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1786290270659,
+      "tag": "0012_drop_follow",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786290288979,
+      "tag": "0013_friendship",
+      "breakpoints": true
     }
   ]
 }
