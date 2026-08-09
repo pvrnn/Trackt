@@ -83,7 +83,7 @@ function ArticlePage() {
                       · {formatNewsDate(article.publishedAt)}
                     </time>
                   </div>
-                  <h1 className="font-display text-[40px] leading-[1.05] text-white uppercase">
+                  <h1 className="font-heading text-[40px] leading-[1.05] text-white uppercase">
                     {article.title}
                   </h1>
                 </div>
@@ -170,7 +170,7 @@ function LinkedWorks({ works }: { works: NewsLinkedWork[] }) {
 function Missing() {
   return (
     <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-white/20 bg-glass px-8 py-10 text-center backdrop-blur-[16px]">
-      <p className="font-display text-[32px] text-faint uppercase">No such story</p>
+      <p className="font-heading text-[32px] text-faint uppercase">No such story</p>
       <p className="max-w-[420px] text-sm text-muted">
         This article doesn&apos;t exist, or it was withdrawn.
       </p>

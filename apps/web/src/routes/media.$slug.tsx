@@ -158,7 +158,7 @@ function MediaPage() {
     return (
       <Shell user={navUser}>
         <main className="mx-auto flex max-w-[1360px] flex-col items-start gap-4 px-10 pt-14 pb-20">
-          <h1 className="font-display text-[56px] leading-none uppercase">Couldn’t load</h1>
+          <h1 className="font-heading text-[56px] leading-none uppercase">Couldn’t load</h1>
           <p className="max-w-[540px] text-[15px] text-muted">
             Something went wrong fetching this title — the instance API may be unreachable, or its
             response wasn’t what we expected.
@@ -178,7 +178,7 @@ function MediaPage() {
     return (
       <Shell user={navUser}>
         <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-10 pt-14 pb-20">
-          <h1 className="font-display text-[56px] leading-none uppercase">Not found</h1>
+          <h1 className="font-heading text-[56px] leading-none uppercase">Not found</h1>
           <p className="text-[15px] text-muted">
             Nothing lives at “{slug}” on this instance. It may have been removed from the catalog.
           </p>
@@ -269,25 +269,26 @@ function MediaPage() {
         </div>
       )}
       {/* hero */}
-      <div className="border-b border-divider">
+      <div>
         <div className="mx-auto flex max-w-[1360px] flex-col gap-8 px-10 pt-14 pb-10 md:flex-row">
           <div
-            className="relative flex h-[360px] w-[240px] shrink-0 items-end overflow-hidden rounded-card bg-cover bg-center p-5"
+            className="cover relative flex h-[360px] w-[240px] shrink-0 items-end bg-cover bg-center p-5"
             style={
               detail.coverUrl
                 ? { backgroundImage: `url(${detail.coverUrl})` }
                 : { background: coverGradient(detail.kind, detail.title) }
             }
           >
-            <span className="font-display text-[30px] leading-[1.05] text-white/94 uppercase">
-              {detail.title}
-            </span>
             {progressRatio !== null && progressRatio > 0 && (
               <span
                 aria-hidden
-                className="absolute bottom-0 left-0 h-[5px] bg-prism"
-                style={{ width: `${Math.round(progressRatio * 100)}%` }}
-              />
+                className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-white/10"
+              >
+                <span
+                  className="block h-full bg-prism"
+                  style={{ width: `${Math.round(progressRatio * 100)}%` }}
+                />
+              </span>
             )}
           </div>
 
@@ -300,7 +301,7 @@ function MediaPage() {
                 </span>
               )}
             </div>
-            <h1 className="font-display text-[clamp(40px,6vw,72px)] leading-[0.95] uppercase">
+            <h1 className="font-heading text-[clamp(40px,6vw,72px)] leading-[0.95] uppercase">
               {detail.title}
             </h1>
             {detail.description && (
@@ -413,11 +414,27 @@ function MediaPage() {
       <main className="mx-auto grid max-w-[1360px] grid-cols-1 gap-12 px-10 pt-10 pb-20 lg:grid-cols-[2fr_1fr]">
         {/* checklist */}
         <section className="flex min-w-0 flex-col gap-5">
-          <h2 className="font-display text-[32px] uppercase">
+          <h2 className="font-heading text-[32px] uppercase">
             {noun ? `${noun.singular}s` : 'Tracking'}
           </h2>
           {checkable ? (
             <>
+              <div className="flex flex-wrap items-center gap-4 font-label text-[11px] tracking-label text-dim">
+                <span className="flex items-center gap-2">
+                  <span aria-hidden className="size-3 rounded-[4px] border border-pink bg-pink" />
+                  {doneLabel.toUpperCase()}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="size-3 rounded-[4px] border border-pink bg-pink-row"
+                  />
+                  UP NEXT
+                </span>
+                <span>
+                  {watchedSet.size} / {listLength} {noun!.singular.toUpperCase()}S
+                </span>
+              </div>
               {/* A tile grid rather than the mockup's full-width rows: at ~56px
                   each, a 24-episode season ran past a full viewport, and manga
                   routinely carry hundreds of chapters. */}
@@ -467,22 +484,6 @@ function MediaPage() {
                   },
                 )}
               </ul>
-              <div className="flex flex-wrap items-center gap-4 font-label text-[11px] tracking-label text-dim">
-                <span className="flex items-center gap-2">
-                  <span aria-hidden className="size-3 rounded-[4px] border border-pink bg-pink" />
-                  {doneLabel.toUpperCase()}
-                </span>
-                <span className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className="size-3 rounded-[4px] border border-pink bg-pink-row"
-                  />
-                  UP NEXT
-                </span>
-                <span>
-                  {watchedSet.size} / {listLength} {noun!.singular.toUpperCase()}S
-                </span>
-              </div>
               {listLength > visibleParts && (
                 <Button variant="secondary" onClick={() => setVisibleParts(listLength)}>
                   SHOW ALL {listLength}
@@ -501,7 +502,7 @@ function MediaPage() {
         {/* side column */}
         <aside className="flex flex-col gap-8">
           <section className="flex flex-col gap-3.5">
-            <h2 className="font-display text-2xl uppercase">Details</h2>
+            <h2 className="font-heading text-2xl uppercase">Details</h2>
             <GlassCard className="flex flex-col overflow-hidden rounded-card-sm">
               {detailRows.map(([key, value]) => (
                 <div
@@ -516,7 +517,7 @@ function MediaPage() {
           </section>
 
           <section className="flex flex-col gap-3.5">
-            <h2 className="font-display text-2xl uppercase">Comments</h2>
+            <h2 className="font-heading text-2xl uppercase">Comments</h2>
             <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
               Comments land with the v1.x social layer — episode threads, spoiler blurring, the
               works.
@@ -525,7 +526,7 @@ function MediaPage() {
 
           {relationGroups.map(([label, items]) => (
             <section key={label} className="flex flex-col gap-3.5">
-              <h2 className="font-display text-2xl uppercase">{RELATION_HEADINGS[label]}</h2>
+              <h2 className="font-heading text-2xl uppercase">{RELATION_HEADINGS[label]}</h2>
               <div className="grid grid-cols-3 gap-3">
                 {items.map((item) => (
                   <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
@@ -557,7 +558,7 @@ function MediaPage() {
           {/* Genre-overlap suggestions — only when there's nothing typed to show (ADR-0004). */}
           {detail.relations.length === 0 && detail.related.length > 0 && (
             <section className="flex flex-col gap-3.5">
-              <h2 className="font-display text-2xl uppercase">You might also like</h2>
+              <h2 className="font-heading text-2xl uppercase">You might also like</h2>
               <div className="grid grid-cols-3 gap-3">
                 {detail.related.map((item) => (
                   <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>

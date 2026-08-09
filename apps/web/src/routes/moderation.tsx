@@ -43,7 +43,7 @@ function ModerationPage() {
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
           <div>
-            <h1 className="font-display text-[64px] leading-none uppercase">Moderation</h1>
+            <h1 className="font-heading text-[64px] leading-none uppercase">Moderation</h1>
             <p className="mt-2 text-[15px] text-muted">
               Community-created entries. Pending entries are visible only to their creator until
               approved.

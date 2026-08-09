@@ -79,7 +79,7 @@ function SearchPage() {
       <div className="relative">
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
-          <h1 className="font-display text-[64px] leading-none uppercase">Discover</h1>
+          <h1 className="font-heading text-[64px] leading-none uppercase">Discover</h1>
 
           <div className="flex flex-col gap-3.5">
             <label className="flex items-center gap-3.5 rounded-full border border-glass-border-strong bg-glass-well px-6 py-4 backdrop-blur-[16px]">
@@ -128,7 +128,7 @@ function SearchPage() {
           </div>
 
           <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-[32px] uppercase">Results</h2>
+            <h2 className="font-heading text-[32px] uppercase">Results</h2>
             {q && status !== 'loading' && (
               <span className="font-label text-[13px] tracking-label text-dim">
                 {results.length} {results.length === 1 ? 'TITLE' : 'TITLES'}

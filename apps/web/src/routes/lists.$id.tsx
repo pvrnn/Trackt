@@ -37,7 +37,7 @@ function ListDetailPage() {
   if (isError) {
     return (
       <Shell user={navUser}>
-        <h1 className="font-display text-[56px] leading-none uppercase">Couldn’t load</h1>
+        <h1 className="font-heading text-[56px] leading-none uppercase">Couldn’t load</h1>
         <p className="max-w-[540px] text-[15px] text-muted">
           Something went wrong fetching this list — the instance API may be unreachable.
         </p>
@@ -54,7 +54,7 @@ function ListDetailPage() {
   if (data === null) {
     return (
       <Shell user={navUser}>
-        <h1 className="font-display text-[56px] leading-none uppercase">Not found</h1>
+        <h1 className="font-heading text-[56px] leading-none uppercase">Not found</h1>
         <p className="text-[15px] text-muted">
           This list doesn’t exist, or it’s private to someone else.
         </p>
@@ -96,7 +96,7 @@ function ListDetailPage() {
           <Link to="/lists" className="font-label text-xs tracking-label text-dim hover:text-pink">
             ← ALL LISTS
           </Link>
-          <h1 className="font-display text-[56px] leading-none uppercase">{list.title}</h1>
+          <h1 className="font-heading text-[56px] leading-none uppercase">{list.title}</h1>
           {list.description && (
             <p className="max-w-[640px] text-[15px] leading-relaxed text-muted">
               {list.description}
@@ -125,7 +125,7 @@ function ListDetailPage() {
       )}
 
       <div className="flex items-baseline gap-4">
-        <h2 className="font-display text-[32px] uppercase">
+        <h2 className="font-heading text-[32px] uppercase">
           {list.isRanked ? 'Ranked' : 'Titles'}
         </h2>
         {list.isRanked && list.isOwner && list.entries.length > 1 && (

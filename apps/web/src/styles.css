@@ -33,6 +33,8 @@
   --font-sans: 'Archivo Variable', system-ui, sans-serif;
   --font-display: 'Anton', 'Archivo Variable', sans-serif;
   --font-label: 'Space Grotesk Variable', 'Archivo Variable', sans-serif;
+  /* Section/page titles (Up next, In progress, Recent activity, …) — one knob for all of them. */
+  --font-heading: 'Anton', 'Archivo Variable', sans-serif;
   --text-hero: clamp(3.25rem, 8.8vw, 7.5rem);
   --text-hero--line-height: 0.92;
   --text-display: clamp(2.5rem, 5vw, 4rem);
@@ -114,5 +116,25 @@
     background-size: 220px;
     opacity: 0.5;
     mix-blend-mode: overlay;
+  }
+  /*
+   * Separates dark artwork from the dark background without touching the
+   * artwork itself: an ambient prism-tinted glow (so it reads as sitting on
+   * something) and a tight dark shadow (so it doesn't float). `.cover--sm` is
+   * a modifier — combine with `.cover` and it only scales the shadow down for
+   * grid/thumbnail sizes; radius and overflow stay whatever the element
+   * already declares.
+   */
+  .cover {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow:
+      0 28px 70px -12px rgb(217 107 176 / 0.55),
+      0 8px 40px -10px rgb(0 0 0 / 0.9);
+  }
+  .cover--sm {
+    box-shadow:
+      0 12px 32px -8px rgb(217 107 176 / 0.42),
+      0 4px 18px -6px rgb(0 0 0 / 0.85);
   }
 }

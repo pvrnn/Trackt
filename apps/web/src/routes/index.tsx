@@ -78,7 +78,7 @@ function Hero() {
         <p className="text-prism font-label text-[13px] font-semibold tracking-eyebrow">
           OPEN SOURCE · SELF-HOSTABLE · COMMUNITY-OWNED
         </p>
-        <h1 className="max-w-[1000px] font-display text-hero uppercase">
+        <h1 className="max-w-[1000px] font-heading text-hero uppercase">
           Track everything.
           <br />
           Lose <span className="text-prism">nothing.</span>
@@ -142,7 +142,7 @@ function Pillars() {
       id="pillars"
       className="mx-auto flex max-w-[1360px] flex-col gap-10 px-6 py-20 sm:px-10"
     >
-      <h2 className="font-display text-section uppercase">Why this exists</h2>
+      <h2 className="font-heading text-section uppercase">Why this exists</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {PILLARS.map((pillar) => (
           <GlassCard as="article" key={pillar.num} className="flex flex-col gap-3 p-7">
@@ -162,7 +162,7 @@ function CheckInBand() {
     <section className="border-y border-divider">
       <div className="mx-auto grid max-w-[1360px] items-center gap-10 px-6 py-20 sm:px-10 lg:grid-cols-2 lg:gap-16">
         <div className="flex flex-col gap-4">
-          <h2 className="font-display text-section uppercase">
+          <h2 className="font-heading text-section uppercase">
             Two taps.
             <br />
             It&apos;s logged.

@@ -38,7 +38,7 @@ export function ConfirmDialog({
             as="section"
             className="fixed top-1/2 left-1/2 z-30 flex max-h-[88vh] w-[calc(100%-3rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto bg-ink/90 p-7"
           >
-            <AlertDialog.Title className="font-display text-[28px] uppercase">
+            <AlertDialog.Title className="font-heading text-[28px] uppercase">
               {title}
             </AlertDialog.Title>
             <AlertDialog.Description className="text-[15px] text-muted">
