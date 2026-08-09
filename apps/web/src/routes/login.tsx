@@ -52,7 +52,7 @@ function LoginPage() {
   return (
     <AuthLayout>
       <div className="flex flex-col gap-2">
-        <h1 className="font-display text-[44px] leading-none uppercase">Welcome back</h1>
+        <h1 className="font-heading text-[44px] leading-none uppercase">Welcome back</h1>
         <p className="text-[15px] text-muted">Track everything. Lose nothing.</p>
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5" noValidate>

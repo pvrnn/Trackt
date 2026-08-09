@@ -134,7 +134,7 @@ export function Markdown({ body }: { body: string }) {
       const key = `h-${blocks.length}`;
       const content = renderInline(heading[2]!, key);
       const sizes = ['text-[26px]', 'text-[21px]', 'text-[17px]'];
-      const className = `font-display uppercase ${sizes[level - 1]} mt-2`;
+      const className = `font-heading uppercase ${sizes[level - 1]} mt-2`;
       blocks.push(
         level === 1 ? (
           <h2 key={key} className={className}>

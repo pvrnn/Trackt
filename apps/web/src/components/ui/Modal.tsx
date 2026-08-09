@@ -36,5 +36,5 @@ export function Modal({ onClose, children }: { onClose: () => void; children: Re
 
 /** Modal heading — doubles as the dialog's accessible name. */
 export function ModalTitle({ children }: { children: ReactNode }) {
-  return <Dialog.Title className="font-display text-[28px] uppercase">{children}</Dialog.Title>;
+  return <Dialog.Title className="font-heading text-[28px] uppercase">{children}</Dialog.Title>;
 }

@@ -83,7 +83,7 @@ function ProfilePage() {
               <div className="mx-auto flex max-w-[1360px] items-end gap-8 px-10 pt-14 pb-10">
                 <Avatar name={summary.user.username} src={summary.user.image} size={120} />
                 <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="font-display text-[56px] leading-none uppercase">
+                  <h1 className="font-heading text-[56px] leading-none uppercase">
                     {summary.user.name}
                   </h1>
                   <p className="text-[15px] text-muted">
@@ -150,7 +150,7 @@ function ProfilePage() {
                 favoriteBlocks.map((block) => (
                   <section key={block.kind} className="flex flex-col gap-4">
                     <div className="flex items-center gap-3">
-                      <h2 className="font-display text-[32px] uppercase">
+                      <h2 className="font-heading text-[32px] uppercase">
                         {KIND_BLOCK_TITLES[block.kind]}
                       </h2>
                       <KindDot kind={block.kind} />
@@ -184,7 +184,7 @@ function ProfilePage() {
                 ))
               ) : (
                 <section className="flex flex-col gap-4">
-                  <h2 className="font-display text-[32px] uppercase">Favourites</h2>
+                  <h2 className="font-heading text-[32px] uppercase">Favourites</h2>
                   <GlassCard className="px-6 py-5 text-[15px] text-muted">
                     Nothing favourited yet — hit ♡ FAVOURITE on any title’s page and it shows up
                     here, ranked per shelf.
@@ -194,7 +194,7 @@ function ProfilePage() {
 
               <div className="grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
                 <section className="flex flex-col gap-4">
-                  <h2 className="font-display text-[32px] uppercase">Recent</h2>
+                  <h2 className="font-heading text-[32px] uppercase">Recent</h2>
                   {summary.activity.length > 0 ? (
                     <ul className="flex flex-col gap-2">
                       {summary.activity.map((entry, index) => (
@@ -227,7 +227,7 @@ function ProfilePage() {
                   )}
                 </section>
                 <section className="flex flex-col gap-4">
-                  <h2 className="font-display text-[32px] uppercase">Badges</h2>
+                  <h2 className="font-heading text-[32px] uppercase">Badges</h2>
                   <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
                     Badges land with the v1.x social layer — streaks, importer feats, cataloguer
                     credits.

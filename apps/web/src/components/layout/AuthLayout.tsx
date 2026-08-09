@@ -13,7 +13,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className="aura-auth absolute inset-0" />
         <div className="grain absolute inset-0 opacity-55" aria-hidden />
         <div className="relative flex flex-1 flex-col justify-end p-14">
-          <h2 className="font-display text-[64px] leading-[0.95] uppercase">
+          <h2 className="font-heading text-[64px] leading-[0.95] uppercase">
             Every episode.
             <br />
             Every chapter.

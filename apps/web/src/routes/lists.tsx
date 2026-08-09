@@ -50,7 +50,7 @@ function ListsPage() {
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h1 className="font-display text-[64px] leading-none uppercase">Lists</h1>
+            <h1 className="font-heading text-[64px] leading-none uppercase">Lists</h1>
             <Button onClick={() => setCreating(true)}>＋ NEW LIST</Button>
           </div>
 
@@ -124,7 +124,7 @@ function ListCard({ list }: { list: ListSummary }) {
         </div>
         <div className="flex flex-col gap-2 px-6 py-5">
           <div className="flex items-center gap-2.5">
-            <h2 className="flex-1 font-display text-[22px] leading-tight uppercase">
+            <h2 className="flex-1 font-heading text-[22px] leading-tight uppercase">
               {list.title}
             </h2>
             {list.isRanked && <Badge tone="pink">RANKED</Badge>}

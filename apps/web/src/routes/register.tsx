@@ -78,7 +78,7 @@ function RegisterPage() {
   return (
     <AuthLayout>
       <div className="flex flex-col gap-2">
-        <h1 className="font-display text-[44px] leading-none uppercase">Create account</h1>
+        <h1 className="font-heading text-[44px] leading-none uppercase">Create account</h1>
         <p className="text-[15px] text-muted">
           Your history, ratings, and lists — exportable any time.
         </p>

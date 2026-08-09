@@ -6,6 +6,7 @@ import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
 import { UpNextCard } from '../components/media/UpNextCard';
+import { NewsWidget } from '../components/news/NewsWidget';
 import { Avatar } from '../components/ui/Avatar';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -84,103 +85,103 @@ function HomePage() {
       <AuraBackground variant="app" />
       <div className="relative">
         <AppNav user={navUser} />
-        <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-10 pt-12 pb-20">
-          {checkInMutation.isError && (
-            <p role="alert" className="text-[15px] text-red-400">
-              Couldn’t save your progress — try again.
-            </p>
-          )}
-          {isError ? (
-            <p role="alert" className="text-[15px] text-red-400">
-              Couldn’t load your dashboard — is the instance API reachable?
-            </p>
-          ) : !summary ? (
-            <div className="h-40" aria-busy />
-          ) : summary.upNext.length === 0 && summary.inProgress.length === 0 ? (
-            /* Fresh account: nothing tracked yet — point at Discover. */
-            <section className="flex flex-col items-start gap-5 pt-8">
-              <h1 className="font-display text-[64px] leading-none uppercase">Nothing up next</h1>
-              <p className="max-w-[560px] text-[15px] text-muted">
-                Track your first title and this page becomes your dashboard: what to watch or read
-                next, progress across everything, and your year in stats.
+        <main className="mx-auto grid max-w-[1360px] grid-cols-1 gap-8 px-10 pt-12 pb-20 lg:grid-cols-[1fr_360px] lg:items-start">
+          <div className="flex flex-col gap-6">
+            {checkInMutation.isError && (
+              <p role="alert" className="text-[15px] text-red-400">
+                Couldn’t save your progress — try again.
               </p>
-              <Link to="/search" className={buttonClassName()}>
-                ⌕ FIND SOMETHING ON DISCOVER
-              </Link>
-            </section>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-baseline gap-4">
-                <h1 className="font-display text-[64px] leading-none uppercase">Up next</h1>
-                {pendingLine && (
-                  <span className="text-prism font-label text-sm font-bold tracking-btn">
-                    {pendingLine}
-                  </span>
-                )}
-              </div>
-              {summary.upNext.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {summary.upNext.map((entry) => (
-                    <UpNextCard
-                      key={entry.id}
-                      slug={entry.slug}
-                      kind={entry.kind}
-                      title={entry.title}
-                      coverUrl={entry.coverUrl}
-                      progressLine={progressLine(entry)}
-                      checkedIn={checkedIn.has(entry.id)}
-                      onCheckIn={() => checkIn(entry)}
-                    />
-                  ))}
+            )}
+            {isError ? (
+              <p role="alert" className="text-[15px] text-red-400">
+                Couldn’t load your dashboard — is the instance API reachable?
+              </p>
+            ) : !summary ? (
+              <div className="h-40" aria-busy />
+            ) : summary.upNext.length === 0 && summary.inProgress.length === 0 ? (
+              /* Fresh account: nothing tracked yet — point at Discover. */
+              <section className="flex flex-col items-start gap-5 pt-8">
+                <h1 className="font-heading text-[64px] leading-none uppercase">Nothing up next</h1>
+                <p className="max-w-[560px] text-[15px] text-muted">
+                  Track your first title and this page becomes your dashboard: what to watch or read
+                  next, progress across everything, and your year in stats.
+                </p>
+                <Link to="/search" className={buttonClassName()}>
+                  ⌕ FIND SOMETHING ON DISCOVER
+                </Link>
+              </section>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-baseline gap-4">
+                  <h1 className="font-heading text-[64px] leading-none uppercase">Up next</h1>
+                  {pendingLine && (
+                    <span className="text-prism font-label text-sm font-bold tracking-btn">
+                      {pendingLine}
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <GlassCard className="px-6 py-5 text-[15px] text-muted">
-                  All caught up — you’ve watched or read every known episode and chapter.
-                </GlassCard>
-              )}
+                {summary.upNext.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {summary.upNext.map((entry) => (
+                      <UpNextCard
+                        key={entry.id}
+                        slug={entry.slug}
+                        kind={entry.kind}
+                        title={entry.title}
+                        coverUrl={entry.coverUrl}
+                        progressLine={progressLine(entry)}
+                        checkedIn={checkedIn.has(entry.id)}
+                        onCheckIn={() => checkIn(entry)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <GlassCard className="px-6 py-5 text-[15px] text-muted">
+                    All caught up — you’ve watched or read every known episode and chapter.
+                  </GlassCard>
+                )}
 
-              {summary.inProgress.length > 0 && (
-                <>
-                  <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <h2 className="font-display text-[32px] uppercase">In progress</h2>
-                    {/* The shelf is capped server-side and nothing lists the
+                {summary.inProgress.length > 0 && (
+                  <>
+                    <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                      <h2 className="font-heading text-[32px] uppercase">In progress</h2>
+                      {/* The shelf is capped server-side and nothing lists the
                         overflow yet, so a truncated shelf says so in plain text.
                         This used to be a `VIEW ALL →` that went nowhere behind a
                         "Lists are coming soon" tooltip — lists shipped, and they
                         were never this shelf anyway. It becomes a real link when
                         the library page lands (ROADMAP backlog). */}
-                    {summary.inProgress.length >= IN_PROGRESS_LIMIT && (
-                      <p className="font-label text-[13px] tracking-label text-dim">
-                        NEWEST {IN_PROGRESS_LIMIT} · A LIBRARY PAGE FOR THE REST IS COMING
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                    {summary.inProgress.map((entry) => (
-                      <Link key={entry.id} to="/media/$slug" params={{ slug: entry.slug }}>
-                        <CoverCard
-                          kind={entry.kind}
-                          title={entry.title}
-                          coverUrl={entry.coverUrl ?? undefined}
-                          progress={
-                            entry.total !== null && entry.total > 0
-                              ? entry.watched / entry.total
-                              : undefined
-                          }
-                          caption={inProgressSub(entry)}
-                        />
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )}
+                      {summary.inProgress.length >= IN_PROGRESS_LIMIT && (
+                        <p className="font-label text-[13px] tracking-label text-dim">
+                          NEWEST {IN_PROGRESS_LIMIT} · A LIBRARY PAGE FOR THE REST IS COMING
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                      {summary.inProgress.map((entry) => (
+                        <Link key={entry.id} to="/media/$slug" params={{ slug: entry.slug }}>
+                          <CoverCard
+                            kind={entry.kind}
+                            title={entry.title}
+                            coverUrl={entry.coverUrl ?? undefined}
+                            progress={
+                              entry.total !== null && entry.total > 0
+                                ? entry.watched / entry.total
+                                : undefined
+                            }
+                            caption={inProgressSub(entry)}
+                          />
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
 
-          {summary && (summary.activity.length > 0 || summary.inProgress.length > 0) && (
-            <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
-              <section className="flex flex-col gap-4">
-                <h2 className="font-display text-[32px] uppercase">Recent activity</h2>
+            {summary && (summary.activity.length > 0 || summary.inProgress.length > 0) && (
+              <section className="mt-6 flex flex-col gap-4">
+                <h2 className="font-heading text-[32px] uppercase">Recent activity</h2>
                 {summary.activity.length > 0 ? (
                   <ul className="flex flex-col gap-2.5">
                     {summary.activity.map((entry, index) => (
@@ -213,8 +214,14 @@ function HomePage() {
                   </GlassCard>
                 )}
               </section>
+            )}
+          </div>
+
+          <aside className="flex flex-col gap-8 lg:sticky lg:top-12">
+            <NewsWidget />
+            {summary && (summary.activity.length > 0 || summary.inProgress.length > 0) && (
               <section className="flex flex-col gap-4">
-                <h2 className="font-display text-[32px] uppercase">This year</h2>
+                <h2 className="font-heading text-[32px] uppercase">This year</h2>
                 <div className="flex flex-col gap-2.5">
                   <StatCard value={String(summary.stats.episodesThisYear)} label="Episodes" />
                   <StatCard value={String(summary.stats.chaptersThisYear)} label="Chapters" />
@@ -222,8 +229,8 @@ function HomePage() {
                   <StatCard value={String(summary.stats.completedThisYear)} label="Completed" />
                 </div>
               </section>
-            </div>
-          )}
+            )}
+          </aside>
         </main>
       </div>
     </div>

@@ -97,7 +97,7 @@ function NewsPage() {
       <div className="relative">
         {navUser ? <AppNav user={navUser} /> : <MarketingNav />}
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-6 pt-12 pb-20 sm:px-10">
-          <h1 className="font-display text-[64px] leading-none uppercase">News</h1>
+          <h1 className="font-heading text-[64px] leading-none uppercase">News</h1>
 
           <ToggleGroup.Root
             type="single"
@@ -176,7 +176,7 @@ function NewsPage() {
           </div>
 
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="font-display text-[32px] uppercase">Latest</h2>
+            <h2 className="font-heading text-[32px] uppercase">Latest</h2>
             {!feed.isLoading && feed.articles.length > 0 && (
               <span className="font-label text-xs tracking-label text-dim">
                 {feed.articles.length} {feed.articles.length === 1 ? 'STORY' : 'STORIES'}
@@ -235,7 +235,7 @@ function NewsPage() {
 function EmptyFeed({ filtered }: { filtered: boolean }) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-white/20 bg-glass px-8 py-10 text-center backdrop-blur-[16px]">
-      <p className="font-display text-[32px] text-faint uppercase">Nothing yet</p>
+      <p className="font-heading text-[32px] text-faint uppercase">Nothing yet</p>
       <p className="max-w-[420px] text-sm text-muted">
         {filtered
           ? 'No stories match these filters. Widen the dates, or clear the kind.'

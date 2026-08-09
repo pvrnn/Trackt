@@ -20,7 +20,7 @@ export function CoverCard({ kind, title, progress, coverUrl, caption, className 
   return (
     <figure className={clsx('flex flex-col gap-2', className)}>
       <div
-        className="relative flex aspect-2/3 items-end overflow-hidden rounded-cover bg-cover bg-center p-3"
+        className="cover--sm relative flex aspect-2/3 items-end overflow-hidden rounded-cover bg-cover bg-center p-3"
         style={
           coverUrl
             ? { backgroundImage: `url(${coverUrl})` }
