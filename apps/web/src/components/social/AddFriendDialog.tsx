@@ -87,22 +87,24 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                   <Button
                     variant="secondary"
                     disabled={anyPending}
+                    aria-busy={isAccepting(request.id)}
                     onClick={() => {
                       setError(null);
                       accept.mutate(request.id, { onError });
                     }}
                   >
-                    {isAccepting(request.id) ? '…' : 'ACCEPT'}
+                    ACCEPT
                   </Button>
                   <Button
                     variant="ghost"
                     disabled={anyPending}
+                    aria-busy={isRemoving(request.id)}
                     onClick={() => {
                       setError(null);
                       remove.mutate(request.id, { onError });
                     }}
                   >
-                    {isRemoving(request.id) ? '…' : 'DECLINE'}
+                    DECLINE
                   </Button>
                 </GlassCard>
               ))}
@@ -142,22 +144,24 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                       <Button
                         variant="secondary"
                         disabled={anyPending}
+                        aria-busy={isAccepting(result.id)}
                         onClick={() => {
                           setError(null);
                           accept.mutate(result.id, { onError });
                         }}
                       >
-                        {isAccepting(result.id) ? '…' : 'ACCEPT'}
+                        ACCEPT
                       </Button>
                       <Button
                         variant="ghost"
                         disabled={anyPending}
+                        aria-busy={isRemoving(result.id)}
                         onClick={() => {
                           setError(null);
                           remove.mutate(result.id, { onError });
                         }}
                       >
-                        {isRemoving(result.id) ? '…' : 'DECLINE'}
+                        DECLINE
                       </Button>
                     </>
                   ) : result.friendState === 'outgoing' ? (
@@ -167,21 +171,23 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                     <Button
                       variant="secondary"
                       disabled={anyPending}
+                      aria-busy={isRemoving(result.id)}
                       aria-label={`Cancel friend request to @${result.username}`}
                       onClick={() => {
                         setError(null);
                         remove.mutate(result.id, { onError });
                       }}
                     >
-                      {isRemoving(result.id) ? '…' : 'PENDING ✕'}
+                      PENDING ✕
                     </Button>
                   ) : (
                     <Button
                       variant={result.friendState === 'none' ? 'ghost' : 'secondary'}
                       disabled={result.friendState !== 'none' || anyPending}
+                      aria-busy={isSending(result.username)}
                       onClick={() => send(result.username)}
                     >
-                      {isSending(result.username) ? '…' : ACTION_LABEL[result.friendState]}
+                      {ACTION_LABEL[result.friendState]}
                     </Button>
                   )}
                 </GlassCard>

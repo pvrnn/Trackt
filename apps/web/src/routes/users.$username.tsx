@@ -150,47 +150,51 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
       {profile.friendState === 'none' && (
         <Button
           disabled={busy}
+          aria-busy={sendRequest.isPending}
           onClick={() => {
             setError(null);
             sendRequest.mutate(profile.user.username, { onError });
           }}
         >
-          {sendRequest.isPending ? '…' : '＋ ADD FRIEND'}
+          ＋ ADD FRIEND
         </Button>
       )}
       {profile.friendState === 'outgoing' && (
         <Button
           variant="secondary"
           disabled={busy}
+          aria-busy={remove.isPending}
           aria-label={`Cancel friend request to @${profile.user.username}`}
           onClick={() => {
             setError(null);
             remove.mutate(profile.userId, { onError });
           }}
         >
-          {remove.isPending ? '…' : 'REQUEST SENT ✕'}
+          REQUEST SENT ✕
         </Button>
       )}
       {profile.friendState === 'incoming' && (
         <div className="flex items-center gap-2">
           <Button
             disabled={busy}
+            aria-busy={accept.isPending}
             onClick={() => {
               setError(null);
               accept.mutate(profile.userId, { onError });
             }}
           >
-            {accept.isPending ? '…' : 'ACCEPT REQUEST'}
+            ACCEPT REQUEST
           </Button>
           <Button
             variant="ghost"
             disabled={busy}
+            aria-busy={remove.isPending}
             onClick={() => {
               setError(null);
               remove.mutate(profile.userId, { onError });
             }}
           >
-            {remove.isPending ? '…' : 'DECLINE'}
+            DECLINE
           </Button>
         </div>
       )}
