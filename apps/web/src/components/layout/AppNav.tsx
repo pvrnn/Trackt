@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { UserRoleSchema, isModerator } from '@trackt/shared';
 import { authClient } from '../../lib/auth-client';
+import { useFriends } from '../../lib/friends';
 import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
 import { Wordmark } from './Wordmark';
@@ -48,6 +49,10 @@ export function AppNav({ user }: { user: AppNavUser }) {
     role.success && isModerator(role.data)
       ? [...NAV_ITEMS, { label: 'MODERATION', to: '/moderation' }]
       : NAV_ITEMS;
+  // No dedicated friends surface yet — a badge on PROFILE covers discoverability
+  // instead of a sixth top-level nav item (docs/friends-plan.md §6).
+  const { data: friendsOverview } = useFriends();
+  const incomingCount = friendsOverview?.incoming.length ?? 0;
   return (
     <nav className="sticky top-0 z-10 flex items-center gap-8 border-b border-divider bg-ink/75 px-10 py-5 backdrop-blur-[16px]">
       <Link to="/home">
@@ -59,10 +64,15 @@ export function AppNav({ user }: { user: AppNavUser }) {
             <Link
               key={item.label}
               to={item.to}
-              className="text-dim hover:text-fg"
+              className="flex items-center gap-1.5 text-dim hover:text-fg"
               activeProps={{ className: 'border-b-2 border-pink pb-0.5 text-fg' }}
             >
               {item.label}
+              {item.label === 'PROFILE' && incomingCount > 0 && (
+                <span className="rounded-full bg-pink px-1.5 py-0.5 text-[10px] font-bold text-on-prism">
+                  {incomingCount}
+                </span>
+              )}
             </Link>
           ) : (
             <Tooltip key={item.label} label="Coming soon">

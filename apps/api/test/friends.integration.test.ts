@@ -2,7 +2,12 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { createDb, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { loadEnv, type FriendsOverview, type UserSearchResult } from '@trackt/shared';
+import {
+  loadEnv,
+  type FriendsOverview,
+  type PublicProfile,
+  type UserSearchResult,
+} from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
 
@@ -116,6 +121,14 @@ describe.runIf(available)('friends (postgres)', () => {
       method: 'GET',
       url: `/api/v1/users/search?q=${encodeURIComponent(q)}`,
       headers: { cookie },
+    });
+  }
+
+  function publicProfile(cookie: string | undefined, username: string) {
+    return app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${username}/profile`,
+      headers: cookie ? { cookie } : undefined,
     });
   }
 
@@ -263,5 +276,34 @@ describe.runIf(available)('friends (postgres)', () => {
       await searchUsers(alice.cookie, bob.username)
     ).json() as UserSearchResult[];
     expect(afterRequest.find((r) => r.id === bob.id)!.friendState).toBe('outgoing');
+  });
+
+  it('serves a public profile anonymously and reports the viewer-relative friendState', async () => {
+    const alice = await signUp('alice');
+    const bob = await signUp('bob');
+    const carol = await signUp('carol');
+    await sendRequest(alice.cookie, bob.username);
+    await accept(bob.cookie, alice.id);
+
+    const anon = await publicProfile(undefined, alice.username);
+    expect(anon.statusCode).toBe(200);
+    const anonBody = anon.json() as PublicProfile;
+    expect(anonBody.user.username).toBe(alice.username);
+    expect(anonBody.friendState).toBe('none');
+    expect(anonBody.friendCount).toBe(1);
+    // The friend buttons on /users/$username post to /me/friends/:userId, so
+    // this has to be the *subject's* id, not the viewer's.
+    expect(anonBody.userId).toBe(alice.id);
+
+    const asFriend = (await publicProfile(bob.cookie, alice.username)).json() as PublicProfile;
+    expect(asFriend.friendState).toBe('friends');
+
+    const asStranger = (await publicProfile(carol.cookie, alice.username)).json() as PublicProfile;
+    expect(asStranger.friendState).toBe('none');
+
+    const asSelf = (await publicProfile(alice.cookie, alice.username)).json() as PublicProfile;
+    expect(asSelf.friendState).toBe('self');
+
+    expect((await publicProfile(undefined, 'no-such-user-handle')).statusCode).toBe(404);
   });
 });

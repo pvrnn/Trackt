@@ -97,7 +97,13 @@ describe.runIf(available)('profile + favourites (postgres)', () => {
     const profile = await getProfile();
     expect(profile.user.name).toBe('Profile Tester');
     expect(profile.user.username).toMatch(/^prof/);
-    expect(profile.stats).toMatchObject({ completed: 0, titlesTracked: 0, meanRating: null });
+    expect(profile.stats).toMatchObject({
+      completed: 0,
+      titlesTracked: 0,
+      meanRating: null,
+      friendCount: 0,
+      incomingRequestCount: 0,
+    });
     expect(profile.favorites).toEqual([]);
   });
 

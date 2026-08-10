@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ListsRouteImport } from './routes/lists'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UsersUsernameRouteImport } from './routes/users.$username'
 import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
 import { Route as ListsIdRouteImport } from './routes/lists.$id'
@@ -67,6 +68,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsersUsernameRoute = UsersUsernameRouteImport.update({
+  id: '/users/$username',
+  path: '/users/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NewsSlugRoute = NewsSlugRouteImport.update({
   id: '/news_/$slug',
   path: '/news/$slug',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/users/$username': typeof UsersUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/users/$username': typeof UsersUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
+  '/users/$username': typeof UsersUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
+    | '/users/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
+    | '/users/$username'
   id:
     | '__root__'
     | '/'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/lists/$id'
     | '/media/$slug'
     | '/news_/$slug'
+    | '/users/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   MediaSlugRoute: typeof MediaSlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
+  UsersUsernameRoute: typeof UsersUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/users/$username': {
+      id: '/users/$username'
+      path: '/users/$username'
+      fullPath: '/users/$username'
+      preLoaderRoute: typeof UsersUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/news_/$slug': {
       id: '/news_/$slug'
       path: '/news/$slug'
@@ -296,6 +316,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   MediaSlugRoute: MediaSlugRoute,
   NewsSlugRoute: NewsSlugRoute,
+  UsersUsernameRoute: UsersUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

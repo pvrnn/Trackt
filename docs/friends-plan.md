@@ -1,9 +1,15 @@
 # Plan — Mutual friends (request + accept) and `followers` list visibility
 
-> **Status:** Phases 1–2 landed (data model + friends API + ADR-0006 on
+> **Status:** Done — all four phases landed (data model + friends API + ADR-0006 on
 > `feat/mutual-friends-phase1`; `followers` list visibility unblocked on
-> `feat/mutual-friends-phase2`). Phases 3–4 (public profile endpoint,
-> `/users/$username`) not started. Deeper context: [PRD](PRD.md), [ROADMAP](ROADMAP.md).
+> `feat/mutual-friends-phase2`; public profile endpoint + `AddFriendDialog` +
+> the profile Friends section on `feat/mutual-friends-phase3`; `/users/$username`
+> on `feat/mutual-friends-phase4`). Deeper context: [PRD](PRD.md), [ROADMAP](ROADMAP.md).
+>
+> Two phase 4 deviations from §6 below: `PublicProfileSchema` gained a `userId`
+> (the page is addressed by handle, but every friend mutation is keyed by id), and
+> the signed-out action button links to `/login` instead of posting a request the
+> API would 401.
 
 ## Context
 

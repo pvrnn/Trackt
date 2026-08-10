@@ -1,8 +1,15 @@
-import { sql } from 'drizzle-orm';
-import type { Db } from '@trackt/db';
-import type { ActivityEntry, MediaKind } from '@trackt/shared';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { favorite, media, type Db } from '@trackt/db';
+import {
+  MEDIA_KINDS,
+  type ActivityEntry,
+  type FavoriteEntry,
+  type MediaKind,
+} from '@trackt/shared';
+import type { SessionUser } from './session.js';
+import { visibleMediaSql } from './visibility.js';
 
-/** Viewer-scoped tracking aggregates shared by the home and profile summaries. */
+/** Subject-scoped tracking aggregates shared by the home and profile summaries. */
 
 /** Consecutive days with a check-in, ending today or yesterday (grace day). */
 export function computeStreak(days: string[], today: Date): number {
@@ -19,6 +26,77 @@ export function computeStreak(days: string[], today: Date): number {
     expected -= dayMs;
   }
   return streak;
+}
+
+/** Ranked favourite shelves, one rank sequence per kind. Shared by own and public profiles. */
+export async function loadFavorites(db: Db, userId: string): Promise<FavoriteEntry[]> {
+  const rows = await db
+    .select({
+      id: media.id,
+      slug: media.slug,
+      kind: favorite.kind,
+      title: media.title,
+      coverUrl: media.coverUrl,
+      position: favorite.position,
+    })
+    .from(favorite)
+    .innerJoin(media, eq(media.id, favorite.mediaId))
+    // Soft-deleted titles vanish from the shelves; the favourite row stays.
+    .where(and(eq(favorite.userId, userId), isNull(media.deletedAt)))
+    .orderBy(asc(favorite.kind), asc(favorite.position));
+
+  // Rank restarts at 1 within each kind block (favourites are per-kind shelves).
+  const rankByKind = new Map<string, number>();
+  return [...rows]
+    .sort(
+      (a, b) =>
+        MEDIA_KINDS.indexOf(a.kind) - MEDIA_KINDS.indexOf(b.kind) || a.position - b.position,
+    )
+    .map((row) => {
+      const rank = (rankByKind.get(row.kind) ?? 0) + 1;
+      rankByKind.set(row.kind, rank);
+      return {
+        id: row.id,
+        slug: row.slug,
+        kind: row.kind,
+        title: row.title,
+        coverUrl: row.coverUrl,
+        rank,
+      };
+    });
+}
+
+interface ProfileStats {
+  episodesThisYear: number;
+  chaptersThisYear: number;
+  completed: number;
+  titlesTracked: number;
+  meanRating: number | null;
+  dayStreak: number;
+}
+
+/** The stats strip both profile summaries share: this-year activity, lifetime totals, streak. */
+export async function loadProfileStats(db: Db, userId: string): Promise<ProfileStats> {
+  const [yearCounts, dayStreak, [stats]] = await Promise.all([
+    loadYearCheckinCounts(db, userId),
+    loadStreak(db, userId),
+    db.execute(sql`
+      SELECT
+        (SELECT count(*)::int FROM user_media
+          WHERE user_id = ${userId} AND status = 'completed') AS completed,
+        (SELECT count(*)::int FROM user_media WHERE user_id = ${userId}) AS titles,
+        (SELECT avg(score)::float FROM rating
+          WHERE user_id = ${userId} AND target_type = 'media' AND score IS NOT NULL) AS mean_rating
+    `),
+  ]);
+  return {
+    episodesThisYear: yearCounts.episodes,
+    chaptersThisYear: yearCounts.chapters,
+    completed: Number(stats?.completed ?? 0),
+    titlesTracked: Number(stats?.titles ?? 0),
+    meanRating: stats?.mean_rating !== null ? Number(stats?.mean_rating) : null,
+    dayStreak,
+  };
 }
 
 export async function loadStreak(db: Db, userId: string): Promise<number> {
@@ -70,9 +148,12 @@ function checkinDetail(partKind: string, from: number, to: number, partCount: nu
 }
 
 /**
- * The viewer's most recent check-ins/ratings/status changes, merged
- * newest-first. Soft-deleted media (`deleted_at` set) are hidden here like
- * everywhere else — the underlying rows stay, they just don't render.
+ * The subject's most recent check-ins/ratings/status changes, merged
+ * newest-first. Filtered through `visibleMediaSql(viewer)`, not just
+ * `deleted_at IS NULL`: on the own-profile call `viewer === subject` so
+ * nothing changes, but a public-profile visitor must not see the title of an
+ * `unverified` entry the subject tracked that someone else created — media
+ * rules and social rules both apply (mirrors `routes/v1/lists.ts`).
  *
  * Check-ins are grouped per title per UTC day before the limit is applied:
  * binging 12 chapters is one line ('CH2–12'), not 12. Grouping has to happen
@@ -84,7 +165,9 @@ export async function loadActivity(
   db: Db,
   userId: string,
   limit: number,
+  viewer: SessionUser | null,
 ): Promise<ActivityEntry[]> {
+  const visible = visibleMediaSql(viewer, sql.raw('m.'));
   const [checkins, ratings, logs] = await Promise.all([
     db.execute(sql`
       SELECT m.title, m.slug,
@@ -97,7 +180,7 @@ export async function loadActivity(
       FROM progress p
       JOIN media_part mp ON mp.id = p.part_id
       JOIN media m ON m.id = mp.media_id
-      WHERE p.user_id = ${userId} AND m.deleted_at IS NULL
+      WHERE p.user_id = ${userId} AND ${visible}
       GROUP BY m.id, m.title, m.slug, m.kind, mp.kind, (p.watched_at AT TIME ZONE 'UTC')::date
       ORDER BY watched_at DESC
       LIMIT ${limit}
@@ -106,14 +189,14 @@ export async function loadActivity(
       SELECT m.title, m.slug, m.kind AS media_kind, r.score, r.updated_at FROM rating r
       JOIN media m ON m.id = r.target_id
       WHERE r.user_id = ${userId} AND r.target_type = 'media' AND r.score IS NOT NULL
-        AND m.deleted_at IS NULL
+        AND ${visible}
       ORDER BY r.updated_at DESC
       LIMIT ${limit}
     `),
     db.execute(sql`
       SELECT m.title, m.slug, m.kind AS media_kind, um.status, um.updated_at FROM user_media um
       JOIN media m ON m.id = um.media_id
-      WHERE um.user_id = ${userId} AND m.deleted_at IS NULL
+      WHERE um.user_id = ${userId} AND ${visible}
       ORDER BY um.updated_at DESC
       LIMIT ${limit}
     `),
