@@ -109,15 +109,22 @@ export const friendsApi = {
  * every result row carries its own `friendState`, so without it the row you
  * just acted on keeps rendering the button you already pressed until the
  * query goes stale on its own.
+ *
+ * Returns the settle promise so callers can `await` it from `onSuccess`:
+ * that holds the mutation in its pending state until the refetch lands, and
+ * the button goes `＋ ADD → … → PENDING` instead of flashing back through
+ * `＋ ADD` in the gap between the request resolving and the new data
+ * arriving.
  */
 export function useFriendsInvalidator() {
   const queryClient = useQueryClient();
-  return () => {
-    void queryClient.invalidateQueries({ queryKey: friendsKey });
-    void queryClient.invalidateQueries({ queryKey: ['profile'] });
-    void queryClient.invalidateQueries({ queryKey: ['public-profile'] });
-    void queryClient.invalidateQueries({ queryKey: ['user-search'] });
-  };
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: friendsKey }),
+      queryClient.invalidateQueries({ queryKey: ['profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['public-profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['user-search'] }),
+    ]);
 }
 
 export function useSendFriendRequest() {
