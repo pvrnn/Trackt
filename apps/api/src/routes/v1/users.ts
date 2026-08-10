@@ -93,6 +93,7 @@ export const userRoutes: FastifyPluginAsyncZod = async (app) => {
       ]);
 
       return {
+        userId: account.id,
         user: {
           name: account.name,
           username: account.username ?? account.name,

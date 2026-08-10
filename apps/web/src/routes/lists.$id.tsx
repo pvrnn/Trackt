@@ -108,7 +108,18 @@ function ListDetailPage() {
             </span>
             <span>{visibilityLabel(list.visibility)}</span>
             <span>UPDATED {updatedLabel(list.updatedAt)}</span>
-            {!list.isOwner && <span>BY @{list.owner.username}</span>}
+            {!list.isOwner && (
+              <span>
+                BY{' '}
+                <Link
+                  to="/users/$username"
+                  params={{ username: list.owner.username }}
+                  className="hover:text-pink"
+                >
+                  @{list.owner.username}
+                </Link>
+              </span>
+            )}
           </div>
         </div>
         {list.isOwner && (

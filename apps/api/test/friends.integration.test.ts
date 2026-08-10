@@ -291,6 +291,9 @@ describe.runIf(available)('friends (postgres)', () => {
     expect(anonBody.user.username).toBe(alice.username);
     expect(anonBody.friendState).toBe('none');
     expect(anonBody.friendCount).toBe(1);
+    // The friend buttons on /users/$username post to /me/friends/:userId, so
+    // this has to be the *subject's* id, not the viewer's.
+    expect(anonBody.userId).toBe(alice.id);
 
     const asFriend = (await publicProfile(bob.cookie, alice.username)).json() as PublicProfile;
     expect(asFriend.friendState).toBe('friends');

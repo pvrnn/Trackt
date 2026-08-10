@@ -1,8 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FriendsOverviewSchema,
+  PublicProfileSchema,
   UserSearchResultSchema,
   type FriendsOverview,
+  type PublicProfile,
   type UserSearchResult,
 } from '@trackt/shared';
 import { authClient } from './auth-client';
@@ -50,6 +52,29 @@ export function useUserSearch(q: string) {
       } catch (error) {
         throw await toError(error, 'user search');
       }
+    },
+  });
+}
+
+export const publicProfileKey = (username: string) => ['public-profile', username] as const;
+
+/**
+ * Someone else's profile (`GET /v1/users/:username/profile`). Deliberately
+ * ungated by session — the endpoint is anonymous-readable (ADR-0006 point 3),
+ * so a signed-out visitor gets the same body with `friendState: 'none'`.
+ * 404 comes back as `null` (the `useList` idiom) so an unknown handle renders
+ * "no such user" instead of an error banner.
+ */
+export function usePublicProfile(username: string) {
+  return useQuery({
+    queryKey: publicProfileKey(username),
+    queryFn: async (): Promise<PublicProfile | null> => {
+      const response = await api.get(`users/${encodeURIComponent(username)}/profile`, {
+        throwHttpErrors: false,
+      });
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`public profile responded ${response.status}`);
+      return PublicProfileSchema.parse(await response.json());
     },
   });
 }

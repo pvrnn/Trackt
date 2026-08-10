@@ -96,6 +96,12 @@ export type ProfileSummary = z.infer<typeof ProfileSummarySchema>;
  * alongside it. `friendState` is `'none'` for a signed-out visitor.
  */
 export const PublicProfileSchema = z.object({
+  /**
+   * The subject's id. The page is addressed by handle, but every friend
+   * mutation is keyed by id (`/me/friends/:userId`), so without this the
+   * action button would need a second lookup to resolve the one it just read.
+   */
+  userId: z.uuid(),
   user: ProfileUserSchema,
   stats: ProfileStatsSchema,
   favorites: z.array(FavoriteEntrySchema),

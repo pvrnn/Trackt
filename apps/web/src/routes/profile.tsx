@@ -4,11 +4,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   AVATAR_MAX_BYTES,
   AVATAR_MIME_TYPES,
-  MEDIA_KINDS,
   normalizeSocialLink,
   SOCIAL_PLATFORM_KEYS,
   SOCIAL_PLATFORMS,
-  type MediaKind,
   type ProfileSummary,
   type SocialLinks,
   type SocialPlatform,
@@ -16,15 +14,14 @@ import {
 } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
-import { CoverCard } from '../components/media/CoverCard';
+import { FavouriteShelves } from '../components/profile/FavouriteShelves';
+import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { AddFriendDialog } from '../components/social/AddFriendDialog';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
-import { KindDot } from '../components/ui/KindDot';
 import { Modal, ModalTitle } from '../components/ui/Modal';
-import { StatCard } from '../components/ui/StatCard';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
 import { useFriends } from '../lib/friends';
@@ -35,14 +32,6 @@ export const Route = createFileRoute('/profile')({
   head: () => ({ meta: [{ title: 'Profile — Trackt' }] }),
   component: ProfilePage,
 });
-
-const KIND_BLOCK_TITLES: Record<MediaKind, string> = {
-  movie: 'Favourite movies',
-  series: 'Favourite series',
-  anime: 'Favourite anime',
-  manga: 'Favourite manga',
-  webtoon: 'Favourite webtoons',
-};
 
 function ProfilePage() {
   const queryClient = useQueryClient();
@@ -60,13 +49,6 @@ function ProfilePage() {
     refetch();
   };
 
-  const favoriteBlocks = summary
-    ? MEDIA_KINDS.map((kind) => ({
-        kind,
-        items: summary.favorites.filter((entry) => entry.kind === kind),
-      })).filter((block) => block.items.length > 0)
-    : [];
-
   return (
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
@@ -82,58 +64,25 @@ function ProfilePage() {
           <main className="h-40" aria-busy />
         ) : (
           <>
-            {/* header */}
-            <div className="border-b border-divider">
-              <div className="mx-auto flex max-w-[1360px] items-end gap-8 px-10 pt-14 pb-10">
-                <Avatar name={summary.user.username} src={summary.user.image} size={120} />
-                <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="font-heading text-[56px] leading-none uppercase">
-                    {summary.user.name}
-                  </h1>
-                  <p className="text-[15px] text-muted">
-                    @{summary.user.username} · member since{' '}
-                    {new Date(summary.user.joinedAt).toLocaleDateString('en-GB', {
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                    {summary.user.bio ? ` · ${summary.user.bio}` : ''}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-5 font-label text-[13px] text-dim">
-                    <span>
-                      <span className="font-semibold text-fg">{summary.stats.titlesTracked}</span>{' '}
-                      TITLES TRACKED
+            <ProfileHeader
+              user={summary.user}
+              stats={summary.stats}
+              friendsMeta={
+                <button
+                  type="button"
+                  onClick={() => setAddingFriend(true)}
+                  className="cursor-pointer hover:text-fg"
+                >
+                  <span className="font-semibold text-fg">{summary.stats.friendCount}</span>{' '}
+                  {summary.stats.friendCount === 1 ? 'FRIEND' : 'FRIENDS'}
+                  {summary.stats.incomingRequestCount > 0 && (
+                    <span className="ml-1.5 rounded-full bg-pink px-1.5 py-0.5 text-[10px] font-bold text-on-prism">
+                      {summary.stats.incomingRequestCount}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setAddingFriend(true)}
-                      className="cursor-pointer hover:text-fg"
-                    >
-                      <span className="font-semibold text-fg">{summary.stats.friendCount}</span>{' '}
-                      {summary.stats.friendCount === 1 ? 'FRIEND' : 'FRIENDS'}
-                      {summary.stats.incomingRequestCount > 0 && (
-                        <span className="ml-1.5 rounded-full bg-pink px-1.5 py-0.5 text-[10px] font-bold text-on-prism">
-                          {summary.stats.incomingRequestCount}
-                        </span>
-                      )}
-                    </button>
-                    {summary.stats.dayStreak > 0 && (
-                      <span className="text-pink">● {summary.stats.dayStreak}-DAY STREAK</span>
-                    )}
-                    {SOCIAL_PLATFORM_KEYS.filter((key) => summary.user.socialLinks[key]).map(
-                      (key) => (
-                        <a
-                          key={key}
-                          href={summary.user.socialLinks[key]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-full border border-glass-border bg-glass px-3 py-1 text-xs font-semibold tracking-label transition hover:border-pink hover:text-pink"
-                        >
-                          {SOCIAL_PLATFORMS[key].label.toUpperCase()} ↗
-                        </a>
-                      ),
-                    )}
-                  </div>
-                </div>
+                  )}
+                </button>
+              }
+              action={
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
@@ -141,73 +90,15 @@ function ProfilePage() {
                 >
                   EDIT PROFILE
                 </button>
-              </div>
-              <div className="mx-auto grid max-w-[1360px] grid-cols-2 gap-3 px-10 pb-10 md:grid-cols-3 lg:grid-cols-5">
-                <StatCard
-                  value={String(summary.stats.episodesThisYear)}
-                  label="Episodes this year"
-                />
-                <StatCard
-                  value={String(summary.stats.chaptersThisYear)}
-                  label="Chapters this year"
-                />
-                <StatCard value={String(summary.stats.completed)} label="Completed" />
-                <StatCard value={String(summary.stats.titlesTracked)} label="Titles tracked" />
-                <StatCard
-                  value={
-                    summary.stats.meanRating !== null ? summary.stats.meanRating.toFixed(1) : '—'
-                  }
-                  label="Mean rating"
-                />
-              </div>
-            </div>
+              }
+            />
 
             <main className="mx-auto flex max-w-[1360px] flex-col gap-10 px-10 pt-10 pb-20">
-              {favoriteBlocks.length > 0 ? (
-                favoriteBlocks.map((block) => (
-                  <section key={block.kind} className="flex flex-col gap-4">
-                    <div className="flex items-center gap-3">
-                      <h2 className="font-heading text-[32px] uppercase">
-                        {KIND_BLOCK_TITLES[block.kind]}
-                      </h2>
-                      <KindDot kind={block.kind} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                      {block.items.map((entry) => (
-                        <Link key={entry.id} to="/media/$slug" params={{ slug: entry.slug }}>
-                          <div className="relative">
-                            <CoverCard
-                              kind={entry.kind}
-                              title={entry.title}
-                              coverUrl={entry.coverUrl ?? undefined}
-                            />
-                            <span className="absolute top-2.5 left-2.5 rounded-full bg-ink/80 px-2.5 py-0.5 font-display text-sm text-pink">
-                              {String(entry.rank).padStart(2, '0')}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
-                      <Tooltip label="Find more to favourite">
-                        <Link
-                          to="/search"
-                          search={{ kind: block.kind }}
-                          className="flex aspect-2/3 items-center justify-center rounded-cover border border-dashed border-white/20 text-2xl text-faint transition hover:border-pink hover:text-pink"
-                        >
-                          ＋
-                        </Link>
-                      </Tooltip>
-                    </div>
-                  </section>
-                ))
-              ) : (
-                <section className="flex flex-col gap-4">
-                  <h2 className="font-heading text-[32px] uppercase">Favourites</h2>
-                  <GlassCard className="px-6 py-5 text-[15px] text-muted">
-                    Nothing favourited yet — hit ♡ FAVOURITE on any title’s page and it shows up
-                    here, ranked per shelf.
-                  </GlassCard>
-                </section>
-              )}
+              <FavouriteShelves
+                favorites={summary.favorites}
+                own
+                emptyMessage="Nothing favourited yet — hit ♡ FAVOURITE on any title’s page and it shows up here, ranked per shelf."
+              />
 
               <div className="grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
                 <section className="flex flex-col gap-4">
@@ -254,11 +145,15 @@ function ProfilePage() {
                     {friendsOverview && friendsOverview.friends.length > 0 ? (
                       <ul className="flex flex-wrap gap-3">
                         {friendsOverview.friends.map((friend) => (
-                          <li key={friend.id} className="flex flex-col items-center gap-1.5">
-                            <Avatar name={friend.username} src={friend.image} size={44} />
-                            <span className="max-w-16 truncate text-xs text-muted">
-                              {friend.username}
-                            </span>
+                          <li key={friend.id}>
+                            <Link
+                              to="/users/$username"
+                              params={{ username: friend.username }}
+                              className="flex flex-col items-center gap-1.5 text-muted transition hover:text-pink"
+                            >
+                              <Avatar name={friend.username} src={friend.image} size={44} />
+                              <span className="max-w-16 truncate text-xs">{friend.username}</span>
+                            </Link>
                           </li>
                         ))}
                       </ul>
