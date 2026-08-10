@@ -103,13 +103,20 @@ export const friendsApi = {
   },
 };
 
-/** Friend mutations touch three surfaces: the friends list, both profile summaries. */
+/**
+ * Friend mutations touch four surfaces: the friends list, both profile
+ * summaries, and the open search results. `user-search` is load-bearing —
+ * every result row carries its own `friendState`, so without it the row you
+ * just acted on keeps rendering the button you already pressed until the
+ * query goes stale on its own.
+ */
 export function useFriendsInvalidator() {
   const queryClient = useQueryClient();
   return () => {
     void queryClient.invalidateQueries({ queryKey: friendsKey });
     void queryClient.invalidateQueries({ queryKey: ['profile'] });
     void queryClient.invalidateQueries({ queryKey: ['public-profile'] });
+    void queryClient.invalidateQueries({ queryKey: ['user-search'] });
   };
 }
 

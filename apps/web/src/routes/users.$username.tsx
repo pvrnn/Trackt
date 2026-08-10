@@ -159,8 +159,16 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
         </Button>
       )}
       {profile.friendState === 'outgoing' && (
-        <Button variant="secondary" disabled>
-          REQUEST SENT
+        <Button
+          variant="secondary"
+          disabled={busy}
+          aria-label={`Cancel friend request to @${profile.user.username}`}
+          onClick={() => {
+            setError(null);
+            remove.mutate(profile.userId, { onError });
+          }}
+        >
+          {remove.isPending ? '…' : 'REQUEST SENT ✕'}
         </Button>
       )}
       {profile.friendState === 'incoming' && (
