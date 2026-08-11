@@ -43,14 +43,26 @@ function SearchPage() {
   const { q = '', kind } = Route.useSearch();
   const [input, setInput] = useState(q);
   const [creating, setCreating] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const { status, results } = useMediaSearch(q, kind);
+
+  // `?q=` also changes without this field: the nav search submits to this page
+  // while it is already mounted (no remount on a search-param change), and
+  // Back/Forward rewrites it too. Adopt those, but ignore the echo of our own
+  // push below — otherwise a value still in flight overwrites whatever has
+  // been typed since, and the two effects push each other back and forth.
+  const pushed = useRef(q);
+  useEffect(() => {
+    if (q === pushed.current) return;
+    pushed.current = q;
+    setInput(q);
+  }, [q]);
 
   // Keep the typed value in the URL (?q=…) so searches are shareable/back-able.
   useEffect(() => {
     const value = input.trim();
     if (value === q) return;
     const timer = setTimeout(() => {
+      pushed.current = value;
       navigate({
         search: (previous) => ({ ...previous, q: value || undefined }),
         replace: true,
@@ -59,17 +71,9 @@ function SearchPage() {
     return () => clearTimeout(timer);
   }, [input, q, navigate]);
 
-  // ⌘K / Ctrl-K focuses the search field (affordance shown in the input).
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  // No ⌘K listener here: the nav pill now renders on this page too and owns the
+  // one global shortcut, so two listeners don't fight over `preventDefault`.
+  // This input keeps `autoFocus`, which is what ⌘K would have done on arrival.
 
   if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
@@ -87,7 +91,6 @@ function SearchPage() {
                 ⌕
               </span>
               <input
-                ref={inputRef}
                 type="search"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -95,9 +98,8 @@ function SearchPage() {
                 autoFocus
                 className="flex-1 bg-transparent text-[17px] outline-none placeholder:text-dim"
               />
-              <kbd className="rounded-md border border-glass-border-strong px-2 py-1 font-label text-xs text-faint">
-                ⌘K
-              </kbd>
+              {/* No ⌘K hint: the shortcut focuses the nav pill, and this field
+                  is already focused on arrival. */}
             </label>
             <ToggleGroup.Root
               type="single"
