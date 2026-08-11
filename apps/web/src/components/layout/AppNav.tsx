@@ -1,12 +1,12 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Link, useLocation, useNavigate, type LinkProps } from '@tanstack/react-router';
+import { Link, useNavigate, type LinkProps } from '@tanstack/react-router';
 import clsx from 'clsx';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { UserRoleSchema, isModerator } from '@trackt/shared';
 import { authClient } from '../../lib/auth-client';
 import { useFriends } from '../../lib/friends';
 import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
+import { NavSearch } from './NavSearch';
 import { Wordmark } from './Wordmark';
 
 interface NavItem {
@@ -87,62 +87,6 @@ export function AppNav({ user }: { user: AppNavUser }) {
       <NavSearch />
       <AccountMenu user={user} />
     </nav>
-  );
-}
-
-/**
- * Real search input: typing stays local, Enter carries the query to /search
- * (each route mounts its own AppNav, so navigating mid-keystroke would drop
- * focus). Hidden on /search itself — that page owns the search UX and the ⌘K
- * shortcut there.
- */
-function NavSearch() {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState('');
-  const onSearchPage = pathname === '/search';
-
-  useEffect(() => {
-    if (onSearchPage) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onSearchPage]);
-
-  if (onSearchPage) return null;
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    navigate({ to: '/search', search: { q: query.trim() || undefined } });
-  };
-
-  return (
-    <form
-      onSubmit={submit}
-      className="hidden w-[260px] items-center gap-2.5 rounded-full border border-glass-border bg-glass-well px-4.5 py-2.5 transition focus-within:border-glass-border-strong lg:flex"
-    >
-      <span aria-hidden className="text-dim">
-        ⌕
-      </span>
-      <input
-        ref={inputRef}
-        type="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search titles…"
-        aria-label="search titles"
-        className="w-full flex-1 bg-transparent text-sm outline-none placeholder:text-dim"
-      />
-      <kbd className="rounded-md border border-glass-border px-1.5 py-0.5 font-label text-[10px] text-faint">
-        ⌘K
-      </kbd>
-    </form>
   );
 }
 

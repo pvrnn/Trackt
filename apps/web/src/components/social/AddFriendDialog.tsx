@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FriendState } from '@trackt/shared';
 import {
   useAcceptFriendRequest,
@@ -7,6 +7,7 @@ import {
   useSendFriendRequest,
   useUserSearch,
 } from '../../lib/friends';
+import { useDebounced } from '../../lib/use-debounced';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
@@ -31,14 +32,9 @@ const ACTION_LABEL: Record<FriendState, string> = {
 export function AddFriendDialog({ onClose }: { onClose: () => void }) {
   const { data: overview, isError } = useFriends();
   const [query, setQuery] = useState('');
-  const [debounced, setDebounced] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query.trim()), 200);
-    return () => clearTimeout(timer);
-  }, [query]);
-
+  const debounced = useDebounced(query).trim();
   const { data: results, isFetching } = useUserSearch(debounced);
   const sendRequest = useSendFriendRequest();
   const accept = useAcceptFriendRequest();
