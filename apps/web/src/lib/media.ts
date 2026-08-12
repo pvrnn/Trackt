@@ -1,5 +1,11 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
-import { MediaDetailSchema, type LogStatus, type MediaDetail } from '@trackt/shared';
+import {
+  MediaDetailSchema,
+  SearchResultSchema,
+  type LogStatus,
+  type MediaDetail,
+  type SearchResult,
+} from '@trackt/shared';
 import { authClient } from './auth-client';
 import { api, toError } from './http';
 
@@ -27,6 +33,28 @@ export function useMediaDetail(slug: string) {
     queryKey: ['media', slug],
     queryFn: () => fetchMediaDetail(slug),
     enabled: !!session,
+  });
+}
+
+/**
+ * What this instance carries, for the landing page's cover band. Public — the
+ * landing page has no session, and the endpoint serves `verified` rows only.
+ *
+ * A failure is not worth surfacing here: the band is decoration above the fold
+ * on a marketing page, and it has a designed fallback. `data ?? []` lets the
+ * caller treat "failed" and "this instance has an empty catalog" as one state,
+ * which is what the fallback is for.
+ */
+export function useShowcase() {
+  return useQuery({
+    queryKey: ['showcase'],
+    queryFn: async ({ signal }): Promise<SearchResult[]> => {
+      const json = await api.get('media/showcase', { signal }).json();
+      return SearchResultSchema.array().parse(json);
+    },
+    // It changes when the catalog is populated, not between page views.
+    staleTime: 5 * 60_000,
+    retry: false,
   });
 }
 

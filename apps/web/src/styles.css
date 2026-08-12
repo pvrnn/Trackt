@@ -137,4 +137,46 @@
       0 12px 32px -8px rgb(217 107 176 / 0.42),
       0 4px 18px -6px rgb(0 0 0 / 0.85);
   }
+
+  /*
+   * The landing band: one row of covers rolling left forever.
+   *
+   * The track holds its contents twice and slides exactly -50%, so the moment
+   * the animation restarts, copy two sits precisely where copy one began —
+   * hence the seam is invisible and there is no JS in the loop at all. The
+   * duplicate is `aria-hidden`; the whole band is decorative anyway.
+   *
+   * `--marquee-duration` is set per-instance from the item count, so a short
+   * catalog and a full one scroll at the same *speed* rather than the same
+   * period. Kept as plain CSS because a Tailwind arbitrary keyframe can't hold
+   * the reduced-motion branch below.
+   */
+  .marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee-roll var(--marquee-duration, 60s) linear infinite;
+  }
+  /* Pausing on hover is the one nod to control: it lets someone actually read a
+     title they recognised, without turning decoration into a carousel widget. */
+  .marquee:hover {
+    animation-play-state: paused;
+  }
+  @keyframes marquee-roll {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+  /*
+   * Reduced motion stops it dead rather than slowing it: continuous
+   * edge-to-edge movement is exactly what the preference is asking us not to
+   * do. The band stays, showing its first screenful as a static row.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee {
+      animation: none;
+    }
+  }
 }

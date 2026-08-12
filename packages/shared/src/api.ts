@@ -40,6 +40,17 @@ export const SearchResultSchema = z.object({
 export type SearchResult = z.infer<typeof SearchResultSchema>;
 
 /**
+ * How many titles `GET /v1/media/showcase` returns: what this instance has, for
+ * the landing page's cover band. Enough to fill a wide viewport twice over (the
+ * band duplicates its contents to loop seamlessly) without making an anonymous
+ * endpoint worth hammering.
+ */
+export const SHOWCASE_LIMIT = 24;
+
+/** Kinds are round-robined into the band, so this is its per-kind depth. */
+export const SHOWCASE_PER_KIND = 5;
+
+/**
  * A work linked to another by a typed relation (ADR-0004), with the direction
  * already resolved into the label it renders under — a reverse-traversed
  * `sequel` edge arrives as `prequel`, so clients never reimplement the flip.
