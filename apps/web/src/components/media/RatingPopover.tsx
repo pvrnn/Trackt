@@ -1,7 +1,7 @@
 import * as Popover from '@radix-ui/react-popover';
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '../ui/Button';
 
 /** Ten stars at half-star precision cover 0.5–10; `0` keeps its own pill (PRD §3.2). */
@@ -21,6 +21,8 @@ export function RatingPopover({
 }) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
+  const labelId = useId();
+  const triggerId = useId();
   const rated = score !== null;
   // Hover previews the score it would set, without committing it.
   const shown = hovered ?? score ?? 0;
@@ -33,8 +35,15 @@ export function RatingPopover({
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
+      {/* Labelled by the hidden text *and* the trigger itself: an `aria-label`
+          replaces the contents, so a rated pill announced "your rating" and
+          never the score it was showing. */}
+      <span id={labelId} className="sr-only">
+        Your rating
+      </span>
       <Popover.Trigger
-        aria-label="your rating"
+        id={triggerId}
+        aria-labelledby={`${labelId} ${triggerId}`}
         className={clsx(
           'inline-flex cursor-pointer items-center gap-2 rounded-full border py-[11px] pr-4 pl-5',
           'font-label text-xs font-semibold tracking-label transition outline-none',

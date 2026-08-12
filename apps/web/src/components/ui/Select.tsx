@@ -27,6 +27,13 @@ export interface SelectProps {
   selected?: boolean;
   id?: string;
   'aria-label'?: string;
+  /**
+   * Prefer this over `aria-label` when the trigger shows the current value:
+   * `aria-label` *replaces* the contents, so the pill announces "status" and
+   * never "COMPLETED". Point it at a visually hidden label **and the trigger's
+   * own id** to get "Status, COMPLETED".
+   */
+  'aria-labelledby'?: string;
   className?: string;
 }
 
@@ -54,6 +61,7 @@ export function Select({
       <SelectPrimitive.Trigger
         id={id}
         aria-label={props['aria-label']}
+        aria-labelledby={props['aria-labelledby']}
         className={clsx(
           'cursor-pointer transition outline-none',
           pill

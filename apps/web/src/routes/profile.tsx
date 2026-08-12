@@ -238,16 +238,38 @@ function EditProfileDialog({
     if (current.kind === 'replace') URL.revokeObjectURL(current.previewUrl);
   };
 
-  // Release the last preview's object URL when the dialog unmounts.
+  // Release the last preview's object URL when the dialog unmounts. Tracked in
+  // an effect rather than assigned during render — a render-phase ref write is
+  // the one React's concurrent rules single out, and a discarded render would
+  // leave the ref pointing at a URL nothing revokes.
   const avatarRef = useRef(avatar);
-  avatarRef.current = avatar;
+  useEffect(() => {
+    avatarRef.current = avatar;
+  }, [avatar]);
   useEffect(() => () => discardPreview(avatarRef.current), []);
 
   const profileSave = useMutation({
+    /**
+     * Fields first, photo second. The upload is the step that actually fails
+     * (2MB limit, slow connections), and running it first left the avatar
+     * changed on the server while the dialog still showed an error and a
+     * CANCEL button — the "CANCEL is a lie" state `AvatarChange` exists to
+     * prevent. This ordering keeps the failure and the unsaved thing the same
+     * thing, and the message below names which half didn't land.
+     */
     mutationFn: async ({ body, change }: { body: UpdateProfileBody; change: AvatarChange }) => {
-      if (change.kind === 'replace') await uploadAvatar(change.file);
-      else if (change.kind === 'remove' && user.image) await removeAvatar();
       await updateProfile(body);
+      if (change.kind === 'replace') {
+        try {
+          await uploadAvatar(change.file);
+        } catch (cause) {
+          throw new Error(
+            cause instanceof Error
+              ? `Your details saved, but the photo didn’t: ${cause.message}`
+              : 'Your details saved, but the photo didn’t upload.',
+          );
+        }
+      } else if (change.kind === 'remove' && user.image) await removeAvatar();
     },
     onSuccess: async () => {
       await onSaved();

@@ -35,7 +35,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const debounced = useDebounced(query).trim();
-  const { data: results, isFetching } = useUserSearch(debounced);
+  const { data: results, isFetching, isError: searchFailed } = useUserSearch(debounced);
   const sendRequest = useSendFriendRequest();
   const accept = useAcceptFriendRequest();
   const remove = useRemoveFriend();
@@ -121,6 +121,13 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
           <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
             {isFetching && (results === undefined || results.length === 0) ? (
               <li className="h-16" aria-busy />
+            ) : searchFailed ? (
+              // Not silence: with no results *and* a failed request, rendering
+              // nothing (or "no one matches") would state a negative we don't
+              // have. Same posture as NavSearch's `failed` branch.
+              <li role="alert" className="text-[15px] text-red-400">
+                People search is unavailable right now — try again in a moment.
+              </li>
             ) : results && results.length === 0 ? (
               <li className="text-[15px] text-muted">No one matches “{debounced}”.</li>
             ) : (

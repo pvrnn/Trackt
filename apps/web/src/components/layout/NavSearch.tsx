@@ -106,6 +106,19 @@ export function NavSearch() {
   const rowsKey = rows.map((row) => (row.kind === 'all' ? 'all' : row.result.id)).join('|');
   useEffect(() => setHighlighted(-1), [rowsKey]);
 
+  // The panel scrolls at 70vh, and ↑/↓ only move `aria-activedescendant` —
+  // nothing scrolls the way a focused element would, so on a short viewport the
+  // highlight walked out of sight. `block: 'nearest'` scrolls only when needed,
+  // and only the panel moves (the page isn't a scroll container here).
+  // Rows are nested inside their TITLES/PEOPLE groups, so this goes by id
+  // rather than child index — the same ids `aria-activedescendant` points at.
+  useEffect(() => {
+    if (highlighted < 0) return;
+    document
+      .getElementById(`${listboxId}-option-${highlighted}`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [highlighted, listboxId]);
+
   const open = active && focused && !dismissed;
 
   const seeAll = (q: string) => navigate({ to: '/search', search: { q: q || undefined } });
@@ -226,17 +239,18 @@ export function NavSearch() {
           }}
           className="z-20 max-h-[70vh] w-[420px] overflow-y-auto rounded-card-sm border border-glass-border-strong bg-ink/90 py-2 shadow-xl backdrop-blur-[16px]"
         >
-          <div id={listboxId} role="listbox" aria-label="search results">
-            {loading && <LoadingRows />}
-            {failed && (
-              <p role="alert" className="px-4 py-3 text-sm text-red-400">
-                Search is unavailable right now.
-              </p>
-            )}
-            {empty && (
-              <p className="px-4 py-3 text-sm text-muted">Nothing matches “{debounced}”.</p>
-            )}
+          {/* Status copy sits *outside* the listbox: only `option` and `group`
+              are valid children of `role="listbox"`, and a paragraph in there
+              is announced as a malformed option. */}
+          {loading && <LoadingRows />}
+          {failed && (
+            <p role="alert" className="px-4 py-3 text-sm text-red-400">
+              Search is unavailable right now.
+            </p>
+          )}
+          {empty && <p className="px-4 py-3 text-sm text-muted">Nothing matches “{debounced}”.</p>}
 
+          <div id={listboxId} role="listbox" aria-label="search results">
             {mediaResults.length > 0 && (
               <Section label="TITLES">
                 {mediaResults.map((result, index) => (

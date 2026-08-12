@@ -12,7 +12,7 @@ import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { StatCard } from '../components/ui/StatCard';
 import { useAuthedPage } from '../lib/auth-client';
-import { activityVerbLabel, relativeTime, useHomeSummary } from '../lib/home';
+import { activityVerbLabel, relativeTime, upNextPartKey, useHomeSummary } from '../lib/home';
 import { invalidateTracking, trackingApi } from '../lib/media';
 
 export const Route = createFileRoute('/home')({
@@ -41,11 +41,11 @@ function HomePage() {
   const checkInMutation = useMutation({
     mutationFn: (entry: UpNextEntry) => trackingApi.checkIn(entry.id, entry.next),
     // Optimistically mark the card; roll back on failure, re-sync on settle.
-    onMutate: (entry) => setCheckedIn((current) => new Set(current).add(entry.id)),
+    onMutate: (entry) => setCheckedIn((current) => new Set(current).add(upNextPartKey(entry))),
     onError: (_error, entry) =>
       setCheckedIn((current) => {
         const set = new Set(current);
-        set.delete(entry.id);
+        set.delete(upNextPartKey(entry));
         return set;
       }),
     // Same sweep as the media page: a check-in here also changes that title's
@@ -58,7 +58,7 @@ function HomePage() {
   const userName = navUser.username;
 
   const checkIn = (entry: UpNextEntry) => {
-    if (!checkedIn.has(entry.id)) checkInMutation.mutate(entry);
+    if (!checkedIn.has(upNextPartKey(entry))) checkInMutation.mutate(entry);
   };
 
   const pending = summary
@@ -130,7 +130,7 @@ function HomePage() {
                         title={entry.title}
                         coverUrl={entry.coverUrl}
                         progressLine={progressLine(entry)}
-                        checkedIn={checkedIn.has(entry.id)}
+                        checkedIn={checkedIn.has(upNextPartKey(entry))}
                         onCheckIn={() => checkIn(entry)}
                       />
                     ))}

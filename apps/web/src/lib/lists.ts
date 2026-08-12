@@ -19,6 +19,9 @@ import { api, toError } from './http';
 export const listsKey = ['lists'] as const;
 export const listKey = (id: string) => ['list', id] as const;
 
+/** List ids are UUIDs today, but every other data module encodes its path segments. */
+const seg = encodeURIComponent;
+
 async function request<T>(
   path: string,
   parse: (value: unknown) => T,
@@ -55,7 +58,7 @@ export function useList(id: string) {
     queryKey: listKey(id),
     enabled: !!session,
     queryFn: async (): Promise<ListDetail | null> => {
-      const response = await api.get(`lists/${id}`, { throwHttpErrors: false });
+      const response = await api.get(`lists/${seg(id)}`, { throwHttpErrors: false });
       if (response.status === 404) return null;
       if (!response.ok) throw new Error(`list responded ${response.status}`);
       return ListDetailSchema.parse(await response.json());
@@ -67,25 +70,25 @@ export const listsApi = {
   create: (body: CreateListBody) =>
     request('lists', (v) => ListSummarySchema.parse(v), { method: 'POST', json: body }),
   update: (id: string, body: UpdateListBody) =>
-    request(`lists/${id}`, (v) => ListSummarySchema.parse(v), { method: 'PATCH', json: body }),
+    request(`lists/${seg(id)}`, (v) => ListSummarySchema.parse(v), { method: 'PATCH', json: body }),
   remove: async (id: string) => {
     try {
-      await api(`lists/${id}`, { method: 'DELETE' });
+      await api(`lists/${seg(id)}`, { method: 'DELETE' });
     } catch (error) {
-      throw await toError(error, `DELETE lists/${id}`);
+      throw await toError(error, `DELETE lists/${seg(id)}`);
     }
   },
   addItem: (id: string, mediaId: string) =>
-    request(`lists/${id}/items`, (v) => ListSummarySchema.parse(v), {
+    request(`lists/${seg(id)}/items`, (v) => ListSummarySchema.parse(v), {
       method: 'POST',
       json: { mediaId },
     }),
   removeItem: (id: string, mediaId: string) =>
-    request(`lists/${id}/items/${mediaId}`, (v) => ListSummarySchema.parse(v), {
+    request(`lists/${seg(id)}/items/${seg(mediaId)}`, (v) => ListSummarySchema.parse(v), {
       method: 'DELETE',
     }),
   moveItem: (id: string, mediaId: string, direction: 'up' | 'down') =>
-    request(`lists/${id}/items/${mediaId}`, (v) => ListDetailSchema.parse(v), {
+    request(`lists/${seg(id)}/items/${seg(mediaId)}`, (v) => ListDetailSchema.parse(v), {
       method: 'PATCH',
       json: { direction },
     }),

@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
+import { safeHref } from '../../lib/url';
 
 /**
  * A deliberately tiny markdown renderer for article bodies (ADR-0005).
@@ -14,16 +15,6 @@ import { Fragment, type ReactNode } from 'react';
  * lists, blockquotes, and inline emphasis/code/links. Anything else renders as
  * the literal characters the author typed.
  */
-
-/** Only these schemes may become an anchor. `javascript:` and friends stay text. */
-function safeHref(url: string): string | null {
-  try {
-    const parsed = new URL(url, 'https://example.invalid');
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * One pass over a line, alternating literal text and the first matching token.

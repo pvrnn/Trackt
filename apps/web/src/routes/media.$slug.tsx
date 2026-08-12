@@ -21,7 +21,7 @@ import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
-import { invalidateTracking, trackingApi, useMediaDetail } from '../lib/media';
+import { firstUnwatched, invalidateTracking, trackingApi, useMediaDetail } from '../lib/media';
 
 /** "attack-on-titan" → "Attack On Titan": a serviceable SSR title until the query resolves. */
 function titleFromSlug(slug: string): string {
@@ -208,12 +208,10 @@ function MediaPage() {
   const listLength = total ?? (viewer.watched.length > 0 ? Math.max(...viewer.watched) : 0);
   // Candidates stop at the known part count — never offer "CHECK IN E13" on a
   // 12-episode series (the server would reject it). Only an unknown total may
-  // extend one past the highest watched part.
-  const next = noun
-    ? (Array.from({ length: total ?? listLength + 1 }, (_, i) => i + 1).find(
-        (n) => !watchedSet.has(n),
-      ) ?? null)
-    : null;
+  // extend one past the highest watched part. Scanned rather than materialised:
+  // a 900-chapter manga allocated a 900-element array on every render to read
+  // one number off the front of it.
+  const next = noun ? firstUnwatched(watchedSet, total ?? listLength + 1) : null;
   const checkable = noun !== null && listLength > 0;
   /** 'Watched' or 'Read', per kind — the checklist's done state, in words. */
   const doneLabel = trackingVerbLabel(detail.kind);
@@ -323,9 +321,16 @@ function MediaPage() {
                   {next}
                 </Button>
               )}
+              {/* Named by the hidden label *plus* the trigger, so the pill
+                  announces "Status, COMPLETED" — an `aria-label` here would
+                  replace the value and leave only "status". */}
+              <span id="log-status-label" className="sr-only">
+                Status
+              </span>
               <Select
                 variant="pill"
-                aria-label="status"
+                id="log-status-trigger"
+                aria-labelledby="log-status-label log-status-trigger"
                 items={LOG_ITEMS}
                 value={viewer.status ?? ''}
                 selected={viewer.status !== null}

@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import {
+  AVATAR_MAX_BYTES,
   AVATAR_MIME_TYPES,
   MEDIA_KINDS,
   MEDIA_STATUSES,
@@ -74,10 +75,24 @@ export function CreateEntryDialog({
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Set when the entry saved but its cover didn't — see `submit`. */
+  const [coverFailed, setCoverFailed] = useState<{ slug: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const episodic = EPISODIC.includes(kind);
   const hasParts = kind !== 'movie';
+
+  /** Same 2MB gate the avatar picker applies, so the copy below isn't a promise the server breaks. */
+  const pickCover = (file: File | undefined) => {
+    if (fileRef.current) fileRef.current.value = '';
+    if (!file) return;
+    if (file.size > AVATAR_MAX_BYTES) {
+      setError('That image is over 2MB — pick a smaller one.');
+      return;
+    }
+    setError(null);
+    setCoverFile(file);
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -101,8 +116,16 @@ export function CreateEntryDialog({
     try {
       const created = await createEntry(body);
       if (coverFile) {
-        // Non-fatal: the entry already exists; moderators can fix covers later.
-        await uploadCover(created.id, coverFile).catch(() => undefined);
+        try {
+          await uploadCover(created.id, coverFile);
+        } catch {
+          // Non-fatal — the entry exists and moderators can fix covers later —
+          // but not invisible either: swallowing this navigated the user to
+          // their new entry believing the cover had uploaded.
+          setBusy(false);
+          setCoverFailed({ slug: created.slug });
+          return;
+        }
       }
       onCreated(created.slug);
     } catch (createError) {
@@ -110,6 +133,26 @@ export function CreateEntryDialog({
       setBusy(false);
     }
   };
+
+  if (coverFailed) {
+    return (
+      <Modal onClose={() => onCreated(coverFailed.slug)}>
+        <div className="flex flex-col gap-5">
+          <div>
+            <ModalTitle>Entry created</ModalTitle>
+            <p className="mt-1 text-sm text-muted">
+              “{title.trim()}” saved, but the cover image didn’t upload. The entry is fine without
+              one — it falls back to a generated cover, and you or a moderator can add artwork
+              later.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => onCreated(coverFailed.slug)}>CONTINUE TO ENTRY</Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal onClose={onClose}>
@@ -224,7 +267,7 @@ export function CreateEntryDialog({
             type="file"
             accept={AVATAR_MIME_TYPES.join(',')}
             className="hidden"
-            onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)}
+            onChange={(event) => pickCover(event.target.files?.[0])}
           />
           <Button
             type="button"

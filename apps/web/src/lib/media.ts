@@ -31,6 +31,18 @@ export function useMediaDetail(slug: string) {
 }
 
 /**
+ * The lowest 1..limit part not yet ticked off, or null when they all are —
+ * what the media page's "✓ WATCH E13" button offers next.
+ *
+ * A scan rather than a materialised range: the array version allocated one
+ * element per part on every render, and a manga carries hundreds of chapters.
+ */
+export function firstUnwatched(watched: ReadonlySet<number>, limit: number): number | null {
+  for (let n = 1; n <= limit; n++) if (!watched.has(n)) return n;
+  return null;
+}
+
+/**
  * Every cached view derived from tracking data. One check-in changes the media
  * detail, the home dashboard (up next, in progress, stats) *and* the profile
  * activity feed — so a mutation that invalidates only its own page leaves the
