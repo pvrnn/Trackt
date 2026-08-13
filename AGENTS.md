@@ -1,0 +1,38 @@
+# Trackt development guidance
+
+`AGENTS.md` is the source of truth for AI-assisted development guidance in this repository. `CLAUDE.md` is a symlink to this file so that Claude Code and tools that use either convention receive identical instructions.
+
+## Project orientation
+
+Trackt is a pnpm/Turborepo monorepo for a self-hostable tracker of movies, series, anime, manga, and webtoons. Read the relevant source and tests before making a change; use `README.md`, `CONTRIBUTING.md`, and `docs/` for broader product and architecture context.
+
+## Working conventions
+
+- Keep changes small, focused, and consistent with the existing code style.
+- Do not edit generated files, build output, or lockfiles unless the change requires it.
+- Tests live in each package's `test/` directory, mirroring `src/`. Use `*.test.ts` for unit tests and `*.integration.test.ts` for database-backed tests.
+- For schema changes, update `packages/db/src/schema/`, generate a migration with `pnpm db:generate`, and review the generated SQL. Do not use `drizzle-kit push` or Studio for migrations.
+- Use deterministic UUIDv5 canonical media IDs for provider-identified works; do not mint random IDs for them.
+
+## Verification
+
+Run the narrowest relevant checks first. Before handing off a non-trivial change, run the applicable commands from:
+
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm format:check
+```
+
+Database-backed integration tests can self-skip without the development Compose services, so say clearly when those services were not available.
+
+## Environment
+
+Development uses Node 22+ and pnpm 10+. Start supporting services with:
+
+```sh
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Development defaults are configured in `packages/shared/src/env.ts`; a `.env` file is not normally needed.
