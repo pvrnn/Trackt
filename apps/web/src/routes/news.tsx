@@ -57,20 +57,6 @@ function isoDaysAgo(days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-/**
- * Shortest-column-first packing, as the mockup does it: a plain CSS `columns`
- * layout fills column one to the bottom before starting column two, which would
- * put the second-newest story at the bottom of the page. Packing by index keeps
- * recency reading left-to-right across the top.
- */
-function packColumns<T>(items: T[], columns: number): T[][] {
-  const buckets: T[][] = Array.from({ length: columns }, () => []);
-  items.forEach((item, index) => {
-    buckets[index % columns]!.push(item);
-  });
-  return buckets;
-}
-
 function NewsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { kind, from, to } = Route.useSearch();
@@ -88,8 +74,6 @@ function NewsPage() {
   // The session only decides which nav renders — news is public, so the page
   // never waits on it beyond the first paint.
   if (isPending) return <div className="min-h-screen bg-ink" />;
-
-  const columns = packColumns(feed.articles, 3);
 
   return (
     <div className="min-h-screen bg-ink text-fg">
@@ -197,13 +181,16 @@ function NewsPage() {
             <EmptyFeed filtered={Boolean(kind || from || to)} />
           ) : (
             <>
-              <div className="flex items-start gap-4">
-                {columns.map((column, index) => (
-                  <div key={index} className="flex min-w-0 flex-1 flex-col gap-4">
-                    {column.map((article) => (
-                      <NewsCard key={article.id} article={article} />
-                    ))}
-                  </div>
+              {/* A plain responsive grid, not the mockup's masonry. The
+                  hand-packed 3-column version was fixed at three at every
+                  width — three ~110px columns on a phone — and its DOM order
+                  was column-major (1, 4, 7, 2, 5, 8…), so keyboard and screen
+                  reader order disagreed with the recency the packing existed
+                  to produce. A grid costs ragged card bottoms and buys back
+                  both. */}
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {feed.articles.map((article) => (
+                  <NewsCard key={article.id} article={article} />
                 ))}
               </div>
 

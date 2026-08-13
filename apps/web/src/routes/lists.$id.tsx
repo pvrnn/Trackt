@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ListDetail, ListEntry } from '@trackt/shared';
 import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
@@ -31,6 +31,9 @@ function ListDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Guards re-entrant mutations without disabling the button that triggered
+  // them — see the ↑/↓ note in ListRow.
+  const inFlight = useRef(false);
 
   if (authPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
@@ -77,6 +80,8 @@ function ListDetailPage() {
 
   /** Every mutation re-reads from the server; positions and counts are its call. */
   const run = async (action: () => Promise<unknown>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -85,6 +90,7 @@ function ListDetailPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
@@ -248,16 +254,21 @@ function ListRow({
         <div className="flex shrink-0 items-center gap-1">
           {ranked && (
             <>
+              {/* Bounds only, never `busy`: the page advertises ↑/↓ reordering,
+                  and disabling the button the user just pressed hands focus
+                  back to <body> — the second press then goes nowhere and a
+                  keyboard reorder costs a Tab per step. `run()` ignores
+                  re-entrant calls instead. */}
               <RowButton
                 label={`Move ${entry.title} up`}
-                disabled={busy || index === 0}
+                disabled={index === 0}
                 onClick={() => onMove('up')}
               >
                 ↑
               </RowButton>
               <RowButton
                 label={`Move ${entry.title} down`}
-                disabled={busy || index === total - 1}
+                disabled={index === total - 1}
                 onClick={() => onMove('down')}
               >
                 ↓

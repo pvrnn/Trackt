@@ -6,13 +6,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { Tooltip } from '../components/ui/Tooltip';
 import { authClient } from '../lib/auth-client';
-
-/** Only same-app paths survive as a post-login destination — never other origins. */
-function safeRedirect(value: unknown): string | undefined {
-  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
-    ? value
-    : undefined;
-}
+import { safeRedirect } from '../lib/url';
 
 export const Route = createFileRoute('/login')({
   head: () => ({ meta: [{ title: 'Sign in — Trackt' }] }),

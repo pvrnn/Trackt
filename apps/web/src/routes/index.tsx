@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { m } from 'motion/react';
-import { useState } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import type { MediaKind } from '@trackt/shared';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingFooter } from '../components/layout/MarketingFooter';
@@ -10,6 +10,7 @@ import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Tooltip } from '../components/ui/Tooltip';
 import { coverGradient } from '../lib/cover';
+import { useShowcase } from '../lib/media';
 
 const MotionLink = m.create(Link);
 
@@ -17,8 +18,21 @@ export const Route = createFileRoute('/')({
   component: Landing,
 });
 
-/** The 12 strip titles from the design handoff, mapped to kinds for the cover generator. */
-const STRIP: { title: string; kind: MediaKind }[] = [
+/** One tile in the band — the shape both the real catalog and the fallback produce. */
+interface StripItem {
+  key: string;
+  title: string;
+  kind: MediaKind;
+  coverUrl: string | null;
+}
+
+/**
+ * The 12 strip titles from the design handoff. No longer what the band shows
+ * when the instance has a catalog — they're the fallback for the case that
+ * outnumbers every other on day one: a fresh self-host with an empty `media`
+ * table, where the alternative is a marketing page with a blank gap in it.
+ */
+const FALLBACK_STRIP: { title: string; kind: MediaKind }[] = [
   { title: 'Neon Harbor', kind: 'series' },
   { title: 'Ashfall Chronicle', kind: 'anime' },
   { title: 'Moonlit Courier', kind: 'webtoon' },
@@ -32,6 +46,12 @@ const STRIP: { title: string; kind: MediaKind }[] = [
   { title: 'Static Bloom', kind: 'anime' },
   { title: 'The Ferry Years', kind: 'series' },
 ];
+
+/** Seconds each tile spends crossing the viewport — the band's speed, not its period. */
+const SECONDS_PER_TILE = 4;
+
+/** Below this the loop is too short to read as continuous, so pad it by repeating. */
+const MIN_TILES = 10;
 
 const PILLARS = [
   {
@@ -118,20 +138,95 @@ function Hero() {
   );
 }
 
+/**
+ * The band under the hero: what this instance actually carries, rolling left
+ * forever.
+ *
+ * Deliberately **not** links. Every media page is behind `useAuthedPage()`, so
+ * a click from here would land a signed-out visitor on /login — a decorative
+ * band that turns into an auth wall is worse than one that stays decoration.
+ * The whole thing is `aria-hidden` for the same reason: it's the page's mood,
+ * and the copy above it already says what Trackt tracks.
+ */
 function CoverStrip() {
+  const { data, isPending } = useShowcase();
+  const showcase = data ?? [];
+
+  // Nothing until the catalog answers. The band is client-fetched (the SSR
+  // process sits *behind* the API in the monolith and has no route back to
+  // it), so rendering the fallback first meant every visitor watched twelve
+  // invented titles get replaced by the real catalog a moment later — a flash
+  // of fiction presented as this instance's contents. The wrapper keeps its
+  // height either way, so filling it shifts nothing.
+  if (isPending) return <StripBand duration={0}>{null}</StripBand>;
+
+  const items: StripItem[] =
+    showcase.length > 0
+      ? showcase.map((entry) => ({
+          key: entry.id,
+          title: entry.title,
+          kind: entry.kind,
+          coverUrl: entry.coverUrl,
+        }))
+      : FALLBACK_STRIP.map((entry) => ({ ...entry, key: entry.title, coverUrl: null }));
+
+  // A three-title instance would otherwise loop visibly every few seconds.
+  // `Math.ceil` over a known-non-empty list rather than a while-loop: the
+  // fallback guarantees `items` is never empty, but nothing should depend on
+  // that invariant holding to avoid spinning forever.
+  const repeats = Math.max(1, Math.ceil(MIN_TILES / items.length));
+  const padded: StripItem[] = Array.from({ length: repeats }, () => items).flat();
+
   return (
-    <div className="-mx-20 flex w-[calc(100%+160px)] translate-y-5 -rotate-2 gap-0.5">
-      {STRIP.map(({ title, kind }) => (
-        <div
-          key={title}
-          className="flex h-[190px] min-w-[110px] flex-1 items-start p-2.5"
-          style={{ background: coverGradient(kind, title) }}
-        >
-          <span className="font-display text-[13px] leading-[1.1] text-white/90 uppercase">
-            {title}
-          </span>
-        </div>
-      ))}
+    <StripBand duration={padded.length * SECONDS_PER_TILE}>
+      {/* Twice, so -50% lands copy two exactly where copy one started. */}
+      {[0, 1].map((copy) =>
+        padded.map((item, index) => (
+          <div
+            key={`${copy}-${index}-${item.key}`}
+            // `mr-0.5`, not `gap-0.5` on the track: a gap applies *between*
+            // tiles, so one copy of the list measures N·w + (N−1)·gap while
+            // the -50% slide covers N·w + (N−0.5)·gap — half a gap of drift,
+            // and a visible hitch, every time the loop restarts. Folding the
+            // gap into each tile makes every tile exactly w+gap wide and the
+            // two halves exactly equal.
+            className="mr-0.5 flex h-[190px] w-[130px] shrink-0 items-start bg-cover bg-center p-2.5 sm:w-[150px]"
+            style={
+              item.coverUrl
+                ? { backgroundImage: `url(${item.coverUrl})` }
+                : { background: coverGradient(item.kind, item.title) }
+            }
+          >
+            {/* Real artwork carries its own title; the gradient has nothing else. */}
+            {!item.coverUrl && (
+              <span className="font-display text-[13px] leading-[1.1] text-white/90 uppercase">
+                {item.title}
+              </span>
+            )}
+          </div>
+        )),
+      )}
+    </StripBand>
+  );
+}
+
+/**
+ * The band's frame: the rotated, viewport-overflowing clip window and the
+ * rolling track inside it. Held apart from its contents so the loading state
+ * reserves exactly the same box the filled one occupies.
+ */
+function StripBand({ duration, children }: { duration: number; children: ReactNode }) {
+  return (
+    <div
+      aria-hidden
+      className="-mx-20 w-[calc(100%+160px)] translate-y-5 -rotate-2 overflow-hidden"
+    >
+      <div
+        className="marquee h-[190px]"
+        style={{ '--marquee-duration': `${duration}s` } as CSSProperties}
+      >
+        {children}
+      </div>
     </div>
   );
 }

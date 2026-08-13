@@ -1,5 +1,11 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
-import { MediaDetailSchema, type LogStatus, type MediaDetail } from '@trackt/shared';
+import {
+  MediaDetailSchema,
+  SearchResultSchema,
+  type LogStatus,
+  type MediaDetail,
+  type SearchResult,
+} from '@trackt/shared';
 import { authClient } from './auth-client';
 import { api, toError } from './http';
 
@@ -28,6 +34,40 @@ export function useMediaDetail(slug: string) {
     queryFn: () => fetchMediaDetail(slug),
     enabled: !!session,
   });
+}
+
+/**
+ * What this instance carries, for the landing page's cover band. Public — the
+ * landing page has no session, and the endpoint serves `verified` rows only.
+ *
+ * A failure is not worth surfacing here: the band is decoration above the fold
+ * on a marketing page, and it has a designed fallback. `data ?? []` lets the
+ * caller treat "failed" and "this instance has an empty catalog" as one state,
+ * which is what the fallback is for.
+ */
+export function useShowcase() {
+  return useQuery({
+    queryKey: ['showcase'],
+    queryFn: async ({ signal }): Promise<SearchResult[]> => {
+      const json = await api.get('media/showcase', { signal }).json();
+      return SearchResultSchema.array().parse(json);
+    },
+    // It changes when the catalog is populated, not between page views.
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+/**
+ * The lowest 1..limit part not yet ticked off, or null when they all are —
+ * what the media page's "✓ WATCH E13" button offers next.
+ *
+ * A scan rather than a materialised range: the array version allocated one
+ * element per part on every render, and a manga carries hundreds of chapters.
+ */
+export function firstUnwatched(watched: ReadonlySet<number>, limit: number): number | null {
+  for (let n = 1; n <= limit; n++) if (!watched.has(n)) return n;
+  return null;
 }
 
 /**

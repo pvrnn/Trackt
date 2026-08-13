@@ -95,6 +95,10 @@ function SearchPage() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Search titles…"
+                // The wrapping label's only content is the aria-hidden ⌕, so
+                // without this the name falls back to the placeholder — the
+                // weakest source in the accname spec, and gone once you type.
+                aria-label="search titles"
                 autoFocus
                 className="flex-1 bg-transparent text-[17px] outline-none placeholder:text-dim"
               />
@@ -118,12 +122,19 @@ function SearchPage() {
               }}
               className="flex flex-wrap gap-2.5"
             >
+              {/* `aria-pressed={undefined}` drops Chip's own toggle semantics:
+                  ToggleGroup supplies role="radio" + aria-checked here, and a
+                  radio that is also aria-pressed is invalid ARIA. */}
               <ToggleGroup.Item value={ALL_KINDS} asChild>
-                <Chip selected={kind === undefined}>ALL</Chip>
+                <Chip selected={kind === undefined} aria-pressed={undefined}>
+                  ALL
+                </Chip>
               </ToggleGroup.Item>
               {MEDIA_KINDS.map((value) => (
                 <ToggleGroup.Item key={value} value={value} asChild>
-                  <Chip selected={kind === value}>{KIND_LABELS[value]}</Chip>
+                  <Chip selected={kind === value} aria-pressed={undefined}>
+                    {KIND_LABELS[value]}
+                  </Chip>
                 </ToggleGroup.Item>
               ))}
             </ToggleGroup.Root>

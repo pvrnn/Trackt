@@ -4,6 +4,7 @@ import {
   trackingVerbLabel,
   type ActivityEntry,
   type HomeSummary,
+  type UpNextEntry,
 } from '@trackt/shared';
 import { authClient } from './auth-client';
 import { api, toError } from './http';
@@ -21,6 +22,19 @@ export async function fetchHomeSummary(): Promise<HomeSummary> {
 export function useHomeSummary() {
   const { data: session } = authClient.useSession();
   return useQuery({ queryKey: ['home'], queryFn: fetchHomeSummary, enabled: !!session });
+}
+
+/**
+ * Identifies the *part* a one-tap check-in logged, not the title it belongs to.
+ *
+ * The home page marks a card done optimistically and needs to know when that
+ * mark is spent. Keyed on `entry.id` alone it never was: the refetched summary
+ * keeps the same media id and only advances `next`, so the card stayed
+ * `✓ WATCHED` and its button stayed inert — one check-in per title per page
+ * load, until a full reload built a fresh dashboard.
+ */
+export function upNextPartKey(entry: UpNextEntry): string {
+  return `${entry.id}:${entry.next}`;
 }
 
 /**
