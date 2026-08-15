@@ -12,8 +12,14 @@ import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { StatCard } from '../components/ui/StatCard';
 import { useAuthedPage } from '../lib/auth-client';
-import { activityVerbLabel, relativeTime, upNextPartKey, useHomeSummary } from '../lib/home';
-import { invalidateTracking, trackingApi } from '../lib/media';
+import {
+  activityVerbLabel,
+  relativeTime,
+  upNextPartKey,
+  useHomeSummary,
+  invalidateTracking,
+  trackingApi,
+} from '@trackt/client';
 
 export const Route = createFileRoute('/home')({
   head: () => ({ meta: [{ title: 'Home — Trackt' }] }),

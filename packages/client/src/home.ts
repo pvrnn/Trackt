@@ -6,13 +6,13 @@ import {
   type HomeSummary,
   type UpNextEntry,
 } from '@trackt/shared';
-import { authClient } from './auth-client';
-import { api, toError } from './http';
+import { toError } from './http.js';
+import { http, useIsAuthed } from './runtime.js';
 
 /** Fetch the authenticated home dashboard summary. */
 export async function fetchHomeSummary(): Promise<HomeSummary> {
   try {
-    return HomeSummarySchema.parse(await api.get('me/home').json());
+    return HomeSummarySchema.parse(await http().get('me/home').json());
   } catch (error) {
     throw await toError(error, 'home summary');
   }
@@ -20,8 +20,8 @@ export async function fetchHomeSummary(): Promise<HomeSummary> {
 
 /** Home dashboard query — gated on an active session so it never fires signed-out. */
 export function useHomeSummary() {
-  const { data: session } = authClient.useSession();
-  return useQuery({ queryKey: ['home'], queryFn: fetchHomeSummary, enabled: !!session });
+  const isAuthed = useIsAuthed();
+  return useQuery({ queryKey: ['home'], queryFn: fetchHomeSummary, enabled: isAuthed });
 }
 
 /**

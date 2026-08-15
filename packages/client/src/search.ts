@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { SearchResultSchema, type MediaKind, type SearchResult } from '@trackt/shared';
-import { api } from './http';
+import { http } from './runtime.js';
 
 export interface MediaSearchState {
   status: 'idle' | 'loading' | 'success' | 'error';
@@ -25,7 +25,7 @@ export function useMediaSearch(query: string, kind?: MediaKind): MediaSearchStat
     queryFn: async ({ signal }) => {
       const searchParams: Record<string, string> = { q };
       if (kind) searchParams.kind = kind;
-      const json = await api.get('search', { searchParams, signal }).json();
+      const json = await http().get('search', { searchParams, signal }).json();
       return SearchResultSchema.array().parse(json);
     },
   });

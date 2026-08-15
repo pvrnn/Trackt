@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // `ky` types `Response`/`Headers`/`RequestInit`, and the avatar upload types
+    // a `File`, so the DOM lib is a hard requirement here even though nothing in
+    // this package touches the document. React Native supplies all three at
+    // runtime, and `expo/tsconfig.base` supplies the same lib at build time.
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src", "test"]
+}

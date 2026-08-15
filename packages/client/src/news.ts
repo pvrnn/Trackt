@@ -1,5 +1,4 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { HTTPError } from 'ky';
 import {
   NewsArticleDetailSchema,
   NewsListResponseSchema,
@@ -7,7 +6,8 @@ import {
   type NewsArticleSummary,
   type NewsTopic,
 } from '@trackt/shared';
-import { api } from './http';
+import { errorStatus } from './http.js';
+import { http } from './runtime.js';
 
 /**
  * News reads against the instance API (ADR-0005), which proxies the central
@@ -54,7 +54,7 @@ export function useNewsFeed(filters: NewsFilters): NewsFeedState {
     queryFn: async ({ pageParam, signal }) => {
       const searchParams = toSearchParams(filters);
       if (pageParam) searchParams.cursor = pageParam;
-      const json = await api.get('news', { searchParams, signal }).json();
+      const json = await http().get('news', { searchParams, signal }).json();
       return NewsListResponseSchema.parse(json);
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -76,13 +76,15 @@ export function useNewsArticle(slug: string) {
   return useQuery({
     queryKey: ['news', 'article', slug],
     queryFn: async ({ signal }) => {
-      const json = await api.get(`news/${encodeURIComponent(slug)}`, { signal }).json();
+      const json = await http()
+        .get(`news/${encodeURIComponent(slug)}`, { signal })
+        .json();
       return NewsArticleDetailSchema.parse(json);
     },
     // A missing article is a permanent answer; retrying it just delays the 404.
     // A 503 is the degraded-catalog case and *is* worth retrying.
     retry: (failureCount, error) => {
-      if (error instanceof HTTPError && error.response.status === 404) return false;
+      if (errorStatus(error) === 404) return false;
       return failureCount < 2;
     },
   });

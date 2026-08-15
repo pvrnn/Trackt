@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { m } from 'motion/react';
 import { trackingVerbLabel, type MediaKind } from '@trackt/shared';
-import { coverGradient } from '../../lib/cover';
+import { coverGradient } from '@trackt/client';
 import { GlassCard } from '../ui/GlassCard';
 
 export interface UpNextCardProps {

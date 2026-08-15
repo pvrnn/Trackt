@@ -57,6 +57,7 @@ apps/
   catalog/    Central slim catalog service, and the News surface (project-operated, not self-hosted)
 packages/
   shared/     Zod schemas, shared types, env validation — single source of truth
+  client/     The API data layer every client shares: fetch + Zod + React Query, no UI
   db/         Drizzle ORM schema + migrations (PostgreSQL 16)
   providers/  Parked: metadata providers (future per-instance enrichment)
 ```

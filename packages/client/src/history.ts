@@ -8,13 +8,12 @@ import {
   type LogStatus,
   type MediaKind,
 } from '@trackt/shared';
-import { authClient } from './auth-client';
-import { api } from './http';
+import { http, useIsAuthed } from './runtime.js';
 
 /**
  * History data layer (ADR-0007). Keyset cursors are opaque and strictly
  * forward, which maps onto `useInfiniteQuery`'s append-only page list — the
- * same shape `lib/news.ts` uses, for the same reason.
+ * same shape `news.ts` uses, for the same reason.
  */
 
 export interface HistoryFilters {
@@ -44,10 +43,10 @@ export interface HistoryState {
 const EMPTY_TOTALS: HistoryTotals = { titles: 0, completed: 0, episodes: 0, chapters: 0 };
 
 export function useHistory(filters: HistoryFilters): HistoryState {
-  const { data: session } = authClient.useSession();
+  const isAuthed = useIsAuthed();
   const query = useInfiniteQuery({
     queryKey: historyKey(filters),
-    enabled: !!session,
+    enabled: isAuthed,
     initialPageParam: undefined as string | undefined,
     // Switching year re-fetches; without this the whole page blanks between
     // the click and the response, including the year chips you clicked from.
@@ -59,7 +58,7 @@ export function useHistory(filters: HistoryFilters): HistoryState {
       if (filters.kind) searchParams.kind = filters.kind;
       if (filters.status) searchParams.status = filters.status;
       if (pageParam) searchParams.cursor = pageParam;
-      const json = await api.get('me/history', { searchParams, signal }).json();
+      const json = await http().get('me/history', { searchParams, signal }).json();
       return HistoryPageSchema.parse(json);
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,

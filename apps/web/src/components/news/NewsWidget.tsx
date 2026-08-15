@@ -1,6 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { coverGradient } from '../../lib/cover';
-import { useNewsFeed } from '../../lib/news';
+import { coverGradient, useNewsFeed } from '@trackt/client';
 import { GlassCard } from '../ui/GlassCard';
 import { formatNewsDate, TOPIC_LABELS } from './NewsCard';
 

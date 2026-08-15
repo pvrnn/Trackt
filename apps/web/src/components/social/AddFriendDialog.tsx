@@ -6,8 +6,8 @@ import {
   useRemoveFriend,
   useSendFriendRequest,
   useUserSearch,
-} from '../../lib/friends';
-import { useDebounced } from '../../lib/use-debounced';
+  useDebounced,
+} from '@trackt/client';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HISTORY_SEASONS, seasonOf, seasonWindow, type HistoryEntry } from '@trackt/shared';
-import { HISTORY_GROUPINGS, dateRangeLabel, groupEntries, shortDate } from '../../src/lib/history';
+import { HISTORY_GROUPINGS, dateRangeLabel, groupEntries, shortDate } from '../src/history.js';
 
 /**
  * The framework-free half of the history page: the quarter boundaries, the date

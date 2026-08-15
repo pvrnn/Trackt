@@ -8,8 +8,7 @@ import { Markdown } from '../components/news/Markdown';
 import { TOPIC_LABELS, formatNewsDate } from '../components/news/NewsCard';
 import { KindDot } from '../components/ui/KindDot';
 import { useOptionalSession } from '../lib/auth-client';
-import { coverGradient } from '../lib/cover';
-import { useNewsArticle } from '../lib/news';
+import { coverGradient, useNewsArticle } from '@trackt/client';
 
 /**
  * `news_.` opts this route out of nesting under `/news`: the feed is a

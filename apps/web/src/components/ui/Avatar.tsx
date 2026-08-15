@@ -1,6 +1,6 @@
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
 import clsx from 'clsx';
-import { avatarGradient } from '../../lib/cover';
+import { avatarGradient } from '@trackt/client';
 
 export interface AvatarProps {
   name: string;

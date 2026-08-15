@@ -7,8 +7,8 @@ import {
   type ListSummary,
   type UpdateListBody,
 } from '@trackt/shared';
-import { authClient } from './auth-client';
-import { api, toError } from './http';
+import { toError } from './http.js';
+import { http, useIsAuthed } from './runtime.js';
 
 /**
  * Lists data layer (PRD §3.4). Mutations invalidate rather than patch the cache:
@@ -27,6 +27,7 @@ async function request<T>(
   parse: (value: unknown) => T,
   init?: { method: 'POST' | 'PATCH' | 'DELETE'; json?: unknown },
 ): Promise<T> {
+  const api = http();
   try {
     const response = await api(path, {
       ...(init ? { method: init.method } : {}),
@@ -40,10 +41,10 @@ async function request<T>(
 
 /** The viewer's own lists. `containsMedia` marks which already hold a title. */
 export function useLists(containsMedia?: string) {
-  const { data: session } = authClient.useSession();
+  const isAuthed = useIsAuthed();
   return useQuery({
     queryKey: [...listsKey, containsMedia ?? null],
-    enabled: !!session,
+    enabled: isAuthed,
     queryFn: async () => {
       const search = containsMedia ? `?containsMedia=${encodeURIComponent(containsMedia)}` : '';
       return request(`lists${search}`, (value) => ListSummarySchema.array().parse(value));
@@ -53,12 +54,12 @@ export function useLists(containsMedia?: string) {
 
 /** One list. `data === null` is a real 404 — missing, or private to someone else. */
 export function useList(id: string) {
-  const { data: session } = authClient.useSession();
+  const isAuthed = useIsAuthed();
   return useQuery({
     queryKey: listKey(id),
-    enabled: !!session,
+    enabled: isAuthed,
     queryFn: async (): Promise<ListDetail | null> => {
-      const response = await api.get(`lists/${seg(id)}`, { throwHttpErrors: false });
+      const response = await http().get(`lists/${seg(id)}`, { throwHttpErrors: false });
       if (response.status === 404) return null;
       if (!response.ok) throw new Error(`list responded ${response.status}`);
       return ListDetailSchema.parse(await response.json());
@@ -73,7 +74,7 @@ export const listsApi = {
     request(`lists/${seg(id)}`, (v) => ListSummarySchema.parse(v), { method: 'PATCH', json: body }),
   remove: async (id: string) => {
     try {
-      await api(`lists/${seg(id)}`, { method: 'DELETE' });
+      await http().delete(`lists/${seg(id)}`);
     } catch (error) {
       throw await toError(error, `DELETE lists/${seg(id)}`);
     }
@@ -113,7 +114,7 @@ export function useCreateList() {
 }
 
 /**
- * Relative "UPDATED …" label for a list card. Distinct from lib/home.ts's
+ * Relative "UPDATED …" label for a list card. Distinct from `home.ts`'s
  * compact activity stamps: cards read as sentences ("TODAY", "2D AGO"), not
  * feed ticks.
  */

@@ -7,11 +7,11 @@ import {
   type PublicProfile,
   type UserSearchResult,
 } from '@trackt/shared';
-import { authClient } from './auth-client';
-import { api, toError } from './http';
+import { toError } from './http.js';
+import { http, useIsAuthed } from './runtime.js';
 
 /**
- * Mutual friends data layer (ADR-0006). Mirrors `lib/lists.ts`: mutations
+ * Mutual friends data layer (ADR-0006). Mirrors `lists.ts`: mutations
  * invalidate rather than patch the cache, since `friendState` is derived
  * server-side from whichever side of the pair the viewer is on.
  */
@@ -20,13 +20,13 @@ export const friendsKey = ['friends'] as const;
 
 /** The viewer's own friends/incoming/outgoing — session-gated. */
 export function useFriends() {
-  const { data: session } = authClient.useSession();
+  const isAuthed = useIsAuthed();
   return useQuery({
     queryKey: friendsKey,
-    enabled: !!session,
+    enabled: isAuthed,
     queryFn: async (): Promise<FriendsOverview> => {
       try {
-        return FriendsOverviewSchema.parse(await api.get('me/friends').json());
+        return FriendsOverviewSchema.parse(await http().get('me/friends').json());
       } catch (error) {
         throw await toError(error, 'friends overview');
       }
@@ -36,7 +36,7 @@ export function useFriends() {
 
 /**
  * Handle/name search for sending a request. `enabled: q.length >= 2` and
- * `keepPreviousData` follow `lib/search.ts`'s contract — debounce lives in
+ * `keepPreviousData` follow `search.ts`'s contract — debounce lives in
  * the component, not here.
  */
 export function useUserSearch(q: string) {
@@ -47,7 +47,9 @@ export function useUserSearch(q: string) {
     placeholderData: keepPreviousData,
     queryFn: async ({ signal }): Promise<UserSearchResult[]> => {
       try {
-        const json = await api.get('users/search', { searchParams: { q: trimmed }, signal }).json();
+        const json = await http()
+          .get('users/search', { searchParams: { q: trimmed }, signal })
+          .json();
         return UserSearchResultSchema.array().parse(json);
       } catch (error) {
         throw await toError(error, 'user search');
@@ -69,7 +71,7 @@ export function usePublicProfile(username: string) {
   return useQuery({
     queryKey: publicProfileKey(username),
     queryFn: async (): Promise<PublicProfile | null> => {
-      const response = await api.get(`users/${encodeURIComponent(username)}/profile`, {
+      const response = await http().get(`users/${encodeURIComponent(username)}/profile`, {
         throwHttpErrors: false,
       });
       if (response.status === 404) return null;
@@ -82,21 +84,21 @@ export function usePublicProfile(username: string) {
 export const friendsApi = {
   sendRequest: async (username: string) => {
     try {
-      await api.post('me/friends/requests', { json: { username } });
+      await http().post('me/friends/requests', { json: { username } });
     } catch (error) {
       throw await toError(error, 'send friend request');
     }
   },
   accept: async (userId: string) => {
     try {
-      await api.post(`me/friends/requests/${userId}/accept`);
+      await http().post(`me/friends/requests/${userId}/accept`);
     } catch (error) {
       throw await toError(error, 'accept friend request');
     }
   },
   remove: async (userId: string) => {
     try {
-      await api.delete(`me/friends/${userId}`);
+      await http().delete(`me/friends/${userId}`);
     } catch (error) {
       throw await toError(error, 'remove friend');
     }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { UpNextEntry } from '@trackt/shared';
-import { upNextPartKey } from '../../src/lib/home';
-import { firstUnwatched, stampedDates } from '../../src/lib/media';
+import { upNextPartKey } from '../src/home.js';
+import { firstUnwatched, stampedDates } from '../src/media.js';
 
 describe('firstUnwatched', () => {
   it('offers part 1 when nothing is watched', () => {

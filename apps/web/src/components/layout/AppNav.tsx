@@ -2,7 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Link, useNavigate, type LinkProps } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { authClient } from '../../lib/auth-client';
-import { useFriends } from '../../lib/friends';
+import { useFriends } from '@trackt/client';
 import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
 import { NavSearch } from './NavSearch';

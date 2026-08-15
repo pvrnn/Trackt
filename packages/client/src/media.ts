@@ -9,8 +9,8 @@ import {
   type MediaDetail,
   type SearchResult,
 } from '@trackt/shared';
-import { authClient } from './auth-client';
-import { api, toError } from './http';
+import { toError } from './http.js';
+import { http, useIsAuthed } from './runtime.js';
 
 /**
  * Fetch helpers for the media detail page. Mutations return nothing — the page
@@ -18,7 +18,7 @@ import { api, toError } from './http';
  */
 
 export async function fetchMediaDetail(idOrSlug: string): Promise<MediaDetail | null> {
-  const response = await api.get(`media/${encodeURIComponent(idOrSlug)}`, {
+  const response = await http().get(`media/${encodeURIComponent(idOrSlug)}`, {
     throwHttpErrors: false,
   });
   if (response.status === 404) return null;
@@ -31,11 +31,11 @@ export async function fetchMediaDetail(idOrSlug: string): Promise<MediaDetail | 
  * (the page shows "Not found"); a thrown error surfaces as `isError`.
  */
 export function useMediaDetail(slug: string) {
-  const { data: session } = authClient.useSession();
+  const isAuthed = useIsAuthed();
   return useQuery({
     queryKey: ['media', slug],
     queryFn: () => fetchMediaDetail(slug),
-    enabled: !!session,
+    enabled: isAuthed,
   });
 }
 
@@ -52,7 +52,7 @@ export function useShowcase() {
   return useQuery({
     queryKey: ['showcase'],
     queryFn: async ({ signal }): Promise<SearchResult[]> => {
-      const json = await api.get('media/showcase', { signal }).json();
+      const json = await http().get('media/showcase', { signal }).json();
       return SearchResultSchema.array().parse(json);
     },
     // It changes when the catalog is populated, not between page views.
@@ -108,6 +108,7 @@ async function mutate(
   method: 'PUT' | 'PATCH' | 'DELETE',
   body?: unknown,
 ): Promise<void> {
+  const api = http();
   try {
     await api(path, { method, ...(body !== undefined ? { json: body } : {}) });
   } catch (error) {
@@ -131,7 +132,7 @@ export const trackingApi = {
    */
   setDates: async (id: string, body: LogDatesBody): Promise<LogDates> => {
     try {
-      const response = await api(`media/${id}/log`, { method: 'PATCH', json: body });
+      const response = await http().patch(`media/${id}/log`, { json: body });
       return LogDatesSchema.parse(await response.json());
     } catch (error) {
       throw await toError(error, `PATCH media/${id}/log`);

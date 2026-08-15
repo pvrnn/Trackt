@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeHref, safeRedirect } from '../../src/lib/url';
+import { safeHref, safeRedirect } from '../src/url.js';
 
 describe('safeRedirect', () => {
   it('keeps same-app paths', () => {

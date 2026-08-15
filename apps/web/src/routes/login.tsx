@@ -6,7 +6,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { Tooltip } from '../components/ui/Tooltip';
 import { authClient } from '../lib/auth-client';
-import { safeRedirect } from '../lib/url';
+import { safeRedirect } from '@trackt/client';
 
 export const Route = createFileRoute('/login')({
   head: () => ({ meta: [{ title: 'Sign in — Trackt' }] }),

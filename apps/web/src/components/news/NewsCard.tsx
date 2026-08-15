@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import type { NewsArticleSummary } from '@trackt/shared';
-import { coverGradient } from '../../lib/cover';
+import { coverGradient } from '@trackt/client';
 import { KindDot } from '../ui/KindDot';
 
 /** Topic labels as the design writes them: short, uppercase, on a tag pill. */

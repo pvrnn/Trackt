@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 import type { MediaKind } from '@trackt/shared';
-import { coverGradient } from '../../lib/cover';
+import { coverGradient } from '@trackt/client';
 
 export interface CoverCardProps {
   kind: MediaKind;

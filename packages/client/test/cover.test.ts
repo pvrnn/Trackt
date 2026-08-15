@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MEDIA_KINDS } from '@trackt/shared';
-import { avatarGradient, coverGradient, hashString } from '../../src/lib/cover';
+import { avatarGradient, coverGradient, hashString } from '../src/cover.js';
 
 /**
  * These are rendered during SSR *and* during hydration, so "same inputs, same

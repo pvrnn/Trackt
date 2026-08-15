@@ -15,8 +15,9 @@ import {
   usePublicProfile,
   useRemoveFriend,
   useSendFriendRequest,
-} from '../lib/friends';
-import { activityVerbLabel, relativeTime } from '../lib/home';
+  activityVerbLabel,
+  relativeTime,
+} from '@trackt/client';
 
 /**
  * Someone else's profile (ADR-0006 phase 4). Anonymous-readable, so it takes

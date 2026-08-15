@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { activityVerbLabel, relativeTime } from '../../src/lib/home';
-import { updatedLabel, visibilityLabel } from '../../src/lib/lists';
+import { activityVerbLabel, relativeTime } from '../src/home.js';
+import { updatedLabel, visibilityLabel } from '../src/lists.js';
 
 /** A fixed "now" so these never depend on when the suite runs. */
 const NOW = Date.parse('2026-08-12T12:00:00.000Z');
