@@ -66,7 +66,6 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
   let app: App;
   let db: Db;
   let cookie: string;
-  let userId: string;
 
   beforeAll(async () => {
     await runMigrations(TEST_DATABASE_URL);
@@ -96,7 +95,6 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
       },
     });
     expect(signUp.statusCode).toBe(200);
-    userId = signUp.json().user.id;
     cookie = (signUp.headers['set-cookie'] as string[] | string | undefined)
       ?.toString()
       .split(';')[0] as string;
@@ -226,27 +224,22 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
     }
   });
 
-  it('hides an unverified relation target from a stranger but not its creator', async () => {
+  it('hides a non-verified relation target from everyone', async () => {
     const s1 = canonicalSeriesSeasonId(1396, 1);
     const s2 = canonicalSeriesSeasonId(1396, 2);
-    // Recast the seeded S2 as an unverified user entry owned by the signed-up
-    // user, reachable both by a stored edge and by season derivation.
+    // Recast the seeded S2 as a legacy `unverified` row, reachable both by a
+    // stored edge and by season derivation. No creator exception survives —
+    // only `verified` rows are visible, so a session buys nothing here.
     await db.insert(mediaRelation).values({ fromId: s1, toId: s2, type: 'sequel' });
-    await db
-      .update(media)
-      .set({ source: 'user', moderation: 'unverified', createdBy: userId })
-      .where(eq(media.id, s2));
+    await db.update(media).set({ moderation: 'unverified' }).where(eq(media.id, s2));
     try {
       const anonymous = await getDetail(s1, false);
       expect(anonymous.relations.map((item) => item.id)).not.toContain(s2);
 
-      const asCreator = await getDetail(s1, true);
-      expect(asCreator.relations.map((item) => item.id)).toContain(s2);
+      const signedIn = await getDetail(s1, true);
+      expect(signedIn.relations.map((item) => item.id)).not.toContain(s2);
     } finally {
-      await db
-        .update(media)
-        .set({ source: 'provider', moderation: 'verified', createdBy: null })
-        .where(eq(media.id, s2));
+      await db.update(media).set({ moderation: 'verified' }).where(eq(media.id, s2));
       await db.delete(mediaRelation).where(eq(mediaRelation.fromId, s1));
     }
   });

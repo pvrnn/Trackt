@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Db } from '@trackt/db';
 import type { SearchQuery, SearchResult } from '@trackt/shared';
-import type { SessionUser } from './session.js';
 import { visibleMediaSql } from './visibility.js';
 
 /** A local search hit, with `rank` exposed so callers can merge-sort against central hits. */
@@ -16,7 +15,6 @@ export type LocalSearchResult = SearchResult & { rank: number };
 export async function searchLocalMedia(
   db: Db,
   { q, kind, limit }: SearchQuery,
-  viewer: SessionUser | null,
 ): Promise<LocalSearchResult[]> {
   const rows = await db.execute(sql`
     SELECT id, slug, kind, title, year, status, season_number, cover_url, description,
@@ -27,7 +25,7 @@ export async function searchLocalMedia(
            OR title ILIKE '%' || ${q} || '%'
            OR immutable_array_to_string(synonyms, ' ') ILIKE '%' || ${q} || '%')
       AND (${kind ?? null}::media_kind IS NULL OR kind = ${kind ?? null}::media_kind)
-      AND ${visibleMediaSql(viewer)}
+      AND ${visibleMediaSql()}
     ORDER BY rank DESC, title ASC
     LIMIT ${limit}
   `);

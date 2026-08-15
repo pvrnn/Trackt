@@ -105,7 +105,7 @@ export async function searchFederated(
   options: SearchFederatedOptions,
 ): Promise<SearchResult[]> {
   const [local, central] = await Promise.all([
-    searchLocalMedia(db, query, viewer),
+    searchLocalMedia(db, query),
     searchCentralSafe(catalogUrl, query, options),
   ]);
 

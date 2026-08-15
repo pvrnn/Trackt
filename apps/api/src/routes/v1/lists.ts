@@ -24,8 +24,8 @@ import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
 /**
  * Custom lists (PRD §3.4). Two visibility rules compose on every read: the list
  * itself (lib/list-visibility.ts) and each entry's media (lib/visibility.ts) —
- * without the second, a public list would be a way to enumerate `unverified`
- * user entries and soft-deleted titles.
+ * without the second, a public list would be a way to enumerate soft-deleted
+ * titles and legacy non-`verified` rows.
  *
  * Ownership failures answer 404 rather than 403, so a private list is
  * indistinguishable from one that doesn't exist.
@@ -79,7 +79,6 @@ function toSummary(
 async function loadCoversAndCounts(
   db: Db,
   listIds: string[],
-  viewer: SessionUser | null,
 ): Promise<Map<string, { covers: ListCover[]; itemCount: number }>> {
   const result = new Map<string, { covers: ListCover[]; itemCount: number }>();
   if (listIds.length === 0) return result;
@@ -97,7 +96,7 @@ async function loadCoversAndCounts(
         listIds.map((id) => sql`${id}::uuid`),
         sql`, `,
       )})
-        AND ${visibleMediaSql(viewer, sql.raw('m.'))}
+        AND ${visibleMediaSql(sql.raw('m.'))}
     ) ranked
     WHERE rn <= ${COVER_COUNT}
     ORDER BY list_id, rn
@@ -138,7 +137,7 @@ async function loadListDetail(
     LEFT JOIN rating r
       ON r.user_id = ${row.ownerId} AND r.target_type = 'media' AND r.target_id = m.id
     WHERE li.list_id = ${row.id}
-      AND ${visibleMediaSql(viewer, sql.raw('m.'))}
+      AND ${visibleMediaSql(sql.raw('m.'))}
     ORDER BY li.position ASC, li.created_at ASC
   `);
 
@@ -180,7 +179,7 @@ async function summaryAfterWrite(
   containsMedia?: boolean,
 ): Promise<ListSummary> {
   const [row] = await db.select().from(list).where(eq(list.id, listId)).limit(1);
-  const extras = await loadCoversAndCounts(db, [listId], viewer);
+  const extras = await loadCoversAndCounts(db, [listId]);
   const extra = extras.get(listId);
   return toSummary(row!, extra?.covers ?? [], extra?.itemCount ?? 0, containsMedia);
 }
@@ -214,7 +213,6 @@ export const listRoutes: FastifyPluginAsyncZod = async (app) => {
       const extras = await loadCoversAndCounts(
         db,
         rows.map((row) => row.id),
-        user,
       );
 
       const { containsMedia } = request.query;
@@ -398,7 +396,7 @@ export const listRoutes: FastifyPluginAsyncZod = async (app) => {
         .from(media)
         .where(eq(media.id, request.body.mediaId))
         .limit(1);
-      if (!target || !canViewMedia(target, user)) {
+      if (!target || !canViewMedia(target)) {
         return reply.status(404).send({ error: 'media not found' });
       }
 

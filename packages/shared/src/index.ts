@@ -9,7 +9,6 @@ export * from './history.js';
 export * from './home.js';
 export * from './lists.js';
 export * from './media.js';
-export * from './media-entry.js';
 export * from './news.js';
 export * from './news-client.js';
 export * from './profile.js';

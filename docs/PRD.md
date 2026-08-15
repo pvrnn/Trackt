@@ -60,11 +60,12 @@ A community-owned, open-source tracker for **movies, series, anime, manga, and w
 - Custom lists (ranked or unranked), optionally collaborative.
 - Privacy levels: public / followers / private, per section.
 
-### 3.5 Catalog & User-Created Entities
+### 3.5 Catalog & Agent-Created Entities
 
 - Search across all media types with type filters.
 - Media pages: canonical info, cast/authors, seasons/episodes or volumes/chapters, related media, where-to-watch (v2).
-- **Create entity flow:** any user can propose a new media entry (title, type, cover upload, description, chapter/episode structure). Entries are immediately usable by the creator, flagged `unverified`, and enter a per-instance moderation queue (approve / edit / merge-into-existing).
+- **Entries are created centrally, never on an instance.** Titles the providers miss (webtoons, obscure works) are filled in by the catalog agent through the central catalog's publish path (`POST /v1/admin/media`, behind `CATALOG_ADMIN_TOKEN`), reviewed there before publication. Instances only ever read the catalog (ADR-0001) and materialize rows on first sight (ADR-0002); they hold no creation endpoint of their own.
+- **There is deliberately no user-facing create-entity flow, and no per-instance moderation queue.** Both were cut so that nothing a user types or uploads is visible to other users: it keeps the catalog a curated surface, it puts review in one place instead of once per instance, and it keeps the product out of the user-generated-content obligations an app-store binary would otherwise carry (ADR-0008).
 - Duplicate-merge tool for moderators (merges progress/ratings pointing at the duplicate).
 
 ### 3.6 Import / Export
@@ -108,7 +109,7 @@ interface MetadataProvider {
 | Series     | TMDB                      | TVmaze (free, no key)           |
 | Anime      | AniList (GraphQL, no key) | Jikan (MAL), Kitsu              |
 | Manga      | AniList                   | MangaDex API, MangaUpdates      |
-| Webtoons   | **user-created entities** | MangaUpdates (partial coverage) |
+| Webtoons   | **agent-created entities** (central) | MangaUpdates (partial coverage) |
 
 - External IDs stored per media (`{tmdb, imdb, anilist, mal, mangadex, mangaupdates}`) → enables dedup, cross-import, and provider switching.
 - Cache policy: details refreshed by background job (weekly for ended titles, daily for airing/publishing ones). Respect provider rate limits with a per-provider token bucket.
@@ -116,7 +117,7 @@ interface MetadataProvider {
 
 ### Community catalog (v2)
 
-A small central service — run by the project, optional to use — that only hosts **user-created entities** (webtoons, obscure titles) and their canonical merges:
+A small central service — run by the project, optional to use — that only hosts **agent-created entities** (webtoons, obscure titles) and their canonical merges:
 
 - Instances can push approved local entities (opt-in) and pull/subscribe to the shared set.
 - Entries carry a stable UUID + content license (CC0/CC-BY for contributed metadata) so redistribution is legally clean.
@@ -231,7 +232,7 @@ Shard-friendly design rules (enforced from day one):
 | Cache/Jobs | **Redis + BullMQ**                                                     | metadata refresh, importers, notifications                                                                                                                                                                                                    |
 | Search     | Postgres FTS v1 → **Meilisearch** optional container v1.x              | typo tolerance for catalog search                                                                                                                                                                                                             |
 | Auth       | **better-auth**                                                        | MIT-licensed, free, no usage limits or paid tiers for the framework (their paid offering is optional managed infra we don't use); users/sessions live in our Postgres                                                                         |
-| Images     | local volume or S3-compatible (env-switchable), optional MinIO service | covers for user-created entities                                                                                                                                                                                                              |
+| Images     | local volume or S3-compatible (env-switchable), optional MinIO service | user avatars                                                                                                                                                                                                                                  |
 | CI         | GitHub Actions → **ghcr.io images**, semver tags, semantic releases    | self-hosters never build from source                                                                                                                                                                                                          |
 
 ### 6.1 Deployment (confirmed)
@@ -251,7 +252,7 @@ Shard-friendly design rules (enforced from day one):
 ## 7. Moderation & Abuse
 
 - Per-instance roles: admin, moderator, user.
-- User-created entities: unverified until approved; rate-limit creations; image upload scanning hook.
+- Catalog entries are reviewed centrally before publication, so instances carry no moderation queue and no per-user creation rate to limit. Image upload scanning hook belongs with central publication.
 - Comments: report queue, shadow-hide, per-media lock.
 - Community catalog (v2): edit history, trusted editors, revert.
 
@@ -265,7 +266,7 @@ Shard-friendly design rules (enforced from day one):
 ## 9. Roadmap
 
 - **v0.1 (MVP):** auth, catalog search (TMDB+AniList), track/rate/progress movies+series+anime, profiles with favourites, Docker Compose. **TV Time importer.**
-- **v0.2:** manga + webtoons, user-created entities + moderation, comments, lists, activity feed, Railway template.
+- **v0.2:** manga + webtoons, centrally-published catalog entries, comments, lists, activity feed, Railway template.
 - **v1.0:** episode rating graphs, airing calendar + notifications, Trakt/MAL/AniList importers, public API v1 (OpenAPI), Meilisearch.
 - **v2:** community catalog service, Plex/Jellyfin scrobbling, ActivityPub federation of activity feeds, ~~mobile apps~~ _(pulled forward — ADR-0008)_.
 

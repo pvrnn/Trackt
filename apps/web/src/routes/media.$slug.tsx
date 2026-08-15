@@ -266,28 +266,10 @@ function MediaPage() {
             .join(' · ')
         : '—',
     ],
-    ...(detail.source === 'user'
-      ? ([['ENTRY', `Community-created · ${detail.moderation}`]] as [string, string][])
-      : []),
   ];
 
   return (
     <Shell user={navUser}>
-      {detail.source === 'user' && detail.moderation !== 'verified' && (
-        <div
-          className={
-            detail.moderation === 'unverified'
-              ? 'border-b border-amber-400/30 bg-amber-400/10'
-              : 'border-b border-red-400/30 bg-red-400/10'
-          }
-        >
-          <p className="mx-auto max-w-[1360px] px-10 py-3 text-sm">
-            {detail.moderation === 'unverified'
-              ? 'Community entry pending review — only you and moderators can see it.'
-              : 'This entry was rejected by moderators — only you can still see it.'}
-          </p>
-        </div>
-      )}
       {/* hero */}
       <div>
         <div className="mx-auto flex max-w-[1360px] flex-col gap-8 px-10 pt-14 pb-10 md:flex-row">

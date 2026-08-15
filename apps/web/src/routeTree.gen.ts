@@ -13,7 +13,6 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewsRouteImport } from './routes/news'
-import { Route as ModerationRouteImport } from './routes/moderation'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ListsRouteImport } from './routes/lists'
 import { Route as HomeRouteImport } from './routes/home'
@@ -42,11 +41,6 @@ const ProfileRoute = ProfileRouteImport.update({
 const NewsRoute = NewsRouteImport.update({
   id: '/news',
   path: '/news',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ModerationRoute = ModerationRouteImport.update({
-  id: '/moderation',
-  path: '/moderation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -101,7 +95,6 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
-  '/moderation': typeof ModerationRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -117,7 +110,6 @@ export interface FileRoutesByTo {
   '/home': typeof HomeRoute
   '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
-  '/moderation': typeof ModerationRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -134,7 +126,6 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/lists': typeof ListsRouteWithChildren
   '/login': typeof LoginRoute
-  '/moderation': typeof ModerationRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -152,7 +143,6 @@ export interface FileRouteTypes {
     | '/home'
     | '/lists'
     | '/login'
-    | '/moderation'
     | '/news'
     | '/profile'
     | '/register'
@@ -168,7 +158,6 @@ export interface FileRouteTypes {
     | '/home'
     | '/lists'
     | '/login'
-    | '/moderation'
     | '/news'
     | '/profile'
     | '/register'
@@ -184,7 +173,6 @@ export interface FileRouteTypes {
     | '/home'
     | '/lists'
     | '/login'
-    | '/moderation'
     | '/news'
     | '/profile'
     | '/register'
@@ -201,7 +189,6 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   ListsRoute: typeof ListsRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ModerationRoute: typeof ModerationRoute
   NewsRoute: typeof NewsRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
@@ -239,13 +226,6 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof NewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/moderation': {
-      id: '/moderation'
-      path: '/moderation'
-      fullPath: '/moderation'
-      preLoaderRoute: typeof ModerationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -330,7 +310,6 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   ListsRoute: ListsRouteWithChildren,
   LoginRoute: LoginRoute,
-  ModerationRoute: ModerationRoute,
   NewsRoute: NewsRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,

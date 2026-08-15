@@ -83,7 +83,7 @@ export const historyRoutes: FastifyPluginAsyncZod = async (app) => {
       const window = dateWindow(query);
       // Media visibility applies as everywhere else: a soft-deleted title
       // vanishes from the history while its log row survives (lib/me.ts).
-      const visible = visibleMediaSql(user, sql.raw('m.'));
+      const visible = visibleMediaSql(sql.raw('m.'));
       const scoped = sql`
         um.user_id = ${user.id}
         AND COALESCE(um.finished_at, um.started_at) IS NOT NULL

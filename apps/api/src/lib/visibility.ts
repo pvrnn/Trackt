@@ -1,24 +1,25 @@
 import { sql, type SQL } from 'drizzle-orm';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Db } from '@trackt/db';
-import { isModerator, type ModerationStatus } from '@trackt/shared';
-import { getSessionUser, type SessionUser } from './session.js';
+import type { ModerationStatus } from '@trackt/shared';
 
 /**
- * Who may see a media row (PRD §3.5): `verified` → everyone, `unverified` →
- * creator + moderators, `rejected` → creator only (moderators reach rejected
- * entries through the queue's rejected filter, not search/detail).
- * Soft-deleted rows (`deleted_at` set) are invisible to everyone — pulled
- * from circulation while user logs/progress stay intact.
+ * Who may see a media row: everyone sees `verified`, nobody sees anything else.
+ *
+ * There is no viewer term any more. Entry creation moved to the central
+ * catalog's publish path (ADR-0001), so an instance no longer mints rows of its
+ * own and nothing here produces `unverified`/`rejected` — catalog rows
+ * materialize `verified` on first sight (ADR-0002). The status check stays
+ * rather than collapsing to `deleted_at`, because instances that ran the old
+ * user-entry flow still hold rows in the other two states and those must remain
+ * hidden, not become visible the day this shipped.
+ *
+ * Soft-deleted rows (`deleted_at` set) are invisible to everyone — pulled from
+ * circulation while user logs/progress stay intact.
  */
-export function canViewMedia(
-  row: { moderation: ModerationStatus; createdBy: string | null; deletedAt: Date | null },
-  viewer: SessionUser | null,
-): boolean {
-  if (row.deletedAt !== null) return false;
-  if (row.moderation === 'verified') return true;
-  if (viewer !== null && row.createdBy === viewer.id) return true;
-  return viewer !== null && isModerator(viewer.role) && row.moderation === 'unverified';
+export function canViewMedia(row: {
+  moderation: ModerationStatus;
+  deletedAt: Date | null;
+}): boolean {
+  return row.deletedAt === null && row.moderation === 'verified';
 }
 
 /**
@@ -26,34 +27,6 @@ export function canViewMedia(
  * be a literal from our code (e.g. `sql.raw('m.')`) — the SQL type keeps user
  * input out of it.
  */
-export function visibleMediaSql(viewer: SessionUser | null, alias: SQL = sql.raw('')): SQL {
-  const viewerId = viewer?.id ?? null;
-  const viewerIsModerator = viewer !== null && isModerator(viewer.role);
-  return sql`(${alias}deleted_at IS NULL
-    AND (${alias}moderation = 'verified'
-      OR ${alias}created_by = ${viewerId}::uuid
-      OR (${viewerIsModerator} AND ${alias}moderation = 'unverified')))`;
-}
-
-/** 503/401/403 preamble for moderator-only routes. */
-export async function requireModerator(
-  app: FastifyInstance,
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<{ db: Db; user: SessionUser } | undefined> {
-  const db = app.deps.db;
-  if (!db) {
-    await reply.status(503).send({ error: 'database unavailable' });
-    return undefined;
-  }
-  const user = await getSessionUser(app, request);
-  if (!user) {
-    await reply.status(401).send({ error: 'authentication required' });
-    return undefined;
-  }
-  if (!isModerator(user.role)) {
-    await reply.status(403).send({ error: 'moderator access required' });
-    return undefined;
-  }
-  return { db, user };
+export function visibleMediaSql(alias: SQL = sql.raw('')): SQL {
+  return sql`(${alias}deleted_at IS NULL AND ${alias}moderation = 'verified')`;
 }
