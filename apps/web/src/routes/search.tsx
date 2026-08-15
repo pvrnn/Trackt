@@ -139,12 +139,7 @@ function SearchPage() {
             )}
           </div>
 
-          {!q ? (
-            <p className="text-[15px] text-muted">
-              Search this instance&apos;s catalog — movies, series, anime, manga, and webtoons.
-              Typos welcome.
-            </p>
-          ) : status === 'error' ? (
+          {!q ? null : status === 'error' ? (
             <p role="alert" className="text-[15px] text-red-400">
               Search failed — is the instance API reachable? Try again in a moment.
             </p>
@@ -178,17 +173,12 @@ function SearchPage() {
             </ul>
           )}
 
-          <aside className="mt-3 flex items-center gap-6 rounded-card border border-dashed border-white/20 bg-glass px-8 py-7 backdrop-blur-[16px]">
-            <span aria-hidden className="text-prism font-display text-[40px]">
-              ＋
-            </span>
-            <div className="flex-1">
-              <p className="text-base font-bold">Can&apos;t find it?</p>
-              <p className="mt-0.5 text-sm text-muted">
-                The catalog fills in over time — titles the providers miss are added to the central
-                catalog and reach every instance from there.
-              </p>
-            </div>
+          <aside className="mt-3 rounded-card border border-dashed border-white/20 bg-glass px-8 py-7 backdrop-blur-[16px]">
+            <p className="text-base font-bold">Can&apos;t find it?</p>
+            <p className="mt-0.5 text-sm text-muted">
+              The catalog fills in over time — titles are added to the central catalog and reach
+              every instance from there. Write a request to ask for one to be added.
+            </p>
           </aside>
         </main>
       </div>
