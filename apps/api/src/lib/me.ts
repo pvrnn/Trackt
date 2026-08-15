@@ -6,7 +6,6 @@ import {
   type FavoriteEntry,
   type MediaKind,
 } from '@trackt/shared';
-import type { SessionUser } from './session.js';
 import { visibleMediaSql } from './visibility.js';
 
 /** Subject-scoped tracking aggregates shared by the home and profile summaries. */
@@ -178,11 +177,10 @@ function checkinDetail(partKind: string, from: number, to: number, partCount: nu
 
 /**
  * The subject's most recent check-ins/ratings/status changes, merged
- * newest-first. Filtered through `visibleMediaSql(viewer)`, not just
- * `deleted_at IS NULL`: on the own-profile call `viewer === subject` so
- * nothing changes, but a public-profile visitor must not see the title of an
- * `unverified` entry the subject tracked that someone else created — media
- * rules and social rules both apply (mirrors `routes/v1/lists.ts`).
+ * newest-first. Filtered through `visibleMediaSql()`, not just
+ * `deleted_at IS NULL`, so a visitor never sees the title of a non-`verified`
+ * row the subject tracked — media rules and social rules both apply (mirrors
+ * `routes/v1/lists.ts`).
  *
  * Check-ins are grouped per title per UTC day before the limit is applied:
  * binging 12 chapters is one line ('CH2–12'), not 12. Grouping has to happen
@@ -194,9 +192,8 @@ export async function loadActivity(
   db: Db,
   userId: string,
   limit: number,
-  viewer: SessionUser | null,
 ): Promise<ActivityEntry[]> {
-  const visible = visibleMediaSql(viewer, sql.raw('m.'));
+  const visible = visibleMediaSql(sql.raw('m.'));
   const [checkins, ratings, logs] = await Promise.all([
     db.execute(sql`
       SELECT m.title, m.slug,

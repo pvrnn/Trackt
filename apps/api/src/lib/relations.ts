@@ -15,7 +15,6 @@ import {
   type MediaRelationLabel,
   type RelatedWork,
 } from '@trackt/shared';
-import type { SessionUser } from './session.js';
 import { canViewMedia, visibleMediaSql } from './visibility.js';
 
 /**
@@ -31,8 +30,8 @@ import { canViewMedia, visibleMediaSql } from './visibility.js';
  * discovery path), so everything returned is a real, trackable local row.
  *
  * Edges carry no visibility of their own, so all three sources filter targets
- * through lib/visibility.ts — without that, an `unverified` user entry linked as
- * a sequel would leak and a soft-deleted row would resurface through a sibling.
+ * through lib/visibility.ts — without that, a soft-deleted row would resurface
+ * through a sibling, and legacy non-`verified` rows would leak as sequels.
  */
 
 /** How many relations one detail page renders — enough for a show plus its adaptations. */
@@ -93,11 +92,7 @@ function fromPersistedRow(row: PersistedMediaRow, relation: MediaRelationLabel):
  * branches disjoint, so UNION ALL needs no dedup sort. The reverse branch keeps
  * the stored type and flips only the label, in TS, via `relationLabel`.
  */
-async function loadStoredRelations(
-  db: Db,
-  mediaId: string,
-  viewer: SessionUser | null,
-): Promise<RelatedWork[]> {
+async function loadStoredRelations(db: Db, mediaId: string): Promise<RelatedWork[]> {
   const rows = await db.execute(sql`
     SELECT t.id, t.slug, t.kind, t.title, t.year, t.status, t.season_number,
            t.cover_url, t.description, r.type, r.direction
@@ -109,7 +104,7 @@ async function loadStoredRelations(
         FROM media_relation WHERE to_id = ${mediaId}
     ) r
     JOIN media t ON t.id = r.target_id
-    WHERE ${visibleMediaSql(viewer, sql.raw('t.'))}
+    WHERE ${visibleMediaSql(sql.raw('t.'))}
   `);
 
   return [...rows].map((row) =>
@@ -138,11 +133,7 @@ async function loadStoredRelations(
  * Anime is excluded by the `kind` filter and cannot be derived at all: AniList
  * issues unrelated ids per season (ADR-0003 point 3), so anime needs real edges.
  */
-async function loadDerivedSeasonSiblings(
-  db: Db,
-  row: RelationSourceRow,
-  viewer: SessionUser | null,
-): Promise<RelatedWork[]> {
+async function loadDerivedSeasonSiblings(db: Db, row: RelationSourceRow): Promise<RelatedWork[]> {
   const showId = row.externalIds.tmdb;
   const seasonNumber = row.seasonNumber;
   if (row.kind !== 'series' || seasonNumber === null || seasonNumber < 1 || showId == null) {
@@ -159,7 +150,7 @@ async function loadDerivedSeasonSiblings(
       AND sib.season_number IN (${seasonNumber - 1}, ${seasonNumber + 1})
       AND sib.season_number >= 1
       AND sib.id <> ${row.id}
-      AND ${visibleMediaSql(viewer, sql.raw('sib.'))}
+      AND ${visibleMediaSql(sql.raw('sib.'))}
     ORDER BY sib.season_number ASC
   `);
 
@@ -208,9 +199,9 @@ async function fetchCatalogRelationsSafe(
 
 /**
  * Turn catalog edges into local rows. Targets already present render from the
- * local row (no pointless insert); targets present but invisible to the viewer
- * are dropped rather than materialized; the rest are inserted one at a time so
- * one bad row can't drop the others.
+ * local row (no pointless insert); targets present but not visible are dropped
+ * rather than materialized; the rest are inserted one at a time so one bad row
+ * can't drop the others.
  *
  * The single batched lookup here subsumes `findSoftDeletedMediaIds` for this
  * path: `canViewMedia` checks `deleted_at` first and also covers moderation,
@@ -219,7 +210,6 @@ async function fetchCatalogRelationsSafe(
 async function materializeCatalogEdges(
   db: Db,
   edges: CatalogRelationEdge[],
-  viewer: SessionUser | null,
   logger: FastifyBaseLogger,
 ): Promise<RelatedWork[]> {
   if (edges.length === 0) return [];
@@ -242,7 +232,7 @@ async function materializeCatalogEdges(
 
     if (local) {
       // Present already — never resurrect or leak it, and never re-insert.
-      if (!canViewMedia(local, viewer)) continue;
+      if (!canViewMedia(local)) continue;
       resolved.push(fromPersistedRow(local, label));
       continue;
     }
@@ -270,12 +260,11 @@ export async function loadRelations(
   db: Db,
   catalogUrl: string | undefined,
   row: RelationSourceRow,
-  viewer: SessionUser | null,
   options: LoadRelationsOptions,
 ): Promise<RelatedWork[]> {
   const [stored, derived] = await Promise.all([
-    loadStoredRelations(db, row.id, viewer),
-    loadDerivedSeasonSiblings(db, row, viewer),
+    loadStoredRelations(db, row.id),
+    loadDerivedSeasonSiblings(db, row),
   ]);
 
   // Skip the fan-out once a work has published edges materialized: re-asking
@@ -284,7 +273,7 @@ export async function loadRelations(
   // derived siblings still gets a chance to discover its cross-kind adaptation.
   const catalogEdges =
     stored.length > 0 ? [] : await fetchCatalogRelationsSafe(catalogUrl, row.id, options);
-  const fromCatalog = await materializeCatalogEdges(db, catalogEdges, viewer, options.logger);
+  const fromCatalog = await materializeCatalogEdges(db, catalogEdges, options.logger);
 
   // Keyed on the target id alone, not (target, label): one work must appear
   // once, under one heading, even when two sources disagree about the type.

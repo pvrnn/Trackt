@@ -30,9 +30,9 @@ const ProgressParamsSchema = z.object({ id: z.uuid(), number: PartNumberParamSch
 
 type MediaRow = typeof media.$inferSelect;
 
-async function loadMedia(db: Db, id: string, viewer: SessionUser): Promise<MediaRow | undefined> {
+async function loadMedia(db: Db, id: string): Promise<MediaRow | undefined> {
   const [row] = await db.select().from(media).where(eq(media.id, id)).limit(1);
-  return row && canViewMedia(row, viewer) ? row : undefined;
+  return row && canViewMedia(row) ? row : undefined;
 }
 
 /** Postgres caps a statement at 65535 bind parameters; long manga run to thousands of parts. */
@@ -150,7 +150,7 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
       await reply.status(401).send({ error: 'authentication required' });
       return undefined;
     }
-    const row = await loadMedia(db, id, user);
+    const row = await loadMedia(db, id);
     if (!row) {
       await reply.status(404).send({ error: 'media not found' });
       return undefined;

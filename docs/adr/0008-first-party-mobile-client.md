@@ -1,6 +1,7 @@
 # ADR-0008: A first-party mobile client (React Native + Expo)
 
 **Status:** Proposed — 2026-08-15 (no code yet; the phased build is [docs/mobile-app-plan.md](../mobile-app-plan.md))
+**Amended:** 2026-08-15 — the report/block consequence is closed; user-facing entry creation was withdrawn, and entry creation now happens only on the central catalog's publish path (PRD §3.5)
 **Supersedes:** PRD §1 non-goals ("mobile native apps (PWA first)") and PRD §9's placement of mobile apps in v2
 **Touches:** ADR-0001/0002 (the app is a client of an _instance_, never of the central catalog), ADR-0005 (news bodies are untrusted markdown on mobile too), ADR-0007 (the History year view is part of parity, and log dates are a mobile-native input)
 
@@ -138,10 +139,13 @@ too, none of them optional once there is a binary in a store:
   deletion from any app that offers account creation, and it is the founding
   portability principle's missing half (we can export everything and erase
   nothing). This is the one blocker on submission that is pure backend work.
-- **Report / block.** The app ships user-created catalog entries and (later)
-  comments — user-generated content, which stores expect to come with a report
-  path and a block list. Trackt has a per-instance moderation queue but no way
-  for a user to _file_ anything into it.
+- ~~**Report / block.**~~ **Closed by removing the surface, 2026-08-15.** This
+  ADR assumed the app would ship user-created catalog entries. Entry creation
+  since moved to the central catalog's publish path, so nothing a user authors —
+  beyond their own profile fields and list names — is visible to other users,
+  and the store obligations that come with user-generated content (report path,
+  block list, pre-publication filtering) do not attach. Revisit if comments
+  land: they would reopen all three at once.
 - **Pagination.** `GET /me/home` is a capped summary (12 in-progress rows) and
   `/search` maxes at 50. Mobile makes the missing **library endpoint** (already
   in the roadmap backlog) load-bearing. The pattern to copy now exists twice:

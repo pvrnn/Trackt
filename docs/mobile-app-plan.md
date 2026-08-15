@@ -18,7 +18,7 @@ obvious.
 | **Auth transport**        | React Native has no cookie jar. `@better-auth/expo` + SecureStore on the client; `expo()` plugin + `trackt://` in `trustedOrigins` on the server (2 lines in `apps/api/src/auth.ts`)                 |
 | **Shared data layer**     | `apps/web/src/lib/` is already platform-neutral except `auth-client.ts`. Extract it to `packages/client` before writing the second copy, not after — and its `apps/web/test/lib/` suite goes with it |
 | **Design system port**    | AURA PRISM's signatures (radial aura, grain, glass blur, PRISM gradient text) are CSS recipes with no React Native equivalent — each needs a native rebuild                                          |
-| **Shipping**              | EAS build/submit, store metadata, plus four product gaps the stores and the platform force: account deletion, report/block, pagination, and the GPL-vs-App-Store licence question                    |
+| **Shipping**              | EAS build/submit, store metadata, plus the product gaps the stores force: account deletion, pagination, and the GPL-vs-App-Store licence question                                                    |
 
 ## Stack
 
@@ -50,8 +50,9 @@ user's call, not an engineering one.
    Store's usage rules. Android/F-Droid is unaffected either way. Options: ship
    Android first, add an App Store exception clause to `LICENSE`, or license
    `apps/mobile` permissively. **Decide before writing screens.**
-2. **Scope of v1 parity.** Recommended cut: everything except `/moderation`
-   (moderator tooling reads fine on a phone browser) — see the screen table.
+2. **Scope of v1 parity.** The web app's five remaining sections; `/moderation`
+   no longer exists (review moved to the central catalog), so the screen table
+   below is the whole surface.
 3. **`packages/client` extraction** — do it as its own PR, with `apps/web`
    migrated onto it and green, so the mobile PRs never mix "moved code" with
    "new code". `apps/web/vitest.config.ts` already scopes a node-environment
@@ -118,7 +119,6 @@ Ship the app as a viewer first; every screen here is a `GET`.
 | `(tabs)/profile`, `users/[username]` | `routes/profile.tsx`, `users.$username.tsx` | `GET /me/profile`, `GET /users/:username/profile`                            |
 | `media/[slug]` (pushed)              | `routes/media.$slug.tsx`                    | `GET /media/:idOrSlug`                                                       |
 | signed-out landing                   | `routes/index.tsx`                          | `GET /media/showcase` — or skip it: on mobile the picker is the first screen |
-| —                                    | `routes/moderation.tsx`                     | **deferred** (phase 0 decision)                                              |
 
 Six tabs is one more than iOS wants to show comfortably; History is the natural
 candidate to live under Profile rather than in the bar, matching how `AppNav`
@@ -156,7 +156,6 @@ by web, so this phase is mostly optimistic-update plumbing plus feel.
 - Profile edit + avatar → `PATCH /me/profile`, `POST /me/avatar` (multipart,
   2 MB cap, from `expo-image-picker`)
 - Friends: search, request, accept, unfriend → `/me/friends*`, `/users/search`
-- Create entry + cover → `POST /media`, `POST /media/:id/cover`
 
 Reuse `invalidateTracking()` verbatim from `packages/client`: one check-in
 invalidates `['media']`, `['home']`, `['profile']` and `['history']`, and that
@@ -196,12 +195,16 @@ staleness marker rather than a spinner.
 EAS Update for JS-only fixes. Store listings need a privacy policy, and the app
 needs the four gaps from ADR-0008 closed or consciously accepted:
 
-| Gap                                     | Where it lands                                                                                             |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `DELETE /me` account deletion           | `apps/api` — required for App Store submission, and the missing half of the portability principle             |
-| Report / block for user-created content | `apps/api` + moderation queue                                                                                 |
-| Library endpoint (keyset)               | Already in the roadmap backlog; mobile makes it load-bearing. `/news` and `/me/history` are the shape to copy |
-| GPL-3.0 vs. App Store terms             | Phase 0 decision                                                                                              |
+| Gap                           | Where it lands                                                                                               |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `DELETE /me` account deletion | `apps/api` — required for App Store submission, and the missing half of the portability principle             |
+| Library endpoint (keyset)     | Already in the roadmap backlog; mobile makes it load-bearing. `/news` and `/me/history` are the shape to copy |
+| GPL-3.0 vs. App Store terms   | Phase 0 decision                                                                                              |
+| Demo instance for App Review  | A reviewer has no server; a server-picker-first app reads as "minimum functionality" (4.2) without one        |
+
+Report/block is **no longer on this list**: entry creation moved to the central
+catalog, so the app carries no user-authored titles or covers. Profile fields and
+list names remain user-supplied — worth revisiting if comments land.
 
 ## Verification
 

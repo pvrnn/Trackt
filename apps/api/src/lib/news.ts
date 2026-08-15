@@ -170,7 +170,7 @@ async function resolveLinkedWorks(
   for (const ref of refs) {
     const local = byId.get(ref.id);
     if (local) {
-      if (!canViewMedia(local, viewer)) continue;
+      if (!canViewMedia(local)) continue;
       resolved.push({
         id: local.id,
         slug: local.slug,

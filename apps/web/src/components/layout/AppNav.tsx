@@ -1,7 +1,6 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Link, useNavigate, type LinkProps } from '@tanstack/react-router';
 import clsx from 'clsx';
-import { UserRoleSchema, isModerator } from '@trackt/shared';
 import { authClient } from '../../lib/auth-client';
 import { useFriends } from '../../lib/friends';
 import { Avatar } from '../ui/Avatar';
@@ -43,17 +42,11 @@ export interface AppNavUser {
   username: string;
   /** Uploaded avatar URL (better-auth `image`). */
   image?: string | null;
-  /** Per-instance role (better-auth `role`); gates the MODERATION link. */
-  role?: string;
 }
 
 /** Sticky authenticated-app navigation: wordmark, section links, search, account menu. */
 export function AppNav({ user }: { user: AppNavUser }) {
-  const role = UserRoleSchema.safeParse(user.role);
-  const items: NavItem[] =
-    role.success && isModerator(role.data)
-      ? [...NAV_ITEMS, { label: 'MODERATION', to: '/moderation' }]
-      : NAV_ITEMS;
+  const items: NavItem[] = NAV_ITEMS;
   // No dedicated friends surface yet — a badge on PROFILE covers discoverability
   // instead of a sixth top-level nav item (docs/friends-plan.md §6).
   const { data: friendsOverview } = useFriends();

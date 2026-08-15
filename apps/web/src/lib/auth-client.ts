@@ -2,7 +2,6 @@ import { createAuthClient } from 'better-auth/react';
 import { inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
-import { UserRoleSchema, isModerator } from '@trackt/shared';
 import type { AppNavUser } from '../components/layout/AppNav';
 
 /**
@@ -25,25 +24,20 @@ export interface AuthedPage {
   session: Session;
   /** null until the session resolves — every app page renders a blank shell until then. */
   navUser: AppNavUser | null;
-  isModerator: boolean;
   /** Re-pull the better-auth session (nav name/avatar) after a profile edit. */
   refetch: () => void;
 }
 
 /**
  * The client-side auth gate every app page shares: resolves the session,
- * redirects to /login when signed out (and to /home when a page needs a
- * moderator and the viewer isn't one — the server enforces this too), and
- * hands back the canonical `navUser`. Replaces the guard `useEffect` + `navUser`
- * object that used to be copy-pasted across the app routes.
+ * redirects to /login when signed out, and hands back the canonical `navUser`.
+ * Replaces the guard `useEffect` + `navUser` object that used to be
+ * copy-pasted across the app routes.
  */
-export function useAuthedPage(options?: { requireModerator?: boolean }): AuthedPage {
+export function useAuthedPage(): AuthedPage {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: session, isPending, refetch } = authClient.useSession();
-  const role = UserRoleSchema.safeParse(session?.user.role);
-  const moderator = role.success && isModerator(role.data);
-  const requireModerator = options?.requireModerator ?? false;
   // Deep link → login → back to the deep link, not dumped at /home.
   const returnTo = location.href;
 
@@ -55,19 +49,18 @@ export function useAuthedPage(options?: { requireModerator?: boolean }): AuthedP
         search: returnTo === '/home' ? {} : { redirect: returnTo },
         replace: true,
       });
-    } else if (requireModerator && !moderator) navigate({ to: '/home' });
-  }, [isPending, session, moderator, requireModerator, navigate, returnTo]);
+    }
+  }, [isPending, session, navigate, returnTo]);
 
   const navUser: AppNavUser | null = session
     ? {
         name: session.user.name,
         username: session.user.displayUsername ?? session.user.name,
         image: session.user.image,
-        role: session.user.role,
       }
     : null;
 
-  return { isPending, session, navUser, isModerator: moderator, refetch };
+  return { isPending, session, navUser, refetch };
 }
 
 /**
@@ -83,7 +76,6 @@ export function useOptionalSession(): Pick<AuthedPage, 'isPending' | 'session' |
         name: session.user.name,
         username: session.user.displayUsername ?? session.user.name,
         image: session.user.image,
-        role: session.user.role,
       }
     : null;
   return { isPending, session, navUser };

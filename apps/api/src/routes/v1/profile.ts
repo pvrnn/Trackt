@@ -55,7 +55,7 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
       const [favorites, stats, activity, friendCount, incomingRequestCount] = await Promise.all([
         loadFavorites(db, user.id),
         loadProfileStats(db, user.id),
-        loadActivity(db, user.id, ACTIVITY_LIMIT, user),
+        loadActivity(db, user.id, ACTIVITY_LIMIT),
         countFriends(db, user.id),
         countIncomingRequests(db, user.id),
       ]);
