@@ -145,16 +145,18 @@ function HomePage() {
                   <>
                     <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <h2 className="font-heading text-[32px] uppercase">In progress</h2>
-                      {/* The shelf is capped server-side and nothing lists the
-                        overflow yet, so a truncated shelf says so in plain text.
-                        This used to be a `VIEW ALL →` that went nowhere behind a
-                        "Lists are coming soon" tooltip — lists shipped, and they
-                        were never this shelf anyway. It becomes a real link when
-                        the library page lands (ROADMAP backlog). */}
+                      {/* The shelf is capped server-side. This was a `VIEW ALL →`
+                        that went nowhere, then plain text saying a library page
+                        was coming; /history is that page (ADR-0007), so it is a
+                        real link again — filtered to what's still open. */}
                       {summary.inProgress.length >= IN_PROGRESS_LIMIT && (
-                        <p className="font-label text-[13px] tracking-label text-dim">
-                          NEWEST {IN_PROGRESS_LIMIT} · A LIBRARY PAGE FOR THE REST IS COMING
-                        </p>
+                        <Link
+                          to="/history"
+                          search={{ year: 'all', status: 'in_progress' }}
+                          className="font-label text-[13px] tracking-label text-dim hover:text-pink"
+                        >
+                          NEWEST {IN_PROGRESS_LIMIT} · VIEW ALL →
+                        </Link>
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">

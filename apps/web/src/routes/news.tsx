@@ -8,6 +8,7 @@ import { MarketingNav } from '../components/layout/MarketingNav';
 import { NewsCard } from '../components/news/NewsCard';
 import { Chip } from '../components/ui/Chip';
 import { useOptionalSession } from '../lib/auth-client';
+import { KIND_LABELS } from '../lib/kinds';
 import { useNewsFeed } from '../lib/news';
 
 export interface NewsSearchParams {
@@ -34,14 +35,6 @@ export const Route = createFileRoute('/news')({
 
 /** Toggle-group value for the unfiltered state; `kind` stays undefined in the URL. */
 const ALL_KINDS = 'all';
-
-const KIND_LABELS: Record<MediaKind, string> = {
-  movie: 'MOVIES',
-  series: 'SERIES',
-  anime: 'ANIME',
-  manga: 'MANGA',
-  webtoon: 'WEBTOONS',
-};
 
 /** Relative ranges, resolved against today. `null` days = no lower bound. */
 const RANGES: { label: string; days: number | null }[] = [

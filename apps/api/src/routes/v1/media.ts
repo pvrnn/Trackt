@@ -85,7 +85,11 @@ async function loadRelated(
 
 async function loadViewer(db: Db, userId: string, mediaId: string): Promise<ViewerState> {
   const [log] = await db
-    .select({ status: userMedia.status })
+    .select({
+      status: userMedia.status,
+      startedAt: userMedia.startedAt,
+      finishedAt: userMedia.finishedAt,
+    })
     .from(userMedia)
     .where(and(eq(userMedia.userId, userId), eq(userMedia.mediaId, mediaId)));
   const [own] = await db
@@ -109,6 +113,8 @@ async function loadViewer(db: Db, userId: string, mediaId: string): Promise<View
     score: own?.score !== undefined && own.score !== null ? Number(own.score) : null,
     watched: [...watchedRows].map((row) => Number(row.number)),
     favorited: fav !== undefined,
+    startedAt: log?.startedAt ?? null,
+    finishedAt: log?.finishedAt ?? null,
   };
 }
 

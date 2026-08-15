@@ -118,9 +118,13 @@ export const homeRoutes: FastifyPluginAsyncZod = async (app) => {
       const [yearCounts, completedStats, dayStreak, activity] = await Promise.all([
         loadYearCheckinCounts(db, user.id),
         db.execute(sql`
+          -- finished_at, not updated_at (ADR-0007): a row touched for any reason
+          -- used to count as a completion this year, and a title genuinely
+          -- completed in January dropped out the moment it was edited in a later
+          -- year. This is the same number /history?year=... reports.
           SELECT count(*)::int AS count FROM user_media
           WHERE user_id = ${user.id} AND status = 'completed'
-            AND updated_at >= date_trunc('year', now())
+            AND finished_at >= date_trunc('year', now())::date
         `),
         loadStreak(db, user.id),
         loadActivity(db, user.id, ACTIVITY_LIMIT, user),

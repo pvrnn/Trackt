@@ -1,0 +1,1 @@
+CREATE INDEX "user_media_user_logged_idx" ON "user_media" USING btree ("user_id",COALESCE("finished_at", "started_at") DESC);

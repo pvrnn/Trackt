@@ -1,9 +1,10 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import {
   createDb,
   media,
+  mediaPart,
   mediaRelation,
   progress,
   rating,
@@ -468,6 +469,190 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
       headers: { cookie },
     });
     expect(movie.statusCode).toBe(400);
+  });
+
+  /**
+   * Log dates (ADR-0007). Every assertion is about which write moved which
+   * column, so each case starts from a clean log row rather than inheriting
+   * whatever the suite above left behind.
+   */
+  describe('log dates', () => {
+    /** Today as the database sees it — the tests must not compute their own. */
+    async function serverToday(): Promise<string> {
+      const [row] = await db.execute(sql`SELECT CURRENT_DATE::text AS today`);
+      return row!.today as string;
+    }
+
+    async function clearLog(mediaId: string): Promise<void> {
+      await db.delete(userMedia).where(eq(userMedia.mediaId, mediaId));
+      const parts = db
+        .select({ id: mediaPart.id })
+        .from(mediaPart)
+        .where(eq(mediaPart.mediaId, mediaId));
+      await db.delete(progress).where(inArray(progress.partId, parts));
+    }
+
+    async function dates(mediaId: string): Promise<{ startedAt: unknown; finishedAt: unknown }> {
+      const detail = await getDetail(mediaId);
+      return { startedAt: detail.viewer?.startedAt, finishedAt: detail.viewer?.finishedAt };
+    }
+
+    const setStatus = (mediaId: string, status: string) =>
+      app.inject({
+        method: 'PUT',
+        url: `/api/v1/media/${mediaId}/log`,
+        headers: { cookie },
+        payload: { status },
+      });
+
+    const checkIn = (mediaId: string, number: number) =>
+      app.inject({
+        method: 'PUT',
+        url: `/api/v1/media/${mediaId}/progress/${number}`,
+        headers: { cookie },
+      });
+
+    const patchDates = (mediaId: string, payload: Record<string, string | null>, authed = true) =>
+      app.inject({
+        method: 'PATCH',
+        url: `/api/v1/media/${mediaId}/log`,
+        headers: authed ? { cookie } : {},
+        payload,
+      });
+
+    it('stamps a start date on the first check-in and never moves it after', async () => {
+      await clearLog(frierenId);
+      const today = await serverToday();
+
+      await checkIn(frierenId, 1);
+      expect(await dates(frierenId)).toEqual({ startedAt: today, finishedAt: null });
+
+      // Backdate the row, then check in again: a later check-in is not a new
+      // start, so the stored date has to survive.
+      await db
+        .update(userMedia)
+        .set({ startedAt: '2025-03-01' })
+        .where(eq(userMedia.mediaId, frierenId));
+      await checkIn(frierenId, 2);
+      expect(await dates(frierenId)).toEqual({ startedAt: '2025-03-01', finishedAt: null });
+    });
+
+    it('stamps a date on a paused log’s check-in without re-opening it', async () => {
+      await clearLog(frierenId);
+      await setStatus(frierenId, 'paused');
+      await db
+        .update(userMedia)
+        .set({ startedAt: null, finishedAt: null })
+        .where(eq(userMedia.mediaId, frierenId));
+
+      const today = await serverToday();
+      await checkIn(frierenId, 1);
+      const detail = await getDetail(frierenId);
+      expect(detail.viewer?.status).toBe('paused');
+      expect(detail.viewer?.startedAt).toBe(today);
+    });
+
+    it('finishes on completed, re-opens on in_progress, and clears on planned', async () => {
+      await clearLog(frierenId);
+      const today = await serverToday();
+
+      await setStatus(frierenId, 'completed');
+      expect(await dates(frierenId)).toEqual({ startedAt: today, finishedAt: today });
+
+      // A real start date must survive the round trip through in_progress.
+      await db
+        .update(userMedia)
+        .set({ startedAt: '2025-11-02' })
+        .where(eq(userMedia.mediaId, frierenId));
+
+      await setStatus(frierenId, 'in_progress');
+      expect(await dates(frierenId)).toEqual({ startedAt: '2025-11-02', finishedAt: null });
+
+      await setStatus(frierenId, 'completed');
+      expect(await dates(frierenId)).toEqual({ startedAt: '2025-11-02', finishedAt: today });
+
+      await setStatus(frierenId, 'planned');
+      expect(await dates(frierenId)).toEqual({ startedAt: null, finishedAt: null });
+    });
+
+    it('starts but never finishes a dropped log, and leaves a finish date alone when paused', async () => {
+      await clearLog(frierenId);
+      const today = await serverToday();
+
+      await setStatus(frierenId, 'dropped');
+      expect(await dates(frierenId)).toEqual({ startedAt: today, finishedAt: null });
+
+      // Paused after completing keeps the finish date: pausing is not un-finishing.
+      await setStatus(frierenId, 'completed');
+      await setStatus(frierenId, 'paused');
+      expect(await dates(frierenId)).toEqual({ startedAt: today, finishedAt: today });
+    });
+
+    it('dates a movie, which has no check-ins to derive them from', async () => {
+      await clearLog(matrixId);
+      const today = await serverToday();
+
+      await setStatus(matrixId, 'completed');
+      expect(await dates(matrixId)).toEqual({ startedAt: today, finishedAt: today });
+    });
+
+    it('patches dates, and clears one with an explicit null', async () => {
+      await clearLog(bebopId);
+      await setStatus(bebopId, 'completed');
+
+      const patched = await patchDates(bebopId, {
+        startedAt: '2025-01-04',
+        finishedAt: '2025-02-11',
+      });
+      expect(patched.statusCode).toBe(200);
+      expect(patched.json()).toEqual({ startedAt: '2025-01-04', finishedAt: '2025-02-11' });
+      expect(await dates(bebopId)).toEqual({ startedAt: '2025-01-04', finishedAt: '2025-02-11' });
+
+      const cleared = await patchDates(bebopId, { finishedAt: null });
+      expect(cleared.statusCode).toBe(200);
+      // An absent key leaves its column alone; only the explicit null clears.
+      expect(cleared.json()).toEqual({ startedAt: '2025-01-04', finishedAt: null });
+
+      // …and it does not touch the status, which is the other endpoint's job.
+      expect((await getDetail(bebopId)).viewer?.status).toBe('completed');
+    });
+
+    it('rejects future dates, an inverted range, and a slipped year', async () => {
+      await clearLog(bebopId);
+      await setStatus(bebopId, 'completed');
+      await patchDates(bebopId, { startedAt: '2025-01-04', finishedAt: '2025-02-11' });
+
+      const future = await patchDates(bebopId, { finishedAt: '2099-01-01' });
+      expect(future.statusCode).toBe(400);
+
+      const inverted = await patchDates(bebopId, {
+        startedAt: '2025-03-01',
+        finishedAt: '2025-02-11',
+      });
+      expect(inverted.statusCode).toBe(400);
+
+      // The half-body case: valid on its own, invalid against the stored finish.
+      const againstStored = await patchDates(bebopId, { startedAt: '2025-06-01' });
+      expect(againstStored.statusCode).toBe(400);
+
+      const slipped = await patchDates(bebopId, { startedAt: '0202-08-14' });
+      expect(slipped.statusCode).toBe(400);
+
+      const empty = await patchDates(bebopId, {});
+      expect(empty.statusCode).toBe(400);
+
+      // None of the rejections wrote anything.
+      expect(await dates(bebopId)).toEqual({ startedAt: '2025-01-04', finishedAt: '2025-02-11' });
+    });
+
+    it('404s without a log row, and 401s without a cookie', async () => {
+      await clearLog(bebopId);
+      const noLog = await patchDates(bebopId, { startedAt: '2025-01-04' });
+      expect(noLog.statusCode).toBe(404);
+
+      const anonymous = await patchDates(bebopId, { startedAt: '2025-01-04' }, false);
+      expect(anonymous.statusCode).toBe(401);
+    });
   });
 });
 

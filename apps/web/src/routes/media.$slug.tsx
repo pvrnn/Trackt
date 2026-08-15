@@ -6,6 +6,7 @@ import {
   LOG_STATUSES,
   MEDIA_RELATION_LABELS,
   trackingVerbLabel,
+  type LogDates,
   type LogStatus,
   type MediaDetail,
   type MediaRelationLabel,
@@ -14,6 +15,7 @@ import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { AddToListDialog } from '../components/media/AddToListDialog';
 import { CoverCard } from '../components/media/CoverCard';
+import { LogDatesDialog } from '../components/media/LogDatesDialog';
 import { RatingPopover } from '../components/media/RatingPopover';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -21,7 +23,14 @@ import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
 import { coverGradient } from '../lib/cover';
-import { firstUnwatched, invalidateTracking, trackingApi, useMediaDetail } from '../lib/media';
+import { dateRangeLabel, todayIso } from '../lib/history';
+import {
+  firstUnwatched,
+  invalidateTracking,
+  stampedDates,
+  trackingApi,
+  useMediaDetail,
+} from '../lib/media';
 
 /** "attack-on-titan" → "Attack On Titan": a serviceable SSR title until the query resolves. */
 function titleFromSlug(slug: string): string {
@@ -95,6 +104,16 @@ function partTotal(detail: MediaDetail): number | null {
 
 type ViewerPatch = Partial<NonNullable<MediaDetail['viewer']>>;
 
+/** What an untracked work looks like — the base every optimistic patch lands on. */
+const EMPTY_VIEWER: NonNullable<MediaDetail['viewer']> = {
+  status: null,
+  score: null,
+  watched: [],
+  favorited: false,
+  startedAt: null,
+  finishedAt: null,
+};
+
 function MediaPage() {
   const { slug } = Route.useParams();
   const queryClient = useQueryClient();
@@ -102,6 +121,10 @@ function MediaPage() {
   const { data, isError, refetch } = useMediaDetail(slug);
   const [visibleParts, setVisibleParts] = useState(CHECKLIST_CHUNK);
   const [addingToList, setAddingToList] = useState(false);
+  // The dialog's *initial* dates, or null when it's closed. Held here rather
+  // than read from `viewer` on open, so the auto-open path can hand it the
+  // dates it just stamped without racing the optimistic cache write.
+  const [editingDates, setEditingDates] = useState<LogDates | null>(null);
 
   const queryKey = ['media', slug] as const;
 
@@ -121,10 +144,7 @@ function MediaPage() {
           ? {
               ...current,
               viewer: {
-                status: null,
-                score: null,
-                watched: [],
-                favorited: false,
+                ...EMPTY_VIEWER,
                 ...current.viewer,
                 ...patch,
               },
@@ -201,7 +221,7 @@ function MediaPage() {
   }
 
   const detail = data;
-  const viewer = detail.viewer ?? { status: null, score: null, watched: [], favorited: false };
+  const viewer = detail.viewer ?? EMPTY_VIEWER;
   const noun = partNoun(detail);
   const total = partTotal(detail);
   const watchedSet = new Set(viewer.watched);
@@ -218,6 +238,8 @@ function MediaPage() {
   const progressRatio = checkable && total ? watchedSet.size / total : null;
 
   const relationGroups = groupRelations(detail.relations);
+  /** '04 JAN → 11 FEB' when the log has dates; null puts '＋ DATES' on the pill. */
+  const dateLabel = dateRangeLabel(viewer.startedAt, viewer.finishedAt);
 
   const countOf = (n: number | null, noun: string) =>
     n !== null ? `${n} ${noun}${n === 1 ? '' : 'S'}` : null;
@@ -336,7 +358,9 @@ function MediaPage() {
                 selected={viewer.status !== null}
                 onChange={(value) => {
                   if (value === '') {
-                    applyViewer({ status: null }, () => trackingApi.clearStatus(detail.id));
+                    applyViewer({ status: null, startedAt: null, finishedAt: null }, () =>
+                      trackingApi.clearStatus(detail.id),
+                    );
                     return;
                   }
                   const status = value as LogStatus;
@@ -350,9 +374,42 @@ function MediaPage() {
                         : status === 'planned'
                           ? { watched: [] }
                           : {};
-                  applyViewer({ status, ...sweep }, () => trackingApi.setStatus(detail.id, status));
+                  // Same for the dates the server stamps (ADR-0007), so the
+                  // DATES pill fills in as the status pill changes.
+                  const dates = stampedDates(status, viewer, todayIso());
+                  applyViewer({ status, ...sweep, ...dates }, () =>
+                    trackingApi.setStatus(detail.id, status),
+                  );
+                  // The one transition with no evidence behind its date: the
+                  // user is logging something they watched at some unknown time
+                  // in the past, and today is almost certainly wrong. Every
+                  // other transition has a check-in or a prior date backing it,
+                  // and must not interrupt.
+                  if (
+                    status === 'completed' &&
+                    (viewer.status === null || viewer.status === 'planned')
+                  ) {
+                    setEditingDates(dates);
+                  }
                 }}
               />
+              {/* Only with a log to date — the dates live on the log row, so
+                  there is nothing to edit before one exists. */}
+              {viewer.status !== null && (
+                <button
+                  type="button"
+                  onClick={() => setEditingDates({ ...viewer })}
+                  title="Edit the dates you started and finished this"
+                  className={clsx(
+                    'cursor-pointer rounded-full border px-5 py-[11px] text-[13px] font-bold tracking-btn transition',
+                    dateLabel
+                      ? 'border-pink bg-pink-selected text-pink'
+                      : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
+                  )}
+                >
+                  {dateLabel ?? '＋ DATES'}
+                </button>
+              )}
               <RatingPopover
                 score={viewer.score}
                 onChange={(score) => {
@@ -584,6 +641,24 @@ function MediaPage() {
           mediaId={detail.id}
           mediaTitle={detail.title}
           onClose={() => setAddingToList(false)}
+        />
+      )}
+      {editingDates && (
+        <LogDatesDialog
+          dates={editingDates}
+          mediaTitle={detail.title}
+          onClose={() => setEditingDates(null)}
+          // Awaited, so the dialog can show the server's 400 rather than closing
+          // over a rejected write — hence the direct call instead of applyViewer.
+          onSave={async (next) => {
+            const saved = await trackingApi.setDates(detail.id, next);
+            queryClient.setQueryData<MediaDetail | null>(queryKey, (current) =>
+              current
+                ? { ...current, viewer: { ...EMPTY_VIEWER, ...current.viewer, ...saved } }
+                : current,
+            );
+            await invalidateTracking(queryClient);
+          }}
         />
       )}
     </Shell>

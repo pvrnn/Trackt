@@ -1,16 +1,19 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { favorite, media, mediaPart, progress, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
+  LogDatesBodySchema,
+  LogDatesSchema,
   LogStatusSchema,
   PART_KIND_BY_MEDIA,
   PartNumberParamSchema,
   RateBodySchema,
   RatingScoreSchema,
   UpdateLogBodySchema,
+  type LogStatus,
 } from '@trackt/shared';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
 import { canViewMedia } from '../../lib/visibility.js';
@@ -90,6 +93,46 @@ async function setAllProgress(
   }
 }
 
+/**
+ * What a status change does to the log's dates (ADR-0007). `CURRENT_DATE` is
+ * evaluated *in the statement*, never as a JS `new Date()`, so the API and the
+ * database can never disagree about which day it is.
+ *
+ * Three rules the table encodes deliberately:
+ *
+ * - **COALESCE, never overwrite.** Marking a series completed, then paused,
+ *   then completed again must not replace the real start date with today's.
+ * - **`planned` clears both**, because it already means "none of this has
+ *   happened" — the route sweeps every check-in for it, and the dates leaving
+ *   with the check-ins is the consistent behaviour.
+ * - **`in_progress` clears `finished_at`.** Re-opening a completed log is
+ *   either a correction or a rewatch; under both readings "finished on" is no
+ *   longer true. The lost date is recoverable through `PATCH …/log`. This is
+ *   the rule that changes when dated rewatch runs land.
+ * - **`dropped` does not stamp `finished_at`.** Dropped works still appear in
+ *   the history, filed under their start date, but `finished_at` keeps meaning
+ *   *completed on* — what the column is called and what the UI labels it.
+ */
+function insertDates(status: LogStatus): { startedAt: SQL | null; finishedAt: SQL | null } {
+  if (status === 'planned') return { startedAt: null, finishedAt: null };
+  return {
+    startedAt: sql`CURRENT_DATE`,
+    finishedAt: status === 'completed' ? sql`CURRENT_DATE` : null,
+  };
+}
+
+/** Same rules against a row that already exists — hence the COALESCEs. */
+function updateDates(status: LogStatus): { startedAt: SQL | null; finishedAt: SQL | null } {
+  if (status === 'planned') return { startedAt: null, finishedAt: null };
+  const startedAt = sql`COALESCE(${userMedia.startedAt}, CURRENT_DATE)`;
+  if (status === 'completed') {
+    return { startedAt, finishedAt: sql`COALESCE(${userMedia.finishedAt}, CURRENT_DATE)` };
+  }
+  if (status === 'in_progress') return { startedAt, finishedAt: null };
+  // paused / dropped: neither finishes the work, so `finished_at` is left as-is.
+  return { startedAt, finishedAt: sql`${userMedia.finishedAt}` };
+}
+
 export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
   /** 503/401/404 preamble shared by every tracking route. */
   async function requireUserAndMedia(
@@ -136,15 +179,86 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
       const { status } = request.body;
       await ctx.db
         .insert(userMedia)
-        .values({ userId: ctx.user.id, mediaId: ctx.row.id, status })
+        .values({ userId: ctx.user.id, mediaId: ctx.row.id, status, ...insertDates(status) })
         .onConflictDoUpdate({
           target: [userMedia.userId, userMedia.mediaId],
-          set: { status, updatedAt: new Date() },
+          set: { status, ...updateDates(status), updatedAt: new Date() },
         });
       // `completed` means every part is seen; `planned` means none is yet.
       if (status === 'completed') await setAllProgress(ctx.db, ctx.user.id, ctx.row, true);
       else if (status === 'planned') await setAllProgress(ctx.db, ctx.user.id, ctx.row, false);
       return { status };
+    },
+  );
+
+  /**
+   * Manual date correction (ADR-0007). A separate endpoint rather than optional
+   * dates on `PUT …/log`, for two reasons: `PUT` runs `setAllProgress` on
+   * `completed`/`planned`, which for a 900-chapter manga is thousands of rows
+   * across chunked inserts and must not be the price of fixing a typo; and
+   * re-sending status as a side effect of a date edit is exactly the kind of
+   * implicit write that makes a log row's history unreadable later.
+   *
+   * It deliberately does not touch `status`: filling in a finish date on an
+   * in-progress show is recording history, not completing it. Wiring the two
+   * together is a UI affordance, not a server rule.
+   */
+  app.patch(
+    '/media/:id/log',
+    {
+      schema: {
+        tags: ['tracking'],
+        params: MediaIdParamsSchema,
+        body: LogDatesBodySchema,
+        response: {
+          200: LogDatesSchema,
+          400: ApiErrorSchema,
+          401: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const ctx = await requireUserAndMedia(request, reply, request.params.id);
+      if (!ctx) return;
+      const where = and(eq(userMedia.userId, ctx.user.id), eq(userMedia.mediaId, ctx.row.id));
+      const [existing] = await ctx.db
+        .select({ startedAt: userMedia.startedAt, finishedAt: userMedia.finishedAt })
+        .from(userMedia)
+        .where(where);
+      if (!existing) return reply.status(404).send({ error: 'no log for this media' });
+
+      // Validated against the row *as it will be*, not as the body describes it:
+      // a patch that moves only `startedAt` still has to hold against the stored
+      // `finishedAt`.
+      const merged = {
+        startedAt:
+          request.body.startedAt !== undefined ? request.body.startedAt : existing.startedAt,
+        finishedAt:
+          request.body.finishedAt !== undefined ? request.body.finishedAt : existing.finishedAt,
+      };
+      // Today in UTC, matching the UTC convention the rest of the log uses.
+      const today = new Date().toISOString().slice(0, 10);
+      if (
+        (merged.startedAt !== null && merged.startedAt > today) ||
+        (merged.finishedAt !== null && merged.finishedAt > today)
+      ) {
+        return reply.status(400).send({ error: 'dates cannot be in the future' });
+      }
+      if (
+        merged.startedAt !== null &&
+        merged.finishedAt !== null &&
+        merged.finishedAt < merged.startedAt
+      ) {
+        return reply.status(400).send({ error: 'the finish date is before the start date' });
+      }
+
+      await ctx.db
+        .update(userMedia)
+        .set({ ...merged, updatedAt: new Date() })
+        .where(where);
+      return merged;
     },
   );
 
@@ -345,8 +459,22 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
       // First interaction starts the log; never overrides an existing status.
       await ctx.db
         .insert(userMedia)
-        .values({ userId: ctx.user.id, mediaId: ctx.row.id, status: 'in_progress' })
-        .onConflictDoNothing();
+        .values({
+          userId: ctx.user.id,
+          mediaId: ctx.row.id,
+          status: 'in_progress',
+          startedAt: sql`CURRENT_DATE`,
+        })
+        .onConflictDoUpdate({
+          target: [userMedia.userId, userMedia.mediaId],
+          // Status is untouched on purpose: checking in an episode of a `paused`
+          // show must not silently re-open it (the previous `DO NOTHING`
+          // contract). Only a missing start date is filled in — `setWhere` keeps
+          // the statement a no-op for the overwhelmingly common case, so a
+          // check-in stays one cheap upsert.
+          set: { startedAt: sql`CURRENT_DATE` },
+          setWhere: sql`${userMedia.startedAt} IS NULL`,
+        });
 
       return { number, watched: true as const };
     },
