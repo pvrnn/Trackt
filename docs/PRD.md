@@ -17,7 +17,7 @@ A community-owned, open-source tracker for **movies, series, anime, manga, and w
 3. **Open source** so hosted forks must contribute back. *(Decided: **GPL-3.0-only** — see `LICENSE`. This section originally recommended AGPLv3.)*
 4. **Community catalog.** Users can add what the big databases don't have (webtoons especially), and instances can share those entries.
 
-**Non-goals (v1):** streaming/playback, scrobbling from Plex/Jellyfin (v2), mobile native apps (PWA first), recommendations engine.
+**Non-goals (v1):** streaming/playback, scrobbling from Plex/Jellyfin (v2), ~~mobile native apps (PWA first)~~, recommendations engine. _(Reversed: a first-party React Native + Expo client is planned — [ADR-0008](adr/0008-first-party-mobile-client.md), [mobile plan](mobile-app-plan.md). The PWA stays; the API was always the contract, so the app is a second client of it rather than a rewrite. Moves mobile apps out of §9's v2 line.)_
 
 ---
 
@@ -267,7 +267,7 @@ Shard-friendly design rules (enforced from day one):
 - **v0.1 (MVP):** auth, catalog search (TMDB+AniList), track/rate/progress movies+series+anime, profiles with favourites, Docker Compose. **TV Time importer.**
 - **v0.2:** manga + webtoons, user-created entities + moderation, comments, lists, activity feed, Railway template.
 - **v1.0:** episode rating graphs, airing calendar + notifications, Trakt/MAL/AniList importers, public API v1 (OpenAPI), Meilisearch.
-- **v2:** community catalog service, Plex/Jellyfin scrobbling, ActivityPub federation of activity feeds, mobile apps.
+- **v2:** community catalog service, Plex/Jellyfin scrobbling, ActivityPub federation of activity feeds, ~~mobile apps~~ _(pulled forward — ADR-0008)_.
 
 ## 10. Open Questions
 
