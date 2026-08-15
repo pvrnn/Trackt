@@ -24,13 +24,12 @@
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.2",
     "ky": "^2.0.2",
-    "react": "^19.2.7"
+    "react": "^19.2.0"
   },
   "devDependencies": {
     "@tanstack/react-query": "^5.101.2",
     "@types/react": "^19.2.17",
     "ky": "^2.0.2",
-    "react": "^19.2.7",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }

@@ -1,0 +1,47 @@
+ADDITIONAL PERMISSION UNDER GNU GPL VERSION 3 SECTION 7
+=======================================================
+
+Trackt is licensed under the GNU General Public License, version 3 only
+(see LICENSE). The text of the GPL itself may not be modified, so this
+additional permission — which GPLv3 section 7 expressly allows a copyright
+holder to grant — is recorded here instead.
+
+The permission
+--------------
+
+As an additional permission under section 7 of the GNU General Public
+License version 3, the copyright holders of Trackt give you permission to
+distribute a compiled binary of the Trackt mobile client (the contents of
+`apps/mobile`, linked against the rest of this repository) through an
+application distribution service — including but not limited to Apple's App
+Store, Google Play, and F-Droid — and to submit it to such a service, even
+where that service's terms of use impose restrictions on copying,
+modification, or redistribution that would otherwise conflict with sections
+4 through 6 of the GNU General Public License version 3.
+
+This permission applies only to the act of distributing the binary through
+such a service. It does not restrict any right the GPL grants you: the
+corresponding source of any binary distributed this way remains available
+under the GNU General Public License version 3, from this repository, and
+you remain free to obtain, modify, build and redistribute it yourself under
+the GPL's terms.
+
+If you propagate a modified version of this program, you may remove this
+additional permission from your copy, as GPLv3 section 7 permits.
+
+Why it exists
+-------------
+
+The GPL's terms have long been held incompatible with the App Store's usage
+rules, because Apple's terms restrict how a downloaded binary may be copied
+and redistributed while the GPL forbids imposing further restrictions
+(GPLv3 section 10). VLC and GNU Go were both removed from the App Store on
+these grounds. Android and F-Droid distribution was never affected.
+
+Trackt's copyright holders can resolve this for the iOS build, and have
+chosen to, so that self-hosters' users can install a first-party client from
+the platform they are on (ADR-0008). Copyleft is otherwise unchanged: the
+server, the web client and the shared packages remain GPL-3.0-only, and so
+does the mobile client's source.
+
+This file is a licence grant, not legal advice.

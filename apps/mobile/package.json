@@ -1,0 +1,33 @@
+{
+  "name": "@trackt/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "doctor": "expo-doctor"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
+    "@trackt/client": "workspace:*",
+    "@trackt/shared": "workspace:*",
+    "expo": "~57.0.13",
+    "expo-constants": "~57.0.11",
+    "expo-linking": "~57.0.6",
+    "expo-router": "~57.0.13",
+    "expo-status-bar": "~57.0.1",
+    "ky": "^2.0.2",
+    "react": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.17",
+    "expo-doctor": "^1.18.0",
+    "typescript": "~6.0.3"
+  }
+}

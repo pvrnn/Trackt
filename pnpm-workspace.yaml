@@ -2,13 +2,22 @@ packages:
   - apps/*
   - packages/*
 
+# Peers are declared, never guessed. With pnpm's default auto-install, a peer
+# range like @trackt/client's `react` resolves to whatever is newest and lands
+# a *second* copy of React inside the package — which Metro then bundles
+# alongside apps/mobile's, and expo-doctor rightly fails on ("duplicate native
+# module dependencies").
+autoInstallPeers: false
+
 allowBuilds:
   esbuild: false
   msgpackr-extract: false
+  unrs-resolver: false
 
 onlyBuiltDependencies:
   - esbuild
   - msgpackr-extract
+  - unrs-resolver
 
 # Single ioredis instance across the workspace (bullmq pins an older one).
 overrides:

@@ -41,40 +41,42 @@ obvious.
 Not adopted: **NativeWind** (ADR-0008 §5), **push notifications** (ADR-0008 §7),
 **shared-element transitions as a dependency** (ADR-0008 §6).
 
-## Phase 0 — decisions and scaffold
+## Phase 0 — decisions and scaffold ✅ built
 
-Nothing below phase 1 can be finished without these, and two of them are the
-user's call, not an engineering one.
+1. **Licence posture for iOS** — **decided: an App Store exception.**
+   [`LICENSE.exceptions`](../LICENSE.exceptions) grants, under GPLv3 §7,
+   permission to distribute the mobile binary through app stores whose terms
+   conflict with §§4–6. The GPL text is unmodified, the source stays
+   GPL-3.0-only, and Android/F-Droid was never affected.
+2. **Scope of v1 parity** — the screen table in phase 2 is the whole surface:
+   home, discover, news, lists, history, profile, plus pushed media and user
+   pages. `/moderation` no longer exists (review moved to the central catalog).
+3. **`packages/client` extraction** — done, `apps/web` migrated onto it and
+   green. The package owns no transport: `src/runtime.ts` takes an injected `ky`
+   instance and an injected `useIsAuthed()` hook, a module singleton rather than
+   React context because `trackingApi`/`listsApi`/`friendsApi` are called from
+   event handlers with no hook to read a context from. `apps/web/test/lib/`
+   moved with the code, and apps/web's vitest setup went with it — nothing left
+   in the app is testable without a DOM renderer.
 
-1. **Licence posture for iOS** (ADR-0008 consequences). GPL-3.0-only vs. the App
-   Store's usage rules. Android/F-Droid is unaffected either way. Options: ship
-   Android first, add an App Store exception clause to `LICENSE`, or license
-   `apps/mobile` permissively. **Decide before writing screens.**
-2. **Scope of v1 parity.** The web app's five remaining sections; `/moderation`
-   no longer exists (review moved to the central catalog), so the screen table
-   below is the whole surface.
-3. **`packages/client` extraction** — do it as its own PR, with `apps/web`
-   migrated onto it and green, so the mobile PRs never mix "moved code" with
-   "new code". `apps/web/vitest.config.ts` already scopes a node-environment
-   suite over the pure half of `src/lib`; that config and those five test files
-   are the template for the package's own suite.
+Scaffold, as built:
 
-Scaffold, once those land:
-
-| File                             | Change                                                                                                    |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `apps/mobile/`                   | `create-expo-app` with the expo-router template, `"name": "@trackt/mobile"`                                |
-| `apps/mobile/app.config.ts`      | `scheme: 'trackt'`, bundle ids, EAS project id, `newArchEnabled`                                           |
-| `apps/mobile/tsconfig.json`      | extends `expo/tsconfig.base`, **not** `tsconfig.base.json` (RN needs `moduleResolution: bundler` + `jsx: react-jsx`) |
-| `apps/mobile/test/`              | unit tests mirroring `src/`, `*.test.ts` — the convention in `AGENTS.md`                                   |
-| `turbo.json`                     | no change needed — `dev`/`typecheck`/`lint`/`test` tasks already fan out per package                       |
-| `eslint.config.mjs`              | add the Expo/React Native config for `apps/mobile/**`                                                      |
-| `.github/workflows/ci.yml`       | `apps/mobile` rides the existing `pnpm lint`/`typecheck`/`test`; add `npx expo-doctor` to `verify`         |
-| `pnpm-workspace.yaml`            | only if a native dep resists pnpm's isolated layout → `nodeLinker: hoisted`                                |
+| File                        | Change                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mobile/`              | hand-rolled rather than `create-expo-app` (its template installs with npm and fights the workspace), `"name": "@trackt/mobile"`, expo-router entry |
+| `apps/mobile/app.config.ts` | `scheme: 'trackt'`, `app.trackt.client` bundle ids, typed routes. **No `newArchEnabled`** — SDK 57 dropped the flag with the old architecture, so setting it is a type error. EAS project id lands with the first EAS build (phase 5) |
+| `apps/mobile/tsconfig.json` | extends `expo/tsconfig.base`, **not** `tsconfig.base.json` (RN needs `moduleResolution: bundler` + `jsx: react-jsx`), with the repo's strict flags re-stated. TypeScript is `~6.0.3` here — what SDK 57 expects — against `~5.9.3` everywhere else |
+| `apps/mobile/test/`         | not yet: nothing in the scaffold is pure enough to unit-test. It arrives with phase 1's `lib/instance.ts`, alongside a `test` script         |
+| `turbo.json`                | unchanged, as predicted — the app rides the existing per-package fan-out                                                                     |
+| `eslint.config.mjs`         | `eslint-plugin-react-hooks` v7 over `apps/mobile/**` and `packages/client/src`. **Not** `eslint-config-expo`: it pins eslint-plugin-react 7.x, which crashes on this repo's ESLint 10 |
+| `.github/workflows/ci.yml`  | `pnpm --filter @trackt/mobile doctor` after `pnpm test` in `verify`                                                                          |
+| `pnpm-workspace.yaml`       | `nodeLinker: hoisted` **not** needed — Metro bundles the app out of pnpm's isolated layout, workspace packages included. What was needed: `autoInstallPeers: false`, or `@trackt/client`'s `react` peer auto-installs a second React and expo-doctor fails on the duplicate |
+| `apps/web/package.json`     | React pinned to `19.2.3`, the version SDK 57 expects — one React across the workspace is what the duplicate-native-module check is protecting |
 
 **Do not** hand-write `metro.config.js` monorepo settings: Metro discovers the
 workspace itself on SDK 52+, and stale `watchFolders`/`nodeModulesPaths` are the
-top cause of "works on my machine" resolution bugs.
+top cause of "works on my machine" resolution bugs. Verified: there is no
+`metro.config.js` and `expo export` bundles 1282 modules clean.
 
 ## Phase 1 — shell: instance, session, tokens
 

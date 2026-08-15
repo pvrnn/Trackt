@@ -78,4 +78,4 @@ Catalog entries reference external IDs from [TMDB](https://www.themoviedb.org/),
 
 ## License
 
-[GPL-3.0](LICENSE)
+[GPL-3.0-only](LICENSE), with one [additional permission](LICENSE.exceptions) under GPLv3 §7: the mobile client's binary may be distributed through app stores whose terms would otherwise conflict with §§4–6. Everything else is unchanged — the source, including the mobile client's, stays GPL-3.0-only.
