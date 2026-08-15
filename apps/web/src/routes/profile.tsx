@@ -67,6 +67,7 @@ function ProfilePage() {
             <ProfileHeader
               user={summary.user}
               stats={summary.stats}
+              linkYearStats
               friendsMeta={
                 <button
                   type="button"

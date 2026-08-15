@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   date,
   index,
@@ -32,6 +33,12 @@ export const userMedia = pgTable(
     status: logStatusEnum('status').notNull().default('planned'),
     /** Rewatch / reread count (PRD §3.1). */
     repeats: integer('repeats').notNull().default(0),
+    /**
+     * When the viewer started and finished the work (ADR-0007). Stamped by the
+     * tracking routes, editable by hand through `PATCH /v1/media/:id/log`.
+     * `date`, not `timestamp`: a viewing start is a day, and a day typed in by
+     * hand has no timezone to get wrong.
+     */
     startedAt: date('started_at'),
     finishedAt: date('finished_at'),
     notes: text('notes'),
@@ -45,6 +52,12 @@ export const userMedia = pgTable(
     primaryKey({ columns: [t.userId, t.mediaId] }),
     index('user_media_media_id_idx').on(t.mediaId),
     index('user_media_status_idx').on(t.userId, t.status),
+    // `/me/history` filters one user's rows by the date they're filed under and
+    // pages in that order (ADR-0007). COALESCE is IMMUTABLE, so it indexes.
+    index('user_media_user_logged_idx').on(
+      t.userId,
+      sql`COALESCE(${t.finishedAt}, ${t.startedAt}) DESC`,
+    ),
   ],
 );
 

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #948da1;">HOME</a>
+    <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="News.dc.html" style="color: #948da1;">NEWS</a>
+    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
+    <a href="History.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">HISTORY</a>
+    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
+  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
+</div>
+
+<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 26px;">
+  <div style="display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;">
+    <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">History</div>
+    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700; letter-spacing: 0.06em;">{{ scopeLabel }}</div>
+  </div>
+
+  <!-- filter row 1: years + seasons (season slot always reserved, so picking a year never shifts the layout) -->
+  <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <sc-for list="{{ yearChips }}" as="y" hint-placeholder-count="4">
+        <div onClick="{{ y.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: {{ y.bg }}; color: {{ y.fg }}; box-shadow: inset 0 0 0 1px {{ y.bd }}; cursor: pointer;">{{ y.label }}</div>
+      </sc-for>
+    </div>
+    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.12); opacity: {{ seasonOpacity }};"></div>
+    <div style="display: flex; gap: 6px; opacity: {{ seasonOpacity }}; pointer-events: {{ seasonEvents }};">
+      <sc-for list="{{ seasonChips }}" as="s" hint-placeholder-count="4">
+        <div onClick="{{ s.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.1em; padding: 7px 14px; border-radius: 999px; background: {{ s.bg }}; color: {{ s.fg }}; box-shadow: inset 0 0 0 1px {{ s.bd }}; cursor: pointer;">{{ s.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- filter row 2: kind tabs + status dropdown -->
+  <div style="display: flex; align-items: flex-end; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.09);">
+    <div style="display: flex; gap: 4px; flex: 1; min-width: 0; flex-wrap: wrap;">
+      <sc-for list="{{ kindTabs }}" as="t" hint-placeholder-count="6">
+        <div onClick="{{ t.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; padding: 12px 20px; color: {{ t.fg }}; border-bottom: 2px solid {{ t.line }}; margin-bottom: -1px; cursor: pointer;" style-hover="color: #f0edf4;">{{ t.label }}</div>
+      </sc-for>
+    </div>
+    <div style="position: relative; margin-bottom: 8px;">
+      <div onClick="{{ toggleStatus }}" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px {{ statusRing }}; border-radius: 999px; padding: 8px 16px; cursor: pointer;">
+        <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">STATUS</span>
+        <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: {{ statusFg }};">{{ statusLabel }}</span>
+        <span style="font-size: 10px; color: #948da1;">▾</span>
+      </div>
+      <div style="position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; min-width: 190px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 20px 50px -12px rgba(0,0,0,0.85); border-radius: 14px; padding: 6px; display: {{ statusMenuDisplay }}; flex-direction: column; gap: 2px;">
+        <sc-for list="{{ statusOptions }}" as="o" hint-placeholder-count="5">
+          <div onClick="{{ o.pick }}" style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: {{ o.bg }}; cursor: pointer;" style-hover="background: rgba(255,255,255,0.07);">
+            <div style="width: 7px; height: 7px; border-radius: 999px; background: {{ o.dot }};"></div>
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: {{ o.fg }}; flex: 1;">{{ o.label }}</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #6a6478;">{{ o.count }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- stats -->
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+    <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+      <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; display: flex; align-items: baseline; gap: 10px; backdrop-filter: blur(16px);">
+        <div style="font-family: Anton; font-size: 26px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; flex-shrink: 0;">{{ s.v }}</div>
+        <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+          <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: #b8b1c4;">{{ s.k }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.06em; color: #948da1;">{{ s.note }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- list -->
+  <div style="display: flex; flex-direction: column; gap: 22px; opacity: {{ listOpacity }};">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #948da1;">{{ countLabel }}</div>
+      <div style="display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; display: {{ busyDisplay }};">
+        <div style="width: 7px; height: 7px; border-radius: 999px; background: #d96bb0;"></div>{{ busyLabel }}
+      </div>
+    </div>
+
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="font-family: Anton; font-size: 26px; text-transform: uppercase; letter-spacing: 0.01em;">{{ g.label }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6a6478;">{{ g.meta }}</div>
+          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.09);"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); gap: 16px;">
+          <sc-for list="{{ g.rows }}" as="r">
+            <a href="Media Detail.dc.html" style="display: block; position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: {{ r.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 14px 34px -16px rgba(217,107,176,0.32), 0 4px 18px -6px rgba(0,0,0,0.85);" style-hover="box-shadow: inset 0 0 0 1px rgba(217,107,176,0.65), 0 16px 36px -12px rgba(217,107,176,0.42), 0 4px 18px -6px rgba(0,0,0,0.85);">
+              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,8,14,0.5) 0%, transparent 28%);"></div>
+              <div style="position: absolute; top: 8px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; padding: 4px 9px; border-radius: 999px; background: rgba(14,12,16,0.82); color: {{ r.stFg }}; box-shadow: inset 0 0 0 1px {{ r.stBd }};">{{ r.stLabel }}</div>
+                <div style="font-family: Anton; font-size: 15px; color: #f0edf4; padding: 2px 9px; border-radius: 999px; background: rgba(14,12,16,0.82); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); display: {{ r.scoreDisplay }};">{{ r.score }}</div>
+              </div>
+              <!-- at rest: solid plate carrying title + kind, so neither ever sits on raw artwork -->
+              <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 11px 13px 12px; background: #12101a; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); display: flex; flex-direction: column; gap: 5px;">
+                <div style="font-family: Anton; font-size: 16px; line-height: 1.08; text-transform: uppercase; color: #f0edf4; max-height: 35px; overflow: hidden;">{{ r.title }}</div>
+                <div style="display: flex; align-items: center; gap: 7px; min-width: 0;">
+                  <div style="width: 6px; height: 6px; border-radius: 999px; background: {{ r.dot }}; flex-shrink: 0;"></div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ r.kind }}</div>
+                </div>
+              </div>
+              <!-- on hover: the full record -->
+              <div style="position: absolute; inset: 0; background: #12101a; opacity: 0; transition: opacity 140ms ease; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; gap: 8px;" style-hover="opacity: 1;">
+                <div style="font-family: Anton; font-size: 20px; line-height: 1.05; text-transform: uppercase; color: #f0edf4;">{{ r.title }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 600; color: #f0edf4;">{{ r.range }}</div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 6px; height: 6px; border-radius: 999px; background: {{ r.dot }};"></div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">{{ r.kind }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; display: {{ r.progressDisplay }};">{{ r.progress }}</div>
+                </div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 44px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+        <div style="font-family: Anton; font-size: 32px; text-transform: uppercase; color: #6a6478;">{{ emptyTitle }}</div>
+        <div style="color: #b8b1c4; font-size: 14px; max-width: 460px; line-height: 1.6;">{{ emptyBody }}</div>
+        <div onClick="{{ emptyAction }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px; cursor: pointer; display: {{ emptyActionDisplay }};">{{ emptyActionLabel }}</div>
+        <a href="Search.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px; display: {{ emptyDiscoverDisplay }};">BROWSE DISCOVER →</a>
+      </div>
+    </sc-if>
+
+    <div style="display: {{ moreDisplay }}; justify-content: center; margin-top: 6px;">
+      <div onClick="{{ loadMore }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 12px 28px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); color: #f0edf4; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">LOAD MORE</div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;emptyAccount&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;States&quot;}, &quot;loading&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;States&quot;}}">
+class Component extends DCLogic {
+  state = { year: 2026, season: 'ALL', kind: 'ALL', status: 'ALL', statusOpen: false, shown: 18 };
+  PER = 18;
+
+  data() {
+    const G = {
+      violet: 'linear-gradient(160deg, #35296b, #0e0c1a)',
+      navy: 'linear-gradient(160deg, #2a4a8c, #080d17)',
+      blue: 'linear-gradient(160deg, #3a55b0, #080b17)',
+      plum: 'linear-gradient(160deg, #6b3aa0, #0f0817)',
+      magenta: 'linear-gradient(160deg, #8c2a6b, #170812)',
+      rose: 'linear-gradient(160deg, #a03a7a, #170812)',
+      gold: 'linear-gradient(160deg, #8a5c2a, #17100a)',
+      amber: 'linear-gradient(160deg, #c48a2a, #141008)',
+      copper: 'linear-gradient(160deg, #8c5a2a, #140f08)',
+      ochre: 'linear-gradient(160deg, #b0722a, #140e08)',
+    };
+    // filed = the date the row sorts and groups under (finish, else start)
+    return [
+      { t: 'Neon Harbor', k: 'SERIES', st: 'progress', filed: '2026-08-02', start: '12 JUL', end: '', prog: '9 / 22', score: '', g: G.violet, ep: 9, ch: 0 },
+      { t: 'Moonlit Courier', k: 'WEBTOON', st: 'progress', filed: '2026-08-01', start: '02 FEB', end: '', prog: '112 / 132', score: '9.5', g: G.magenta, ep: 0, ch: 64 },
+      { t: 'Glass Orchard', k: 'ANIME', st: 'progress', filed: '2026-07-28', start: '19 JUL', end: '', prog: '3 / 13', score: '', g: G.ochre, ep: 3, ch: 0 },
+      { t: 'The Long Static', k: 'MOVIE', st: 'completed', filed: '2026-07-04', start: '04 JUL', end: '04 JUL', prog: '', score: '9.0', g: G.blue, ep: 1, ch: 0 },
+      { t: 'Paper Cities', k: 'MANGA', st: 'progress', filed: '2026-07-02', start: '02 JUL', end: '', prog: '31 / 60', score: '', g: G.plum, ep: 0, ch: 31 },
+      { t: 'Ashfall Chronicle', k: 'ANIME', st: 'paused', filed: '2026-06-21', start: '03 MAY', end: '21 JUN', prog: '18 / 24', score: '8.5', g: G.gold, ep: 18, ch: 0 },
+      { t: 'Copper Veil', k: 'WEBTOON', st: 'completed', filed: '2026-06-08', start: '14 APR', end: '08 JUN', prog: '88 / 88', score: '9.0', g: G.rose, ep: 0, ch: 88 },
+      { t: 'Hollow Signal', k: 'MOVIE', st: 'completed', filed: '2026-05-30', start: '30 MAY', end: '30 MAY', prog: '', score: '7.5', g: G.plum, ep: 1, ch: 0 },
+      { t: 'Sable Coast', k: 'SERIES', st: 'completed', filed: '2026-05-11', start: '02 APR', end: '11 MAY', prog: '10 / 10', score: '8.5', g: G.navy, ep: 10, ch: 0 },
+      { t: 'Static Bloom', k: 'ANIME', st: 'dropped', filed: '2026-04-18', start: '09 APR', end: '18 APR', prog: '4 / 12', score: '5.0', g: G.amber, ep: 4, ch: 0 },
+      { t: 'Ninth Tide', k: 'MANGA', st: 'completed', filed: '2026-03-27', start: '11 JAN', end: '27 MAR', prog: '12 vols', score: '8.5', g: G.copper, ep: 0, ch: 141 },
+      { t: 'The Ferry Years', k: 'SERIES', st: 'completed', filed: '2026-02-11', start: '04 JAN', end: '11 FEB', prog: '24 / 24', score: '9.5', g: G.navy, ep: 24, ch: 0 },
+      { t: 'Tidewrack', k: 'SERIES', st: 'dropped', filed: '2026-02-03', start: '28 JAN', end: '03 FEB', prog: '2 / 8', score: '4.5', g: G.blue, ep: 2, ch: 0 },
+      { t: 'Salt & Signal', k: 'MOVIE', st: 'completed', filed: '2026-01-19', start: '19 JAN', end: '19 JAN', prog: '', score: '8.0', g: G.violet, ep: 1, ch: 0 },
+      { t: 'Lantern Quarter', k: 'WEBTOON', st: 'paused', filed: '2026-01-06', start: '02 JAN', end: '06 JAN', prog: '9 / 74', score: '', g: G.magenta, ep: 0, ch: 9 },
+      { t: 'Drowned Almanac', k: 'MANGA', st: 'completed', filed: '2025-12-22', start: '30 OCT', end: '22 DEC', prog: '7 vols', score: '9.0', g: G.copper, ep: 0, ch: 82 },
+      { t: 'Harbor Vigil', k: 'SERIES', st: 'completed', filed: '2025-11-14', start: '01 OCT', end: '14 NOV', prog: '12 / 12', score: '8.0', g: G.navy, ep: 12, ch: 0 },
+      { t: 'Ash & Ivory', k: 'ANIME', st: 'completed', filed: '2025-09-27', start: '05 JUL', end: '27 SEP', prog: '25 / 25', score: '9.5', g: G.gold, ep: 25, ch: 0 },
+      { t: 'The Quiet Fleet', k: 'MOVIE', st: 'completed', filed: '2025-08-16', start: '16 AUG', end: '16 AUG', prog: '', score: '7.0', g: G.blue, ep: 1, ch: 0 },
+      { t: 'Cinder Route', k: 'WEBTOON', st: 'dropped', filed: '2025-06-02', start: '20 MAY', end: '02 JUN', prog: '14 / 96', score: '6.0', g: G.rose, ep: 0, ch: 14 },
+      { t: 'Nightjar', k: 'SERIES', st: 'completed', filed: '2025-04-09', start: '01 MAR', end: '09 APR', prog: '8 / 8', score: '8.5', g: G.violet, ep: 8, ch: 0 },
+      { t: 'Bell & Undertide', k: 'MANGA', st: 'paused', filed: '2025-02-18', start: '22 JAN', end: '18 FEB', prog: '4 vols', score: '', g: G.ochre, ep: 0, ch: 47 },
+    ];
+  }
+
+  renderVals() {
+    const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+    const KIND_DOT = { MOVIE: '#8b5cf6', SERIES: '#4a6ee8', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0' };
+    const ST = {
+      completed: { label: 'COMPLETED', bg: 'rgba(255,255,255,0.06)', fg: '#b8b1c4', bd: 'rgba(255,255,255,0.14)', dot: '#b8b1c4' },
+      progress: { label: 'IN PROGRESS', bg: 'rgba(217,107,176,0.16)', fg: '#d96bb0', bd: 'rgba(217,107,176,0.5)', dot: '#d96bb0' },
+      paused: { label: 'PAUSED', bg: 'rgba(217,164,65,0.14)', fg: '#d9a441', bd: 'rgba(217,164,65,0.4)', dot: '#d9a441' },
+      dropped: { label: 'DROPPED', bg: 'rgba(255,255,255,0.03)', fg: '#6a6478', bd: 'rgba(255,255,255,0.1)', dot: '#6a6478' },
+    };
+    const empty = !!this.props.emptyAccount;
+    const busy = !!this.props.loading;
+    const all = empty ? [] : this.data();
+
+    const yearsWithData = Array.from(new Set(all.map((r) => +r.filed.slice(0, 4)))).sort((a, b) => b - a);
+    const inYear = (r) => this.state.year === 'ALL' || +r.filed.slice(0, 4) === this.state.year;
+    const SEASON_MONTHS = { WINTER: [0,1,2], SPRING: [3,4,5], SUMMER: [6,7,8], AUTUMN: [9,10,11] };
+    const inSeason = (r) => this.state.season === 'ALL' || this.state.year === 'ALL' ||
+      SEASON_MONTHS[this.state.season].includes(+r.filed.slice(5, 7) - 1);
+    const KIND_MAP = { MOVIES: 'MOVIE', SERIES: 'SERIES', ANIME: 'ANIME', MANGA: 'MANGA', WEBTOONS: 'WEBTOON' };
+    const inKind = (r) => this.state.kind === 'ALL' || r.k === KIND_MAP[this.state.kind];
+    const inStatus = (r) => this.state.status === 'ALL' || r.st === this.state.status;
+
+    const dateScoped = all.filter((r) => inYear(r) && inSeason(r));
+    const filtered = dateScoped.filter((r) => inKind(r) && inStatus(r))
+      .sort((a, b) => (a.filed < b.filed ? 1 : -1));
+
+    const shown = filtered.slice(0, this.state.shown);
+    const groups = [];
+    shown.forEach((r) => {
+      const key = r.filed.slice(0, 7);
+      const label = MONTHS[+r.filed.slice(5, 7) - 1] + (this.state.year === 'ALL' ? ' ' + r.filed.slice(0, 4) : '');
+      let g = groups.find((x) => x.key === key);
+      if (!g) { groups.push(g = { key, label, meta: '', rows: [] }); }
+      const s = ST[r.st];
+      const range = r.end ? (r.start === r.end ? r.start : r.start + ' → ' + r.end) : 'FROM ' + r.start;
+      g.rows.push({
+        title: r.t, kind: r.k, dot: KIND_DOT[r.k], grad: r.g,
+        stLabel: s.label, stBg: s.bg, stFg: s.fg, stBd: s.bd,
+        range, progress: r.prog,
+        progressDisplay: r.prog && r.st !== 'completed' ? 'block' : 'none',
+        score: r.score || '—',
+        scoreFg: r.score ? '#d96bb0' : '#3d3846',
+        scoreDisplay: r.score ? 'block' : 'none',
+      });
+    });
+    groups.forEach((g) => { g.meta = g.rows.length + (g.rows.length === 1 ? ' TITLE' : ' TITLES'); });
+
+    const completed = dateScoped.filter((r) => inKind(r) && r.st === 'completed').length;
+    const started = dateScoped.filter((r) => inKind(r)).length;
+    const eps = dateScoped.filter((r) => inKind(r)).reduce((n, r) => n + r.ep, 0);
+    const chs = dateScoped.filter((r) => inKind(r)).reduce((n, r) => n + r.ch, 0);
+
+    const scope = this.state.year === 'ALL' ? 'ALL TIME'
+      : (this.state.season === 'ALL' ? String(this.state.year) : this.state.season + ' ' + this.state.year);
+
+    const chip = (active) => ({
+      bg: active ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
+      fg: active ? '#d96bb0' : '#b8b1c4',
+      bd: active ? '#d96bb0' : 'rgba(255,255,255,0.12)',
+    });
+    const yearChips = yearsWithData.concat(['ALL']).map((y) => Object.assign({
+      label: y === 'ALL' ? 'ALL TIME' : String(y),
+      pick: () => this.setState({ year: y, season: 'ALL', shown: this.PER }),
+    }, chip(this.state.year === y)));
+    if (empty) yearChips.length = 0;
+
+    const seasonChips = ['WINTER', 'SPRING', 'SUMMER', 'AUTUMN'].map((s) => Object.assign({
+      label: s,
+      pick: () => this.setState({ season: this.state.season === s ? 'ALL' : s, shown: this.PER }),
+    }, chip(this.state.season === s)));
+
+    const kindTabs = ['ALL', 'MOVIES', 'SERIES', 'ANIME', 'MANGA', 'WEBTOONS'].map((k) => ({
+      label: k,
+      fg: this.state.kind === k ? '#f0edf4' : '#948da1',
+      line: this.state.kind === k ? '#d96bb0' : 'transparent',
+      pick: () => this.setState({ kind: k, shown: this.PER }),
+    }));
+
+    const statusOptions = [
+      { key: 'ALL', label: 'All statuses', dot: '#6a6478' },
+      { key: 'completed', label: 'Completed', dot: ST.completed.dot },
+      { key: 'progress', label: 'In progress', dot: ST.progress.dot },
+      { key: 'paused', label: 'Paused', dot: ST.paused.dot },
+      { key: 'dropped', label: 'Dropped', dot: ST.dropped.dot },
+    ].map((o) => ({
+      label: o.label, dot: o.dot,
+      count: o.key === 'ALL' ? dateScoped.filter((r) => inKind(r)).length
+        : dateScoped.filter((r) => inKind(r) && r.st === o.key).length,
+      bg: this.state.status === o.key ? 'rgba(217,107,176,0.16)' : 'transparent',
+      fg: this.state.status === o.key ? '#d96bb0' : '#b8b1c4',
+      pick: () => this.setState({ status: o.key, statusOpen: false, shown: this.PER }),
+    }));
+    const statusLabelMap = { ALL: 'All', completed: 'Completed', progress: 'In progress', paused: 'Paused', dropped: 'Dropped' };
+
+    const filteredOut = dateScoped.length > 0 && filtered.length === 0;
+    const emptyYear = !empty && dateScoped.length === 0;
+
+    return {
+      scopeLabel: empty ? 'NOTHING TRACKED YET' : scope + ' · ' + filtered.length + (filtered.length === 1 ? ' TITLE' : ' TITLES'),
+      yearChips, seasonChips, kindTabs, statusOptions,
+      seasonOpacity: this.state.year === 'ALL' ? 0.25 : 1,
+      seasonEvents: this.state.year === 'ALL' ? 'none' : 'auto',
+      statusLabel: statusLabelMap[this.state.status],
+      statusFg: this.state.status === 'ALL' ? '#f0edf4' : '#d96bb0',
+      statusRing: this.state.status === 'ALL' ? 'rgba(255,255,255,0.12)' : '#d96bb0',
+      statusMenuDisplay: this.state.statusOpen ? 'flex' : 'none',
+      toggleStatus: () => this.setState({ statusOpen: !this.state.statusOpen }),
+      stats: [
+        { v: String(completed), k: 'TITLES COMPLETED', note: 'FINISHED · ' + scope },
+        { v: String(started), k: 'TITLES STARTED', note: 'BEGUN · ' + scope },
+        { v: String(eps), k: 'EPISODES', note: 'CHECK-INS · ' + scope },
+        { v: String(chs), k: 'CHAPTERS', note: 'CHECK-INS · ' + scope },
+      ],
+      groups,
+      countLabel: filtered.length === 0 ? '' : 'SHOWING ' + shown.length + ' OF ' + filtered.length,
+      listOpacity: busy ? 0.45 : 1,
+      busyDisplay: busy ? 'flex' : 'none',
+      busyLabel: 'LOADING ' + scope + '…',
+      isEmpty: filtered.length === 0,
+      emptyTitle: empty ? 'Nothing yet' : (filteredOut ? 'No matches' : 'Nothing in ' + scope),
+      emptyBody: empty
+        ? 'Check in to something and it lands here — every episode and chapter, with the dates you watched them.'
+        : (filteredOut
+          ? 'Nothing in ' + scope + ' matches this kind and status. Clear one of them to widen the search.'
+          : 'You have history, just not in this window. Pick another year or season above.'),
+      emptyActionLabel: filteredOut ? 'CLEAR KIND & STATUS' : '',
+      emptyActionDisplay: filteredOut ? 'block' : 'none',
+      emptyAction: () => this.setState({ kind: 'ALL', status: 'ALL', shown: this.PER }),
+      emptyDiscoverDisplay: empty ? 'block' : 'none',
+      moreDisplay: filtered.length > shown.length ? 'flex' : 'none',
+      loadMore: () => this.setState({ shown: this.state.shown + this.PER }),
+    };
+  }
+}
+</script>
+</body>
+</html>

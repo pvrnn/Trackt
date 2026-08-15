@@ -9,6 +9,7 @@ import {
   type MediaStatus,
 } from '@trackt/shared';
 import { createEntry, uploadCover } from '../../lib/entries';
+import { KIND_LABELS_SINGULAR } from '../../lib/kinds';
 import { Button } from '../ui/Button';
 import { Chip } from '../ui/Chip';
 import { Input } from '../ui/Input';
@@ -17,14 +18,6 @@ import { SelectField, type SelectItem } from '../ui/Select';
 
 /** Series/anime count episodes and carry a season number; manga/webtoon count chapters (ADR-0003). */
 const EPISODIC: MediaKind[] = ['series', 'anime'];
-
-const KIND_LABELS: Record<MediaKind, string> = {
-  movie: 'MOVIE',
-  series: 'SERIES',
-  anime: 'ANIME',
-  manga: 'MANGA',
-  webtoon: 'WEBTOON',
-};
 
 /** The '' option leaves status unset, which the API reads as unknown. */
 const STATUS_ITEMS: SelectItem[] = [
@@ -171,7 +164,7 @@ export function CreateEntryDialog({
           <div className="flex flex-wrap gap-2">
             {MEDIA_KINDS.map((value) => (
               <Chip key={value} selected={kind === value} onClick={() => setKind(value)}>
-                {KIND_LABELS[value]}
+                {KIND_LABELS_SINGULAR[value]}
               </Chip>
             ))}
           </div>

@@ -112,15 +112,44 @@ export async function loadStreak(db: Db, userId: string): Promise<number> {
   );
 }
 
-/** Check-ins since Jan 1, split by part kind. */
+/**
+ * Check-ins split by part kind, in a date window — since Jan 1 by default,
+ * which is what the profile and home strips ask for.
+ *
+ * A window is the history page's year/season narrowing (ADR-0007), as inclusive
+ * ISO dates against the check-in's UTC day; `'all'` drops the bound entirely
+ * (the page's ALL TIME scope). It counts *check-ins in the window*, not parts of
+ * the titles filed there: a show finished in January whose episodes were watched
+ * across two years contributes to both counts, which is the honest answer to
+ * "how much did I watch that year".
+ *
+ * `kind` narrows to one media kind, so the history page's stats strip agrees
+ * with its own kind tab — a strip reading "1 EPISODE" under a MOVIES filter is
+ * just wrong. Soft-deleted titles are still counted, unlike every shelf and the
+ * history's own entry list: an aggregate is the viewer's own history, and a
+ * title the moderators removed does not un-watch the episodes they watched
+ * (asserted by `home.integration.test.ts`).
+ */
+export type CheckinWindow = { from: string; to: string } | 'all' | 'this-year';
+
 export async function loadYearCheckinCounts(
   db: Db,
   userId: string,
+  window: CheckinWindow = 'this-year',
+  kind?: MediaKind,
 ): Promise<{ episodes: number; chapters: number }> {
+  const bounds =
+    window === 'all'
+      ? sql`TRUE`
+      : window === 'this-year'
+        ? sql`p.watched_at >= date_trunc('year', now())`
+        : sql`(p.watched_at AT TIME ZONE 'UTC')::date BETWEEN ${window.from}::date AND ${window.to}::date`;
   const rows = await db.execute(sql`
     SELECT mp.kind, count(*)::int AS count FROM progress p
     JOIN media_part mp ON mp.id = p.part_id
-    WHERE p.user_id = ${userId} AND p.watched_at >= date_trunc('year', now())
+    JOIN media m ON m.id = mp.media_id
+    WHERE p.user_id = ${userId} AND ${bounds}
+      AND ${kind ? sql`m.kind = ${kind}` : sql`TRUE`}
     GROUP BY mp.kind
   `);
   let episodes = 0;

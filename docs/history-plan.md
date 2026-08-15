@@ -1,6 +1,7 @@
 # Plan — Log dates (`started_at` / `finished_at`) and the History year view
 
-> **Status:** Proposed — nothing implemented. Deeper context: [PRD](PRD.md) §3.1, [ROADMAP](ROADMAP.md),
+> **Status:** Implemented 2026-08-15 — see [ADR-0007](adr/0007-log-dates-over-viewing-runs.md)
+> for the durable record; this plan is kept as the design trail. Deeper context: [PRD](PRD.md) §3.1, [ROADMAP](ROADMAP.md),
 > [data model](data-model.md).
 
 ## Context

@@ -9,6 +9,7 @@ import { CreateEntryDialog } from '../components/media/CreateEntryDialog';
 import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
 import { useAuthedPage } from '../lib/auth-client';
+import { KIND_LABELS } from '../lib/kinds';
 import { useMediaSearch } from '../lib/search';
 
 export interface SearchParams {
@@ -27,15 +28,6 @@ export const Route = createFileRoute('/search')({
 
 /** Toggle-group value for the unfiltered state; `kind` stays undefined in the URL. */
 const ALL_KINDS = 'all';
-
-/** Filter chip labels per the mockup — plural forms of the media kinds. */
-const KIND_LABELS: Record<MediaKind, string> = {
-  movie: 'MOVIES',
-  series: 'SERIES',
-  anime: 'ANIME',
-  manga: 'MANGA',
-  webtoon: 'WEBTOONS',
-};
 
 function SearchPage() {
   const navigate = useNavigate({ from: Route.fullPath });

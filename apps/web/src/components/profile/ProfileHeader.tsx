@@ -24,6 +24,7 @@ export function ProfileHeader({
   stats,
   friendsMeta,
   action,
+  linkYearStats = false,
 }: {
   user: ProfileUser;
   stats: ProfileStats;
@@ -31,7 +32,16 @@ export function ProfileHeader({
   friendsMeta: ReactNode;
   /** Top-right control: EDIT PROFILE, or the friend-state action. */
   action: ReactNode;
+  /**
+   * Point the this-year figures at `/history` — the own profile only. `/history`
+   * is `/me/*`: a visitor following the link would land on their own history,
+   * not the subject's (ADR-0007 defers friend-visible histories).
+   */
+  linkYearStats?: boolean;
 }) {
+  const yearLink = linkYearStats
+    ? ({ to: '/history', search: { year: new Date().getUTCFullYear() } } as const)
+    : undefined;
   return (
     <div className="border-b border-divider">
       <div className="mx-auto flex max-w-[1360px] items-end gap-8 px-10 pt-14 pb-10">
@@ -70,8 +80,16 @@ export function ProfileHeader({
         {action}
       </div>
       <div className="mx-auto grid max-w-[1360px] grid-cols-2 gap-3 px-10 pb-10 md:grid-cols-3 lg:grid-cols-5">
-        <StatCard value={String(stats.episodesThisYear)} label="Episodes this year" />
-        <StatCard value={String(stats.chaptersThisYear)} label="Chapters this year" />
+        <StatCard
+          value={String(stats.episodesThisYear)}
+          label="Episodes this year"
+          {...(yearLink ? { link: yearLink } : {})}
+        />
+        <StatCard
+          value={String(stats.chaptersThisYear)}
+          label="Chapters this year"
+          {...(yearLink ? { link: yearLink } : {})}
+        />
         <StatCard value={String(stats.completed)} label="Completed" />
         <StatCard value={String(stats.titlesTracked)} label="Titles tracked" />
         <StatCard

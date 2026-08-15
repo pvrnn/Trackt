@@ -15,6 +15,9 @@
   --color-dim: #948da1;
   --color-faint: #6a6478;
   --color-pink: #d96bb0;
+  /* The prism's warm stop, named so status/state colours can reach for it
+     without borrowing `kind-anime`, which happens to share the value. */
+  --color-gold: #d9a441;
   --color-on-prism: #14101a;
   --color-glass: rgb(255 255 255 / 0.05);
   --color-glass-well: rgb(255 255 255 / 0.07);

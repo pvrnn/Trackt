@@ -25,6 +25,14 @@ export interface SelectProps {
   variant?: 'pill' | 'field';
   /** `pill` only: paints the trigger pink to signal an active choice. */
   selected?: boolean;
+  /**
+   * `pill` only: a dim caption inside the trigger, before the value — "STATUS
+   * Completed" rather than a bare "Completed". What names a pill in a row of
+   * them, per `docs/design/History.dc.html`.
+   */
+  caption?: string;
+  /** Renders inert and dimmed: the choice exists but doesn't apply right now. */
+  disabled?: boolean;
   id?: string;
   'aria-label'?: string;
   /**
@@ -48,6 +56,8 @@ export function Select({
   items,
   variant = 'field',
   selected = false,
+  caption,
+  disabled = false,
   id,
   className,
   ...props
@@ -57,6 +67,7 @@ export function Select({
     <SelectPrimitive.Root
       value={toRadix(value)}
       onValueChange={(next) => onChange(fromRadix(next))}
+      disabled={disabled}
     >
       <SelectPrimitive.Trigger
         id={id}
@@ -64,6 +75,7 @@ export function Select({
         aria-labelledby={props['aria-labelledby']}
         className={clsx(
           'cursor-pointer transition outline-none',
+          disabled && 'pointer-events-none opacity-40',
           pill
             ? [
                 'inline-flex items-center gap-2 rounded-full border py-[11px] pr-4 pl-5',
@@ -80,6 +92,11 @@ export function Select({
           className,
         )}
       >
+        {pill && caption && (
+          <span className="font-label text-[10px] font-bold tracking-label text-dim">
+            {caption}
+          </span>
+        )}
         <SelectPrimitive.Value />
         <SelectPrimitive.Icon
           className={clsx('text-[10px]', pill ? (selected ? 'text-pink' : 'text-dim') : 'text-dim')}

@@ -354,6 +354,14 @@ The schema is organized into five files under `packages/db/src/schema/`, mirrore
   enforced at the central visibility seam (`apps/api/src/lib/visibility.ts`). Hard
   deletes cascade through `user_media`, `favorite`, `list_item`, and `progress` (via
   `media_part`), but silently orphan the polymorphic tables listed above.
+- **`user_media.started_at` / `finished_at` are `date`, one pair per log** (ADR-0007).
+  A viewing start is a day, not an instant, and a day typed in by hand has no timezone
+  to get wrong. They are stamped by status changes and the first check-in — always
+  `COALESCE`d, so a real start date is never overwritten — and editable through
+  `PATCH /v1/media/:id/log`. `COALESCE(finished_at, started_at)` is the expression the
+  history page files, sorts, pages and facets on; `user_media_user_logged_idx` indexes
+  it per user. Dated *rewatch runs* are deliberately not modelled here: that needs a
+  `media_run` table, and `repeats` / `progress.repeat_index` stay unused until it lands.
 - **`progress` is append-only and write-heavy** — one row per watched episode/read
   chapter per repeat (rewatches/rereads), flagged in-schema as the first candidate for
   native partitioning by month.

@@ -28,6 +28,11 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'DISCOVER', to: '/search' },
   { label: 'NEWS', to: '/news' },
   { label: 'LISTS', to: '/lists' },
+  // A sixth item, which docs/friends-plan.md §6 argued against for friends —
+  // the argument there was that a feature with no page of its own doesn't earn
+  // a nav slot, and this one is a page. It also absorbs the ROADMAP's Library
+  // item, so it is the entry point for "my whole collection" (ADR-0007).
+  { label: 'HISTORY', to: '/history' },
   { label: 'PROFILE', to: '/profile' },
 ];
 

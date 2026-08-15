@@ -1,7 +1,10 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import {
+  LogDatesSchema,
   MediaDetailSchema,
   SearchResultSchema,
+  type LogDates,
+  type LogDatesBody,
   type LogStatus,
   type MediaDetail,
   type SearchResult,
@@ -71,6 +74,21 @@ export function firstUnwatched(watched: ReadonlySet<number>, limit: number): num
 }
 
 /**
+ * What a status change does to the log's dates, mirroring the server's rules
+ * (ADR-0007) so the stamped value shows the instant the status pill changes
+ * instead of a request later. The server is still the authority — this feeds
+ * the optimistic patch, which the following invalidation overwrites.
+ */
+export function stampedDates(status: LogStatus | null, current: LogDates, today: string): LogDates {
+  if (status === null || status === 'planned') return { startedAt: null, finishedAt: null };
+  const startedAt = current.startedAt ?? today;
+  if (status === 'completed') return { startedAt, finishedAt: current.finishedAt ?? today };
+  if (status === 'in_progress') return { startedAt, finishedAt: null };
+  // paused / dropped: neither finishes the work, so the finish date stands.
+  return { startedAt, finishedAt: current.finishedAt };
+}
+
+/**
  * Every cached view derived from tracking data. One check-in changes the media
  * detail, the home dashboard (up next, in progress, stats) *and* the profile
  * activity feed — so a mutation that invalidates only its own page leaves the
@@ -79,13 +97,17 @@ export function firstUnwatched(watched: ReadonlySet<number>, limit: number): num
  *
  * `['media']` is a prefix: it matches every `['media', slug]` entry.
  */
-const TRACKING_KEYS = [['media'], ['home'], ['profile']] as const;
+const TRACKING_KEYS = [['media'], ['home'], ['profile'], ['history']] as const;
 
 export async function invalidateTracking(queryClient: QueryClient): Promise<void> {
   await Promise.all(TRACKING_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
 }
 
-async function mutate(path: string, method: 'PUT' | 'DELETE', body?: unknown): Promise<void> {
+async function mutate(
+  path: string,
+  method: 'PUT' | 'PATCH' | 'DELETE',
+  body?: unknown,
+): Promise<void> {
   try {
     await api(path, { method, ...(body !== undefined ? { json: body } : {}) });
   } catch (error) {
@@ -102,4 +124,17 @@ export const trackingApi = {
   uncheck: (id: string, number: number) => mutate(`media/${id}/progress/${number}`, 'DELETE'),
   favorite: (id: string) => mutate(`media/${id}/favorite`, 'PUT'),
   unfavorite: (id: string) => mutate(`media/${id}/favorite`, 'DELETE'),
+  /**
+   * Manual date correction (ADR-0007). The only tracking call that returns a
+   * value: the server merges the patch against the stored row, so what the log
+   * now says is not derivable from the request alone.
+   */
+  setDates: async (id: string, body: LogDatesBody): Promise<LogDates> => {
+    try {
+      const response = await api(`media/${id}/log`, { method: 'PATCH', json: body });
+      return LogDatesSchema.parse(await response.json());
+    } catch (error) {
+      throw await toError(error, `PATCH media/${id}/log`);
+    }
+  },
 };

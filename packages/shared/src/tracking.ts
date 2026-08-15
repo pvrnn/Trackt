@@ -29,6 +29,9 @@ export const ViewerStateSchema = z.object({
   /** Checked-in episode/chapter numbers (integers — generated flat parts). */
   watched: z.array(z.number()),
   favorited: z.boolean(),
+  /** When the viewer started / finished the work (ADR-0007); ISO dates. */
+  startedAt: z.iso.date().nullable(),
+  finishedAt: z.iso.date().nullable(),
 });
 export type ViewerState = z.infer<typeof ViewerStateSchema>;
 
@@ -75,6 +78,44 @@ export type MediaDetail = z.infer<typeof MediaDetailSchema>;
 
 export const UpdateLogBodySchema = z.object({ status: LogStatusSchema });
 export type UpdateLogBody = z.infer<typeof UpdateLogBodySchema>;
+
+/**
+ * Manual date edit (`PATCH /v1/media/:id/log`). Both fields optional *and*
+ * nullable, and the difference matters: an absent key leaves the column alone,
+ * an explicit `null` clears it. A body that mentions neither has nothing to do,
+ * so it is rejected rather than silently succeeding.
+ *
+ * A floor of 1900-01-01 catches the slipped keystroke (`0202-08-14`) that would
+ * otherwise file a title 1800 years back and stretch every year facet on the
+ * history page. The other two rules — no future date, and
+ * `finishedAt >= startedAt` — are server-side only: both have to be checked
+ * against the *stored* row, which a body schema cannot see (ADR-0007).
+ */
+export const LOG_DATE_FLOOR = '1900-01-01';
+
+/** ISO dates are zero-padded and fixed-width, so `>=` is a date comparison. */
+const LogDateSchema = z.iso
+  .date()
+  .refine((value) => value >= LOG_DATE_FLOOR, `date must be on or after ${LOG_DATE_FLOOR}`);
+
+export const LogDatesBodySchema = z
+  .object({
+    startedAt: LogDateSchema.nullable(),
+    finishedAt: LogDateSchema.nullable(),
+  })
+  .partial()
+  .refine(
+    (body) => body.startedAt !== undefined || body.finishedAt !== undefined,
+    'nothing to update',
+  );
+export type LogDatesBody = z.infer<typeof LogDatesBodySchema>;
+
+/** What the PATCH returns: the row's dates after the merge. */
+export const LogDatesSchema = z.object({
+  startedAt: z.iso.date().nullable(),
+  finishedAt: z.iso.date().nullable(),
+});
+export type LogDates = z.infer<typeof LogDatesSchema>;
 
 export const RateBodySchema = z.object({ score: RatingScoreSchema });
 export type RateBody = z.infer<typeof RateBodySchema>;
