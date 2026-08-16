@@ -1,7 +1,6 @@
 import { Link } from '@tanstack/react-router';
-import { coverGradient, useNewsFeed } from '@trackt/client';
+import { TOPIC_LABELS, coverGradient, formatNewsDate, useNewsFeed } from '@trackt/client';
 import { GlassCard } from '../ui/GlassCard';
-import { formatNewsDate, TOPIC_LABELS } from './NewsCard';
 
 const WIDGET_LIMIT = 4;
 

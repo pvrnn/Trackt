@@ -22,6 +22,7 @@ import {
   groupEntries,
   useHistory,
   KIND_LABELS,
+  LOG_STATUS_LABELS,
   type HistoryGrouping,
 } from '@trackt/client';
 
@@ -50,14 +51,6 @@ const ALL_STATUSES = '';
 
 /** Statuses a history row can actually have. */
 const HISTORY_STATUSES: LogStatus[] = LOG_STATUSES.filter((status) => status !== 'planned');
-
-const STATUS_LABELS: Record<LogStatus, string> = {
-  planned: 'PLANNED',
-  in_progress: 'IN PROGRESS',
-  completed: 'COMPLETED',
-  dropped: 'DROPPED',
-  paused: 'PAUSED',
-};
 
 /**
  * Per-status colour, from `docs/design/History.dc.html`: in-progress is the
@@ -91,7 +84,7 @@ const STATUS_ITEMS: SelectItem[] = [
     label: (
       <span className="flex items-center gap-2">
         <span aria-hidden className={clsx('size-1.5 rounded-full', STATUS_STYLES[status].dot)} />
-        {STATUS_LABELS[status]}
+        {LOG_STATUS_LABELS[status]}
       </span>
     ),
   })),
@@ -402,7 +395,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
             STATUS_STYLES[entry.status].border,
           )}
         >
-          {STATUS_LABELS[entry.status]}
+          {LOG_STATUS_LABELS[entry.status]}
         </span>
         {entry.score !== null && (
           <span className="rounded-full bg-ink/80 px-2 py-0.5 font-display text-[15px] text-pink">

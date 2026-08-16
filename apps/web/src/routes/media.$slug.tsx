@@ -23,6 +23,7 @@ import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
 import {
+  LOG_STATUS_LABELS,
   coverGradient,
   dateRangeLabel,
   todayIso,
@@ -51,18 +52,10 @@ export const Route = createFileRoute('/media/$slug')({
   component: MediaPage,
 });
 
-const STATUS_LABELS: Record<LogStatus, string> = {
-  planned: 'PLANNED',
-  in_progress: 'IN PROGRESS',
-  completed: 'COMPLETED',
-  dropped: 'DROPPED',
-  paused: 'PAUSED',
-};
-
 /** The '' option clears the log; its label doubles as the resting pill text. */
 const LOG_ITEMS: SelectItem[] = [
   { value: '', label: '＋ LOG' },
-  ...LOG_STATUSES.map((status) => ({ value: status, label: STATUS_LABELS[status] })),
+  ...LOG_STATUSES.map((status) => ({ value: status, label: LOG_STATUS_LABELS[status] })),
 ];
 
 /** Sidebar heading per relation label (ADR-0004). Display copy, so it lives here. */

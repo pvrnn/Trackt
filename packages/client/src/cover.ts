@@ -29,24 +29,45 @@ function pick(hash: number, shift: number, min: number, max: number): number {
   return min + (((hash >>> shift) % 97) / 97) * (max - min);
 }
 
-/** Two-stop cover gradient: saturated dark kind-hue → near-black (design handoff formula). */
-export function coverGradient(kind: MediaKind, title: string): string {
+/**
+ * The two stops of a generated cover: saturated dark kind-hue → near-black
+ * (design handoff formula).
+ *
+ * Split out from {@link coverGradient} because React Native has no CSS gradient
+ * string to hand to a style — `expo-linear-gradient` takes an array of colours.
+ * Both clients therefore derive the same two colours from the same hash, and a
+ * title's cover looks identical on web and on device.
+ */
+export function coverGradientStops(kind: MediaKind, title: string): [string, string] {
   const hash = hashString(`${kind}:${title}`);
   const [hueMin, hueMax] = HUE_RANGES[kind];
   const hue = Math.round(pick(hash, 0, hueMin, hueMax));
   const saturation = Math.round(pick(hash, 8, 42, 58));
   const lightness = Math.round(pick(hash, 16, 38, 46));
-  return `linear-gradient(160deg, hsl(${hue} ${saturation}% ${lightness}%) 0%, hsl(${hue} 45% 6%) 100%)`;
+  return [`hsl(${hue} ${saturation}% ${lightness}%)`, `hsl(${hue} 45% 6%)`];
+}
+
+/** The web form of {@link coverGradientStops}: a `background-image` value. */
+export function coverGradient(kind: MediaKind, title: string): string {
+  const [from, to] = coverGradientStops(kind, title);
+  return `linear-gradient(160deg, ${from} 0%, ${to} 100%)`;
 }
 
 /** Avatar gradients from the design system: gold→pink and violet→deep-violet. */
 const AVATAR_GRADIENTS = [
-  { background: 'linear-gradient(135deg, #d9a441, #d96bb0)', color: '#14101a' },
-  { background: 'linear-gradient(135deg, #8b5cf6, #3d2a80)', color: '#ffffff' },
-  { background: 'linear-gradient(135deg, #d96bb0, #8b5cf6)', color: '#ffffff' },
-] as const;
+  { stops: ['#d9a441', '#d96bb0'], color: '#14101a' },
+  { stops: ['#8b5cf6', '#3d2a80'], color: '#ffffff' },
+  { stops: ['#d96bb0', '#8b5cf6'], color: '#ffffff' },
+] as const satisfies readonly { stops: readonly [string, string]; color: string }[];
 
-export function avatarGradient(name: string): (typeof AVATAR_GRADIENTS)[number] {
+/** The stops and the legible ink over them, for whichever gradient API the client has. */
+export function avatarGradientStops(name: string): (typeof AVATAR_GRADIENTS)[number] {
   const index = hashString(name) % AVATAR_GRADIENTS.length;
   return AVATAR_GRADIENTS[index] ?? AVATAR_GRADIENTS[0];
+}
+
+/** The web form: a `background` value plus the text colour that reads on it. */
+export function avatarGradient(name: string): { background: string; color: string } {
+  const { stops, color } = avatarGradientStops(name);
+  return { background: `linear-gradient(135deg, ${stops[0]}, ${stops[1]})`, color };
 }

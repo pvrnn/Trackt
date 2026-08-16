@@ -58,12 +58,28 @@ function App() {
         <Stack.Protected guard={!!origin}>
           <Stack.Screen name="(auth)/login" />
           <Stack.Screen name="(auth)/register" />
-          <Stack.Screen name="(app)/home" />
+          {/* The four-tab shell, and the screens that push over it. The tabs
+              animate as a fade; a push should read as a push, so the pushed
+              routes take the platform's native stack animation. */}
+          <Stack.Screen name="(app)/(tabs)" />
+          <Stack.Screen name="(app)/media/[slug]" options={PUSHED} />
+          <Stack.Screen name="(app)/news/[slug]" options={PUSHED} />
+          <Stack.Screen name="(app)/lists/index" options={PUSHED} />
+          <Stack.Screen name="(app)/lists/[id]" options={PUSHED} />
+          <Stack.Screen name="(app)/history" options={PUSHED} />
+          <Stack.Screen name="(app)/users/[username]" options={PUSHED} />
         </Stack.Protected>
       </Stack>
     </QueryClientProvider>
   );
 }
+
+/**
+ * Pushed screens: the platform's own horizontal transition, and with it the iOS
+ * left-edge back swipe and Android's system back — both free, and both wrong to
+ * reimplement (`Mobile System.dc.html` §06).
+ */
+const PUSHED = { animation: 'default', gestureEnabled: true } as const;
 
 /** Shown while SecureStore is read and the three font families load. */
 function Splash() {

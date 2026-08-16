@@ -5,10 +5,9 @@ import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
 import { Markdown } from '../components/news/Markdown';
-import { TOPIC_LABELS, formatNewsDate } from '../components/news/NewsCard';
 import { KindDot } from '../components/ui/KindDot';
 import { useOptionalSession } from '../lib/auth-client';
-import { coverGradient, useNewsArticle } from '@trackt/client';
+import { TOPIC_LABELS, coverGradient, formatNewsDate, useNewsArticle } from '@trackt/client';
 
 /**
  * `news_.` opts this route out of nesting under `/news`: the feed is a

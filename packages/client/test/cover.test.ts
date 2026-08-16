@@ -63,6 +63,6 @@ describe('avatarGradient', () => {
   });
 
   it('is stable per name', () => {
-    expect(avatarGradient('paulv')).toBe(avatarGradient('paulv'));
+    expect(avatarGradient('paulv')).toEqual(avatarGradient('paulv'));
   });
 });

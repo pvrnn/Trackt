@@ -1,26 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { NewsArticleSummary } from '@trackt/shared';
-import { coverGradient } from '@trackt/client';
+import { TOPIC_LABELS, coverGradient, formatNewsDate } from '@trackt/client';
 import { KindDot } from '../ui/KindDot';
-
-/** Topic labels as the design writes them: short, uppercase, on a tag pill. */
-export const TOPIC_LABELS: Record<NewsArticleSummary['topic'], string> = {
-  announcement: 'ANNOUNCED',
-  renewal: 'NEW SEASON',
-  cancellation: 'CANCELLED',
-  release_date: 'RELEASE DATE',
-  trailer: 'TRAILER',
-  casting: 'CASTING',
-  adaptation: 'ADAPTATION',
-  award: 'AWARD',
-  general: 'NEWS',
-};
-
-export function formatNewsDate(iso: string): string {
-  return new Date(iso)
-    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-    .toUpperCase();
-}
 
 /**
  * One story in the feed (mockup `News.dc.html`).
