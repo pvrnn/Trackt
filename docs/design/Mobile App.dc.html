@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #17181b; font-family: Archivo, sans-serif; }
+    a { color: #d96bb0; text-decoration: none; }
+    a:hover { color: #e88cc4; }
+  </style>
+</helmet>
+
+<div style="padding: 48px 40px 96px; display: flex; flex-direction: column; gap: 32px;">
+  <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 10px;">
+    <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT MOBILE · AURA PRISM</div>
+    <div style="font-family: Anton; font-size: 52px; line-height: 1; text-transform: uppercase; color: #f0edf4;">Screens</div>
+    <div style="color: #9aa3b5; font-size: 15px; max-width: 620px;">Drag any up-next row to the right on the first screen — the swipe check-in is live, including the threshold, the commit and the undo toast. <a href="Mobile System.dc.html">Mobile system reference →</a></div>
+  </div>
+
+  <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+
+    <!-- ========== HOME · iOS ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">HOME · iOS · SWIPE IS LIVE</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 30%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 30% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 22px;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0;">
+              <div style="display: flex; flex-direction: column; gap: 3px; flex-shrink: 0;">
+                <div style="font-family: Anton; font-size: 34px; line-height: 1.15; text-transform: uppercase; flex-shrink: 0;">Up next</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ upNextLabel }}</div>
+              </div>
+              <div style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;">M</div>
+            </div>
+
+            <!-- swipe rows -->
+            <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 10px;">
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+                <div style="position: relative; height: 72px; border-radius: 12px; overflow: hidden; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); display: {{ r.wrapDisplay }};">
+                  <div style="position: absolute; left: 14px; top: 0; bottom: 0; display: flex; align-items: center; gap: 8px; opacity: {{ r.trackOpacity }};">
+                    <span style="font-size: 16px; color: #14101a;">✓</span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #14101a;">{{ r.trackLabel }}</span>
+                  </div>
+                  <div onPointerDown="{{ r.down }}" onPointerMove="{{ r.move }}" onPointerUp="{{ r.up }}" onPointerCancel="{{ r.up }}" style="position: absolute; inset: 0; transform: translateX({{ r.dx }}); transition: {{ r.transition }}; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; gap: 12px; padding: 0 14px; touch-action: pan-y; cursor: grab;">
+                    <div style="width: 40px; height: 56px; border-radius: 6px; flex-shrink: 0; background: {{ r.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 6px 16px -8px rgba(0,0,0,0.9);"></div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r.title }}</div>
+                      <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+                        <div style="width: 5px; height: 5px; border-radius: 999px; background: {{ r.dot }};"></div>
+                        <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r.next }}</div>
+                      </div>
+                    </div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 16px; color: #3d3846; display: {{ r.chevronDisplay }};">›</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <!-- in progress -->
+            <div style="display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0;">
+              <div style="font-family: Anton; font-size: 22px; text-transform: uppercase;">In progress</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">ALL →</div>
+            </div>
+            <div style="display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; margin: 0 -20px; padding: 0 20px; flex-shrink: 0;">
+              <sc-for list="{{ carousel }}" as="c" hint-placeholder-count="4">
+                <div style="width: 104px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px;">
+                  <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ c.grad }}; position: relative; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 24px -12px rgba(0,0,0,0.9);">
+                    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.14);"></div>
+                    <div style="position: absolute; left: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: {{ c.pct }};"></div>
+                  </div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.04em; color: #948da1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ c.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <!-- stats -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; flex-shrink: 0; gap: 10px;">
+              <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+                <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; display: flex; align-items: baseline; gap: 8px;">
+                  <div style="font-family: Anton; font-size: 24px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ s.v }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ s.k }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- undo toast -->
+          <div style="position: absolute; left: 20px; right: 20px; bottom: 110px; z-index: 40; display: {{ toastDisplay }};">
+            <div style="background: #241f2e; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 16px 40px -12px rgba(0,0,0,0.9); border-radius: 999px; padding: 12px 18px; display: flex; align-items: center; gap: 12px;">
+              <div style="width: 18px; height: 18px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #14101a; flex-shrink: 0;">✓</div>
+              <div style="flex: 1; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ toastText }}</div>
+              <div onClick="{{ undo }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; cursor: pointer; flex-shrink: 0;">UNDO</div>
+            </div>
+          </div>
+
+          <!-- tab bar -->
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="height: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.82); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== HOME · ANDROID ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">HOME · ANDROID</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 30%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 30% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="font-family: Anton; font-size: 26px; line-height: 1; text-transform: uppercase; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 17px; color: #948da1;">⌕</div>
+                <div style="width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px;">M</div>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; flex-shrink: 0;">
+              <div style="font-family: Anton; font-size: 34px; line-height: 1.15; text-transform: uppercase; flex-shrink: 0;">Up next</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">4 EPISODES · 2 CHAPTERS</div>
+            </div>
+            <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 10px;">
+              <sc-for list="{{ staticRows }}" as="r" hint-placeholder-count="3">
+                <div style="background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; height: 72px; display: flex; align-items: center; gap: 12px; padding: 0 14px;">
+                  <div style="width: 40px; height: 56px; border-radius: 6px; flex-shrink: 0; background: {{ r.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 6px 16px -8px rgba(0,0,0,0.9);"></div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r.title }}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+                      <div style="width: 5px; height: 5px; border-radius: 999px; background: {{ r.dot }};"></div>
+                      <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">{{ r.next }}</div>
+                    </div>
+                  </div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 16px; color: #3d3846;">›</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-family: Anton; font-size: 22px; text-transform: uppercase; flex-shrink: 0;">In progress</div>
+            <div style="display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; margin: 0 -20px; padding: 0 20px; flex-shrink: 0;">
+              <sc-for list="{{ carousel }}" as="c" hint-placeholder-count="4">
+                <div style="width: 104px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px;">
+                  <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ c.grad }}; position: relative; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 24px -12px rgba(0,0,0,0.9);">
+                    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.14);"></div>
+                    <div style="position: absolute; left: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: {{ c.pct }};"></div>
+                  </div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; color: #948da1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ c.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- android nav bar w/ active indicator pill -->
+          <div style="position: relative; flex-shrink: 0; background: rgba(20,17,26,0.94); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); padding: 12px 0 16px; display: flex;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                <div style="width: 56px; height: 30px; border-radius: 999px; background: {{ t.pill }}; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; color: {{ t.fg }};">{{ t.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== MEDIA DETAIL ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">MEDIA DETAIL · EPISODE SHEET</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 340px at 20% 0%, rgba(139,92,246,0.45), transparent 65%), radial-gradient(380px 300px at 100% 40%, rgba(217,107,176,0.28), transparent 68%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; gap: 16px; flex-shrink: 0;">
+              <div style="width: 112px; height: 168px; flex-shrink: 0; border-radius: 8px; background: linear-gradient(160deg, #35296b 0%, #0e0c1a 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 20px 44px -18px rgba(217,107,176,0.35), 0 8px 30px -10px rgba(0,0,0,0.9);"></div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 7px;">
+                  <div style="width: 6px; height: 6px; border-radius: 999px; background: #4a6ee8;"></div>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">SERIES · AIRING</span>
+                </div>
+                <div style="font-family: Anton; font-size: 30px; line-height: 0.95; text-transform: uppercase;">Neon Harbor</div>
+                <div style="display: flex; gap: 16px; margin-top: 2px;">
+                  <div>
+                    <div style="font-family: Anton; font-size: 22px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 9px; letter-spacing: 0.08em; color: #948da1;">RATING</div>
+                  </div>
+                  <div>
+                    <div style="font-family: Anton; font-size: 22px;">9/22</div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 9px; letter-spacing: 0.08em; color: #948da1;">WATCHED</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+              <div style="flex: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 14px 0; border-radius: 999px; text-align: center;">✓ CHECK IN S2 E5</div>
+              <div style="width: 46px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #b8b1c4;">＋</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; padding: 7px 14px; border-radius: 999px; background: rgba(217,107,176,0.16); color: #d96bb0; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.5);">IN PROGRESS</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; padding: 7px 14px; border-radius: 999px; background: rgba(255,255,255,0.05); color: #b8b1c4; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);">12 JUL → …</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+              <div style="font-family: Anton; font-size: 20px; text-transform: uppercase;">Season 2</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">▾</div>
+            </div>
+            <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 6px;">
+              <sc-for list="{{ episodes }}" as="e" hint-placeholder-count="5">
+                <div style="background: {{ e.bg }}; box-shadow: inset 0 0 0 1px {{ e.bd }}; border-radius: 10px; display: flex; align-items: center; gap: 12px; padding: 11px 14px; opacity: {{ e.op }};">
+                  <div style="width: 22px; height: 22px; border-radius: 999px; flex-shrink: 0; background: {{ e.boxBg }}; box-shadow: inset 0 0 0 1px {{ e.boxBd }}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #14101a;">{{ e.check }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; width: 34px; flex-shrink: 0;">{{ e.code }}</div>
+                  <div style="flex: 1; min-width: 0; font-size: 13px; font-weight: {{ e.wt }}; color: {{ e.fg }}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ e.name }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 11px; color: {{ e.metaFg }}; flex-shrink: 0;">{{ e.meta }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- rate sheet -->
+          <div style="position: absolute; inset: 0; z-index: 40; background: rgba(8,6,12,0.72); backdrop-filter: blur(6px); display: flex; flex-direction: column; justify-content: flex-end;">
+            <div style="background: #191520; border-radius: 22px 22px 0 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); padding-bottom: 34px;">
+              <div style="padding: 10px 0 4px; display: flex; justify-content: center;">
+                <div style="width: 36px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.25);"></div>
+              </div>
+              <div style="padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="font-family: Anton; font-size: 22px; text-transform: uppercase; line-height: 1;">Rate this episode</div>
+                <div style="display: flex; align-items: baseline; gap: 12px;">
+                  <div style="font-family: Anton; font-size: 40px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">S2 E5 · UNDERTOW</div>
+                </div>
+                <div style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.1); position: relative; margin: 8px 10px 0;">
+                  <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 85%; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+                  <div style="position: absolute; left: 85%; top: -9px; width: 22px; height: 22px; margin-left: -11px; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 12px rgba(0,0,0,0.6);"></div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 6px;">
+                  <div style="flex: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 15px 0; border-radius: 999px; text-align: center;">SAVE</div>
+                  <div style="width: 56px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #b8b1c4;">✕</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== DISCOVER ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">DISCOVER</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(400px 340px at 90% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="font-family: Anton; font-size: 34px; line-height: 1.15; text-transform: uppercase; flex-shrink: 0;">Discover</div>
+            <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 999px; padding: 13px 18px; flex-shrink: 0;">
+              <span style="color: #948da1; font-size: 16px;">⌕</span>
+              <span style="font-size: 14px; color: #948da1;">Search titles, people, lists…</span>
+            </div>
+            <div style="display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; margin: 0 -20px; padding: 0 20px; flex-shrink: 0;">
+              <sc-for list="{{ kindChips }}" as="k" hint-placeholder-count="5">
+                <div style="flex-shrink: 0; font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: {{ k.bg }}; color: {{ k.fg }}; box-shadow: inset 0 0 0 1px {{ k.bd }};">{{ k.label }}</div>
+              </sc-for>
+            </div>
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; flex-shrink: 0;">TRENDING ON THIS INSTANCE</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); flex-shrink: 0; gap: 12px;">
+              <sc-for list="{{ grid }}" as="g" hint-placeholder-count="9">
+                <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 6px;">
+                  <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ g.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 24px -12px rgba(0,0,0,0.9);"></div>
+                  <div style="font-size: 12px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ g.title }}</div>
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 5px; height: 5px; border-radius: 999px; background: {{ g.dot }};"></div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 9px; letter-spacing: 0.06em; color: #948da1;">{{ g.year }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabsDiscover }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="height: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.82); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== NEWS ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">NEWS · SINGLE COLUMN</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 60%, rgba(217,107,176,0.3), transparent 68%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 3px; flex-shrink: 0;">
+              <div style="font-family: Anton; font-size: 34px; line-height: 1.15; text-transform: uppercase; flex-shrink: 0;">News</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">3 UPDATES FROM YOUR LIBRARY</div>
+            </div>
+            <div style="display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; margin: 0 -20px; padding: 0 20px; flex-shrink: 0;">
+              <sc-for list="{{ kindChips }}" as="k" hint-placeholder-count="5">
+                <div style="flex-shrink: 0; font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: {{ k.bg }}; color: {{ k.fg }}; box-shadow: inset 0 0 0 1px {{ k.bd }};">{{ k.label }}</div>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 14px;">
+              <sc-for list="{{ news }}" as="n" hint-placeholder-count="3">
+                <div style="border-radius: 14px; overflow: hidden; background: {{ n.cardBg }}; box-shadow: inset 0 0 0 {{ n.ringWidth }} {{ n.ring }};">
+                  <div style="height: 132px; background: {{ n.grad }}; position: relative;">
+                    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,8,14,0.45) 0%, transparent 40%);"></div>
+                    <div style="position: absolute; top: 10px; left: 10px; right: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                      <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; padding: 4px 10px; border-radius: 999px; background: rgba(14,12,16,0.82); color: {{ n.tagFg }}; box-shadow: inset 0 0 0 1px {{ n.tagBd }};">{{ n.tag }}</div>
+                      <div style="display: {{ n.trackDisplay }}; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(14,12,16,0.82); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.5);">
+                        <div style="width: 5px; height: 5px; border-radius: 999px; background: #d96bb0;"></div>
+                        <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ n.countdown }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 7px;">
+                    <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.08em; color: #948da1;">{{ n.meta }}</div>
+                    <div style="font-family: Anton; font-size: 18px; line-height: 1.1; text-transform: uppercase;">{{ n.headline }}</div>
+                    <div style="color: #b8b1c4; font-size: 13px; line-height: 1.5;">{{ n.body }}</div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                      <div style="background: {{ n.btnBg }}; color: {{ n.btnFg }}; box-shadow: inset 0 0 0 1px {{ n.btnBd }}; font-family: 'Space Grotesk'; font-weight: 700; font-size: 11px; letter-spacing: 0.08em; padding: 10px 18px; border-radius: 999px;">PLAN TO WATCH</div>
+                      <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">DETAILS</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabsNews }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="height: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.82); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== HISTORY ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">HISTORY · 2-UP</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(400px 340px at 90% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 3px; flex-shrink: 0;">
+              <div style="font-family: Anton; font-size: 34px; line-height: 1.15; text-transform: uppercase; flex-shrink: 0;">History</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">2026 · 14 TITLES</div>
+            </div>
+            <div style="display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; margin: 0 -20px; padding: 0 20px; flex-shrink: 0;">
+              <sc-for list="{{ yearChips }}" as="y" hint-placeholder-count="4">
+                <div style="flex-shrink: 0; font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: {{ y.bg }}; color: {{ y.fg }}; box-shadow: inset 0 0 0 1px {{ y.bd }};">{{ y.label }}</div>
+              </sc-for>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; flex-shrink: 0; gap: 10px;">
+              <sc-for list="{{ histStats }}" as="s" hint-placeholder-count="4">
+                <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 12px; display: flex; align-items: baseline; gap: 7px;">
+                  <div style="font-family: Anton; font-size: 20px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ s.v }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ s.k }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+              <div style="font-family: Anton; font-size: 20px; text-transform: uppercase;">August</div>
+              <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.09);"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; flex-shrink: 0; gap: 12px;">
+              <sc-for list="{{ histCards }}" as="h" hint-placeholder-count="4">
+                <div style="position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: {{ h.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 12px 30px -14px rgba(0,0,0,0.9);">
+                  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,8,14,0.5) 0%, transparent 28%);"></div>
+                  <div style="position: absolute; top: 8px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <div style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; padding: 3px 8px; border-radius: 999px; background: rgba(14,12,16,0.85); color: {{ h.stFg }}; box-shadow: inset 0 0 0 1px {{ h.stBd }};">{{ h.stLabel }}</div>
+                    <div style="font-family: Anton; font-size: 13px; color: #f0edf4; padding: 2px 8px; border-radius: 999px; background: rgba(14,12,16,0.85); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); display: {{ h.scoreDisplay }};">{{ h.score }}</div>
+                  </div>
+                  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 11px 11px; background: #12101a; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); display: flex; flex-direction: column; gap: 4px;">
+                    <div style="font-family: Anton; font-size: 14px; line-height: 1.08; text-transform: uppercase; max-height: 31px; overflow: hidden;">{{ h.title }}</div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <div style="width: 5px; height: 5px; border-radius: 999px; background: {{ h.dot }}; flex-shrink: 0;"></div>
+                      <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ h.kind }}</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="height: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.82); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== LISTS ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">LISTS</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 70%, rgba(217,107,176,0.3), transparent 68%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-shrink: 0;">
+              <div style="font-family: Anton; font-size: 34px; line-height: 1.15; text-transform: uppercase; flex-shrink: 0;">Lists</div>
+              <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-family: 'Space Grotesk'; font-weight: 700; font-size: 11px; letter-spacing: 0.08em; padding: 10px 18px; border-radius: 999px;">＋ NEW</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+              <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: rgba(217,107,176,0.18); color: #d96bb0; box-shadow: inset 0 0 0 1px #d96bb0;">MINE</div>
+              <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,0.05); color: #b8b1c4; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);">FOLLOWING</div>
+              <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,0.05); color: #b8b1c4; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);">SHARED</div>
+            </div>
+            <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 14px;">
+              <sc-for list="{{ lists }}" as="l" hint-placeholder-count="3">
+                <div style="border-radius: 14px; overflow: hidden; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);">
+                  <div style="display: flex; height: 96px;">
+                    <sc-for list="{{ l.covers }}" as="c">
+                      <div style="flex: 1; background: {{ c }}; box-shadow: inset -1px 0 0 rgba(14,12,16,0.6);"></div>
+                    </sc-for>
+                  </div>
+                  <div style="padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="font-family: Anton; font-size: 17px; text-transform: uppercase; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ l.title }}</div>
+                      <div style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; padding: 3px 9px; border-radius: 999px; color: {{ l.badgeFg }}; box-shadow: inset 0 0 0 1px {{ l.badgeBd }}; display: {{ l.badgeDisplay }};">{{ l.badge }}</div>
+                    </div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.08em; color: #948da1;">{{ l.meta }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="height: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.82); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== PROFILE ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">PROFILE · LISTS + HISTORY LIVE HERE</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(440px 340px at 25% 0%, rgba(139,92,246,0.45), transparent 68%), radial-gradient(380px 300px at 95% 50%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 20% 100%, rgba(217,164,65,0.28), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;">
+              <div style="width: 68px; height: 68px; border-radius: 999px; flex-shrink: 0; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-family: Anton; font-size: 28px;">M</div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-family: Anton; font-size: 26px; line-height: 1; text-transform: uppercase;">Mara V.</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">@marav · 214 FOLLOWERS</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #d96bb0;">● 23-DAY STREAK</div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; flex-shrink: 0; gap: 10px;">
+              <sc-for list="{{ profStats }}" as="s" hint-placeholder-count="4">
+                <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 12px; display: flex; align-items: baseline; gap: 7px;">
+                  <div style="font-family: Anton; font-size: 20px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ s.v }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ s.k }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-direction: column; flex-shrink: 0; gap: 6px;">
+              <sc-for list="{{ profRows }}" as="p" hint-placeholder-count="4">
+                <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 20px; text-align: center; font-size: 14px; color: #d96bb0;">{{ p.glyph }}</div>
+                  <div style="flex: 1; font-size: 14px; font-weight: 600;">{{ p.label }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">{{ p.meta }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 15px; color: #3d3846;">›</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-family: Anton; font-size: 20px; text-transform: uppercase; flex-shrink: 0;">Favourites</div>
+            <div style="display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; margin: 0 -20px; padding: 0 20px; flex-shrink: 0;">
+              <sc-for list="{{ favs }}" as="f" hint-placeholder-count="4">
+                <div style="width: 88px; flex-shrink: 0; aspect-ratio: 2/3; border-radius: 10px; background: {{ f.grad }}; position: relative; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 24px -12px rgba(0,0,0,0.9);">
+                  <div style="position: absolute; top: 7px; left: 7px; font-family: Anton; font-size: 11px; color: #d96bb0; background: rgba(14,12,16,0.85); padding: 2px 7px; border-radius: 999px;">{{ f.rank }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="height: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.82); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== WIDGETS + NOTIFICATIONS ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">WIDGETS &amp; NOTIFICATIONS</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; overflow: hidden;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(500px 420px at 25% 10%, rgba(139,92,246,0.5), transparent 68%), radial-gradient(440px 380px at 100% 55%, rgba(217,107,176,0.4), transparent 68%), radial-gradient(480px 400px at 20% 100%, rgba(217,164,65,0.38), transparent 70%);"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.55; mix-blend-mode: overlay;"></div>
+
+          <div style="position: relative; padding: 62px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+            <!-- notification banner -->
+            <div style="background: rgba(30,26,38,0.86); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 20px 44px -16px rgba(0,0,0,0.8); border-radius: 20px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;">
+              <div style="width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; font-family: Anton; font-size: 13px; color: #14101a;">T</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: baseline; gap: 8px;">
+                  <div style="font-size: 13px; font-weight: 700; flex: 1;">Neon Harbor S2 E5</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; color: #948da1;">now</div>
+                </div>
+                <div style="color: #b8b1c4; font-size: 13px; line-height: 1.45; margin-top: 2px;">“Undertow” is out. Swipe to check in.</div>
+              </div>
+            </div>
+
+            <!-- medium widget -->
+            <div style="background: rgba(18,16,26,0.86); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 20px 44px -16px rgba(0,0,0,0.8); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">UP NEXT</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; background: linear-gradient(90deg, #d9a441, #d96bb0); -webkit-background-clip: text; background-clip: text; color: transparent;">4 WAITING</div>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <sc-for list="{{ widgetItems }}" as="w" hint-placeholder-count="3">
+                  <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="aspect-ratio: 2/3; border-radius: 8px; background: {{ w.grad }}; position: relative; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);">
+                      <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.14);"></div>
+                      <div style="position: absolute; left: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: {{ w.pct }};"></div>
+                    </div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 600; letter-spacing: 0.04em; color: #b8b1c4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ w.code }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- small widgets pair -->
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1; aspect-ratio: 1; background: rgba(18,16,26,0.86); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 20px 44px -16px rgba(0,0,0,0.8); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">STREAK</div>
+                <div>
+                  <div style="font-family: Anton; font-size: 46px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">23</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4;">DAYS</div>
+                </div>
+              </div>
+              <div style="flex: 1; aspect-ratio: 1; background: rgba(18,16,26,0.86); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 20px 44px -16px rgba(0,0,0,0.8); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">S3 PREMIERE</div>
+                <div>
+                  <div style="font-family: Anton; font-size: 46px; line-height: 1; color: #f0edf4;">62</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4;">DAYS · ASHFALL</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-family: 'Space Grotesk'; font-size: 10px; line-height: 1.6; letter-spacing: 0.06em; color: #948da1; margin-top: 4px;">Widgets use the aura on a translucent plate so they sit on any wallpaper. Notifications never spoil: episode titles only, never plot text.</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;swipeHint&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Swipe check-in&quot;}}">
+class Component extends DCLogic {
+  state = { dragId: null, startX: 0, dx: {}, committed: {}, toast: null, animating: {} };
+
+  ARM = 96;
+
+  data() {
+    return [
+      { id: 'nh', title: 'Neon Harbor', next: 'S2 E5 · UNDERTOW', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #35296b, #0e0c1a)' },
+      { id: 'ac', title: 'Ashfall Chronicle', next: 'EPISODE 18 OF 24', dot: '#d9a441', grad: 'linear-gradient(160deg, #8a5c2a, #17100a)' },
+      { id: 'mc', title: 'Moonlit Courier', next: 'CHAPTER 112', dot: '#d96bb0', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
+      { id: 'pc', title: 'Paper Cities', next: 'VOL 4 · CHAPTER 31', dot: '#e8874a', grad: 'linear-gradient(160deg, #6b3aa0, #0f0817)' },
+    ];
+  }
+
+  commit(id, title) {
+    this.setState((s) => ({
+      dragId: null,
+      dx: Object.assign({}, s.dx, { [id]: 380 }),
+      animating: Object.assign({}, s.animating, { [id]: true }),
+      toast: { id, text: 'Checked in — ' + title },
+    }));
+    clearTimeout(this._t);
+    this._t = setTimeout(() => {
+      this.setState((s) => ({ committed: Object.assign({}, s.committed, { [id]: true }) }));
+    }, 240);
+  }
+
+  undo() {
+    const t = this.state.toast;
+    if (!t) return;
+    this.setState((s) => ({
+      toast: null,
+      committed: Object.assign({}, s.committed, { [t.id]: false }),
+      dx: Object.assign({}, s.dx, { [t.id]: 0 }),
+      animating: Object.assign({}, s.animating, { [t.id]: true }),
+    }));
+  }
+
+  renderVals() {
+    const hint = this.props.swipeHint ?? false;
+    const all = this.data();
+    const rows = all.map((r) => {
+      const dx = this.state.dx[r.id] || 0;
+      const armed = dx >= this.ARM;
+      const dragging = this.state.dragId === r.id;
+      return {
+        title: r.title, next: r.next, dot: r.dot, grad: r.grad,
+        dx: dx + 'px',
+        transition: dragging ? 'none' : 'transform 220ms cubic-bezier(0.22,0.61,0.36,1)',
+        trackOpacity: dx < 32 ? (hint ? 0.25 : 0) : (armed ? 1 : 0.45),
+        trackLabel: armed ? 'RELEASE TO CHECK IN' : 'CHECK IN',
+        chevronDisplay: dx > 8 ? 'none' : 'block',
+        wrapDisplay: this.state.committed[r.id] ? 'none' : 'block',
+        down: (e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          this.setState({ dragId: r.id, startX: e.clientX });
+        },
+        move: (e) => {
+          if (this.state.dragId !== r.id) return;
+          const d = Math.max(0, Math.min(160, e.clientX - this.state.startX));
+          this.setState((s) => ({ dx: Object.assign({}, s.dx, { [r.id]: d }) }));
+        },
+        up: () => {
+          if (this.state.dragId !== r.id) return;
+          const d = this.state.dx[r.id] || 0;
+          if (d >= this.ARM) this.commit(r.id, r.title);
+          else this.setState((s) => ({ dragId: null, dx: Object.assign({}, s.dx, { [r.id]: 0 }) }));
+        },
+      };
+    });
+    const live = all.filter((r) => !this.state.committed[r.id]).length;
+
+    const tab = (active) => ({ fg: active ? '#d96bb0' : '#948da1', rule: active ? '#d96bb0' : 'transparent', pill: active ? 'rgba(217,107,176,0.22)' : 'transparent' });
+    const mkTabs = (activeLabel) => [
+      { label: 'HOME', glyph: '▤' }, { label: 'DISCOVER', glyph: '⌕' },
+      { label: 'NEWS', glyph: '◈' }, { label: 'PROFILE', glyph: '◍' },
+    ].map((t) => Object.assign({}, t, tab(t.label === activeLabel)));
+
+    const chip = (active) => ({
+      bg: active ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
+      fg: active ? '#d96bb0' : '#b8b1c4',
+      bd: active ? '#d96bb0' : 'rgba(255,255,255,0.12)',
+    });
+
+    return {
+      rows,
+      upNextLabel: live + (live === 1 ? ' EPISODE WAITING' : ' EPISODES WAITING'),
+      toastDisplay: this.state.toast ? 'block' : 'none',
+      toastText: this.state.toast ? this.state.toast.text : '',
+      undo: () => this.undo(),
+      staticRows: all.slice(0, 3),
+      tabs: mkTabs('HOME'),
+      tabsDiscover: mkTabs('DISCOVER'),
+      tabsNews: mkTabs('NEWS'),
+      tabsProfile: mkTabs('PROFILE'),
+      carousel: [
+        { sub: 'S2 E5 of 12', pct: '38%', grad: 'linear-gradient(200deg, #2a6b8c, #081217)' },
+        { sub: 'Ep 18 of 24', pct: '75%', grad: 'linear-gradient(200deg, #c46a2a, #140e08)' },
+        { sub: 'Ch 112', pct: '84%', grad: 'linear-gradient(200deg, #8c2a6b, #170812)' },
+        { sub: 'Vol 4, Ch 31', pct: '62%', grad: 'linear-gradient(200deg, #6b3aa0, #0f0817)' },
+      ],
+      stats: [
+        { v: '186', k: 'EPISODES' }, { v: '412', k: 'CHAPTERS' },
+        { v: '23', k: 'STREAK' }, { v: '9h', k: 'THIS WEEK' },
+      ],
+      episodes: [
+        { code: 'E1', name: 'High Water', meta: '8.2', watched: true },
+        { code: 'E2', name: 'Ledger', meta: '7.9', watched: true },
+        { code: 'E3', name: 'The Narrows', meta: '8.8', watched: true },
+        { code: 'E4', name: 'Riptide', meta: '8.5', watched: true },
+        { code: 'E5', name: 'Undertow', meta: '42 MIN', next: true },
+        { code: 'E6', name: 'Dead Reckoning', meta: 'JUL 14', future: true },
+      ].map((e) => ({
+        code: e.code, name: e.name, meta: e.meta,
+        bg: e.next ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.05)',
+        bd: e.next ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.1)',
+        op: e.future ? 0.45 : 1,
+        boxBg: e.watched ? '#d96bb0' : 'transparent',
+        boxBd: e.watched || e.next ? '#d96bb0' : 'rgba(255,255,255,0.2)',
+        check: e.watched ? '✓' : '',
+        wt: e.next ? 600 : 400,
+        fg: e.watched ? '#b8b1c4' : '#f0edf4',
+        metaFg: e.watched ? '#d96bb0' : '#948da1',
+      })),
+      kindChips: ['ALL', 'SERIES', 'MOVIES', 'ANIME', 'MANGA', 'WEBTOONS'].map((k, i) => Object.assign({ label: k }, chip(i === 0))),
+      grid: [
+        { title: 'Neon Harbor', year: 'SERIES · 2024', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #35296b, #0e0c1a)' },
+        { title: 'Ashfall', year: 'ANIME · 2025', dot: '#d9a441', grad: 'linear-gradient(160deg, #8a5c2a, #17100a)' },
+        { title: 'Long Static', year: 'MOVIE · 2023', dot: '#8b5cf6', grad: 'linear-gradient(160deg, #3a55b0, #080b17)' },
+        { title: 'Moonlit Courier', year: 'WEBTOON · 2022', dot: '#d96bb0', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
+        { title: 'Paper Cities', year: 'MANGA · 2019', dot: '#e8874a', grad: 'linear-gradient(160deg, #6b3aa0, #0f0817)' },
+        { title: 'Glass Orchard', year: 'ANIME · 2026', dot: '#d9a441', grad: 'linear-gradient(160deg, #b0722a, #140e08)' },
+        { title: 'Sable Coast', year: 'SERIES · 2025', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #2a4a8c, #080d17)' },
+        { title: 'Hollow Signal', year: 'MOVIE · 2024', dot: '#8b5cf6', grad: 'linear-gradient(160deg, #55309a, #0d0817)' },
+        { title: 'Copper Veil', year: 'WEBTOON · 2023', dot: '#d96bb0', grad: 'linear-gradient(160deg, #a03a7a, #170812)' },
+      ],
+      news: [
+        { tag: 'NEW SEASON', tagFg: '#d96bb0', tagBd: 'rgba(217,107,176,0.5)', meta: 'SERIES · 2H AGO',
+          headline: 'Neon Harbor renewed for a third season',
+          body: 'Harbor Studios confirmed a 12-episode order, with the same writing team returning.',
+          grad: 'linear-gradient(160deg, #35296b, #0e0c1a)', cardBg: 'rgba(217,107,176,0.07)',
+          ring: 'rgba(217,107,176,0.55)', ringWidth: '1.5px', trackDisplay: 'flex', countdown: 'IN 62 DAYS',
+          btnBg: 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)', btnFg: '#14101a', btnBd: 'transparent' },
+        { tag: 'ADAPTATION', tagFg: '#d9a441', tagBd: 'rgba(217,164,65,0.5)', meta: 'MANGA · 6H AGO',
+          headline: 'Paper Cities gets an anime adaptation',
+          body: 'A 13-episode run is slated for next spring, produced by the Glass Orchard team.',
+          grad: 'linear-gradient(160deg, #6b3aa0, #0f0817)', cardBg: 'rgba(255,255,255,0.05)',
+          ring: 'rgba(255,255,255,0.1)', ringWidth: '1px', trackDisplay: 'none', countdown: '',
+          btnBg: 'rgba(255,255,255,0.05)', btnFg: '#b8b1c4', btnBd: 'rgba(255,255,255,0.15)' },
+        { tag: 'RELEASE DATE', tagFg: '#8b5cf6', tagBd: 'rgba(139,92,246,0.5)', meta: 'MOVIE · 1D AGO',
+          headline: 'Hollow Signal lands on streaming in October',
+          body: 'The theatrical run ends late September, with a digital release two weeks later.',
+          grad: 'linear-gradient(160deg, #55309a, #0d0817)', cardBg: 'rgba(255,255,255,0.05)',
+          ring: 'rgba(255,255,255,0.1)', ringWidth: '1px', trackDisplay: 'none', countdown: '',
+          btnBg: 'rgba(255,255,255,0.05)', btnFg: '#b8b1c4', btnBd: 'rgba(255,255,255,0.15)' },
+      ],
+      yearChips: ['2026', '2025', '2024', 'ALL TIME'].map((y, i) => Object.assign({ label: y }, chip(i === 0))),
+      histStats: [
+        { v: '8', k: 'COMPLETED' }, { v: '14', k: 'STARTED' },
+        { v: '186', k: 'EPISODES' }, { v: '412', k: 'CHAPTERS' },
+      ],
+      histCards: [
+        { title: 'Neon Harbor', kind: 'FROM 12 JUL', dot: '#4a6ee8', stLabel: 'IN PROGRESS', stFg: '#d96bb0', stBd: 'rgba(217,107,176,0.5)', score: '', scoreDisplay: 'none', grad: 'linear-gradient(160deg, #35296b, #0e0c1a)' },
+        { title: 'Moonlit Courier', kind: 'FROM 02 FEB', dot: '#d96bb0', stLabel: 'IN PROGRESS', stFg: '#d96bb0', stBd: 'rgba(217,107,176,0.5)', score: '9.5', scoreDisplay: 'block', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
+        { title: 'The Long Static', kind: '04 JUL', dot: '#8b5cf6', stLabel: 'COMPLETED', stFg: '#b8b1c4', stBd: 'rgba(255,255,255,0.14)', score: '9.0', scoreDisplay: 'block', grad: 'linear-gradient(160deg, #3a55b0, #080b17)' },
+        { title: 'Ashfall Chronicle', kind: '03 MAY → 21 JUN', dot: '#d9a441', stLabel: 'PAUSED', stFg: '#d9a441', stBd: 'rgba(217,164,65,0.4)', score: '8.5', scoreDisplay: 'block', grad: 'linear-gradient(160deg, #8a5c2a, #17100a)' },
+      ],
+      lists: [
+        { title: 'Best webtoons', meta: '14 TITLES · PUBLIC · 2D AGO', badge: 'RANKED', badgeFg: '#d96bb0', badgeBd: '#d96bb0', badgeDisplay: 'block',
+          covers: ['linear-gradient(160deg, #8c2a6b, #170812)', 'linear-gradient(160deg, #a03a7a, #170812)', 'linear-gradient(160deg, #55309a, #0d0817)', 'linear-gradient(160deg, #6b3aa0, #0f0817)'] },
+        { title: 'Rainy day noir', meta: '22 TITLES · PUBLIC · 1W AGO', badge: '', badgeFg: '#b8b1c4', badgeBd: 'rgba(255,255,255,0.2)', badgeDisplay: 'none',
+          covers: ['linear-gradient(160deg, #3a55b0, #080b17)', 'linear-gradient(160deg, #35296b, #0e0c1a)', 'linear-gradient(160deg, #2a4a8c, #080d17)', 'linear-gradient(160deg, #2a3a8c, #0a0c17)'] },
+        { title: 'Watch with Sam', meta: '8 TITLES · FOLLOWERS · YESTERDAY', badge: 'COLLAB', badgeFg: '#b8b1c4', badgeBd: 'rgba(255,255,255,0.2)', badgeDisplay: 'block',
+          covers: ['linear-gradient(160deg, #8a5c2a, #17100a)', 'linear-gradient(160deg, #b0722a, #140e08)', 'linear-gradient(160deg, #c48a2a, #141008)', 'linear-gradient(160deg, #d9a441, #171008)'] },
+      ],
+      profStats: [
+        { v: '186', k: 'EPISODES' }, { v: '412', k: 'CHAPTERS' },
+        { v: '41', k: 'COMPLETED' }, { v: '318h', k: 'WATCHED' },
+      ],
+      profRows: [
+        { glyph: '☰', label: 'Lists', meta: '4' },
+        { glyph: '◷', label: 'History', meta: '2026' },
+        { glyph: '◈', label: 'Activity', meta: '12 NEW' },
+        { glyph: '⚙', label: 'Settings & export', meta: '' },
+      ],
+      favs: [
+        { rank: '01', grad: 'linear-gradient(160deg, #35296b, #0e0c1a)' },
+        { rank: '02', grad: 'linear-gradient(160deg, #2a4a8c, #080d17)' },
+        { rank: '03', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
+        { rank: '04', grad: 'linear-gradient(160deg, #3a55b0, #080b17)' },
+      ],
+      widgetItems: [
+        { code: 'NH · S2E5', pct: '38%', grad: 'linear-gradient(160deg, #35296b, #0e0c1a)' },
+        { code: 'AC · EP18', pct: '75%', grad: 'linear-gradient(160deg, #8a5c2a, #17100a)' },
+        { code: 'MC · CH112', pct: '84%', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
