@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: #d96bb0; text-decoration: none; }
+    a:hover { color: #e88cc4; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative; max-width: 1200px; margin: 0 auto; padding: 64px 40px 120px; display: flex; flex-direction: column; gap: 72px;">
+
+  <!-- header -->
+  <div style="display: flex; flex-direction: column; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.09); padding-bottom: 40px;">
+    <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT MOBILE · AURA PRISM · iOS + ANDROID</div>
+    <div style="font-family: Anton; font-size: 88px; line-height: 0.95; text-transform: uppercase;">Thumb first,<br>always dark.</div>
+    <div style="color: #b8b1c4; font-size: 17px; max-width: 640px;">The web system's colour, type and texture carry over unchanged. What changes is the mechanics: one-handed reach, a four-tab spine, and a check-in you perform with a swipe instead of a click. Everything below the fold of a 402pt screen is a scroll away, so the daily action lives in the top third.</div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+      <a href="Mobile App.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">MOBILE SCREENS →</a>
+      <a href="Design System.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); color: #b8b1c4;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">WEB SYSTEM</a>
+    </div>
+  </div>
+
+  <!-- 01 canvas -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">01 · Canvas &amp; safe areas</div>
+    <div style="display: grid; grid-template-columns: 402px 1fr; gap: 40px; align-items: start;">
+      <div style="position: relative; width: 402px; height: 500px; border-radius: 22px; overflow: hidden; background: #0e0c10; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);">
+        <div style="position: absolute; inset: 0; background: radial-gradient(400px 300px at 20% 0%, rgba(139,92,246,0.3), transparent 70%), radial-gradient(360px 280px at 90% 100%, rgba(217,164,65,0.26), transparent 70%);"></div>
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 62px; background: rgba(217,107,176,0.14); box-shadow: inset 0 -1px 0 rgba(217,107,176,0.5); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;">
+          <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">STATUS + INSET · 62</span>
+        </div>
+        <div style="position: absolute; top: 62px; left: 0; width: 20px; bottom: 98px; background: rgba(139,92,246,0.16); box-shadow: inset -1px 0 0 rgba(139,92,246,0.5);"></div>
+        <div style="position: absolute; top: 62px; right: 0; width: 20px; bottom: 98px; background: rgba(139,92,246,0.16); box-shadow: inset 1px 0 0 rgba(139,92,246,0.5);"></div>
+        <div style="position: absolute; top: 62px; left: 20px; right: 20px; bottom: 98px; display: flex; align-items: center; justify-content: center;">
+          <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; text-align: center;">CONTENT COLUMN<br>362 WIDE · 20 GUTTERS</span>
+        </div>
+        <div style="position: absolute; bottom: 34px; left: 0; right: 0; height: 64px; background: rgba(217,164,65,0.14); box-shadow: inset 0 1px 0 rgba(217,164,65,0.5); display: flex; align-items: center; justify-content: center;">
+          <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d9a441;">TAB BAR · 64</span>
+        </div>
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 34px; background: rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center;">
+          <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">HOME INDICATOR · 34</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px;">
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <sc-for list="{{ canvasSpecs }}" as="s" hint-placeholder-count="7">
+            <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px;">
+              <span style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.08em; color: #948da1;">{{ s.k }}</span>
+              <span style="font-size: 13px; color: #f0edf4; text-align: right;">{{ s.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 20px; color: #b8b1c4; font-size: 14px; line-height: 1.65; margin-top: 12px;">The aura and grain layers are fixed to the viewport, not the scroll container, exactly as on web — the light stays put while content moves past it. On device that means one paint, no scroll-linked repaint of the gradient.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 type -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">02 · Type at 402pt</div>
+    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">The same three families. Display drops from 64/120 to 34, because a full-bleed Anton line has to fit 362pt without hyphenating. Nothing functional goes below 11px.</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <sc-for list="{{ typeLeft }}" as="t" hint-placeholder-count="3">
+          <div>
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">{{ t.spec }}</div>
+            <div style="font-family: {{ t.family }}; font-size: {{ t.size }}; font-weight: {{ t.weight }}; line-height: {{ t.lh }}; text-transform: {{ t.tt }};">{{ t.sample }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <sc-for list="{{ typeRight }}" as="t" hint-placeholder-count="4">
+          <div>
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; letter-spacing: 0.1em; margin-bottom: 6px;">{{ t.spec }}</div>
+            <div style="font-family: {{ t.family }}; font-size: {{ t.size }}; font-weight: {{ t.weight }}; line-height: {{ t.lh }}; letter-spacing: {{ t.ls }}; color: {{ t.color }};">{{ t.sample }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 tab bar -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">03 · The four-tab spine</div>
+    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">Home, Discover, News, Profile. Four, not six — Lists and History are destinations inside Profile, reachable in one tap from its header, because neither is a daily action. Tab bar is glass over the aura: 82% ink, 20px blur, hairline top edge.</div>
+    <div style="display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap;">
+      <div style="width: 402px; border-radius: 16px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);">
+        <div style="height: 60px; background: linear-gradient(180deg, rgba(139,92,246,0.2), transparent);"></div>
+        <div style="background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 12px;">
+              <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: {{ t.fg }};">{{ t.glyph }}</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+              <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height: 34px; background: rgba(14,12,16,0.82); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px;">
+          <div style="width: 139px; height: 5px; border-radius: 100px; background: rgba(255,255,255,0.7);"></div>
+        </div>
+      </div>
+      <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{ tabRules }}" as="r" hint-placeholder-count="4">
+          <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 16px;">
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; margin-bottom: 4px;">{{ r.k }}</div>
+            <div style="color: #b8b1c4; font-size: 13px; line-height: 1.55;">{{ r.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 swipe -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">04 · Swipe to check in</div>
+    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">The one interaction that has to be flawless. Drag an up-next row to the right; the prism track fills behind it and commits past 96pt. Never a confirmation dialog — commit instantly and offer undo, because the cost of a wrong check-in is one tap.</div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <sc-for list="{{ swipeStates }}" as="s" hint-placeholder-count="4">
+        <div style="display: flex; gap: 20px; align-items: center;">
+          <div style="width: 116px; flex-shrink: 0; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ s.stage }}</div>
+          <div style="width: 362px; height: 72px; flex-shrink: 0; position: relative; border-radius: 12px; overflow: hidden; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);">
+            <div style="position: absolute; left: 14px; top: 0; bottom: 0; display: flex; align-items: center; gap: 8px; opacity: {{ s.trackOpacity }};">
+              <span style="font-size: 17px; color: #14101a;">✓</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #14101a;">{{ s.trackLabel }}</span>
+            </div>
+            <div style="position: absolute; inset: 0; transform: translateX({{ s.dx }}); background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; gap: 12px; padding: 0 14px; opacity: {{ s.rowOpacity }};">
+              <div style="width: 40px; height: 56px; border-radius: 6px; flex-shrink: 0; background: linear-gradient(160deg, #35296b, #0e0c1a); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 700; font-size: 15px;">Neon Harbor</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; margin-top: 2px;">S2 E5 · UNDERTOW</div>
+              </div>
+              <div style="font-family: 'Space Grotesk'; font-size: 15px; color: #3d3846; display: {{ s.chevronDisplay }};">›</div>
+            </div>
+          </div>
+          <div style="color: #b8b1c4; font-size: 13px; line-height: 1.55;">{{ s.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 940px;">
+      <sc-for list="{{ swipeSpecs }}" as="s" hint-placeholder-count="3">
+        <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 18px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; margin-bottom: 6px;">{{ s.k }}</div>
+          <div style="color: #b8b1c4; font-size: 13px; line-height: 1.6;">{{ s.v }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 05 sheets + refresh -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">05 · Sheets &amp; pull to refresh</div>
+    <div style="display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start;">
+      <div style="width: 362px; border-radius: 22px 22px 12px 12px; overflow: hidden; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);">
+        <div style="padding: 10px 0 4px; display: flex; justify-content: center;">
+          <div style="width: 36px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.25);"></div>
+        </div>
+        <div style="padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-family: Anton; font-size: 22px; text-transform: uppercase; line-height: 1;">Rate this episode</div>
+          <div style="display: flex; align-items: baseline; gap: 12px;">
+            <div style="font-family: Anton; font-size: 40px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">S2 E5 · UNDERTOW</div>
+          </div>
+          <div style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.1); position: relative;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 85%; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+            <div style="position: absolute; left: 85%; top: -8px; width: 20px; height: 20px; margin-left: -10px; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 12px rgba(0,0,0,0.6);"></div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <div style="flex: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 15px 0; border-radius: 999px; text-align: center;">SAVE</div>
+            <div style="width: 56px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #b8b1c4;">✕</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{ sheetSpecs }}" as="s" hint-placeholder-count="6">
+          <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; gap: 16px;">
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.08em; color: #948da1;">{{ s.k }}</span>
+            <span style="font-size: 13px; color: #f0edf4; text-align: right; max-width: 300px;">{{ s.v }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+      <sc-for list="{{ refreshStates }}" as="r" hint-placeholder-count="3">
+        <div style="width: 232px; height: 96px; border-radius: 12px; background: rgba(255,255,255,0.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+          <div style="width: 26px; height: 26px; border-radius: 999px; box-shadow: inset 0 0 0 3px rgba(255,255,255,0.1); position: relative; opacity: {{ r.opacity }};">
+            <div style="position: absolute; inset: 0; border-radius: 999px; background: conic-gradient(from 0deg, transparent 0deg, #d9a441 {{ r.sweep }}, #d96bb0 {{ r.sweep }}, transparent {{ r.sweep }}); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));"></div>
+          </div>
+          <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ r.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 06 platform -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">06 · Where iOS and Android differ</div>
+    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">The brand layer is identical on both — same colours, same Anton, same grain. Only the chrome and the physics follow the platform. If a rule is not in this table, it is the same on both.</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; max-width: 1000px;">
+      <div style="display: grid; grid-template-columns: 150px 1fr 1fr; gap: 12px; padding: 0 18px 6px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #6a6478;">ELEMENT</div>
+        <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #6a6478;">iOS</div>
+        <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #6a6478;">ANDROID</div>
+      </div>
+      <sc-for list="{{ platformRows }}" as="p" hint-placeholder-count="7">
+        <div style="display: grid; grid-template-columns: 150px 1fr 1fr; gap: 12px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 14px 18px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #f0edf4;">{{ p.el }}</div>
+          <div style="color: #b8b1c4; font-size: 13px; line-height: 1.5;">{{ p.ios }}</div>
+          <div style="color: #b8b1c4; font-size: 13px; line-height: 1.5;">{{ p.android }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 07 motion -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">07 · Motion &amp; feedback</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+      <sc-for list="{{ motion }}" as="m" hint-placeholder-count="4">
+        <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 20px;">
+          <div style="font-family: Anton; font-size: 28px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ m.v }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4; margin-top: 2px;">{{ m.k }}</div>
+          <div style="color: #948da1; font-size: 12px; line-height: 1.55; margin-top: 8px;">{{ m.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 22px; color: #b8b1c4; font-size: 14px; line-height: 1.7; max-width: 720px;">Haptics are reserved for state changes the user caused and cannot see confirmed elsewhere: a check-in commit (medium impact), crossing a swipe threshold (selection tick), and a failed sync (error notification). Never on scroll, never on tab change.</div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1200, &quot;height&quot;: 900}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      canvasSpecs: [
+        { k: 'DESIGN WIDTH', v: '402pt (iPhone 16/17) · 412dp (Android)' },
+        { k: 'CONTENT COLUMN', v: '362pt — 20pt gutters, never less' },
+        { k: 'TOP INSET', v: '62pt status + notch clearance' },
+        { k: 'TAB BAR', v: '64pt + 34pt home indicator = 98pt' },
+        { k: 'SECTION GAP', v: '28pt between blocks, 12pt within' },
+        { k: 'MIN TOUCH TARGET', v: '44 × 44pt, no exceptions' },
+        { k: 'CORNER RADII', v: 'cards 12 · sheets 22 top · pills 999' },
+      ],
+      typeLeft: [
+        { spec: 'PAGE TITLE — ANTON 34 / 1.0 / UPPERCASE', family: 'Anton', size: '34px', weight: 400, lh: '1', tt: 'uppercase', sample: 'Up next' },
+        { spec: 'SECTION — ANTON 22 / UPPERCASE', family: 'Anton', size: '22px', weight: 400, lh: '1.05', tt: 'uppercase', sample: 'In progress' },
+        { spec: 'CARD TITLE — ARCHIVO 700 / 15', family: 'Archivo', size: '15px', weight: 700, lh: '1.25', tt: 'none', sample: 'Ashfall Chronicle' },
+      ],
+      typeRight: [
+        { spec: 'BODY — ARCHIVO 400 / 14 / 1.55', family: 'Archivo', size: '14px', weight: 400, lh: '1.55', ls: '0', color: '#b8b1c4', sample: 'Per-episode and per-chapter progress, with one-tap check-ins.' },
+        { spec: 'META — SPACE GROTESK 600 / 11 / +0.08em', family: "'Space Grotesk'", size: '11px', weight: 600, lh: '1.4', ls: '0.08em', color: '#948da1', sample: 'S2 E5 · 42 MIN · JUL 02' },
+        { spec: 'TAB LABEL — SPACE GROTESK 600 / 10', family: "'Space Grotesk'", size: '10px', weight: 600, lh: '1.2', ls: '0.06em', color: '#d96bb0', sample: 'DISCOVER' },
+        { spec: 'STAT — ANTON 26, PRISM', family: 'Anton', size: '26px', weight: 400, lh: '1', ls: '0', color: '#d96bb0', sample: '186' },
+      ],
+      tabs: [
+        { label: 'HOME', glyph: '▤', fg: '#d96bb0', rule: '#d96bb0' },
+        { label: 'DISCOVER', glyph: '⌕', fg: '#948da1', rule: 'transparent' },
+        { label: 'NEWS', glyph: '◈', fg: '#948da1', rule: 'transparent' },
+        { label: 'PROFILE', glyph: '◍', fg: '#948da1', rule: 'transparent' },
+      ],
+      tabRules: [
+        { k: 'WHY FOUR', v: 'Four 90pt targets clear the 44pt minimum with room for a mis-tap. A fifth tab would squeeze labels below 10px.' },
+        { k: 'ACTIVE STATE', v: 'Pink glyph + label + a 18×2 rule beneath. No filled pill — the aura already carries the colour load.' },
+        { k: 'WHERE LISTS AND HISTORY LIVE', v: 'Inside Profile, as two rows directly under the stat band. Both are weekly, not daily.' },
+        { k: 'NO CENTER BUTTON', v: 'Check-in is a swipe on the row you are already looking at, so a floating action button would duplicate it.' },
+      ],
+      swipeStates: [
+        { stage: 'REST', dx: '0px', trackOpacity: 0, trackLabel: 'CHECK IN', rowOpacity: 1, chevronDisplay: 'block', note: 'A dim chevron is the only affordance. Track is hidden.' },
+        { stage: 'DRAG 0–32', dx: '18px', trackOpacity: 0.35, trackLabel: 'CHECK IN', rowOpacity: 1, chevronDisplay: 'none', note: 'Below 32pt the gesture can still resolve as a scroll, so the track only ghosts in.' },
+        { stage: 'ARMED 96+', dx: '104px', trackOpacity: 1, trackLabel: 'RELEASE TO CHECK IN', rowOpacity: 1, chevronDisplay: 'none', note: 'Past the threshold the label changes and a selection tick fires. Releasing commits.' },
+        { stage: 'COMMITTED', dx: '362px', trackOpacity: 1, trackLabel: 'CHECKED IN', rowOpacity: 0, chevronDisplay: 'none', note: 'Row exits right over 220ms, list closes the gap, undo toast appears for 5s.' },
+      ],
+      swipeSpecs: [
+        { k: 'THRESHOLDS', v: '0–32pt inert (scroll may win) · 32pt track appears · 96pt armed · release commits. Under 96pt the row springs back over 180ms.' },
+        { k: 'LEFT SWIPE', v: 'Reveals two secondary actions on a #12101A track: SKIP EPISODE and ADD TO LIST. Never destructive — nothing is deleted by a gesture.' },
+        { k: 'UNDO', v: 'Toast sits 12pt above the tab bar, 5s, with a single UNDO action. Dismissing it is not confirmation; the check-in already happened.' },
+      ],
+      sheetSpecs: [
+        { k: 'SURFACE', v: '#191520 solid — not glass, so content behind never fights the text' },
+        { k: 'TOP RADIUS', v: '22pt, square bottom' },
+        { k: 'GRABBER', v: '36 × 4pt, rgba(255,255,255,0.25), 10pt top padding' },
+        { k: 'BACKDROP', v: 'rgba(8,6,12,0.72) + 6px blur, tap to dismiss' },
+        { k: 'DETENTS', v: '42% for rate/quick actions · 92% for episode pickers' },
+        { k: 'USED FOR', v: 'rating, episode picker, list add, status change, filters' },
+      ],
+      refreshStates: [
+        { label: 'PULL 0–64', sweep: '90deg', opacity: 0.45 },
+        { label: 'ARMED AT 64', sweep: '270deg', opacity: 1 },
+        { label: 'SYNCING', sweep: '340deg', opacity: 1 },
+      ],
+      platformRows: [
+        { el: 'PAGE HEADER', ios: 'Large Anton title in the scroll flow, collapses to a 44pt glass bar on scroll', android: 'Anton title in a Material large top app bar, collapses to a small app bar' },
+        { el: 'BOTTOM NAV', ios: 'Tab bar, 64pt, glass, labels always visible', android: 'Navigation bar, 80dp, labels always visible, active indicator pill' },
+        { el: 'BACK', ios: 'Edge swipe from the left plus a chevron in the header', android: 'System back gesture and hardware/gesture back — no in-app chevron needed' },
+        { el: 'SHEETS', ios: 'Detented sheet, rubber-band overscroll, grabber', android: 'Material bottom sheet, same surface and radius, no rubber-band' },
+        { el: 'TOUCH FEEDBACK', ios: 'Opacity dip to 0.7 on press', android: 'Pink ripple at 12% from the touch point' },
+        { el: 'SYSTEM FONT', ios: 'SF only in the status bar and keyboard', android: 'Roboto only in the status bar and keyboard' },
+        { el: 'TOAST', ios: 'Custom pill above the tab bar', android: 'Snackbar geometry, but our pill styling' },
+      ],
+      motion: [
+        { v: '140', k: 'MS · MICRO', note: 'Press states, chip selection, hover reveals' },
+        { v: '220', k: 'MS · COMMIT', note: 'Check-in exit, sheet present and dismiss, toast in' },
+        { v: '320', k: 'MS · NAVIGATE', note: 'Push and pop between screens' },
+        { v: '180', k: 'MS · SPRING BACK', note: 'Abandoned swipe returning to rest' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
