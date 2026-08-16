@@ -49,8 +49,14 @@ export const type = {
   title: { fontFamily: font.display, fontSize: 32, lineHeight: 33 },
   section: { fontFamily: font.display, fontSize: 22, lineHeight: 24 },
   body: { fontFamily: font.body, fontSize: 15, lineHeight: 23 },
+  /** Archivo 700 / 15 — card and row titles (`Mobile System.dc.html` §02). */
+  cardTitle: { fontFamily: font.bodyBold, fontSize: 15, lineHeight: 19 },
+  /** Anton 26 in the PRISM gradient — the stat numbers, and nothing else. */
+  stat: { fontFamily: font.display, fontSize: 26, lineHeight: 28 },
   bodySm: { fontFamily: font.body, fontSize: 13, lineHeight: 20 },
   label: { fontFamily: font.label, fontSize: 12, letterSpacing: 1.2 },
+  /** Space Grotesk 600 / 10 / +0.06em — the tab bar only, and the floor of the scale. */
+  tabLabel: { fontFamily: font.label, fontSize: 10, letterSpacing: 0.6 },
   eyebrow: { fontFamily: font.label, fontSize: 11, letterSpacing: 1.54 },
   button: { fontFamily: font.label, fontSize: 13, letterSpacing: 0.78 },
 } as const;

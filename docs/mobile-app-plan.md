@@ -140,40 +140,69 @@ Deliberately **not** in phase 1: `(app)/home.tsx` is a placeholder that fetches
 nothing. Every `GET` on it belongs to phase 2's `(tabs)/home`, which replaces the
 file wholesale.
 
-## Phase 2 — read-only parity
+## Phase 2 — read-only parity ✅ built
 
-Ship the app as a viewer first; every screen here is a `GET`.
+The app ships as a viewer first; every screen here is a `GET`. Built as planned
+except for the navigation shape, which the mobile design handoff settled after
+this plan was written — see below.
 
-| Tab / route                          | Web equivalent                              | Endpoint(s)                                                                  |
-| ------------------------------------ | ------------------------------------------- | ---------------------------------------------------------------------------- |
-| `(tabs)/home`                        | `routes/home.tsx`                           | `GET /me/home`                                                               |
-| `(tabs)/discover`                    | `routes/search.tsx`                         | `GET /search?q=&kind=` (debounce ≥250 ms — 60/min bucket)                    |
-| `(tabs)/news` + `news/[slug]`        | `routes/news.tsx`, `news_.$slug.tsx`        | `GET /news` (keyset cursor → `useInfiniteQuery`), `GET /news/:slug`          |
-| `(tabs)/lists` + `lists/[id]`        | `routes/lists.tsx`, `lists.$id.tsx`         | `GET /lists`, `GET /lists/:id`                                               |
-| `(tabs)/history`                     | `routes/history.tsx` (ADR-0007)             | `GET /me/history` (keyset, year/season/kind/status filters)                  |
-| `(tabs)/profile`, `users/[username]` | `routes/profile.tsx`, `users.$username.tsx` | `GET /me/profile`, `GET /users/:username/profile`                            |
-| `media/[slug]` (pushed)              | `routes/media.$slug.tsx`                    | `GET /media/:idOrSlug`                                                       |
-| signed-out landing                   | `routes/index.tsx`                          | `GET /media/showcase` — or skip it: on mobile the picker is the first screen |
+| Tab / route                       | Web equivalent                              | Endpoint(s)                                                         |
+| --------------------------------- | ------------------------------------------- | ------------------------------------------------------------------- |
+| `(tabs)/home`                     | `routes/home.tsx`                           | `GET /me/home`                                                      |
+| `(tabs)/discover`                 | `routes/search.tsx`                         | `GET /search?q=&kind=` (250 ms debounce — 60/min bucket)            |
+| `(tabs)/news` + `news/[slug]`     | `routes/news.tsx`, `news_.$slug.tsx`        | `GET /news` (keyset cursor → `useInfiniteQuery`), `GET /news/:slug` |
+| `(tabs)/profile`                  | `routes/profile.tsx`                        | `GET /me/profile`                                                   |
+| `lists/` + `lists/[id]` (pushed)  | `routes/lists.tsx`, `lists.$id.tsx`         | `GET /lists`, `GET /lists/:id`                                      |
+| `history` (pushed)                | `routes/history.tsx` (ADR-0007)             | `GET /me/history` (keyset, year/season/kind/status filters)         |
+| `users/[username]` (pushed)       | `routes/users.$username.tsx`                | `GET /users/:username/profile`                                      |
+| `media/[slug]` (pushed)           | `routes/media.$slug.tsx`                    | `GET /media/:idOrSlug`                                              |
+| signed-out landing                | `routes/index.tsx`                          | skipped — on mobile the picker is the first screen                  |
 
-Six tabs is one more than iOS wants to show comfortably; History is the natural
-candidate to live under Profile rather than in the bar, matching how `AppNav`
-already treats it as a secondary destination.
+**Four tabs, not six.** `docs/design/Mobile System.dc.html` §03 fixes the spine
+as HOME · DISCOVER · NEWS · PROFILE and puts **Lists and History inside
+Profile**, as two rows under the stat band: four 90pt targets clear the 44pt
+minimum with room for a mis-tap, and a fifth squeezes the labels below 10px.
+This plan had already guessed History would move; Lists moved with it, for the
+same reason — both are weekly destinations, not daily ones.
 
-Notes that will bite otherwise:
+How the four notes landed:
 
-- **News markdown**: the "React elements, never HTML strings" guarantee
-  (ADR-0005) must survive the port. Extract the tokenizer from
-  `components/news/Markdown.tsx` into `packages/client` (with `safeHref` from
-  `lib/url.ts`, which it already depends on); map tokens to `<Text>` in the app.
-  Never reach for a markdown-to-HTML renderer in a `WebView`.
-- **Generated covers**: `apps/web/src/lib/cover.ts` is pure, portable and now
-  unit-tested — move it with the client package and render the two-stop gradient
-  with `expo-linear-gradient` (the hash and hue tables are unchanged, so a
-  title's cover looks identical on both clients).
-- **Episode/chapter grid**: the web page already deviates from the mockup to a
-  compact tile grid for exactly the reason mobile will — put it in a FlashList.
-- **History's year rail** is a horizontal scroller of years with counts; on
-  mobile it wants to be a sticky segmented control, not a sidebar.
+- **News markdown**: done. `packages/client/src/markdown.ts` is the tokenizer —
+  `parseMarkdown` → blocks of `InlineToken`s, with `safeHref` applied at
+  tokenizing time so an unsafe target degrades to plain text before either
+  client sees it. Web's `Markdown.tsx` is now just the token → element map, and
+  the app's is the token → `<Text>` map. No `WebView` anywhere; a new
+  `markdown.test.ts` pins the security branches (unsafe link, raw HTML).
+- **Generated covers**: `coverGradient` split into `coverGradientStops`, which
+  is what `expo-linear-gradient` takes; the CSS-string form composes from it, so
+  the hash and hue tables have exactly one copy and a title looks the same on
+  both clients. `avatarGradient` got the same treatment.
+- **Episode/chapter grid**: the media screen *is* a `FlashList` — the part rows
+  are its data and the hero, synopsis and related shelves are its header and
+  footer. A grid with no ceiling (hundreds of manga chapters) cannot sit inside a
+  `ScrollView`, and a `FlashList` nested in one recycles nothing.
+- **History's year rail**: a horizontally scrolling chip row rather than a
+  sticky segmented control — with the season chips beside it behind a hairline,
+  always rendered and dimmed to inert on ALL TIME, exactly as on web.
+
+Deviations worth knowing:
+
+- **Nothing mutates yet, and nothing pretends to.** The up-next rows open the
+  title instead of checking in; part tiles show watched state but are not
+  pressable and are not styled as buttons; friend state and log status read as
+  labels. The swipe check-in (`Mobile System.dc.html` §04) is phase 3 + 4.
+- **Lists drops the mockup's MY LISTS / FOLLOWING / COLLABORATIVE tabs.**
+  `ListsQuerySchema.scope` admits only `mine`, so two of the three are
+  permanently empty; web renders them visibly inert to hold the mockup's shape,
+  and a phone has no room for a control that cannot do anything.
+- **Tabs are `expo-router/ui`'s headless ones**, not the drop-in navigator: the
+  bar is glass over the aura with a pink glyph + label + an 18×2 rule, which the
+  navigator's options cannot express. Its four glyphs are SVG rather than the
+  mockup's ▤ ⌕ ◈ ◍ characters — none of the three loaded faces ships them, so
+  the system fallback would pick per platform.
+- **`app/index.tsx` still owns `/`**, so the home tab is `/home`. Two files
+  resolving to `/` is a route collision, and the entry route is what decides
+  picker vs. login vs. app.
 
 ## Phase 3 — the tracking actions
 

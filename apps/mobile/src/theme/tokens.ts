@@ -75,3 +75,18 @@ export const space = {
   xl: 24,
   xxl: 40,
 } as const;
+
+/**
+ * The phone canvas, from `Mobile System.dc.html` §01. These are the numbers the
+ * native spec fixes rather than the 4px rhythm above: a 362pt content column
+ * inside 402pt of screen, 28 between sections and 12 within, and a touch target
+ * that never goes under 44 — "no exceptions".
+ */
+export const layout = {
+  gutter: 20,
+  sectionGap: 28,
+  blockGap: 12,
+  touchTarget: 44,
+  /** Bar only; the home indicator is whatever `useSafeAreaInsets().bottom` says. */
+  tabBarHeight: 64,
+} as const;
