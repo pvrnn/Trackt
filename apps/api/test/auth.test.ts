@@ -123,4 +123,48 @@ describe('auth routes', () => {
     });
     expect(response.statusCode).toBe(401);
   });
+
+  it('signs in from the mobile app scheme', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/sign-in/email',
+      headers: { origin: 'trackt://' },
+      payload: { email: 'paul@example.com', password: 'password123' },
+    });
+    expect(response.statusCode).toBe(200);
+  });
+});
+
+/**
+ * ADR-0008 §3's two server lines, asserted as configuration rather than as
+ * behaviour: better-auth only enforces `trustedOrigins` on the redirect and
+ * callback paths, so a request-level test passes whether or not the entries are
+ * present and proves nothing. What is worth guarding is that nobody deletes
+ * them — the failure they cause is a sign-in that dies during the deep-link
+ * hand-back, with nothing in the app to point at the cause — and that `exp://*`
+ * stays out of production, where it would trust any Metro host on the network.
+ */
+describe('mobile trusted origins', () => {
+  it('trusts the app scheme', () => {
+    expect(baseAuthOptions(env).trustedOrigins).toEqual(
+      expect.arrayContaining(['trackt://', 'trackt://*']),
+    );
+  });
+
+  it('trusts Expo Go and dev clients outside production only', () => {
+    expect(baseAuthOptions(loadEnv({ NODE_ENV: 'development' })).trustedOrigins).toContain(
+      'exp://*',
+    );
+    expect(
+      baseAuthOptions(
+        loadEnv({
+          NODE_ENV: 'production',
+          APP_URL: 'https://trackt.example.com',
+          AUTH_SECRET: 'x'.repeat(32),
+          DATABASE_URL: 'postgres://trackt:trackt@localhost:5432/trackt',
+          REDIS_URL: 'redis://localhost:6379',
+        }),
+      ).trustedOrigins,
+    ).not.toContain('exp://*');
+  });
 });

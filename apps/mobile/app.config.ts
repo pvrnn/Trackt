@@ -29,7 +29,7 @@ const config: ExpoConfig = {
   android: {
     package: 'app.trackt.client',
   },
-  plugins: ['expo-router'],
+  plugins: ['expo-router', 'expo-secure-store', 'expo-web-browser', 'expo-font'],
   experiments: {
     typedRoutes: true,
   },

@@ -1,19 +1,85 @@
+import { QueryClientProvider } from '@tanstack/react-query';
+import { makeQueryClient } from '@trackt/client';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useMemo } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { InstanceProvider, useInstance } from '../src/lib/instance-provider';
+import { AuraBackground } from '../src/components/AuraBackground';
+import { color } from '../src/theme/tokens';
+import { fontAssets } from '../src/theme/typography';
 
 /**
- * The root layout. A native stack from the start — every push in the app is
- * platform-correct by construction and gets gesture-back for free (ADR-0008 §6),
- * and the tab group phase 2 adds lives inside it.
+ * The app shell (mobile plan, phase 1).
  *
- * The header is off because AURA PRISM's screens carry their own: a fixed
- * radial aura behind everything with the title over it, not a system bar.
+ * Two gates, and they are gates of different kinds. **Instance** is structural:
+ * the signed-in routes are not registered at all until an origin exists, so a
+ * deep link arriving cold resolves to the picker instead of mounting a screen
+ * with no server to fetch from — and, more importantly, nothing can call a hook
+ * on an auth client that has not been built yet. **Session** is imperative and
+ * per-screen (`useAuthedScreen`), mirroring web's `useAuthedPage`.
  */
 export default function RootLayout() {
   return (
-    <>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0a0710' } }} />
-    </>
+    <SafeAreaProvider>
+      <InstanceProvider>
+        <App />
+      </InstanceProvider>
+    </SafeAreaProvider>
   );
 }
+
+function App() {
+  const { ready, origin } = useInstance();
+  const [fontsLoaded] = useFonts(fontAssets);
+  // One client for the app's lifetime; the defaults (stale times, retry
+  // policy) are `@trackt/client`'s, so both clients cache identically.
+  const queryClient = useMemo(() => makeQueryClient(), []);
+
+  if (!ready || !fontsLoaded) return <Splash />;
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <StatusBar style="light" />
+      {/* Remount on instance change: the session store, the query cache
+          consumers and every screen's state belong to one server. */}
+      <Stack
+        key={origin ?? 'no-instance'}
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: color.ink },
+          animation: 'fade',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(setup)/instance" />
+        <Stack.Protected guard={!!origin}>
+          <Stack.Screen name="(auth)/login" />
+          <Stack.Screen name="(auth)/register" />
+          <Stack.Screen name="(app)/home" />
+        </Stack.Protected>
+      </Stack>
+    </QueryClientProvider>
+  );
+}
+
+/** Shown while SecureStore is read and the three font families load. */
+function Splash() {
+  return (
+    <View style={styles.splash}>
+      <AuraBackground />
+      <ActivityIndicator color={color.pink} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.ink,
+  },
+});

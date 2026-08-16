@@ -1,6 +1,6 @@
 # ADR-0008: A first-party mobile client (React Native + Expo)
 
-**Status:** Accepted — 2026-08-15. Phase 0 of [docs/mobile-app-plan.md](../mobile-app-plan.md) is built: `packages/client` extracted, the licence question settled, `apps/mobile` scaffolded.
+**Status:** Accepted — 2026-08-15. Phases 0 and 1 of [docs/mobile-app-plan.md](../mobile-app-plan.md) are built: `packages/client` extracted, the licence question settled, `apps/mobile` scaffolded, and the shell (server picker → SecureStore session → gated screen) running against a real instance. §2, §3, §4 and §5 are all now load-bearing code rather than intent.
 **Amended:** 2026-08-15 — the report/block consequence is closed; user-facing entry creation was withdrawn, and entry creation now happens only on the central catalog's publish path (PRD §3.5)
 **Amended:** 2026-08-15 — the licensing consequence is resolved: an additional permission under GPLv3 §7 ([LICENSE.exceptions](../../LICENSE.exceptions)) allows app-store distribution of the mobile binary. Copyleft is otherwise untouched
 **Supersedes:** PRD §1 non-goals ("mobile native apps (PWA first)") and PRD §9's placement of mobile apps in v2

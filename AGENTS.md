@@ -14,7 +14,8 @@ Trackt is a pnpm/Turborepo monorepo for a self-hostable tracker of movies, serie
 - For schema changes, update `packages/db/src/schema/`, generate a migration with `pnpm db:generate`, and review the generated SQL. Do not use `drizzle-kit push` or Studio for migrations.
 - Use deterministic UUIDv5 canonical media IDs for provider-identified works; do not mint random IDs for them.
 - Data-layer code that both clients use — fetch + Zod + React Query, query keys, pure display helpers — belongs in `packages/client`, never in one app. It owns no transport: `configureClient()` injects the HTTP client and the session source, so nothing in it may import `ky` directly or reach for better-auth. Components stay in their app; there is no cross-platform component layer.
-- `apps/mobile` is the one package that does not extend `tsconfig.base.json` (React Native needs `moduleResolution: bundler`) and the one on a different TypeScript major — Expo SDK 57 pins its own. Let `expo install` choose native dependency versions rather than picking them by hand, and do not hand-write `metro.config.js` monorepo settings.
+- `apps/mobile` is the one package that does not extend `tsconfig.base.json` (React Native needs `moduleResolution: bundler`). It does **not** get its own TypeScript: `typescript` is an optional peer of the expo tooling, so a second major produces duplicate peer-suffixed `expo` instances and expo-doctor fails the duplicate-native-module check. Let `expo install` choose native dependency versions rather than picking them by hand, and do not hand-write `metro.config.js` monorepo settings.
+- In `apps/mobile`, the origin of the instance the user picked is the root of every URL. Paths from the API are instance-relative: put them through `resolveInstanceUrl()` rather than concatenating. Import Google fonts by weight subpath, never from the package root.
 
 ## Verification
 
