@@ -16,6 +16,26 @@ import { http } from './runtime.js';
  * showing a failure.
  */
 
+/** Topic labels as the design writes them: short, uppercase, on a tag pill. */
+export const TOPIC_LABELS: Record<NewsTopic, string> = {
+  announcement: 'ANNOUNCED',
+  renewal: 'NEW SEASON',
+  cancellation: 'CANCELLED',
+  release_date: 'RELEASE DATE',
+  trailer: 'TRAILER',
+  casting: 'CASTING',
+  adaptation: 'ADAPTATION',
+  award: 'AWARD',
+  general: 'NEWS',
+};
+
+/** The card's date stamp: `02 JUL`, in UTC so every reader sees the same day. */
+export function formatNewsDate(iso: string): string {
+  return new Date(iso)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+    .toUpperCase();
+}
+
 export interface NewsFilters {
   kind?: MediaKind | undefined;
   topic?: NewsTopic | undefined;

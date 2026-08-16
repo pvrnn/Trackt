@@ -19,6 +19,7 @@ export * from './home.js';
 export * from './http.js';
 export * from './kinds.js';
 export * from './lists.js';
+export * from './markdown.js';
 export * from './media.js';
 export * from './news.js';
 export * from './profile.js';
