@@ -1,7 +1,8 @@
 # ADR-0008: A first-party mobile client (React Native + Expo)
 
-**Status:** Proposed — 2026-08-15 (no code yet; the phased build is [docs/mobile-app-plan.md](../mobile-app-plan.md))
+**Status:** Accepted — 2026-08-15. Phases 0 and 1 of [docs/mobile-app-plan.md](../mobile-app-plan.md) are built: `packages/client` extracted, the licence question settled, `apps/mobile` scaffolded, and the shell (server picker → SecureStore session → gated screen) running against a real instance. §2, §3, §4 and §5 are all now load-bearing code rather than intent.
 **Amended:** 2026-08-15 — the report/block consequence is closed; user-facing entry creation was withdrawn, and entry creation now happens only on the central catalog's publish path (PRD §3.5)
+**Amended:** 2026-08-15 — the licensing consequence is resolved: an additional permission under GPLv3 §7 ([LICENSE.exceptions](../../LICENSE.exceptions)) allows app-store distribution of the mobile binary. Copyleft is otherwise untouched
 **Supersedes:** PRD §1 non-goals ("mobile native apps (PWA first)") and PRD §9's placement of mobile apps in v2
 **Touches:** ADR-0001/0002 (the app is a client of an _instance_, never of the central catalog), ADR-0005 (news bodies are untrusted markdown on mobile too), ADR-0007 (the History year view is part of parity, and log dates are a mobile-native input)
 
@@ -150,12 +151,17 @@ too, none of them optional once there is a binary in a store:
   `/search` maxes at 50. Mobile makes the missing **library endpoint** (already
   in the roadmap backlog) load-bearing. The pattern to copy now exists twice:
   `GET /news` and `GET /me/history` are both keyset-cursored (ADR-0005, ADR-0007).
-- **Licensing vs. app stores.** The repo is **GPL-3.0-only**, and GPL terms have
-  historically been held incompatible with the App Store's usage rules (VLC,
-  GNU Go). This does not affect Android/F-Droid/APK distribution at all. As the
-  copyright holder the project can resolve it for iOS — an App Store exception
-  clause, or licensing `apps/mobile` permissively — but it is a decision to take
-  deliberately, before writing the app, not after. **Not legal advice; get some.**
+- ~~**Licensing vs. app stores.**~~ **Resolved by an additional permission,
+  2026-08-15.** The repo is **GPL-3.0-only**, and GPL terms have historically
+  been held incompatible with the App Store's usage rules (VLC, GNU Go); Android
+  and F-Droid were never affected. Of the three options — Android-first, an App
+  Store exception, or a permissive `apps/mobile` — the project took the middle
+  one: [LICENSE.exceptions](../../LICENSE.exceptions) grants, under GPLv3 §7,
+  permission to distribute the mobile binary through an application distribution
+  service whose terms would otherwise conflict with §§4–6. The GPL text itself is
+  unmodified (its own terms forbid that), the source stays GPL-3.0-only
+  including the app's, and a downstream fork may drop the permission. **Not legal
+  advice; get some.**
 
 **And it changes how the API is versioned.** Today `apps/web` ships in the same
 image as `apps/api`, so client and server are never out of step. An installed

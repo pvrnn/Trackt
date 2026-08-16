@@ -15,15 +15,15 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
-import { coverGradient } from '../lib/cover';
 import {
+  coverGradient,
   HISTORY_GROUPINGS,
   dateRangeLabel,
   groupEntries,
   useHistory,
+  KIND_LABELS,
   type HistoryGrouping,
-} from '../lib/history';
-import { KIND_LABELS } from '../lib/kinds';
+} from '@trackt/client';
 
 /**
  * The viewer's year view (ADR-0007). Absorbs the ROADMAP's Library page: ALL

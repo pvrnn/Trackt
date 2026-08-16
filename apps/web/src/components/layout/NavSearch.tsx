@@ -11,10 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { SearchResult, UserSearchResult } from '@trackt/shared';
-import { coverGradient } from '../../lib/cover';
-import { useUserSearch } from '../../lib/friends';
-import { useMediaSearch } from '../../lib/search';
-import { useDebounced } from '../../lib/use-debounced';
+import { coverGradient, useUserSearch, useMediaSearch, useDebounced } from '@trackt/client';
 import { Avatar } from '../ui/Avatar';
 import { KindDot } from '../ui/KindDot';
 

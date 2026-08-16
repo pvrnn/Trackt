@@ -10,8 +10,13 @@ import { Input } from '../components/ui/Input';
 import { Modal, ModalTitle } from '../components/ui/Modal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
-import { coverGradient } from '../lib/cover';
-import { updatedLabel, useCreateList, useLists, visibilityLabel } from '../lib/lists';
+import {
+  coverGradient,
+  updatedLabel,
+  useCreateList,
+  useLists,
+  visibilityLabel,
+} from '@trackt/client';
 
 export const Route = createFileRoute('/lists')({
   head: () => ({ meta: [{ title: 'Lists — Trackt' }] }),

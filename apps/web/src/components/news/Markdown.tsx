@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { safeHref } from '../../lib/url';
+import { safeHref } from '@trackt/client';
 
 /**
  * A deliberately tiny markdown renderer for article bodies (ADR-0005).

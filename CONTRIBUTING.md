@@ -18,6 +18,24 @@ No `.env` is required in development — defaults are baked into `packages/share
 
 If your dev database predates the central-catalog pivot ([ADR-0001](docs/adr/0001-central-slim-catalog.md)), reset it once: `docker compose -f docker-compose.dev.yml down -v && docker compose -f docker-compose.dev.yml up -d && pnpm db:migrate && pnpm db:seed`.
 
+## Running the mobile app
+
+`pnpm dev` already starts Metro — `@trackt/mobile:dev` is `expo start`, so port 8081 is taken from the moment the stack is up and its output is in the turbo stream prefixed `@trackt/mobile:dev:`. Running `expo start` again in `apps/mobile` collides with it and, being non-interactive, exits with `Skipping dev server` rather than prompting for another port. There is only ever one Metro.
+
+Open the app in [Expo Go](https://expo.dev/go) — a physical device on the same network can scan the QR. The app has no baked-in base URL (ADR-0008 §2), so the first screen is a server picker: give it the origin of a running `apps/api`, **including the scheme**, since `https://` is assumed for a bare host. `apps/api` binds `0.0.0.0` and trusts `exp://*` in development, so no server-side change is needed.
+
+On an Android emulator the client has to reach both Metro and the API, which `adb reverse` handles without exposing anything on the network:
+
+```sh
+adb reverse tcp:8081 tcp:8081   # Metro
+adb reverse tcp:3001 tcp:3001   # apps/api
+adb shell am start -a android.intent.action.VIEW -d "exp://127.0.0.1:8081"
+```
+
+The instance address is then `http://localhost:3001` — not `10.0.2.2`, because the reverse makes the emulator's own loopback the right one. The forwards are lost when the emulator or the adb server restarts; re-running the two `reverse` commands is enough.
+
+Two things that bite on WSL2, where the emulator and the Android SDK live on the Windows side: call the Windows `adb.exe` (there is no adb in the distro, and the Windows adb server is the one the emulator is attached to), and expect a fresh AVD to have no Expo Go — sideload the SDK-matched APK from `https://api.expo.dev/v2/versions/latest` (`.data.sdkVersions["<sdk>"].androidClientUrl`) via `adb install`. `expo run:android` is not the way around this: it needs an Android SDK and JDK inside the distro.
+
 ## Before you push
 
 ```sh

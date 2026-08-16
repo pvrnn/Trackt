@@ -41,69 +41,104 @@ obvious.
 Not adopted: **NativeWind** (ADR-0008 §5), **push notifications** (ADR-0008 §7),
 **shared-element transitions as a dependency** (ADR-0008 §6).
 
-## Phase 0 — decisions and scaffold
+## Phase 0 — decisions and scaffold ✅ built
 
-Nothing below phase 1 can be finished without these, and two of them are the
-user's call, not an engineering one.
+1. **Licence posture for iOS** — **decided: an App Store exception.**
+   [`LICENSE.exceptions`](../LICENSE.exceptions) grants, under GPLv3 §7,
+   permission to distribute the mobile binary through app stores whose terms
+   conflict with §§4–6. The GPL text is unmodified, the source stays
+   GPL-3.0-only, and Android/F-Droid was never affected.
+2. **Scope of v1 parity** — the screen table in phase 2 is the whole surface:
+   home, discover, news, lists, history, profile, plus pushed media and user
+   pages. `/moderation` no longer exists (review moved to the central catalog).
+3. **`packages/client` extraction** — done, `apps/web` migrated onto it and
+   green. The package owns no transport: `src/runtime.ts` takes an injected `ky`
+   instance and an injected `useIsAuthed()` hook, a module singleton rather than
+   React context because `trackingApi`/`listsApi`/`friendsApi` are called from
+   event handlers with no hook to read a context from. `apps/web/test/lib/`
+   moved with the code, and apps/web's vitest setup went with it — nothing left
+   in the app is testable without a DOM renderer.
 
-1. **Licence posture for iOS** (ADR-0008 consequences). GPL-3.0-only vs. the App
-   Store's usage rules. Android/F-Droid is unaffected either way. Options: ship
-   Android first, add an App Store exception clause to `LICENSE`, or license
-   `apps/mobile` permissively. **Decide before writing screens.**
-2. **Scope of v1 parity.** The web app's five remaining sections; `/moderation`
-   no longer exists (review moved to the central catalog), so the screen table
-   below is the whole surface.
-3. **`packages/client` extraction** — do it as its own PR, with `apps/web`
-   migrated onto it and green, so the mobile PRs never mix "moved code" with
-   "new code". `apps/web/vitest.config.ts` already scopes a node-environment
-   suite over the pure half of `src/lib`; that config and those five test files
-   are the template for the package's own suite.
+Scaffold, as built:
 
-Scaffold, once those land:
-
-| File                             | Change                                                                                                    |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `apps/mobile/`                   | `create-expo-app` with the expo-router template, `"name": "@trackt/mobile"`                                |
-| `apps/mobile/app.config.ts`      | `scheme: 'trackt'`, bundle ids, EAS project id, `newArchEnabled`                                           |
-| `apps/mobile/tsconfig.json`      | extends `expo/tsconfig.base`, **not** `tsconfig.base.json` (RN needs `moduleResolution: bundler` + `jsx: react-jsx`) |
-| `apps/mobile/test/`              | unit tests mirroring `src/`, `*.test.ts` — the convention in `AGENTS.md`                                   |
-| `turbo.json`                     | no change needed — `dev`/`typecheck`/`lint`/`test` tasks already fan out per package                       |
-| `eslint.config.mjs`              | add the Expo/React Native config for `apps/mobile/**`                                                      |
-| `.github/workflows/ci.yml`       | `apps/mobile` rides the existing `pnpm lint`/`typecheck`/`test`; add `npx expo-doctor` to `verify`         |
-| `pnpm-workspace.yaml`            | only if a native dep resists pnpm's isolated layout → `nodeLinker: hoisted`                                |
+| File                        | Change                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mobile/`              | hand-rolled rather than `create-expo-app` (its template installs with npm and fights the workspace), `"name": "@trackt/mobile"`, expo-router entry |
+| `apps/mobile/app.config.ts` | `scheme: 'trackt'`, `app.trackt.client` bundle ids, typed routes. **No `newArchEnabled`** — SDK 57 dropped the flag with the old architecture, so setting it is a type error. EAS project id lands with the first EAS build (phase 5) |
+| `apps/mobile/tsconfig.json` | extends `expo/tsconfig.base`, **not** `tsconfig.base.json` (RN needs `moduleResolution: bundler` + `jsx: react-jsx`), with the repo's strict flags re-stated. Originally pinned TypeScript to `~6.0.3` — what SDK 57 expects — but **phase 1 reverted that**: see below |
+| `apps/mobile/test/`         | not yet: nothing in the scaffold is pure enough to unit-test. It arrives with phase 1's `lib/instance.ts`, alongside a `test` script         |
+| `turbo.json`                | unchanged, as predicted — the app rides the existing per-package fan-out                                                                     |
+| `eslint.config.mjs`         | `eslint-plugin-react-hooks` v7 over `apps/mobile/**` and `packages/client/src`. **Not** `eslint-config-expo`: it pins eslint-plugin-react 7.x, which crashes on this repo's ESLint 10 |
+| `.github/workflows/ci.yml`  | `pnpm --filter @trackt/mobile doctor` after `pnpm test` in `verify`                                                                          |
+| `pnpm-workspace.yaml`       | `nodeLinker: hoisted` **not** needed — Metro bundles the app out of pnpm's isolated layout, workspace packages included. What was needed: `autoInstallPeers: false`, or `@trackt/client`'s `react` peer auto-installs a second React and expo-doctor fails on the duplicate |
+| `apps/web/package.json`     | React pinned to `19.2.3`, the version SDK 57 expects — one React across the workspace is what the duplicate-native-module check is protecting |
 
 **Do not** hand-write `metro.config.js` monorepo settings: Metro discovers the
 workspace itself on SDK 52+, and stale `watchFolders`/`nodeModulesPaths` are the
-top cause of "works on my machine" resolution bugs.
+top cause of "works on my machine" resolution bugs. Verified: there is no
+`metro.config.js` and `expo export` bundles 1282 modules clean.
 
-## Phase 1 — shell: instance, session, tokens
+## Phase 1 — shell: instance, session, tokens ✅ built
 
-The unglamorous phase that everything else assumes.
+The unglamorous phase that everything else assumes. Built as planned, with the
+deviations called out below.
 
 - **Server picker** (`app/(setup)/instance.tsx`): origin input → normalize →
   `GET /healthz` → store in SecureStore. Errors distinguish _unreachable_,
-  _not a Trackt instance_ (no `{status,version}` body), and _version too old_.
+  _not a Trackt instance_ (no `{status,version}` body), and _version too old_
+  (against `MIN_INSTANCE_VERSION`, which is what gets bumped when a screen needs
+  a newer API). `normalizeOrigin` assumes `https://`, allows `http` for LAN
+  addresses, drops everything past the authority, and rejects backslashes and
+  embedded credentials.
 - **`lib/instance.ts`**: the single `resolveInstanceUrl(path)` helper. Every
   `coverUrl`, avatar `image` and `/uploads/*` path goes through it — ADR-0008 §2.
+  Kept free of `expo-*` imports so the whole module is unit-testable in a node
+  vitest project; SecureStore lives in `lib/storage.ts` next door.
 - **Auth** (`lib/auth-client.ts`): `createAuthClient` with `expoClient({ scheme:
 'trackt', storagePrefix: 'trackt', storage: SecureStore })` and `baseURL` set
   from the picked instance. Requests to `/api/v1/*` attach
   `authClient.getCookie()` as a `Cookie` header with `credentials: 'omit'` —
-  setting both is the documented footgun.
-- **Server side** (`apps/api/src/auth.ts`): add `expo()` to `plugins`, and
-  `'trackt://'` + `'trackt://*'` to `trustedOrigins` (plus `exp://*` when
-  `NODE_ENV !== 'production'`, next to the existing localhost:3000 exception).
+  setting both is the documented footgun. The client is **built per instance and
+  memoised**, not created once: replaying instance A's cookie at instance B is
+  the bug the picker exists to make impossible.
+- **Server side** (`apps/api/src/auth.ts`): `expo()` in `plugins`, `'trackt://'`
+  + `'trackt://*'` in `trustedOrigins`, `exp://*` in development. One deviation:
+  `expo() as BetterAuthPlugin`. Left inferred, the plugin's endpoint types pull
+  `better-call` and `@better-auth/core` into the exported `Auth` type by their
+  peer-suffixed pnpm paths, which TypeScript cannot name (TS2742). Nothing
+  server-side calls an expo endpoint by name, so the inference buys nothing.
 - **Login / register** (`app/(auth)/`): the two existing better-auth flows,
-  email+password with the username plugin. Session gate mirrors
-  `useAuthedPage()` from web, redirecting to the picker when no instance is set
-  and to login when no session is. `safeRedirect` from `lib/url.ts` has a mobile
-  analogue: a deep link may only resolve to an in-app route.
+  email+password with the username plugin, with web's client-side validation
+  duplicated so a 400 lands on the field that caused it. `safeRoute` in
+  `lib/instance.ts` is `safeRedirect`'s mobile analogue.
+- **The gate is two gates, of different kinds.** _Instance_ is structural: the
+  signed-in routes sit inside `<Stack.Protected guard={!!origin}>`, so a cold
+  deep link resolves to the picker — and, load-bearing, nothing can call a hook
+  on an auth client that has not been built yet. _Session_ is imperative and
+  per-screen (`useAuthedScreen`), mirroring `useAuthedPage()`. Both are reachable
+  in reverse: login carries a "change server" affordance, because a
+  typo'd-but-live origin would otherwise be a reinstall.
 - **Theme** (`theme/tokens.ts`, `theme/typography.ts`): colours, radii, spacing,
-  and the three font families from `docs/design/README.md`. Plus the four
-  primitives the design leans on everywhere: `<AuraBackground>` (svg radial
-  stack + tiled grain, absolutely positioned, `pointerEvents="none"`),
-  `<GlassCard>` (`expo-blur` + border), `<PrismButton>` (linear gradient pill),
-  `<PrismText>` (MaskedView + gradient).
+  and the three font families from `docs/design/README.md`, plus the four
+  primitives: `<AuraBackground>`, `<GlassCard>` (`expo-blur` + border),
+  `<PrismButton>` (linear gradient pill), `<PrismText>` (MaskedView + gradient).
+  Two notes. The aura is **SVG ellipses with radial-gradient fills**, sized in
+  fractions of the screen — RN has no gradient background. The **grain film is
+  not ported**: it needs `mix-blend-mode: overlay` over tiled noise, which RN
+  cannot express, and at phone sizes the difference is invisible. Fonts are
+  imported by weight subpath (`@expo-google-fonts/archivo/500Medium`), never from
+  the package root, which `require()`s all nineteen faces — 2.3 MB of italics.
+
+Two things bit that the plan did not predict:
+
+| Surprise                     | Resolution                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Two TypeScript majors**    | The `~6.0.3` pin phase 0 accepted became an expo-doctor failure once `expo-font`/`expo-asset` entered the graph: `typescript` is an optional peer of the expo tooling, so two majors produce two peer-suffixed `expo` instances and the duplicate-native-module check fails. The workspace is back on one TypeScript (`~5.9.3`); mobile typechecks clean on it |
+| **Typed routes are local-only** | `.expo/types/router.d.ts` is generated by `expo start` (not by `expo export`) and is gitignored, so CI typechecks with the loose fallback `Href`. CI is therefore weaker here, never falsely red — a bad `href` is caught locally after the dev server has run at least once   |
+
+Deliberately **not** in phase 1: `(app)/home.tsx` is a placeholder that fetches
+nothing. Every `GET` on it belongs to phase 2's `(tabs)/home`, which replaces the
+file wholesale.
 
 ## Phase 2 — read-only parity
 

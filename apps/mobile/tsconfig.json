@@ -1,0 +1,26 @@
+{
+  // Extends expo/tsconfig.base, *not* the repo's tsconfig.base.json: React
+  // Native needs `moduleResolution: bundler` and `jsx: react-jsx`, and the repo
+  // base is NodeNext. The strictness the repo cares about is re-stated below so
+  // this app is not quietly the loose one.
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "app",
+    "src",
+    "test",
+    "app.config.ts",
+    "vitest.config.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

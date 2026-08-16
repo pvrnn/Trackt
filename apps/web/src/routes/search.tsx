@@ -8,8 +8,7 @@ import { CoverCard } from '../components/media/CoverCard';
 import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
 import { useAuthedPage } from '../lib/auth-client';
-import { KIND_LABELS } from '../lib/kinds';
-import { useMediaSearch } from '../lib/search';
+import { KIND_LABELS, useMediaSearch } from '@trackt/client';
 
 export interface SearchParams {
   q?: string;

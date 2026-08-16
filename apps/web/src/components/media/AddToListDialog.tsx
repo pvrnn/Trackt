@@ -3,7 +3,7 @@ import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Modal, ModalTitle } from '../ui/Modal';
-import { listsApi, useCreateList, useLists, useListsInvalidator } from '../../lib/lists';
+import { listsApi, useCreateList, useLists, useListsInvalidator } from '@trackt/client';
 
 /**
  * Add or remove a title across the viewer's lists (PRD §3.4). `containsMedia`

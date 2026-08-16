@@ -9,8 +9,7 @@ import { UpNextCard } from '../components/media/UpNextCard';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Tooltip } from '../components/ui/Tooltip';
-import { coverGradient } from '../lib/cover';
-import { useShowcase } from '../lib/media';
+import { coverGradient, useShowcase } from '@trackt/client';
 
 const MotionLink = m.create(Link);
 

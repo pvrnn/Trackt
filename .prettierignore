@@ -8,4 +8,6 @@ packages/db/migrations/
 apps/catalog/migrations/
 docs/
 **/routeTree.gen.ts
+apps/mobile/.expo/
+apps/mobile/expo-env.d.ts
 LICENSE

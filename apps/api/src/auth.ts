@@ -1,4 +1,5 @@
-import { betterAuth } from 'better-auth';
+import { betterAuth, type BetterAuthPlugin } from 'better-auth';
+import { expo } from '@better-auth/expo';
 import { username } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { accounts, sessions, users, verifications, type Db } from '@trackt/db';
@@ -21,9 +22,17 @@ export function baseAuthOptions(env: Env) {
     secret: env.AUTH_SECRET,
     // In dev the browser origin is the Vite server (:3000), which proxies /api
     // to the API (:3001) without rewriting the Origin header.
+    //
+    // `trackt://` is apps/mobile's scheme (ADR-0008 §2/§3): the Expo client
+    // sends it as the Origin, so without these two entries sign-in from the app
+    // is rejected before it reaches the handler. `exp://*` covers Expo Go and
+    // dev-client sessions, which carry the LAN origin of the Metro host and so
+    // cannot be enumerated — dev only, like the localhost exception above.
     trustedOrigins: [
       env.APP_URL,
-      ...(env.NODE_ENV !== 'production' ? ['http://localhost:3000'] : []),
+      'trackt://',
+      'trackt://*',
+      ...(env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'exp://*'] : []),
     ],
     emailAndPassword: {
       enabled: true,
@@ -36,7 +45,17 @@ export function baseAuthOptions(env: Env) {
         role: { type: 'string', input: false, defaultValue: 'user' } as const,
       },
     },
-    plugins: [username()],
+    // `expo()` only adds the redirect/deep-link handling the native client
+    // needs; sessions stay ordinary better-auth sessions in our Postgres, so
+    // `getSessionUser()` and every route guard are untouched (ADR-0008 §3).
+    //
+    // Widened to `BetterAuthPlugin` deliberately. Left inferred, the plugin's
+    // endpoint types pull `better-call` and `@better-auth/core` into the
+    // exported `Auth` type by their peer-suffixed pnpm paths, which TypeScript
+    // cannot name from here (TS2742). Nothing on this side calls an expo
+    // endpoint by name — the app's types come from `@better-auth/expo/client`,
+    // which infers them independently — so the inference buys nothing.
+    plugins: [username(), expo() as BetterAuthPlugin],
     advanced: {
       database: {
         generateId: () => crypto.randomUUID(),

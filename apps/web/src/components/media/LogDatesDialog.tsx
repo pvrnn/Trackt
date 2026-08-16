@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { LOG_DATE_FLOOR, type LogDates } from '@trackt/shared';
-import { todayIso } from '../../lib/history';
+import { todayIso } from '@trackt/client';
 import { Button } from '../ui/Button';
 import { Modal, ModalTitle } from '../ui/Modal';
 

@@ -22,15 +22,16 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
-import { coverGradient } from '../lib/cover';
-import { dateRangeLabel, todayIso } from '../lib/history';
 import {
+  coverGradient,
+  dateRangeLabel,
+  todayIso,
   firstUnwatched,
   invalidateTracking,
   stampedDates,
   trackingApi,
   useMediaDetail,
-} from '../lib/media';
+} from '@trackt/client';
 
 /** "attack-on-titan" → "Attack On Titan": a serviceable SSR title until the query resolves. */
 function titleFromSlug(slug: string): string {

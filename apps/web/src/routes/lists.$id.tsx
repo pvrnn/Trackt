@@ -8,14 +8,14 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useAuthedPage } from '../lib/auth-client';
-import { coverGradient } from '../lib/cover';
 import {
+  coverGradient,
   listsApi,
   updatedLabel,
   useList,
   useListsInvalidator,
   visibilityLabel,
-} from '../lib/lists';
+} from '@trackt/client';
 
 export const Route = createFileRoute('/lists/$id')({
   head: () => ({ meta: [{ title: 'List — Trackt' }] }),

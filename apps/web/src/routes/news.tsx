@@ -8,8 +8,7 @@ import { MarketingNav } from '../components/layout/MarketingNav';
 import { NewsCard } from '../components/news/NewsCard';
 import { Chip } from '../components/ui/Chip';
 import { useOptionalSession } from '../lib/auth-client';
-import { KIND_LABELS } from '../lib/kinds';
-import { useNewsFeed } from '../lib/news';
+import { KIND_LABELS, useNewsFeed } from '@trackt/client';
 
 export interface NewsSearchParams {
   kind?: MediaKind;
