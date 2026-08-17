@@ -42,6 +42,23 @@ export const surface = {
   pinkRow: 'rgba(217,107,176,0.12)',
 } as const;
 
+/**
+ * The opaque surfaces `Mobile System.dc.html` fixes for native only. They are
+ * hex, but they have no `--color-*` counterpart on web — a sheet is a modal
+ * dialog there, over a page that is still painted — so they live apart from
+ * `color`, whose every key the drift guard requires web to define too.
+ */
+export const nativeSurface = {
+  /** §05: sheets are solid, "so content behind never fights the text". */
+  sheet: '#191520',
+  /** The same solid fill on the up-next rows, which sit over the aura. */
+  row: '#191520',
+  /** §04: the track the left-swipe secondary actions ride on. */
+  track: '#12101a',
+  /** §05: backdrop behind a sheet, blurred 6px. */
+  scrim: 'rgba(8,6,12,0.72)',
+} as const;
+
 /** The one signature gradient: primary action, wordmark, hero stats only. */
 export const PRISM = [color.gold, color.pink, color.kindMovie] as const;
 
