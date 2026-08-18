@@ -452,6 +452,12 @@ function HeaderBar({ title, scrollY }: { title: string; scrollY: SharedValue<num
         importantForAccessibility="no-hide-descendants"
       >
         <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+        {/* The blur alone is not enough. The part grid scrolling underneath
+            stays legible through it, and "CHAPTERS · 65 OF 180" sliding across
+            "‹ BACK" and the title is the exact thing §05 forbids of a sheet —
+            content behind fighting the text. Same 82% ink the tab bar puts over
+            its own blur. */}
+        <View style={[StyleSheet.absoluteFill, styles.headerFill]} />
         <View style={styles.headerRule} />
       </Animated.View>
       <View style={styles.headerRow}>
@@ -761,6 +767,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 2,
+  },
+  headerFill: {
+    backgroundColor: 'rgba(14,12,16,0.82)',
   },
   headerRule: {
     position: 'absolute',
