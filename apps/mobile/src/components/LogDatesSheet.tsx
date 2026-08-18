@@ -7,7 +7,7 @@ import { dateToIso, isoToDate } from '../lib/dates';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { PrismButton } from './PrismButton';
-import { Sheet, SheetError } from './Sheet';
+import { Sheet, SheetError, useSheetController } from './Sheet';
 
 /**
  * Log dates (ADR-0007, `PATCH /media/:id/log`) — the one form in the app that
@@ -35,6 +35,7 @@ export function LogDatesSheet({
   onSave: (dates: LogDates) => Promise<void>;
   onClose: () => void;
 }) {
+  const sheet = useSheetController(onClose);
   const [draft, setDraft] = useState<LogDates>(dates);
   const [picking, setPicking] = useState<'startedAt' | 'finishedAt' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export function LogDatesSheet({
     setSaving(true);
     try {
       await onSave(draft);
-      onClose();
+      sheet.dismiss();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
       setSaving(false);
@@ -58,7 +59,7 @@ export function LogDatesSheet({
   };
 
   return (
-    <Sheet title="Dates" subtitle={mediaTitle} onClose={onClose}>
+    <Sheet title="Dates" subtitle={mediaTitle} controller={sheet}>
       <View style={styles.rows}>
         <DateRow
           label="Started"

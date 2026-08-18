@@ -5,6 +5,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ReduceMotion, ReducedMotionConfig } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { InstanceProvider, useInstance } from '../src/lib/instance-provider';
 import { ToastProvider } from '../src/lib/toast';
@@ -24,11 +26,23 @@ import { fontAssets } from '../src/theme/typography';
  */
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <InstanceProvider>
-        <App />
-      </InstanceProvider>
-    </SafeAreaProvider>
+    // `GestureHandlerRootView` has to be the outermost view, above the safe-area
+    // provider and above anything a `Modal` renders into, or a pan inside a
+    // sheet never reaches its detector (phase 4).
+    <GestureHandlerRootView style={styles.root}>
+      {/* One place decides what "reduce motion" means, and it is the OS. Set
+          globally rather than per-animation so a component cannot forget: every
+          `withTiming`/`withSpring` in the app resolves to its end value
+          instantly when the setting is on (PRD §6). The handful of places that
+          need to do something *different* — not just faster — read
+          `useReducedMotion()` themselves. */}
+      <ReducedMotionConfig mode={ReduceMotion.System} />
+      <SafeAreaProvider>
+        <InstanceProvider>
+          <App />
+        </InstanceProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -98,6 +112,10 @@ function Splash() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: color.ink,
+  },
   splash: {
     flex: 1,
     alignItems: 'center',

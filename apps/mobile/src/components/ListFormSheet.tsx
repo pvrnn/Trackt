@@ -14,7 +14,7 @@ import { type } from '../theme/typography';
 import { Chip } from './Chip';
 import { Field } from './Field';
 import { PrismButton } from './PrismButton';
-import { Sheet, SheetError } from './Sheet';
+import { Sheet, SheetError, useSheetController } from './Sheet';
 
 /** Human copy for each visibility, as web's new-list dialog words it. */
 const VISIBILITY_HELP: Record<Visibility, string> = {
@@ -49,6 +49,7 @@ export function ListFormSheet({
   onSaved?: ((saved: ListSummary) => void) | undefined;
   onClose: () => void;
 }) {
+  const sheet = useSheetController(onClose);
   const createList = useCreateList();
   const invalidate = useListsInvalidator();
   const [title, setTitle] = useState(list?.title ?? '');
@@ -79,7 +80,7 @@ export function ListFormSheet({
       commitHaptic();
       invalidate(saved.id);
       onSaved?.(saved);
-      onClose();
+      sheet.dismiss();
     } catch (cause) {
       errorHaptic();
       setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
@@ -88,7 +89,7 @@ export function ListFormSheet({
   };
 
   return (
-    <Sheet title={list ? 'Edit list' : 'New list'} onClose={onClose} tall>
+    <Sheet title={list ? 'Edit list' : 'New list'} controller={sheet} tall>
       <Field
         label="Title"
         value={title}

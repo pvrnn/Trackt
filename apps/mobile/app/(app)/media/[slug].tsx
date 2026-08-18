@@ -19,9 +19,19 @@ import {
   type RelatedWork,
   type SearchResult,
 } from '@trackt/shared';
+import { BlurView } from 'expo-blur';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToListSheet } from '../../../src/components/AddToListSheet';
 import { Cover } from '../../../src/components/Cover';
@@ -35,16 +45,24 @@ import {
   PageFrame,
   SectionTitle,
 } from '../../../src/components/Page';
+import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { PrismText } from '../../../src/components/PrismText';
 import { RatingSheet } from '../../../src/components/RatingSheet';
 import { StatusSheet } from '../../../src/components/StatusSheet';
 import { Touchable } from '../../../src/components/Touchable';
+import { duration, staggerDelay } from '../../../src/lib/motion';
 import { EMPTY_VIEWER, patchViewer, useViewerMutation } from '../../../src/lib/tracking';
 import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 const TILE_MIN = 56;
+
+/** The collapsed bar `Mobile System.dc.html` fixes for both platforms: 44pt. */
+const HEADER_HEIGHT = layout.touchTarget;
+
+/** How far the hero scrolls before the bar is fully opaque. */
+const HEADER_FADE = [80, 150] as const;
 
 /** Which sheet is up, if any. One at a time — they are all modal. */
 type OpenSheet = 'status' | 'rating' | 'list' | null;
@@ -84,6 +102,20 @@ export default function MediaScreen() {
 
   const viewer = media?.viewer ?? EMPTY_VIEWER;
   const watched = useMemo(() => new Set(viewer.watched), [viewer.watched]);
+
+  // How far the list has scrolled, for the hero parallax and the header bar.
+  // Written from a plain `onScroll` rather than `useAnimatedScrollHandler`:
+  // `FlashList` invokes the `onScroll` prop as an ordinary JS callback, so a
+  // worklet handler passed to it would never be recognised as one. Only the
+  // *input* crosses the bridge — everything derived from it runs on the UI
+  // thread, which is what keeps the parallax off the JS frame budget.
+  const scrollY = useSharedValue(0);
+
+  // A status change can flip every tile in the grid at once (COMPLETED sweeps
+  // progress, PLANNED clears it); a tap flips one. Only the first staggers, and
+  // the screen is told which it is by the handler that caused it rather than
+  // inferring it from the count — the write is where that is known for certain.
+  const [sweeping, setSweeping] = useState(false);
 
   const rows = useMemo(() => {
     const total = media?.partCount ?? 0;
@@ -137,6 +169,7 @@ export default function MediaScreen() {
 
   const togglePart = (number: number) => {
     const isWatched = watched.has(number);
+    setSweeping(false);
     apply(
       {
         watched: isWatched
@@ -150,6 +183,7 @@ export default function MediaScreen() {
 
   const setStatus = (status: LogStatus | null) => {
     if (status === null) {
+      setSweeping(false);
       apply({ status: null, startedAt: null, finishedAt: null }, () =>
         trackingApi.clearStatus(detail.id),
       );
@@ -166,6 +200,7 @@ export default function MediaScreen() {
             ? { watched: [] }
             : {};
     const dates = stampedDates(status, viewer, todayIso());
+    setSweeping('watched' in sweep);
     apply({ status, ...sweep, ...dates }, () => trackingApi.setStatus(detail.id, status));
     // The one transition with no evidence behind its date: the user is logging
     // something they watched at some unknown time in the past, and today is
@@ -181,11 +216,16 @@ export default function MediaScreen() {
       <FlashList
         data={rows}
         keyExtractor={(row) => `parts-${row[0]}`}
-        extraData={watched}
+        extraData={`${watched.size}-${sweeping}`}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          scrollY.value = event.nativeEvent.contentOffset.y;
+        }}
         contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }}
         ListHeaderComponent={
-          <View style={{ paddingTop: insets.top + space.md }}>
+          <View style={{ paddingTop: insets.top + HEADER_HEIGHT }}>
             <Hero
+              scrollY={scrollY}
               media={detail}
               watched={watched}
               next={next}
@@ -227,6 +267,7 @@ export default function MediaScreen() {
                 size={tileWidth}
                 watched={watched.has(number)}
                 isNext={number === next}
+                staggered={sweeping}
                 noun={partNoun(detail)}
                 onPress={() => togglePart(number)}
               />
@@ -234,6 +275,8 @@ export default function MediaScreen() {
           </View>
         )}
       />
+
+      <HeaderBar title={detail.title} scrollY={scrollY} />
 
       {sheet === 'status' ? (
         <StatusSheet
@@ -297,6 +340,19 @@ function partNoun(detail: MediaDetail): { singular: string; prefix: string } {
  * again to undo. The up-next part is outlined pink before it is filled, which
  * is what makes "where was I" answerable at a glance.
  *
+ * From phase 4 the fill is animated rather than switched. Two things make that
+ * more than decoration. A single tap gets a 140ms fade, which is what tells the
+ * eye *which* tile it just hit in a grid of sixty identical squares. And when a
+ * status change sweeps the whole grid — COMPLETED marks every part at once —
+ * the tiles land in sequence (`staggered`), so the sweep reads as one action
+ * the user caused rather than as the screen having been replaced.
+ *
+ * The stagger is suppressed for a single toggle, because a chapter 240 tile
+ * would otherwise wait a quarter second to acknowledge its own tap. And when
+ * `number` changes the fill *snaps*: this tile is a recycled `FlashList` cell
+ * that has just become a different part, and animating that would flash a fill
+ * across the grid on every scroll.
+ *
  * The label carries what the bare number can't: the tile shows `13`, the screen
  * reader hears "Episode 13, watched".
  */
@@ -305,6 +361,7 @@ function PartTile({
   size,
   watched,
   isNext,
+  staggered,
   noun,
   onPress,
 }: {
@@ -312,32 +369,104 @@ function PartTile({
   size: number;
   watched: boolean;
   isNext: boolean;
+  /** True when this change is part of a bulk sweep, not a single tap. */
+  staggered: boolean;
   noun: { singular: string; prefix: string };
   onPress: () => void;
 }) {
+  const press = usePressMotion();
+  const fill = useSharedValue(watched ? 1 : 0);
+  const recycledAs = useRef(number);
+
+  useEffect(() => {
+    const target = watched ? 1 : 0;
+    if (recycledAs.current !== number) {
+      recycledAs.current = number;
+      fill.value = target;
+      return;
+    }
+    fill.value = withDelay(
+      staggered ? staggerDelay(number - 1, 6) : 0,
+      withTiming(target, { duration: duration.micro }),
+    );
+  }, [watched, number, staggered, fill]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      fill.value,
+      [0, 1],
+      [isNext ? surface.pinkRow : surface.glass, surface.pinkSelected],
+    ),
+    borderColor: interpolateColor(
+      fill.value,
+      [0, 1],
+      [isNext ? color.pink : surface.glassBorder, color.pink],
+    ),
+  }));
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ selected: watched }}
       accessibilityLabel={`${noun.singular} ${number}${watched ? ' — watched' : isNext ? ' — up next' : ''}`}
       onPress={onPress}
-      android_ripple={{ color: 'rgba(217,107,176,0.12)' }}
-      style={({ pressed }) => [
-        styles.tile,
-        { width: size, height: size },
-        watched ? styles.tileWatched : isNext ? styles.tileNext : null,
-        { opacity: pressed ? 0.7 : 1 },
-      ]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      android_ripple={ripple()}
+      style={[styles.tile, { width: size, height: size }, fillStyle, press.animatedStyle]}
     >
       <Text style={[type.eyebrow, watched || isNext ? styles.tileWatchedText : styles.dim]}>
         {number}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
+  );
+}
+
+/**
+ * The 44pt bar the page header collapses into (`Mobile System.dc.html`,
+ * platform table: "collapses to a 44pt glass bar on scroll" on iOS, the small
+ * app bar on Android — the same geometry either way).
+ *
+ * The back chevron does **not** fade: it is the screen's only in-app way out on
+ * iOS, and an affordance that appears only once you have scrolled past it is
+ * worse than no affordance. Only the glass and the title cross-fade in, and
+ * they do it from the *hero* title's position, so what the bar shows is the
+ * thing that just left rather than a new label.
+ */
+function HeaderBar({ title, scrollY }: { title: string; scrollY: SharedValue<number> }) {
+  const insets = useSafeAreaInsets();
+
+  const glassStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [...HEADER_FADE], [0, 1], 'clamp'),
+  }));
+
+  return (
+    <View
+      style={[styles.headerBar, { paddingTop: insets.top, height: insets.top + HEADER_HEIGHT }]}
+      pointerEvents="box-none"
+    >
+      <Animated.View
+        style={[StyleSheet.absoluteFill, glassStyle]}
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.headerRule} />
+      </Animated.View>
+      <View style={styles.headerRow}>
+        <BackLink />
+        <Animated.Text numberOfLines={1} style={[type.section, styles.headerTitle, glassStyle]}>
+          {title.toUpperCase()}
+        </Animated.Text>
+      </View>
+    </View>
   );
 }
 
 function Hero({
   media,
+  scrollY,
   watched,
   next,
   onCheckInNext,
@@ -346,6 +475,7 @@ function Hero({
   onToggleFavorite,
 }: {
   media: MediaDetail;
+  scrollY: SharedValue<number>;
   watched: ReadonlySet<number>;
   next: number | null;
   onCheckInNext: () => void;
@@ -357,17 +487,30 @@ function Hero({
   const range = dateRangeLabel(viewer.startedAt, viewer.finishedAt);
   const noun = partNoun(media);
 
+  // The cover holds back at a third of the scroll and fades as the bar takes
+  // over, so the two halves of the header hand off to each other instead of
+  // both being on screen at once. Pulling *down* scales it up rather than
+  // leaving a gap — the one place in the app where overscroll is not just slack.
+  const coverStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(scrollY.value, [0, 300], [0, 100], 'clamp') },
+      { scale: scrollY.value < 0 ? 1 + Math.min(-scrollY.value, 120) / 600 : 1 },
+    ],
+    opacity: interpolate(scrollY.value, [...HEADER_FADE], [1, 0.25], 'clamp'),
+  }));
+
   return (
     <View style={[styles.gutter, styles.hero]}>
-      <BackLink />
       <View style={styles.heroRow}>
-        <Cover
-          kind={media.kind}
-          title={media.title}
-          coverUrl={media.coverUrl}
-          width={120}
-          showTitle={false}
-        />
+        <Animated.View style={coverStyle}>
+          <Cover
+            kind={media.kind}
+            title={media.title}
+            coverUrl={media.coverUrl}
+            width={120}
+            showTitle={false}
+          />
+        </Animated.View>
         <View style={styles.heroText}>
           <View style={styles.metaRow}>
             <KindDot kind={media.kind} />
@@ -459,23 +602,22 @@ function ActionPill({
   onPress: () => void;
   accessibilityLabel?: string;
 }) {
+  const press = usePressMotion();
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       {...(accessibilityLabel ? { accessibilityLabel } : {})}
       onPress={onPress}
-      android_ripple={{ color: 'rgba(217,107,176,0.12)' }}
-      style={({ pressed }) => [
-        styles.pill,
-        selected ? styles.pillSelected : null,
-        { opacity: pressed ? 0.7 : 1 },
-      ]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      android_ripple={ripple()}
+      style={[styles.pill, selected ? styles.pillSelected : null, press.animatedStyle]}
     >
       <Text style={[type.button, selected ? styles.pinkText : styles.fg]}>
         {label.toUpperCase()}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -612,6 +754,32 @@ const styles = StyleSheet.create({
   },
   shrink: {
     alignSelf: 'flex-start',
+  },
+  headerBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  headerRule: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: surface.glassBorder,
+  },
+  headerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingHorizontal: layout.gutter,
+  },
+  headerTitle: {
+    flex: 1,
+    color: color.fg,
   },
   partsHead: {
     marginTop: layout.sectionGap,

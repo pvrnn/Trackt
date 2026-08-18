@@ -10,7 +10,7 @@ import { type } from '../theme/typography';
 import { Avatar } from './Avatar';
 import { Field } from './Field';
 import { PrismButton } from './PrismButton';
-import { Sheet, SheetError } from './Sheet';
+import { Sheet, SheetError, useSheetController } from './Sheet';
 
 /** The picked asset in the shape `uploadAvatar` wants (RN has no `File`). */
 interface PickedAvatar {
@@ -49,6 +49,7 @@ export function EditProfileSheet({
   onSaved: () => Promise<void>;
   onClose: () => void;
 }) {
+  const sheet = useSheetController(onClose);
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio ?? '');
   const [avatar, setAvatar] = useState<AvatarChange>({ kind: 'keep' });
@@ -121,7 +122,7 @@ export function EditProfileSheet({
       }
       commitHaptic();
       await onSaved();
-      onClose();
+      sheet.dismiss();
     } catch (cause) {
       errorHaptic();
       setError(cause instanceof Error ? cause.message : 'Saving failed — try again.');
@@ -130,7 +131,7 @@ export function EditProfileSheet({
   };
 
   return (
-    <Sheet title="Edit profile" subtitle={`@${user.username}`} onClose={onClose} tall>
+    <Sheet title="Edit profile" subtitle={`@${user.username}`} controller={sheet} tall>
       <View style={styles.photoRow}>
         {avatar.kind === 'replace' ? (
           // The picked file is a local `file://` uri, which is not an instance

@@ -15,7 +15,8 @@ import {
   type UpNextEntry,
 } from '@trackt/shared';
 import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
@@ -28,9 +29,13 @@ import {
   SectionTitle,
   useTabContentInset,
 } from '../../../src/components/Page';
+import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
+import { SkeletonRows } from '../../../src/components/Skeleton';
+import { SwipeCheckIn } from '../../../src/components/SwipeCheckIn';
 import { Touchable } from '../../../src/components/Touchable';
 import { PrismText } from '../../../src/components/PrismText';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
+import { duration, staggerDelay } from '../../../src/lib/motion';
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, nativeSurface, radius, space, surface } from '../../../src/theme/tokens';
@@ -41,13 +46,16 @@ import { type } from '../../../src/theme/typography';
  *
  * Up next is a column of 72pt rows rather than web's three-across card grid: at
  * 362pt a card grid is one column anyway, and the row is the shape the swipe
- * check-in needs (`Mobile System.dc.html` §04). Phase 3 wires the check-in
- * itself as a button on the row; the swipe that replaces the button as the
- * primary gesture needs gesture-handler and Reanimated, and lands with phase 4.
+ * check-in needs (`Mobile System.dc.html` §04) — which, from phase 4, it now
+ * carries: drag a row right past 96pt and release. The button stays beside it
+ * for the readers a pan cannot serve (`SwipeCheckIn`).
  *
- * What phase 3 does adopt from §04 is the rule the swipe exists to serve: the
- * check-in commits instantly, with **no confirmation dialog**, and an undo
- * toast for five seconds — "the cost of a wrong check-in is one tap".
+ * The rule the swipe exists to serve is phase 3's and unchanged: the check-in
+ * commits instantly, with **no confirmation dialog**, and an undo toast for
+ * five seconds — "the cost of a wrong check-in is one tap". What phase 4 adds
+ * is that the commit is now *visible* — the row leaves to the right over 220ms
+ * and the column closes the gap — and reversible in the same motion: an undo,
+ * or a write the server rejected, springs it back open.
  */
 export default function HomeTab() {
   const { user, isPending: sessionPending } = useAuthedScreen();
@@ -103,14 +111,14 @@ export default function HomeTab() {
 
   if (sessionPending || !user) {
     return (
-      <PageFrame>
+      <PageFrame fadeOnFocus>
         <Loading />
       </PageFrame>
     );
   }
 
   return (
-    <PageFrame>
+    <PageFrame fadeOnFocus>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -131,7 +139,7 @@ export default function HomeTab() {
         />
 
         {isPending ? (
-          <Loading />
+          <SkeletonRows />
         ) : isError || !data ? (
           <EmptyState
             title="Couldn't load"
@@ -146,10 +154,11 @@ export default function HomeTab() {
               />
             ) : (
               <View style={styles.rows}>
-                {data.upNext.map((entry) => (
+                {data.upNext.map((entry, index) => (
                   <UpNextRow
                     key={upNextPartKey(entry)}
                     entry={entry}
+                    index={index}
                     checkedIn={checkedIn.has(upNextPartKey(entry))}
                     onCheckIn={() => checkIn.mutate(entry)}
                   />
@@ -165,22 +174,28 @@ export default function HomeTab() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.shelf}
                 >
-                  {data.inProgress.map((entry) => (
-                    <Touchable key={entry.id} href={`/media/${entry.slug}`}>
-                      <Cover
-                        kind={entry.kind}
-                        title={entry.title}
-                        coverUrl={entry.coverUrl}
-                        width={96}
-                        progress={entry.total ? entry.watched / entry.total : undefined}
-                      />
-                      <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={1}>
-                        {entry.title}
-                      </Text>
-                      <Text style={[type.eyebrow, styles.dim]}>
-                        {entry.total ? `${entry.watched} / ${entry.total}` : `${entry.watched}`}
-                      </Text>
-                    </Touchable>
+                  {data.inProgress.map((entry, index) => (
+                    <Animated.View
+                      key={entry.id}
+                      entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
+                      layout={LinearTransition.duration(duration.commit)}
+                    >
+                      <Touchable href={`/media/${entry.slug}`}>
+                        <Cover
+                          kind={entry.kind}
+                          title={entry.title}
+                          coverUrl={entry.coverUrl}
+                          width={96}
+                          progress={entry.total ? entry.watched / entry.total : undefined}
+                        />
+                        <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={1}>
+                          {entry.title}
+                        </Text>
+                        <Text style={[type.eyebrow, styles.dim]}>
+                          {entry.total ? `${entry.watched} / ${entry.total}` : `${entry.watched}`}
+                        </Text>
+                      </Touchable>
+                    </Animated.View>
                   ))}
                 </ScrollView>
                 {data.inProgress.length === IN_PROGRESS_LIMIT ? (
@@ -206,11 +221,13 @@ export default function HomeTab() {
                 <SectionTitle title="Activity" />
                 <GlassCard style={styles.activityCard}>
                   {data.activity.map((entry, index) => (
-                    <ActivityRow
+                    <Animated.View
                       key={`${entry.slug}-${entry.at}-${index}`}
-                      entry={entry}
-                      first={index === 0}
-                    />
+                      entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
+                      layout={LinearTransition.duration(duration.commit)}
+                    >
+                      <ActivityRow entry={entry} first={index === 0} />
+                    </Animated.View>
                   ))}
                 </GlassCard>
               </View>
@@ -230,61 +247,75 @@ function partLabel(entry: UpNextEntry): string {
 /**
  * One 72pt up-next row: 40×56 thumb, title, the part line, and the check-in.
  *
- * The row opens the title; the button inside it checks in. A `Pressable` nested
- * in a `Pressable` resolves to the inner one on native, so the two targets do
- * not fight — the invalid-markup problem that forces web's card to keep the
- * whole surface unlinked does not exist here.
+ * The row opens the title; the button inside it checks in; the whole row is
+ * also the swipe target. A `Pressable` nested in a `Pressable` resolves to the
+ * inner one on native, so the two tap targets do not fight — the invalid-markup
+ * problem that forces web's card to keep the whole surface unlinked does not
+ * exist here — and gesture-handler cancels the outer press the moment the pan
+ * activates, so a swipe never also navigates.
  */
 function UpNextRow({
   entry,
+  index,
   checkedIn,
   onCheckIn,
 }: {
   entry: UpNextEntry;
+  index: number;
   checkedIn: boolean;
   onCheckIn: () => void;
 }) {
   const verb = trackingVerbLabel(entry.kind).toUpperCase();
+  const action = `${trackingVerbLabel(entry.kind, 'present')} ${partLabel(entry)}`;
+  const press = usePressMotion();
   return (
-    <Touchable href={`/media/${entry.slug}`} style={styles.row}>
-      <Cover
-        kind={entry.kind}
-        title={entry.title}
-        coverUrl={entry.coverUrl}
-        width={40}
-        showTitle={false}
-      />
-      <View style={styles.rowBody}>
-        <Text style={[type.cardTitle, styles.rowTitle]} numberOfLines={1}>
-          {entry.title}
-        </Text>
-        <View style={styles.metaRow}>
-          <KindDot kind={entry.kind} />
-          <Text style={[type.eyebrow, styles.dim]}>
-            {KIND_LABELS_SINGULAR[entry.kind]} · {partLabel(entry)}
-            {entry.total ? ` OF ${entry.total}` : ''}
-          </Text>
-        </View>
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Mark ${entry.title} ${partLabel(entry)} ${verb.toLowerCase()}`}
-        accessibilityState={{ disabled: checkedIn }}
-        disabled={checkedIn}
-        onPress={onCheckIn}
-        android_ripple={{ color: 'rgba(217,107,176,0.12)', borderless: true }}
-        hitSlop={space.sm}
-        style={({ pressed }) => [
-          styles.check,
-          checkedIn ? styles.checkDone : null,
-          { opacity: pressed ? 0.7 : 1 },
-        ]}
+    <Animated.View entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}>
+      <SwipeCheckIn
+        label={action}
+        armedLabel={`Release to ${action}`}
+        committed={checkedIn}
+        onCommit={onCheckIn}
       >
-        <Text style={[type.button, checkedIn ? styles.dim : styles.pink]}>
-          {checkedIn ? `✓ ${verb}` : '✓'}
-        </Text>
-      </Pressable>
-    </Touchable>
+        <Touchable href={`/media/${entry.slug}`} style={styles.row}>
+          <Cover
+            kind={entry.kind}
+            title={entry.title}
+            coverUrl={entry.coverUrl}
+            width={40}
+            showTitle={false}
+          />
+          <View style={styles.rowBody}>
+            <Text style={[type.cardTitle, styles.rowTitle]} numberOfLines={1}>
+              {entry.title}
+            </Text>
+            <View style={styles.metaRow}>
+              <KindDot kind={entry.kind} />
+              <Text style={[type.eyebrow, styles.dim]}>
+                {KIND_LABELS_SINGULAR[entry.kind]} · {partLabel(entry)}
+                {entry.total ? ` OF ${entry.total}` : ''}
+              </Text>
+            </View>
+          </View>
+          <AnimatedPressable
+            accessibilityRole="button"
+            accessibilityLabel={`Mark ${entry.title} ${partLabel(entry)} ${verb.toLowerCase()}`}
+            accessibilityState={{ disabled: checkedIn }}
+            accessibilityHint="Or swipe the row right"
+            disabled={checkedIn}
+            onPress={onCheckIn}
+            onPressIn={press.onPressIn}
+            onPressOut={press.onPressOut}
+            android_ripple={ripple(true)}
+            hitSlop={space.sm}
+            style={[styles.check, checkedIn ? styles.checkDone : null, press.animatedStyle]}
+          >
+            <Text style={[type.button, checkedIn ? styles.dim : styles.pink]}>
+              {checkedIn ? `✓ ${verb}` : '✓'}
+            </Text>
+          </AnimatedPressable>
+        </Touchable>
+      </SwipeCheckIn>
+    </Animated.View>
   );
 }
 
@@ -322,7 +353,11 @@ const styles = StyleSheet.create({
     marginTop: layout.sectionGap,
   },
   rows: {
-    gap: space.sm,
+    // No `gap`: each row owns its own 8pt bottom margin, because a collapsing
+    // row has to take its spacing with it — a `gap` would leave an 8pt hole
+    // where the checked-in row used to be. The negative margin cancels the
+    // trailing one so the next section keeps its 28.
+    marginBottom: -space.sm,
   },
   row: {
     height: 72,

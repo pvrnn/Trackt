@@ -1,8 +1,11 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactElement, ReactNode } from 'react';
 import type { RefreshControlProps } from 'react-native';
+import { duration } from '../lib/motion';
 import { AuraBackground } from './AuraBackground';
 import { PrismText } from './PrismText';
 import { color, layout, space, surface } from '../theme/tokens';
@@ -16,13 +19,49 @@ import { type } from '../theme/typography';
  * recycle rows — so `PageFrame` gives them the aura and the safe areas and
  * nothing else, and the list supplies its own header and padding.
  */
-export function PageFrame({ children }: { children: ReactNode }) {
+export function PageFrame({
+  children,
+  /**
+   * Fade the content in when the screen takes focus — the tab-switch motion
+   * (`Mobile System.dc.html` §07, 140ms micro). Opt-in, and only the tab
+   * screens opt in: a pushed screen already arrives on the platform's own
+   * horizontal transition, and fading its content on top of that would be two
+   * animations for one navigation.
+   */
+  fadeOnFocus = false,
+}: {
+  children: ReactNode;
+  fadeOnFocus?: boolean;
+}) {
   return (
     <View style={styles.frame}>
+      {/* The aura never fades: it is identical on all four tabs, so animating
+          it would be motion with nothing to say. */}
       <AuraBackground />
-      {children}
+      {fadeOnFocus ? <FocusFade>{children}</FocusFade> : children}
     </View>
   );
+}
+
+/**
+ * The tab content's entrance. `useFocusEffect` rather than an `entering`
+ * layout animation because the tab screens stay mounted — `TabSlot` keeps a
+ * visited tab alive so its scroll position and its queries survive — and a
+ * mount animation on a component that mounts once would play exactly once.
+ */
+function FocusFade({ children }: { children: ReactNode }) {
+  const fade = useSharedValue(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      fade.value = 0;
+      fade.value = withTiming(1, { duration: duration.micro });
+    }, [fade]),
+  );
+
+  const style = useAnimatedStyle(() => ({ opacity: fade.value }));
+
+  return <Animated.View style={[styles.frame, style]}>{children}</Animated.View>;
 }
 
 /**
@@ -58,8 +97,9 @@ export function PageScroll({
 
 /**
  * The Anton page title, in the scroll flow (iOS large-title behaviour, and the
- * cross-platform baseline — the Android Material large top app bar collapse is
- * phase 4's job, not a data-parity concern).
+ * cross-platform baseline). The collapse into a 44pt glass bar is per-screen
+ * rather than built in here: only the media screen scrolls far enough under a
+ * hero for it to mean anything, so the bar lives there (`HeaderBar`).
  *
  * `count` is the gradient eyebrow the mockups pair with every title: "12
  * TITLES", "N UPDATES FROM YOUR LIBRARY".
