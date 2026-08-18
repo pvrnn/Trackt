@@ -39,7 +39,7 @@ import { duration, staggerDelay } from '../../../src/lib/motion';
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, nativeSurface, radius, space, surface } from '../../../src/theme/tokens';
-import { type } from '../../../src/theme/typography';
+import { font, type } from '../../../src/theme/typography';
 
 /**
  * The home dashboard (`GET /me/home`) — and the app's daily action.
@@ -307,9 +307,14 @@ function UpNextRow({
             onPressOut={press.onPressOut}
             android_ripple={ripple(true)}
             hitSlop={space.sm}
-            style={[styles.check, checkedIn ? styles.checkDone : null, press.animatedStyle]}
+            style={[styles.check, press.animatedStyle]}
           >
-            <Text style={[type.button, checkedIn ? styles.dim : styles.pink]}>
+            <Text
+              style={[
+                checkedIn ? type.button : styles.checkGlyph,
+                checkedIn ? styles.dim : styles.pink,
+              ]}
+            >
               {checkedIn ? `✓ ${verb}` : '✓'}
             </Text>
           </AnimatedPressable>
@@ -382,20 +387,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  // No pill, no fill, no border. `Mobile System.dc.html` §04 ends this row with
+  // a `›` in #3d3846 — "a dim chevron is the only affordance" — because the
+  // swipe is the action and the row is already a link. A filled 44pt pink disc
+  // sitting beside a 40×56 cover reads as the loudest thing in the row, which
+  // inverts that. What stays is the 44pt target and the tick, because the glyph
+  // has to say *check in* rather than *open* — a chevron here would name the
+  // wrong action. The weight comes off; the control does not.
   check: {
     minWidth: layout.touchTarget,
     minHeight: layout.touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: space.md,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.pink,
-    backgroundColor: surface.pinkSelected,
+    paddingLeft: space.md,
   },
-  checkDone: {
-    borderColor: surface.glassBorder,
-    backgroundColor: surface.glass,
+  checkGlyph: {
+    fontFamily: font.label,
+    fontSize: 17,
   },
   pink: {
     color: color.pink,
