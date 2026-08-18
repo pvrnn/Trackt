@@ -331,12 +331,15 @@ Six things are worth knowing about how it landed.
   before the thing it does has happened. The threshold tick on arming the swipe
   and the commit impact on the check-in itself are both there.
 
-Reduced motion is set **once**, globally: `<ReducedMotionConfig mode={System}>`
-in the root layout, so every `withTiming`/`withSpring` resolves instantly when
-the setting is on and no component can forget. The handful of places that need
-to do something *different* rather than merely faster read `useReducedMotion()`
-themselves — the swipe row does not exit or collapse at all under it, falling
-back to phase 3's behaviour of staying put with a checked-in button.
+Reduced motion needs **no wiring at all**, which took running the app to learn:
+`ReduceMotion.System` is already every Reanimated animation's default, so the
+`<ReducedMotionConfig>` that documented it changed nothing and cost a LogBox
+warning on every launch. It is gone. With the OS setting on, every
+`withTiming`/`withSpring` resolves straight to its end value (PRD §6), and the
+few places that must do something *different* rather than merely faster read
+`useReducedMotion()` themselves — the swipe row does not exit or collapse at all
+under it, falling back to phase 3's behaviour of staying put with a checked-in
+button.
 
 ## Phase 5 — offline, then shipping
 
