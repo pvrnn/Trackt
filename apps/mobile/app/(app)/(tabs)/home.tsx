@@ -20,6 +20,7 @@ import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
+import { Icon } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
@@ -39,7 +40,7 @@ import { duration, staggerDelay } from '../../../src/lib/motion';
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, nativeSurface, radius, space, surface } from '../../../src/theme/tokens';
-import { font, type } from '../../../src/theme/typography';
+import { type } from '../../../src/theme/typography';
 
 /**
  * The home dashboard (`GET /me/home`) — and the app's daily action.
@@ -309,14 +310,8 @@ function UpNextRow({
             hitSlop={space.sm}
             style={[styles.check, press.animatedStyle]}
           >
-            <Text
-              style={[
-                checkedIn ? type.button : styles.checkGlyph,
-                checkedIn ? styles.dim : styles.pink,
-              ]}
-            >
-              {checkedIn ? `✓ ${verb}` : '✓'}
-            </Text>
+            <Icon name="check" color={checkedIn ? color.dim : color.pink} />
+            {checkedIn ? <Text style={[type.button, styles.dim]}>{verb}</Text> : null}
           </AnimatedPressable>
         </Touchable>
       </SwipeCheckIn>
@@ -397,14 +392,13 @@ const styles = StyleSheet.create({
   check: {
     minWidth: layout.touchTarget,
     minHeight: layout.touchTarget,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: space.sm,
     paddingLeft: space.md,
   },
-  checkGlyph: {
-    fontFamily: font.label,
-    fontSize: 17,
-  },
+
   pink: {
     color: color.pink,
   },
