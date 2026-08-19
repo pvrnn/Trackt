@@ -10,6 +10,7 @@ import type { ListEntry } from '@trackt/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { ConfirmSheet } from '../../../src/components/ConfirmSheet';
 import { Cover } from '../../../src/components/Cover';
 import { KindDot } from '../../../src/components/KindDot';
@@ -19,6 +20,7 @@ import { PrismButton } from '../../../src/components/PrismButton';
 import { PrismText } from '../../../src/components/PrismText';
 import { Touchable } from '../../../src/components/Touchable';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
+import { duration } from '../../../src/lib/motion';
 import { useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
@@ -126,19 +128,25 @@ export default function ListScreen() {
       ) : (
         <View style={styles.rows}>
           {list.entries.map((entry, index) => (
-            <Row
-              key={entry.id}
-              entry={entry}
-              rank={list.isRanked ? index + 1 : null}
-              owner={list.isOwner}
-              reorderable={reorderable}
-              first={index === 0}
-              last={index === list.entries.length - 1}
-              onMove={(direction) =>
-                void run(() => listsApi.moveItem(list.id, entry.id, direction))
-              }
-              onRemove={() => void run(() => listsApi.removeItem(list.id, entry.id))}
-            />
+            // The reorder is not optimistic — ↑/↓ wait for the server, because
+            // a ranked list's positions are its own (see above). What the
+            // layout transition adds is the only thing missing once the new
+            // order arrives: which row moved. Without it two rows swap between
+            // frames and the eye has to re-read the list to find out.
+            <Animated.View key={entry.id} layout={LinearTransition.duration(duration.commit)}>
+              <Row
+                entry={entry}
+                rank={list.isRanked ? index + 1 : null}
+                owner={list.isOwner}
+                reorderable={reorderable}
+                first={index === 0}
+                last={index === list.entries.length - 1}
+                onMove={(direction) =>
+                  void run(() => listsApi.moveItem(list.id, entry.id, direction))
+                }
+                onRemove={() => void run(() => listsApi.removeItem(list.id, entry.id))}
+              />
+            </Animated.View>
           ))}
         </View>
       )}

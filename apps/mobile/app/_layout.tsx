@@ -5,6 +5,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { InstanceProvider, useInstance } from '../src/lib/instance-provider';
 import { ToastProvider } from '../src/lib/toast';
@@ -24,11 +25,25 @@ import { fontAssets } from '../src/theme/typography';
  */
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <InstanceProvider>
-        <App />
-      </InstanceProvider>
-    </SafeAreaProvider>
+    // `GestureHandlerRootView` has to be the outermost view, above the safe-area
+    // provider and above anything a `Modal` renders into, or a pan inside a
+    // sheet never reaches its detector (phase 4).
+    <GestureHandlerRootView style={styles.root}>
+      {/* No `<ReducedMotionConfig>`: `ReduceMotion.System` is already what every
+          Reanimated animation defaults to, so declaring it changes nothing and
+          costs a LogBox warning on every launch ("Reduced motion setting is
+          overwritten with mode 'system'") — which is worse than the redundancy
+          it was documenting. What the app relies on stands either way: with the
+          OS setting on, every `withTiming`/`withSpring` resolves straight to its
+          end value (PRD §6), and the few places that must do something
+          *different* rather than merely faster — the swipe row's exit — read
+          `useReducedMotion()` themselves. */}
+      <SafeAreaProvider>
+        <InstanceProvider>
+          <App />
+        </InstanceProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -98,6 +113,10 @@ function Splash() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: color.ink,
+  },
   splash: {
     flex: 1,
     alignItems: 'center',

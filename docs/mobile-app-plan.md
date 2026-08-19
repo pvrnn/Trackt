@@ -268,26 +268,78 @@ partial, so omitting the key leaves what was set on web untouched — that is wh
 makes leaving it out safe rather than destructive. Showing them, and editing them,
 is a read-parity item left over from phase 2.
 
-## Phase 4 — motion
+## Phase 4 — motion ✅ built
 
-Smooth is a phase, not a side effect. The inventory, cheapest first:
+Smooth is a phase, not a side effect. The inventory, and where each item landed:
 
-| Interaction        | Technique                                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------------------------- |
-| Check-in button    | Reanimated spring scale + `expo-haptics` `impactAsync(Light)` on press-in, tick draws in on success        |
-| Episode tile fill  | `withTiming` on background/border, staggered when `completed` sweeps the whole grid                        |
-| Screen push        | Native stack (platform-correct by construction, gesture back for free)                                     |
-| Media hero         | Parallax cover on scroll (`useAnimatedScrollHandler`), title fading into the header                        |
-| Tab switch         | `entering`/`exiting` layout animations on the content, not the tab bar                                     |
-| Lists & shelves    | `Layout` transitions on reorder, `FadeIn` stagger on first paint                                           |
-| History            | Year switch cross-fades the totals row; new pages append with a stagger instead of a jump                  |
-| Rating             | Gesture-handler pan across the half-step star row                                                          |
-| Sheets             | Native modal presentation for add-to-list / rate / status / log dates                                      |
-| Skeletons          | Reanimated shimmer keyed to the same query states web uses                                                 |
+| Interaction        | How it shipped                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| **Swipe check-in** | `SwipeCheckIn` — §04's thresholds, the tick at 96pt, the exit and the collapse (below)                               |
+| Check-in button    | `usePressMotion`: a 140ms spring to 0.96 under the finger, on every pressable in the app                             |
+| Episode tile fill  | `interpolateColor` over 140ms; staggered only when a status change sweeps the whole grid                             |
+| Screen push        | Native stack — already free since phase 1                                                                            |
+| Media hero         | Cover parallax on scroll, fading into a 44pt glass `HeaderBar` that takes the title                                  |
+| Tab switch         | `PageFrame fadeOnFocus` — the content, never the bar                                                                 |
+| Lists & shelves    | `LinearTransition` on the ranked list's reorder, `FadeIn` stagger on the home shelf and feed                         |
+| History            | The totals row cross-fades when the year changes; appended pages stagger in instead of jumping                       |
+| Rating             | A pan across the star row, ticking at each half step                                                                 |
+| Sheets             | Present, dismiss **and drag** — the thing phase 3's `Modal` gave up                                                  |
+| Skeletons          | `Skeleton`/`SkeletonRows` where the screen already knows the shape it is about to draw                               |
 
-Two rules: honour reduced-motion (PRD §6), and never animate a state change the
-server hasn't confirmed _without_ a rollback path — the optimistic update and
-its animation are one unit.
+The two rules held: reduced motion is honoured, and no state change is animated
+without a rollback path — the optimistic update and its animation are one unit.
+
+Six things are worth knowing about how it landed.
+
+- **The swipe is not the only check-in, and that is deliberate.** §04 says "a
+  dim chevron is the only affordance"; the button phase 3 built stays anyway. A
+  pan has nothing to offer VoiceOver, TalkBack or switch control, and the
+  design's version would leave those users with no check-in at all. Same
+  reasoning as the rating chips under the now-draggable stars: the gesture is
+  the fast path, never the only one.
+- **The exit is driven by state, not by the gesture.** `SwipeCheckIn` takes a
+  `committed` prop and plays the 220ms exit from it, so the button and the swipe
+  animate identically — and so the row can come *back*. An undo, or a write the
+  server rejected, flips the prop and the row springs open again. Driving the
+  exit from `onEnd` would have made the swipe a one-way door, which is exactly
+  the rule about rollback paths.
+- **`useSheetController`, because a dismiss animation needs the element to
+  outlive the state.** The sheets are still mounted on demand — that was never
+  the negotiable part — so the exit has to run *before* the parent unmounts
+  them. The controller lives in the parent, `dismiss()` plays the exit and only
+  then calls `onClose`. It could not live inside `<Sheet>`: the sheets close
+  themselves from handlers defined outside their own JSX (`RatingSheet` on SAVE,
+  `ConfirmSheet` on confirm), and those handlers need the animated dismiss.
+- **The one thing the phase did not get is a worklet scroll handler on
+  `FlashList`.** `FlashList` invokes its `onScroll` prop as an ordinary JS
+  callback, so a `useAnimatedScrollHandler` passed to it is never recognised as
+  one. The media hero therefore writes the offset from a plain handler and
+  derives everything else on the UI thread: only the input crosses the bridge.
+  `renderScrollComponent` + `useScrollOffset` would close that gap and is worth
+  revisiting, but it means reaching into how the list mounts its scroll view.
+- **`react-hooks/immutability` is off for `apps/mobile`.** Reanimated mutates
+  shared values by design — `x.value = withSpring(…)` *is* the API — and the
+  object has to appear in an effect's dependency list for the effect to be
+  correct. The React Compiler rule reads that as a write to captured state, and
+  no shape of the Reanimated API satisfies it. Off at the config level rather
+  than suppressed line by line, because a disable comment on every animated file
+  is how a rule stops being read. Everything else in the recommended set stays
+  on, including `refs`, which caught a real mistake during this phase.
+- **No press haptic.** The inventory asked for `impactAsync(Light)` on the
+  check-in button's press-in; §07 reserves haptics for a commit, a threshold and
+  a failure, and §07 wins. A button that buzzes on press spends the feedback
+  before the thing it does has happened. The threshold tick on arming the swipe
+  and the commit impact on the check-in itself are both there.
+
+Reduced motion needs **no wiring at all**, which took running the app to learn:
+`ReduceMotion.System` is already every Reanimated animation's default, so the
+`<ReducedMotionConfig>` that documented it changed nothing and cost a LogBox
+warning on every launch. It is gone. With the OS setting on, every
+`withTiming`/`withSpring` resolves straight to its end value (PRD §6), and the
+few places that must do something *different* rather than merely faster read
+`useReducedMotion()` themselves — the swipe row does not exit or collapse at all
+under it, falling back to phase 3's behaviour of staying put with a checked-in
+button.
 
 ## Phase 5 — offline, then shipping
 
@@ -322,6 +374,10 @@ list names remain user-supplied — worth revisiting if comments land.
   here, exactly as they are on web.
 - One test worth writing on day one: the **token drift guard** — parse the hex
   values out of `apps/web/src/styles.css` and assert `theme/tokens.ts` matches.
+  Phase 4 adds its sibling: `test/lib/motion.test.ts` holds the swipe geometry
+  and the four durations to §04 and §07. Same principle — the components that
+  read them need a renderer, the numbers do not, and the numbers are what a
+  redesign changes.
 - Manual passes on a physical iOS and Android device against a local instance
   (the `start-app` skill brings the dev stack up; point the app at the LAN IP
   rather than `localhost`), and against a second instance to prove the picker.

@@ -8,7 +8,7 @@ import { type } from '../theme/typography';
 import { Field } from './Field';
 import { Loading } from './Page';
 import { PrismButton } from './PrismButton';
-import { Sheet, SheetError } from './Sheet';
+import { Sheet, SheetError, useSheetController } from './Sheet';
 
 /**
  * Add or remove a title across the viewer's lists (PRD §3.4).
@@ -28,6 +28,7 @@ export function AddToListSheet({
   mediaTitle: string;
   onClose: () => void;
 }) {
+  const sheet = useSheetController(onClose);
   const { data: lists, isPending, isError } = useLists(mediaId);
   const createList = useCreateList();
   const invalidate = useListsInvalidator();
@@ -68,7 +69,7 @@ export function AddToListSheet({
   };
 
   return (
-    <Sheet title="Add to list" subtitle={mediaTitle} onClose={onClose} tall>
+    <Sheet title="Add to list" subtitle={mediaTitle} controller={sheet} tall>
       {isError ? (
         <SheetError message="Couldn’t load your lists — try again in a moment." />
       ) : isPending ? (
@@ -133,7 +134,7 @@ export function AddToListSheet({
 
       {error ? <SheetError message={error} /> : null}
 
-      <PrismButton label="Done" onPress={onClose} />
+      <PrismButton label="Done" onPress={sheet.dismiss} />
     </Sheet>
   );
 }

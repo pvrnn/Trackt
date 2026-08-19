@@ -16,7 +16,7 @@ import { Avatar } from './Avatar';
 import { Field } from './Field';
 import { Loading } from './Page';
 import { PrismButton } from './PrismButton';
-import { Sheet, SheetError } from './Sheet';
+import { Sheet, SheetError, useSheetController } from './Sheet';
 
 /** Search-result action label per viewer-relative `friendState`. */
 const ACTION_LABEL: Record<FriendState, string> = {
@@ -39,6 +39,7 @@ const ACTION_LABEL: Record<FriendState, string> = {
  * unfriends.
  */
 export function FriendsSheet({ onClose }: { onClose: () => void }) {
+  const sheet = useSheetController(onClose);
   const { data: overview, isPending, isError } = useFriends();
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +68,7 @@ export function FriendsSheet({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Sheet title="Friends" onClose={onClose} tall>
+    <Sheet title="Friends" controller={sheet} tall>
       {isError ? (
         <SheetError message="Couldn’t load your friends — try again in a moment." />
       ) : isPending ? (
@@ -154,7 +155,7 @@ export function FriendsSheet({ onClose }: { onClose: () => void }) {
 
       {error ? <SheetError message={error} /> : null}
 
-      <PrismButton label="Done" onPress={onClose} />
+      <PrismButton label="Done" onPress={sheet.dismiss} />
     </Sheet>
   );
 }

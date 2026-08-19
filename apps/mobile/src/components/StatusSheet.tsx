@@ -3,7 +3,7 @@ import { LOG_STATUSES, type LogStatus } from '@trackt/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
-import { Sheet } from './Sheet';
+import { Sheet, useSheetController } from './Sheet';
 
 /**
  * The log status picker (`PUT|DELETE /media/:id/log`).
@@ -26,13 +26,14 @@ export function StatusSheet({
   onPick: (status: LogStatus | null) => void;
   onClose: () => void;
 }) {
+  const sheet = useSheetController(onClose);
   const choose = (status: LogStatus | null) => {
     onPick(status);
-    onClose();
+    sheet.dismiss();
   };
 
   return (
-    <Sheet title="Status" subtitle={mediaTitle} onClose={onClose}>
+    <Sheet title="Status" subtitle={mediaTitle} controller={sheet}>
       <View style={styles.rows}>
         {LOG_STATUSES.map((status) => (
           <Row

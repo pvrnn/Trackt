@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { AnimatedPressable, usePressMotion } from './Press';
 import { PRISM, color, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
@@ -9,9 +10,10 @@ import { type } from '../theme/typography';
  * pill, `#14101A` label, 13px, tracked 0.06em, 12/24 padding).
  *
  * Web's hover `brightness(1.15)` has no touch equivalent; the press feedback is
- * opacity instead, which is the platform convention on both OSes. Phase 4 gives
- * this a Reanimated spring and a haptic — it is deliberately plain until then
- * rather than half-animated.
+ * the platform's opacity dip and, from phase 4, a 140ms spring to 0.96
+ * (`usePressMotion`). No haptic: §07 reserves those for a commit, a threshold
+ * and a failure, and a button that buzzes on press would spend the budget
+ * before the thing it does has happened.
  *
  * `secondary` is the glass pill: the same geometry with a border instead of the
  * gradient, so the two never disagree about size when they sit in a column.
@@ -32,6 +34,7 @@ export function PrismButton({
   style?: StyleProp<ViewStyle>;
 }) {
   const inert = disabled || busy;
+  const press = usePressMotion();
   const content = (
     <View style={styles.content}>
       {busy && (
@@ -44,12 +47,14 @@ export function PrismButton({
   );
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: inert, busy }}
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       disabled={inert}
-      style={({ pressed }) => [styles.pill, { opacity: inert ? 0.5 : pressed ? 0.85 : 1 }, style]}
+      style={[styles.pill, style, inert ? styles.inert : press.animatedStyle]}
     >
       {variant === 'primary' ? (
         <LinearGradient
@@ -63,7 +68,7 @@ export function PrismButton({
       ) : (
         <View style={[styles.surface, styles.secondary]}>{content}</View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -71,6 +76,11 @@ const styles = StyleSheet.create({
   pill: {
     borderRadius: radius.pill,
     overflow: 'hidden',
+  },
+  // A disabled button takes the flat dim and no press motion at all, rather
+  // than an animated style that happens never to move.
+  inert: {
+    opacity: 0.5,
   },
   surface: {
     paddingVertical: space.md,
