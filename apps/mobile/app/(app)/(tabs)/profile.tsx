@@ -1,9 +1,19 @@
-import { KIND_LABELS, activityVerbLabel, relativeTime, useProfileSummary } from '@trackt/client';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  KIND_LABELS,
+  activityVerbLabel,
+  relativeTime,
+  useFriends,
+  useProfileSummary,
+} from '@trackt/client';
 import { MEDIA_KINDS, type FavoriteEntry } from '@trackt/shared';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../src/components/Avatar';
 import { Cover } from '../../../src/components/Cover';
+import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
+import { FriendsSheet } from '../../../src/components/FriendsSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { KindDot } from '../../../src/components/KindDot';
 import {
@@ -31,13 +41,20 @@ import { type } from '../../../src/theme/typography';
  * destinations, not daily ones, and a six-tab bar squeezes its labels under
  * 10px. That is the one structural difference from `AppNav` on web, which
  * already treats History as a secondary destination anyway.
+ *
+ * Phase 3 gives it its two writes: the profile edit (name, bio, photo) and the
+ * friends sheet, which is also the app's only accept/decline inbox.
  */
 export default function ProfileTab() {
-  const { user, isPending: sessionPending } = useAuthedScreen();
+  const { user, isPending: sessionPending, refetch: refetchSession } = useAuthedScreen();
   const { origin, forgetInstance } = useInstance();
   const { data, isPending, isError, refetch, isRefetching } = useProfileSummary();
+  const { data: friends } = useFriends();
+  const queryClient = useQueryClient();
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
+  const [editing, setEditing] = useState(false);
+  const [managingFriends, setManagingFriends] = useState(false);
 
   if (sessionPending || !user) {
     return (
@@ -70,6 +87,14 @@ export default function ProfileTab() {
               {(data?.user.name ?? user.name).toUpperCase()}
             </Text>
             <Text style={[type.eyebrow, styles.dim]}>@{data?.user.username ?? user.username}</Text>
+            {data ? (
+              <PrismButton
+                label="Edit profile"
+                variant="secondary"
+                onPress={() => setEditing(true)}
+                style={styles.shrink}
+              />
+            ) : null}
           </View>
         </View>
         {data?.user.bio ? <Text style={[type.body, styles.bio]}>{data.user.bio}</Text> : null}
@@ -98,6 +123,57 @@ export default function ProfileTab() {
                 detail={`${data.stats.completed} completed`}
               />
               <Destination href="/lists" title="Lists" detail="Your collections" />
+            </View>
+
+            <View>
+              <SectionTitle
+                title="Friends"
+                action={
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      data.stats.incomingRequestCount > 0
+                        ? `Friends — ${data.stats.incomingRequestCount} pending requests`
+                        : 'Add a friend'
+                    }
+                    onPress={() => setManagingFriends(true)}
+                    style={({ pressed }) => [styles.addFriend, { opacity: pressed ? 0.7 : 1 }]}
+                  >
+                    <Text style={[type.button, styles.pink]}>＋ ADD FRIEND</Text>
+                    {/* The badge is why this control is here and not only in
+                        the sheet: an incoming request has no other surface. */}
+                    {data.stats.incomingRequestCount > 0 ? (
+                      <Text style={[type.eyebrow, styles.badge]}>
+                        {data.stats.incomingRequestCount}
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                }
+              />
+              {friends && friends.friends.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.shelf}
+                >
+                  {friends.friends.map((friend) => (
+                    <Touchable
+                      key={friend.id}
+                      href={`/users/${friend.username}`}
+                      style={styles.friend}
+                    >
+                      <Avatar name={friend.username} image={friend.image} size={56} />
+                      <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
+                        {friend.username}
+                      </Text>
+                    </Touchable>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text style={[type.bodySm, styles.dim]}>
+                  No friends yet — search by name or handle to send a request.
+                </Text>
+              )}
             </View>
 
             {MEDIA_KINDS.map((kind) => {
@@ -147,6 +223,21 @@ export default function ProfileTab() {
           />
         </View>
       </ScrollView>
+
+      {editing && data ? (
+        <EditProfileSheet
+          user={data.user}
+          onClose={() => setEditing(false)}
+          onSaved={async () => {
+            await queryClient.invalidateQueries({ queryKey: ['profile'] });
+            // The session carries the name and avatar this screen's header and
+            // every other screen's chrome read, and it is not a query.
+            refetchSession();
+          }}
+        />
+      ) : null}
+
+      {managingFriends ? <FriendsSheet onClose={() => setManagingFriends(false)} /> : null}
     </PageFrame>
   );
 }
@@ -244,6 +335,28 @@ const styles = StyleSheet.create({
   },
   shrink: {
     alignSelf: 'flex-start',
+  },
+  addFriend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minHeight: layout.touchTarget,
+  },
+  badge: {
+    color: color.onPrism,
+    backgroundColor: color.pink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    overflow: 'hidden',
+  },
+  friend: {
+    width: 64,
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  pink: {
+    color: color.pink,
   },
   destinations: {
     gap: space.sm,

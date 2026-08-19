@@ -1,5 +1,6 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import {
+  LOG_DATE_FLOOR,
   LogDatesSchema,
   MediaDetailSchema,
   SearchResultSchema,
@@ -86,6 +87,30 @@ export function stampedDates(status: LogStatus | null, current: LogDates, today:
   if (status === 'in_progress') return { startedAt, finishedAt: null };
   // paused / dropped: neither finishes the work, so the finish date stands.
   return { startedAt, finishedAt: current.finishedAt };
+}
+
+/**
+ * The three checks the log-date form runs before it sends anything, mirroring
+ * the server's exactly so the common typo never round-trips. The server keeps
+ * them too — a client is not a validator — but a "dates can't be in the future"
+ * that arrives as a 400 half a second later reads as a bug in the picker.
+ *
+ * Returns the problem as display copy, or null when the pair is sound. Both
+ * clients call it: web's two `YYYY-MM-DD` fields and the app's native date
+ * pickers can produce different mistakes, and neither may accept what the other
+ * rejects.
+ */
+export function validateLogDates(dates: LogDates, today: string): string | null {
+  const { startedAt, finishedAt } = dates;
+  for (const value of [startedAt, finishedAt]) {
+    if (value === null) continue;
+    if (value < LOG_DATE_FLOOR) return `Dates start at ${LOG_DATE_FLOOR} — check the year.`;
+    if (value > today) return 'Dates can’t be in the future.';
+  }
+  if (startedAt !== null && finishedAt !== null && finishedAt < startedAt) {
+    return 'The finish date is before the start date.';
+  }
+  return null;
 }
 
 /**

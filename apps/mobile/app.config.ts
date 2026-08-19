@@ -29,7 +29,29 @@ const config: ExpoConfig = {
   android: {
     package: 'app.trackt.client',
   },
-  plugins: ['expo-router', 'expo-secure-store', 'expo-web-browser', 'expo-font', 'expo-image'],
+  plugins: [
+    'expo-router',
+    'expo-secure-store',
+    'expo-web-browser',
+    'expo-font',
+    'expo-image',
+    // Phase 3. The date picker is a native module and needs the plugin even
+    // though it takes no options; the image picker carries the avatar flow's
+    // purpose string, which iOS rejects the build without.
+    '@react-native-community/datetimepicker',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Trackt uses your photos so you can pick a profile picture.',
+        // The avatar flow only ever opens the library. Left at their defaults
+        // these two add a camera usage string and `RECORD_AUDIO` to the
+        // manifest — permissions the app never asks for and cannot justify to a
+        // reviewer.
+        cameraPermission: false,
+        microphonePermission: false,
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },

@@ -1,8 +1,12 @@
 import { updatedLabel, useLists, visibilityLabel } from '@trackt/client';
 import type { ListSummary } from '@trackt/shared';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from '../../../src/components/Cover';
+import { ListFormSheet } from '../../../src/components/ListFormSheet';
 import { BackLink, EmptyState, Loading, PageScroll, PageTitle } from '../../../src/components/Page';
+import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
 import { color, radius, space, surface } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
@@ -14,16 +18,21 @@ import { type } from '../../../src/theme/typography';
  * `ListsQuerySchema.scope` admits only `mine`, so two of the three would be
  * permanently empty. Web renders them visibly inert to hold the shape of the
  * mockup; a phone has no room to spend on a control that cannot do anything.
- * Creating and editing lists is phase 3 — this screen reads.
+ *
+ * Phase 3 adds the one write this screen owns — creating a list, which then
+ * opens so the next thing you do is fill it.
  */
 export default function ListsScreen() {
   const { data, isPending, isError } = useLists();
+  const router = useRouter();
+  const [creating, setCreating] = useState(false);
 
   return (
     <PageScroll>
       <View style={styles.head}>
         <BackLink label="Profile" />
         <PageTitle title="Lists" count={data ? `${data.length} lists` : undefined} />
+        <PrismButton label="＋ New list" onPress={() => setCreating(true)} style={styles.newList} />
       </View>
 
       {isPending ? (
@@ -42,6 +51,15 @@ export default function ListsScreen() {
           ))}
         </View>
       )}
+
+      {creating ? (
+        <ListFormSheet
+          onClose={() => setCreating(false)}
+          // Straight into the empty list: the next thing anyone does after
+          // naming one is add a title to it.
+          onSaved={(saved) => router.push(`/lists/${saved.id}`)}
+        />
+      ) : null}
     </PageScroll>
   );
 }
@@ -88,6 +106,9 @@ function ListCard({ list }: { list: ListSummary }) {
 const styles = StyleSheet.create({
   head: {
     gap: space.sm,
+  },
+  newList: {
+    alignSelf: 'flex-start',
   },
   cards: {
     gap: space.md,

@@ -204,27 +204,69 @@ Deviations worth knowing:
   resolving to `/` is a route collision, and the entry route is what decides
   picker vs. login vs. app.
 
-## Phase 3 — the tracking actions
+## Phase 3 — the tracking actions ✅ built
 
-The point of the app. All of these exist server-side and are already exercised
-by web, so this phase is mostly optimistic-update plumbing plus feel.
+The point of the app. Everything below existed server-side and was already
+exercised by web, so the phase was optimistic-update plumbing plus feel — and it
+added no data layer: `invalidateTracking()` is reused verbatim, as planned.
 
-- Check in / uncheck a part → `PUT|DELETE /media/:id/progress/:number`
-- Status, rating, favourite → `PUT|DELETE /media/:id/log`, `/media/:id/rating`,
-  `/media/:id/favorite`
-- **Log dates** → `PATCH /media/:id/log` (ADR-0007). Status changes stamp
-  `started_at`/`finished_at` server-side; this is the manual correction, and it
-  is the one form in the app that genuinely improves on web — a native date
-  picker beats two typed `YYYY-MM-DD` fields
-- Lists: create/rename/delete, add/remove/reorder → `/lists*`
-- Profile edit + avatar → `PATCH /me/profile`, `POST /me/avatar` (multipart,
-  2 MB cap, from `expo-image-picker`)
-- Friends: search, request, accept, unfriend → `/me/friends*`, `/users/search`
+| Action                              | Where it landed                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ |
+| Check in / uncheck a part           | The media grid's tiles, now real buttons, and the up-next rows on Home                    |
+| Status, rating, favourite           | `StatusSheet`, `RatingSheet`, and a pill that toggles — all on the media hero              |
+| Log dates (ADR-0007)                | `LogDatesSheet`, over the platform date picker                                             |
+| Lists: create/edit/delete, add/remove/reorder | `ListFormSheet` + `AddToListSheet`, the owner controls on the list screen         |
+| Profile edit + avatar               | `EditProfileSheet`, `expo-image-picker` → the existing multipart route                     |
+| Friends: search, request, accept, unfriend | `FriendsSheet` on Profile, and the action button on a public profile                |
 
-Reuse `invalidateTracking()` verbatim from `packages/client`: one check-in
-invalidates `['media']`, `['home']`, `['profile']` and `['history']`, and that
-fan-out has been extended twice after cache-staleness bugs — re-deriving it here
-would re-introduce them.
+Six things are worth knowing about how it landed.
+
+- **`Sheet` is a plain RN `Modal`, mounted on demand.** It is the platform's own
+  presentation on both OSes — Android's back button and iOS's dismiss come free —
+  and every sheet here is a form with a button, not a scrubbable surface. What
+  that costs is the spec's 42%/92% detents, which become a `maxHeight`, and the
+  dismiss animation, which needs the element to outlive the state. Mounting on
+  demand rather than behind an `open` flag is not a style choice: `AddToListSheet`
+  and `FriendsSheet` run queries, and one held mounted on the media screen would
+  fetch the viewer's lists for every title they opened.
+- **The undo toast, not the swipe.** `Mobile System.dc.html` §04's gesture needs
+  gesture-handler and Reanimated and belongs to phase 4, but the *rule* behind it
+  is a phase-3 semantic and shipped now: a check-in commits instantly, with no
+  confirmation, and an undo toast sits above the tab bar for five seconds. The
+  one confirmation in the app is deleting a list, which has no undo — that is
+  what makes it legitimate rather than habitual.
+- **Haptics arrived early, in the three §07 flavours only** (`lib/haptics.ts`):
+  medium impact on a commit, selection tick on crossing a threshold, error
+  notification on a rejected write. Named by event rather than waveform, so the
+  rule stays enforceable at the call site. Every call swallows its rejection — a
+  simulator rejects rather than no-ops, and a check-in must not fail because the
+  phone would not buzz.
+- **`validateLogDates` moved into `packages/client`.** Both clients now have a
+  date form, and web's two typed `YYYY-MM-DD` fields and the app's bounded
+  pickers can produce different mistakes; neither may accept what the other
+  rejects. `isoToDate`/`dateToIso` stayed in the app (`lib/dates.ts`) but got a
+  test each — both guard an off-by-one day that only appears away from UTC, which
+  a manual pass in one timezone never finds.
+- **The rating stars are the readout, not the input.** Half-star hit targets are
+  12px on web; the input underneath is a scrolling row of the 21 values the
+  schema admits, each a real 44pt target. Phase 4 adds the pan gesture across the
+  stars — the chips stay, because a pan is not one-handed and switch control has
+  nothing to pan.
+- **Two packaging surprises**, both from the new native deps.
+  `@react-native-community/datetimepicker`'s config plugin `require`s
+  `@expo/config-plugins` without declaring it, which pnpm's isolated layout
+  cannot resolve — `expo config` died before reading the app config at all, so
+  `expo-doctor` (and CI) failed on a green project. Fixed with a
+  `packageExtensions` entry in `pnpm-workspace.yaml`. And `expo-image-picker`'s
+  defaults add a camera usage string and `RECORD_AUDIO` to the manifest; the
+  avatar flow only opens the library, so both are turned off explicitly.
+
+Deliberately **not** in phase 3: social links. `PATCH /me/profile` takes them,
+but the app does not *show* them anywhere yet, and a form that edits fields the
+reader cannot see is a worse gap than the one it closes. `UpdateProfileBody` is a
+partial, so omitting the key leaves what was set on web untouched — that is what
+makes leaving it out safe rather than destructive. Showing them, and editing them,
+is a read-parity item left over from phase 2.
 
 ## Phase 4 — motion
 

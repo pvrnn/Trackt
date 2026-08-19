@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { UpNextEntry } from '@trackt/shared';
+import { LOG_DATE_FLOOR, type UpNextEntry } from '@trackt/shared';
 import { upNextPartKey } from '../src/home.js';
-import { firstUnwatched, stampedDates } from '../src/media.js';
+import { firstUnwatched, stampedDates, validateLogDates } from '../src/media.js';
 
 describe('firstUnwatched', () => {
   it('offers part 1 when nothing is watched', () => {
@@ -102,5 +102,48 @@ describe('stampedDates', () => {
     const done = { startedAt: '2026-01-04', finishedAt: '2026-02-11' };
     expect(stampedDates('planned', done, TODAY)).toEqual(none);
     expect(stampedDates(null, done, TODAY)).toEqual(none);
+  });
+});
+
+/**
+ * The log-date form's checks, shared because both clients now have one: web's
+ * two typed `YYYY-MM-DD` fields and the app's native pickers can produce
+ * different mistakes, and neither may accept what the other rejects.
+ */
+describe('validateLogDates', () => {
+  const TODAY = '2026-08-15';
+
+  it('accepts a sound pair, a half-open log, and no dates at all', () => {
+    expect(
+      validateLogDates({ startedAt: '2026-01-04', finishedAt: '2026-02-11' }, TODAY),
+    ).toBeNull();
+    expect(validateLogDates({ startedAt: '2026-01-04', finishedAt: null }, TODAY)).toBeNull();
+    expect(validateLogDates({ startedAt: null, finishedAt: null }, TODAY)).toBeNull();
+  });
+
+  it('accepts the boundaries themselves — today, and the floor', () => {
+    expect(validateLogDates({ startedAt: TODAY, finishedAt: TODAY }, TODAY)).toBeNull();
+    expect(validateLogDates({ startedAt: LOG_DATE_FLOOR, finishedAt: null }, TODAY)).toBeNull();
+  });
+
+  it('rejects a date in the future, on either field', () => {
+    expect(validateLogDates({ startedAt: '2026-08-16', finishedAt: null }, TODAY)).toMatch(
+      /future/,
+    );
+    expect(validateLogDates({ startedAt: null, finishedAt: '2027-01-01' }, TODAY)).toMatch(
+      /future/,
+    );
+  });
+
+  it('rejects a year below the floor — the two-digit-year typo', () => {
+    expect(validateLogDates({ startedAt: '0026-01-04', finishedAt: null }, TODAY)).toMatch(
+      /1900-01-01/,
+    );
+  });
+
+  it('rejects a finish date before its start', () => {
+    expect(validateLogDates({ startedAt: '2026-02-11', finishedAt: '2026-01-04' }, TODAY)).toMatch(
+      /before/,
+    );
   });
 });

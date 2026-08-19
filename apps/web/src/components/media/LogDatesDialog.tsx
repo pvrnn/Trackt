@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { LOG_DATE_FLOOR, type LogDates } from '@trackt/shared';
-import { todayIso } from '@trackt/client';
+import { todayIso, validateLogDates } from '@trackt/client';
 import { Button } from '../ui/Button';
 import { Modal, ModalTitle } from '../ui/Modal';
 
@@ -10,9 +10,9 @@ import { Modal, ModalTitle } from '../ui/Modal';
  * date, fix it if it's wrong" affordance, and the only way to record when you
  * actually watched something you are logging after the fact.
  *
- * The three checks mirror the server's exactly, so the common typo never
- * round-trips — but the server keeps them too, because a client is not a
- * validator.
+ * The checks are `@trackt/client`'s `validateLogDates`: both clients have a
+ * date form now, and the two must not disagree about what the server will
+ * take.
  */
 export interface LogDatesDialogProps {
   dates: LogDates;
@@ -21,19 +21,6 @@ export interface LogDatesDialogProps {
   /** Saving is the caller's job: it owns the optimistic cache patch. */
   onSave: (dates: LogDates) => Promise<void>;
   onClose: () => void;
-}
-
-export function validateLogDates(dates: LogDates, today = todayIso()): string | null {
-  const { startedAt, finishedAt } = dates;
-  for (const value of [startedAt, finishedAt]) {
-    if (value === null) continue;
-    if (value < LOG_DATE_FLOOR) return `Dates start at ${LOG_DATE_FLOOR} — check the year.`;
-    if (value > today) return 'Dates can’t be in the future.';
-  }
-  if (startedAt !== null && finishedAt !== null && finishedAt < startedAt) {
-    return 'The finish date is before the start date.';
-  }
-  return null;
 }
 
 export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesDialogProps) {
@@ -45,7 +32,7 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const next: LogDates = { startedAt: startedAt || null, finishedAt: finishedAt || null };
-    const problem = validateLogDates(next);
+    const problem = validateLogDates(next, todayIso());
     if (problem) {
       setError(problem);
       return;

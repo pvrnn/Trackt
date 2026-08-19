@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { InstanceProvider, useInstance } from '../src/lib/instance-provider';
+import { ToastProvider } from '../src/lib/toast';
 import { AuraBackground } from '../src/components/AuraBackground';
 import { color } from '../src/theme/tokens';
 import { fontAssets } from '../src/theme/typography';
@@ -43,33 +44,38 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
-      {/* Remount on instance change: the session store, the query cache
-          consumers and every screen's state belong to one server. */}
-      <Stack
-        key={origin ?? 'no-instance'}
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: color.ink },
-          animation: 'fade',
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(setup)/instance" />
-        <Stack.Protected guard={!!origin}>
-          <Stack.Screen name="(auth)/login" />
-          <Stack.Screen name="(auth)/register" />
-          {/* The four-tab shell, and the screens that push over it. The tabs
-              animate as a fade; a push should read as a push, so the pushed
-              routes take the platform's native stack animation. */}
-          <Stack.Screen name="(app)/(tabs)" />
-          <Stack.Screen name="(app)/media/[slug]" options={PUSHED} />
-          <Stack.Screen name="(app)/news/[slug]" options={PUSHED} />
-          <Stack.Screen name="(app)/lists/index" options={PUSHED} />
-          <Stack.Screen name="(app)/lists/[id]" options={PUSHED} />
-          <Stack.Screen name="(app)/history" options={PUSHED} />
-          <Stack.Screen name="(app)/users/[username]" options={PUSHED} />
-        </Stack.Protected>
-      </Stack>
+      {/* Above the navigator, because the undo toast has to outlive the screen
+          that raised it: a check-in from the home tab is undoable while the
+          user is already reading the title it belongs to (phase 3). */}
+      <ToastProvider>
+        {/* Remount on instance change: the session store, the query cache
+            consumers and every screen's state belong to one server. */}
+        <Stack
+          key={origin ?? 'no-instance'}
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: color.ink },
+            animation: 'fade',
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(setup)/instance" />
+          <Stack.Protected guard={!!origin}>
+            <Stack.Screen name="(auth)/login" />
+            <Stack.Screen name="(auth)/register" />
+            {/* The four-tab shell, and the screens that push over it. The tabs
+                animate as a fade; a push should read as a push, so the pushed
+                routes take the platform's native stack animation. */}
+            <Stack.Screen name="(app)/(tabs)" />
+            <Stack.Screen name="(app)/media/[slug]" options={PUSHED} />
+            <Stack.Screen name="(app)/news/[slug]" options={PUSHED} />
+            <Stack.Screen name="(app)/lists/index" options={PUSHED} />
+            <Stack.Screen name="(app)/lists/[id]" options={PUSHED} />
+            <Stack.Screen name="(app)/history" options={PUSHED} />
+            <Stack.Screen name="(app)/users/[username]" options={PUSHED} />
+          </Stack.Protected>
+        </Stack>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

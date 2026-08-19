@@ -1,11 +1,21 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   KIND_LABELS_SINGULAR,
   activityVerbLabel,
+  invalidateTracking,
   relativeTime,
+  trackingApi,
+  upNextPartKey,
   useHomeSummary,
 } from '@trackt/client';
-import { IN_PROGRESS_LIMIT, type ActivityEntry, type UpNextEntry } from '@trackt/shared';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  IN_PROGRESS_LIMIT,
+  trackingVerbLabel,
+  type ActivityEntry,
+  type UpNextEntry,
+} from '@trackt/shared';
+import { useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
@@ -20,26 +30,76 @@ import {
 } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
 import { PrismText } from '../../../src/components/PrismText';
+import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { useAuthedScreen } from '../../../src/lib/session';
-import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
+import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
+import { color, layout, nativeSurface, radius, space, surface } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
- * The home dashboard (`GET /me/home`), phase 2 — the read half of
- * `Home.dc.html` as the mobile spec reshapes it.
+ * The home dashboard (`GET /me/home`) — and the app's daily action.
  *
  * Up next is a column of 72pt rows rather than web's three-across card grid: at
  * 362pt a card grid is one column anyway, and the row is the shape the swipe
- * check-in needs (`Mobile System.dc.html` §04). That swipe is phase 3 — until
- * the mutation exists a row does the one thing it can honestly do, which is
- * open the title. There is deliberately no check-in button that doesn't check
- * anything in.
+ * check-in needs (`Mobile System.dc.html` §04). Phase 3 wires the check-in
+ * itself as a button on the row; the swipe that replaces the button as the
+ * primary gesture needs gesture-handler and Reanimated, and lands with phase 4.
+ *
+ * What phase 3 does adopt from §04 is the rule the swipe exists to serve: the
+ * check-in commits instantly, with **no confirmation dialog**, and an undo
+ * toast for five seconds — "the cost of a wrong check-in is one tap".
  */
 export default function HomeTab() {
   const { user, isPending: sessionPending } = useAuthedScreen();
   const { data, isPending, isError, refetch, isRefetching } = useHomeSummary();
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const writeFailed = useWriteFailedToast();
+  // Which rows this session has checked in. The row stays put until the next
+  // `/me/home` lands (the server decides what "up next" is now), so it has to
+  // say so itself — otherwise a second tap checks in the same part twice.
+  const [checkedIn, setCheckedIn] = useState<ReadonlySet<string>>(new Set());
+
+  const markCheckedIn = (entry: UpNextEntry, done: boolean) =>
+    setCheckedIn((current) => {
+      const set = new Set(current);
+      if (done) set.add(upNextPartKey(entry));
+      else set.delete(upNextPartKey(entry));
+      return set;
+    });
+
+  const uncheck = useMutation({
+    mutationFn: (entry: UpNextEntry) => trackingApi.uncheck(entry.id, entry.next),
+    onMutate: (entry) => markCheckedIn(entry, false),
+    onError: (error, entry) => {
+      markCheckedIn(entry, true);
+      errorHaptic();
+      writeFailed(error, 'Couldn’t undo that — it’s still checked in.');
+    },
+    onSettled: () => invalidateTracking(queryClient),
+  });
+
+  const checkIn = useMutation({
+    mutationFn: (entry: UpNextEntry) => trackingApi.checkIn(entry.id, entry.next),
+    onMutate: (entry) => markCheckedIn(entry, true),
+    onSuccess: (_result, entry) => {
+      commitHaptic();
+      toast({
+        message: `${entry.title} — ${partLabel(entry)} checked in`,
+        action: { label: 'Undo', onPress: () => uncheck.mutate(entry) },
+      });
+    },
+    onError: (error, entry) => {
+      markCheckedIn(entry, false);
+      errorHaptic();
+      writeFailed(error);
+    },
+    // Same sweep as the media screen: this also moves that title's detail, the
+    // profile feed and history.
+    onSettled: () => invalidateTracking(queryClient),
+  });
 
   if (sessionPending || !user) {
     return (
@@ -87,7 +147,12 @@ export default function HomeTab() {
             ) : (
               <View style={styles.rows}>
                 {data.upNext.map((entry) => (
-                  <UpNextRow key={`${entry.id}:${entry.next}`} entry={entry} />
+                  <UpNextRow
+                    key={upNextPartKey(entry)}
+                    entry={entry}
+                    checkedIn={checkedIn.has(upNextPartKey(entry))}
+                    onCheckIn={() => checkIn.mutate(entry)}
+                  />
                 ))}
               </View>
             )}
@@ -157,13 +222,29 @@ export default function HomeTab() {
   );
 }
 
+/** 'E13' / 'CH204' — the part a row's check-in targets, in the row's own words. */
+function partLabel(entry: UpNextEntry): string {
+  return `${entry.partKind === 'episode' ? 'E' : 'CH'}${entry.next}`;
+}
+
 /**
- * One 72pt up-next row: 40×56 thumb, title, and the part line the check-in will
- * target. The chevron is the affordance the spec calls for at rest — here it
- * means "opens", and from phase 3 it also hints the swipe.
+ * One 72pt up-next row: 40×56 thumb, title, the part line, and the check-in.
+ *
+ * The row opens the title; the button inside it checks in. A `Pressable` nested
+ * in a `Pressable` resolves to the inner one on native, so the two targets do
+ * not fight — the invalid-markup problem that forces web's card to keep the
+ * whole surface unlinked does not exist here.
  */
-function UpNextRow({ entry }: { entry: UpNextEntry }) {
-  const part = entry.partKind === 'episode' ? 'E' : 'CH';
+function UpNextRow({
+  entry,
+  checkedIn,
+  onCheckIn,
+}: {
+  entry: UpNextEntry;
+  checkedIn: boolean;
+  onCheckIn: () => void;
+}) {
+  const verb = trackingVerbLabel(entry.kind).toUpperCase();
   return (
     <Touchable href={`/media/${entry.slug}`} style={styles.row}>
       <Cover
@@ -180,13 +261,29 @@ function UpNextRow({ entry }: { entry: UpNextEntry }) {
         <View style={styles.metaRow}>
           <KindDot kind={entry.kind} />
           <Text style={[type.eyebrow, styles.dim]}>
-            {KIND_LABELS_SINGULAR[entry.kind]} · {part}
-            {entry.next}
+            {KIND_LABELS_SINGULAR[entry.kind]} · {partLabel(entry)}
             {entry.total ? ` OF ${entry.total}` : ''}
           </Text>
         </View>
       </View>
-      <Text style={[type.section, styles.chevron]}>›</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Mark ${entry.title} ${partLabel(entry)} ${verb.toLowerCase()}`}
+        accessibilityState={{ disabled: checkedIn }}
+        disabled={checkedIn}
+        onPress={onCheckIn}
+        android_ripple={{ color: 'rgba(217,107,176,0.12)', borderless: true }}
+        hitSlop={space.sm}
+        style={({ pressed }) => [
+          styles.check,
+          checkedIn ? styles.checkDone : null,
+          { opacity: pressed ? 0.7 : 1 },
+        ]}
+      >
+        <Text style={[type.button, checkedIn ? styles.dim : styles.pink]}>
+          {checkedIn ? `✓ ${verb}` : '✓'}
+        </Text>
+      </Pressable>
     </Touchable>
   );
 }
@@ -236,7 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.cover,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: surface.glassBorder,
-    backgroundColor: '#191520',
+    backgroundColor: nativeSurface.row,
   },
   rowBody: {
     flex: 1,
@@ -250,8 +347,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
-  chevron: {
-    color: color.faint,
+  check: {
+    minWidth: layout.touchTarget,
+    minHeight: layout.touchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.pink,
+    backgroundColor: surface.pinkSelected,
+  },
+  checkDone: {
+    borderColor: surface.glassBorder,
+    backgroundColor: surface.glass,
+  },
+  pink: {
+    color: color.pink,
   },
   shelf: {
     gap: space.md,
