@@ -49,14 +49,14 @@ export default function DiscoverTab() {
 
   if (isPending || !user) {
     return (
-      <PageFrame>
+      <PageFrame fadeOnFocus>
         <Loading />
       </PageFrame>
     );
   }
 
   return (
-    <PageFrame>
+    <PageFrame fadeOnFocus>
       <View style={{ paddingTop: insets.top + space.lg }}>
         <View style={styles.gutter}>
           <PageTitle

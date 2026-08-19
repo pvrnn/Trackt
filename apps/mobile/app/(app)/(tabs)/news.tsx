@@ -59,7 +59,7 @@ export default function NewsTab() {
   const { articles, isLoading, isError, isLoadingMore, hasMore, loadMore } = useNewsFeed(filters);
 
   return (
-    <PageFrame>
+    <PageFrame fadeOnFocus>
       <FlashList
         data={articles}
         keyExtractor={(article) => article.id}

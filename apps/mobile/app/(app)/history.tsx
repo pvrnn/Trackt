@@ -17,6 +17,7 @@ import {
 } from '@trackt/shared';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip, ChipDivider, ChipRow } from '../../src/components/Chip';
 import { Cover } from '../../src/components/Cover';
@@ -25,12 +26,20 @@ import { KindDot } from '../../src/components/KindDot';
 import { BackLink, EmptyState, Loading, PageFrame, PageTitle } from '../../src/components/Page';
 import { Touchable } from '../../src/components/Touchable';
 import { PrismText } from '../../src/components/PrismText';
+import { duration, staggerDelay } from '../../src/lib/motion';
 import { useAuthedScreen } from '../../src/lib/session';
 import { color, layout, radius, space, surface } from '../../src/theme/tokens';
 import { type } from '../../src/theme/typography';
 
 /** Statuses a history row can actually have — the server excludes `planned`. */
 const HISTORY_STATUSES = LOG_STATUSES.filter((status) => status !== 'planned');
+
+/**
+ * How many rows a page's stagger runs across before it repeats. The list index
+ * keeps climbing as pages append, and an absolute index would put every row
+ * past the tenth at the cap — the same delay, which is no stagger at all.
+ */
+const PAGE_STAGGER_SPAN = 8;
 
 /**
  * Per-status colour, from `docs/design/History.dc.html`: in-progress is the live
@@ -185,12 +194,21 @@ export default function HistoryScreen() {
               </ChipRow>
             </View>
 
-            <View style={[styles.gutter, styles.totals]}>
+            {/* Keyed on the scope, so switching year re-mounts the row and it
+                cross-fades to the new numbers. Four totals changing in place
+                is the one moment on this screen where nothing moves and
+                everything is different — the fade is what says the chip above
+                did that. */}
+            <Animated.View
+              key={scope}
+              entering={FadeIn.duration(duration.commit)}
+              style={[styles.gutter, styles.totals]}
+            >
               <Total value={totals.titles} label="Titles" scope={scope} />
               <Total value={totals.completed} label="Completed" scope={scope} />
               <Total value={totals.episodes} label="Episodes" scope={scope} />
               <Total value={totals.chapters} label="Chapters" scope={scope} />
-            </View>
+            </Animated.View>
           </View>
         }
         ListEmptyComponent={
@@ -220,15 +238,24 @@ export default function HistoryScreen() {
         ListFooterComponent={
           isLoadingMore ? <ActivityIndicator color={color.pink} style={styles.footer} /> : null
         }
-        renderItem={({ item }) =>
+        renderItem={({ item, index }) =>
           item.kind === 'heading' ? (
             <Text style={[type.section, styles.heading]}>{item.label}</Text>
           ) : (
-            <View style={styles.pair}>
+            // A new keyset page appends rather than jumps: the rows it brings
+            // fade in in sequence. `entering` runs on mount only, so the rows
+            // already on screen are untouched and a recycled cell does not
+            // re-fade as it scrolls back into view.
+            <Animated.View
+              entering={FadeIn.delay(staggerDelay(index % PAGE_STAGGER_SPAN)).duration(
+                duration.commit,
+              )}
+              style={styles.pair}
+            >
               {item.entries.map((entry) => (
                 <EntryCard key={entry.id} entry={entry} width={cardWidth} />
               ))}
-            </View>
+            </Animated.View>
           )
         }
       />

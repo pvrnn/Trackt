@@ -44,4 +44,17 @@ export default tseslint.config(
     ...reactHooks.configs.flat.recommended,
     files: ['apps/mobile/**/*.{ts,tsx}', 'packages/client/src/*.ts'],
   },
+  // Reanimated's shared values are mutated by design — `x.value = withSpring(…)`
+  // *is* the API, and the object has to be in an effect's dependency list for
+  // the effect to be correct. To the React Compiler's `immutability` rule that
+  // is a write to captured state, and there is no way to write Reanimated that
+  // satisfies it. Off for the mobile app rather than suppressed line by line,
+  // because a file-level disable comment on every animated component is how a
+  // rule stops being read at all. Everything else in the recommended set stays
+  // on — including `refs`, which catches real mistakes here — and
+  // `packages/client`, which has no Reanimated in it, keeps the rule.
+  {
+    files: ['apps/mobile/**/*.{ts,tsx}'],
+    rules: { 'react-hooks/immutability': 'off' },
+  },
 );

@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
 import type { Href } from 'expo-router';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { AnimatedPressable, ripple, usePressMotion } from './Press';
 
 /**
  * A pressable that navigates — the app's one way to make a row, tile or card
@@ -21,7 +21,9 @@ import type { StyleProp, ViewStyle } from 'react-native';
  *
  * The opacity dip is the iOS convention and the cross-platform floor;
  * `android_ripple` adds Android's pink ripple over it (`Mobile System.dc.html`
- * §06). The spring and haptic land in phase 4.
+ * §06). Phase 4 puts the dip and its 140ms spring on the UI thread
+ * (`usePressMotion`), which is also why `style` is static: the press state no
+ * longer re-renders anything.
  */
 export function Touchable({
   href,
@@ -36,21 +38,18 @@ export function Touchable({
   accessibilityLabel?: string;
 }) {
   const router = useRouter();
+  const press = usePressMotion();
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="link"
       {...(accessibilityLabel ? { accessibilityLabel } : {})}
       onPress={() => router.push(href)}
-      android_ripple={{ color: 'rgba(217,107,176,0.12)' }}
-      style={({ pressed }) => [style, pressed ? styles.pressed : null]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      android_ripple={ripple()}
+      style={[style, press.animatedStyle]}
     >
       {children}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
-
-const styles = StyleSheet.create({
-  pressed: {
-    opacity: 0.7,
-  },
-});

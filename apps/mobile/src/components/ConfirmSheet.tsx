@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { color, space } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { PrismButton } from './PrismButton';
-import { Sheet, SheetError } from './Sheet';
+import { Sheet, SheetError, useSheetController } from './Sheet';
 
 /**
  * The confirmation for a write that cannot be undone — deleting a list, and
@@ -28,6 +28,7 @@ export function ConfirmSheet({
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }) {
+  const sheet = useSheetController(onClose);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +37,7 @@ export function ConfirmSheet({
     setBusy(true);
     try {
       await onConfirm();
-      onClose();
+      sheet.dismiss();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'That didn’t work — try again.');
       setBusy(false);
@@ -44,7 +45,7 @@ export function ConfirmSheet({
   };
 
   return (
-    <Sheet title={title} onClose={onClose}>
+    <Sheet title={title} controller={sheet}>
       <Text style={[type.body, styles.body]}>{body}</Text>
       {error ? <SheetError message={error} /> : null}
       <View style={styles.actions}>
@@ -52,7 +53,7 @@ export function ConfirmSheet({
           label="Cancel"
           variant="secondary"
           disabled={busy}
-          onPress={onClose}
+          onPress={sheet.dismiss}
           style={styles.action}
         />
         <PrismButton

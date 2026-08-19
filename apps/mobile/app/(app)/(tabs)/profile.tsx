@@ -58,14 +58,14 @@ export default function ProfileTab() {
 
   if (sessionPending || !user) {
     return (
-      <PageFrame>
+      <PageFrame fadeOnFocus>
         <Loading />
       </PageFrame>
     );
   }
 
   return (
-    <PageFrame>
+    <PageFrame fadeOnFocus>
       <ScrollView
         contentContainerStyle={[
           styles.content,
