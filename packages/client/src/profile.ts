@@ -61,3 +61,21 @@ export async function removeAvatar(): Promise<void> {
     throw await toError(error, 'avatar removal');
   }
 }
+
+/**
+ * Delete the account and everything it owns (`DELETE /api/v1/me`).
+ *
+ * Irreversible, and the server says so first: it verifies the password against
+ * the credential account before touching anything, so a wrong one comes back as
+ * a 400 that `toError` turns into the message the field should show. On success
+ * every session is revoked, this one included — the caller is signed out
+ * whether it clears its own state or not, and should clear it anyway so the
+ * next screen is not one that fetches.
+ */
+export async function deleteAccount(password: string): Promise<void> {
+  try {
+    await http().delete('me', { json: { password } });
+  } catch (error) {
+    throw await toError(error, 'account deletion');
+  }
+}

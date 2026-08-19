@@ -22,12 +22,12 @@
     "@trackt/shared": "workspace:*"
   },
   "peerDependencies": {
-    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query": "^5.101.4",
     "ky": "^2.0.2",
     "react": "^19.2.0"
   },
   "devDependencies": {
-    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query": "^5.101.4",
     "@types/react": "^19.2.17",
     "ky": "^2.0.2",
     "typescript": "^5.9.3",

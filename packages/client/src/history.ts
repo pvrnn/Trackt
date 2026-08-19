@@ -38,6 +38,12 @@ export interface HistoryState {
   isLoadingMore: boolean;
   hasMore: boolean;
   loadMore: () => void;
+  /**
+   * When this data was last successfully fetched, as an epoch millisecond
+   * stamp — 0 while nothing has landed. Mobile shows it as the age of a cache
+   * it is serving offline (mobile plan, phase 5); web has no use for it yet.
+   */
+  updatedAt: number;
 }
 
 const EMPTY_TOTALS: HistoryTotals = { titles: 0, completed: 0, episodes: 0, chapters: 0 };
@@ -68,6 +74,7 @@ export function useHistory(filters: HistoryFilters): HistoryState {
   // first page is the authority — later pages repeat them unchanged.
   const first = query.data?.pages[0];
   return {
+    updatedAt: query.dataUpdatedAt,
     entries: query.data?.pages.flatMap((page) => page.entries) ?? [],
     years: first?.years ?? [],
     totals: first?.totals ?? EMPTY_TOTALS,

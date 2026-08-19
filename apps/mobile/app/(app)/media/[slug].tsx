@@ -6,7 +6,6 @@ import {
   dateRangeLabel,
   firstUnwatched,
   invalidateTracking,
-  stampedDates,
   todayIso,
   trackingApi,
   useMediaDetail,
@@ -42,8 +41,10 @@ import {
   BackLink,
   EmptyState,
   Loading,
+  OfflineFallback,
   PageFrame,
   SectionTitle,
+  StaleNotice,
 } from '../../../src/components/Page';
 import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
 import { PrismButton } from '../../../src/components/PrismButton';
@@ -52,7 +53,13 @@ import { RatingSheet } from '../../../src/components/RatingSheet';
 import { StatusSheet } from '../../../src/components/StatusSheet';
 import { Touchable } from '../../../src/components/Touchable';
 import { duration, staggerDelay } from '../../../src/lib/motion';
-import { EMPTY_VIEWER, patchViewer, useViewerMutation } from '../../../src/lib/tracking';
+import {
+  EMPTY_VIEWER,
+  patchViewer,
+  trackingPatch,
+  type TrackingWrite,
+} from '../../../src/lib/offline';
+import { useViewerMutation } from '../../../src/lib/tracking';
 import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
@@ -83,7 +90,7 @@ type OpenSheet = 'status' | 'rating' | 'list' | null;
  */
 export default function MediaScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { data: media, isPending, isError } = useMediaDetail(slug);
+  const { data: media, dataUpdatedAt, isPending, isError } = useMediaDetail(slug);
   const queryClient = useQueryClient();
   const { apply } = useViewerMutation(slug);
   const insets = useSafeAreaInsets();
@@ -129,10 +136,12 @@ export default function MediaScreen() {
   if (isPending) {
     return (
       <PageFrame>
-        <View style={[styles.gutter, { paddingTop: insets.top + space.md }]}>
+        <View style={[styles.gutter, { paddingTop: insets.top + space.md, gap: space.lg }]}>
           <BackLink />
+          <OfflineFallback>
+            <Loading />
+          </OfflineFallback>
         </View>
-        <Loading />
       </PageFrame>
     );
   }
@@ -168,46 +177,33 @@ export default function MediaScreen() {
   const next = checkable ? firstUnwatched(watched, total ?? listLength + 1) : null;
 
   const togglePart = (number: number) => {
-    const isWatched = watched.has(number);
     setSweeping(false);
     apply(
-      {
-        watched: isWatched
-          ? viewer.watched.filter((n) => n !== number)
-          : [...viewer.watched, number],
-      },
-      () =>
-        isWatched ? trackingApi.uncheck(detail.id, number) : trackingApi.checkIn(detail.id, number),
+      watched.has(number)
+        ? { op: 'uncheck', id: detail.id, part: number }
+        : { op: 'checkIn', id: detail.id, part: number },
     );
   };
 
   const setStatus = (status: LogStatus | null) => {
-    if (status === null) {
-      setSweeping(false);
-      apply({ status: null, startedAt: null, finishedAt: null }, () =>
-        trackingApi.clearStatus(detail.id),
-      );
-      return;
-    }
-    // The API sweeps progress for these two (PRD §3.1); mirror it optimistically
-    // so the grid doesn't lag a refetch behind.
-    const sweep =
-      !checkable || listLength === 0
-        ? {}
-        : status === 'completed'
-          ? { watched: Array.from({ length: listLength }, (_, i) => i + 1) }
-          : status === 'planned'
-            ? { watched: [] }
-            : {};
-    const dates = stampedDates(status, viewer, todayIso());
-    setSweeping('watched' in sweep);
-    apply({ status, ...sweep, ...dates }, () => trackingApi.setStatus(detail.id, status));
+    const write: TrackingWrite =
+      status === null
+        ? { op: 'clearStatus', id: detail.id }
+        : { op: 'setStatus', id: detail.id, status };
+    // The same patch `useViewerMutation` is about to apply, computed here for
+    // the two things the screen does that the cache cannot: stagger the grid
+    // when a status change sweeps it (PRD §3.1), and open the dates sheet on
+    // the stamped pair. Derived, never re-derived — `trackingPatch` is pure, so
+    // asking twice is cheaper than two definitions drifting apart.
+    const patch = trackingPatch(write, detail, todayIso());
+    setSweeping('watched' in patch);
+    apply(write);
     // The one transition with no evidence behind its date: the user is logging
     // something they watched at some unknown time in the past, and today is
     // almost certainly wrong. Every other transition has a check-in or a prior
     // date behind it, and must not interrupt.
     if (status === 'completed' && (viewer.status === null || viewer.status === 'planned')) {
-      setEditingDates(dates);
+      setEditingDates({ startedAt: patch.startedAt ?? null, finishedAt: patch.finishedAt ?? null });
     }
   };
 
@@ -235,13 +231,12 @@ export default function MediaScreen() {
               onOpen={setSheet}
               onEditDates={() => setEditingDates({ ...viewer })}
               onToggleFavorite={() =>
-                apply({ favorited: !viewer.favorited }, () =>
-                  viewer.favorited
-                    ? trackingApi.unfavorite(detail.id)
-                    : trackingApi.favorite(detail.id),
-                )
+                apply({ op: viewer.favorited ? 'unfavorite' : 'favorite', id: detail.id })
               }
             />
+            <View style={styles.gutter}>
+              <StaleNotice updatedAt={dataUpdatedAt} />
+            </View>
             {rows.length > 0 ? (
               <View style={[styles.gutter, styles.partsHead]}>
                 <SectionTitle
@@ -292,9 +287,11 @@ export default function MediaScreen() {
           score={viewer.score}
           mediaTitle={detail.title}
           onSave={(score) =>
-            score === null
-              ? apply({ score: null }, () => trackingApi.clearScore(detail.id))
-              : apply({ score }, () => trackingApi.setScore(detail.id, score))
+            apply(
+              score === null
+                ? { op: 'clearScore', id: detail.id }
+                : { op: 'setScore', id: detail.id, score },
+            )
           }
           onClose={() => setSheet(null)}
         />

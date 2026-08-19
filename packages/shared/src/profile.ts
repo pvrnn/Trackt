@@ -122,6 +122,23 @@ export const UpdateProfileBodySchema = z
   .partial();
 export type UpdateProfileBody = z.infer<typeof UpdateProfileBodySchema>;
 
+/**
+ * Confirmation for `DELETE /api/v1/me`.
+ *
+ * The password, not a typed-out username: deletion is irreversible and cascades
+ * every log, check-in, rating, list and friendship the account owns, so what it
+ * has to establish is that the person holding the unlocked phone is the account
+ * holder — which a username, printed on the screen above the field, does not.
+ */
+export const DeleteAccountBodySchema = z.object({
+  password: z.string().min(1),
+});
+export type DeleteAccountBody = z.infer<typeof DeleteAccountBodySchema>;
+
+/** `DELETE /api/v1/me`'s reply. There is nothing left to describe. */
+export const DeleteAccountResponseSchema = z.object({ deleted: z.literal(true) });
+export type DeleteAccountResponse = z.infer<typeof DeleteAccountResponseSchema>;
+
 /** Avatar constraints shared by the upload endpoint and the edit form. */
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 export const AVATAR_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;

@@ -60,6 +60,12 @@ export interface NewsFeedState {
   isLoadingMore: boolean;
   hasMore: boolean;
   loadMore: () => void;
+  /**
+   * When this data was last successfully fetched, as an epoch millisecond
+   * stamp — 0 while nothing has landed. Mobile shows it as the age of a cache
+   * it is serving offline (mobile plan, phase 5); web has no use for it yet.
+   */
+  updatedAt: number;
 }
 
 /**
@@ -81,6 +87,7 @@ export function useNewsFeed(filters: NewsFilters): NewsFeedState {
   });
 
   return {
+    updatedAt: query.dataUpdatedAt,
     articles: query.data?.pages.flatMap((page) => page.articles) ?? [],
     isLoading: query.isPending,
     isError: query.isError,

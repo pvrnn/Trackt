@@ -4,6 +4,7 @@ import { username } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { accounts, sessions, users, verifications, type Db } from '@trackt/db';
 import type { Env } from '@trackt/shared';
+import { removeStoredUpload } from './lib/uploads.js';
 
 /**
  * better-auth (PRD §6): users and sessions live in our Postgres via the Drizzle
@@ -43,6 +44,31 @@ export function baseAuthOptions(env: Env) {
         // is load-bearing: sign-up/update-user must never set it — promotion
         // goes through `pnpm db:set-role`.
         role: { type: 'string', input: false, defaultValue: 'user' } as const,
+      },
+      /**
+       * Account deletion (mobile plan, phase 5). Required for App Store
+       * submission, and the missing half of the portability principle: an
+       * instance you can export from but never leave is not self-hosting.
+       *
+       * The public surface is `DELETE /api/v1/me`, which delegates here rather
+       * than deleting the row itself — password verification against the
+       * credential account, and revoking every live session, are better-auth's
+       * to do and would be re-implemented wrongly on the other side.
+       *
+       * Everything the account owns goes with it: `users.id` is an
+       * `onDelete: 'cascade'` foreign key from logs, progress, ratings,
+       * favourites, lists, friendships and sessions alike (`packages/db`).
+       * The two exceptions are deliberate `set null`s — a catalog entry's
+       * `created_by` and a list item's `added_by` — so removing an account
+       * cannot take a shared catalog row with it.
+       */
+      deleteUser: {
+        enabled: true,
+        // The one thing the cascade cannot reach: the avatar is a file on
+        // disk, and a foreign key knows nothing about it.
+        beforeDelete: async (user: { image?: string | null }) => {
+          await removeStoredUpload(env.UPLOADS_DIR, 'avatars', user.image ?? null);
+        },
       },
     },
     // `expo()` only adds the redirect/deep-link handling the native client

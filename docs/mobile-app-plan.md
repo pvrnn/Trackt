@@ -341,28 +341,116 @@ few places that must do something *different* rather than merely faster read
 under it, falling back to phase 3's behaviour of staying put with a checked-in
 button.
 
-## Phase 5 — offline, then shipping
+## Phase 5 — offline, then shipping ✅ offline built; shipping staged
 
-**Offline** (the subway case — check-ins are the one action people take with no
-signal): persist the React Query cache to MMKV, drive `onlineManager` from
-`expo-network`, and register mutation defaults with `setMutationDefaults` so
-paused check-ins resume on reconnect. Read screens serve last-known data with a
-staleness marker rather than a spinner.
+Two halves that share a phase only because the store forces them together. The
+offline half is built. The shipping half is built as far as a repository can
+take it — everything that is code or configuration is in; everything that needs
+an EAS account, an Apple team or a running demo server is documented in
+[`mobile-shipping.md`](mobile-shipping.md) and named below.
 
-**Shipping**: EAS Build profiles (dev client / preview / production), EAS Submit,
-EAS Update for JS-only fixes. Store listings need a privacy policy, and the app
-needs the four gaps from ADR-0008 closed or consciously accepted:
+### Offline
 
-| Gap                           | Where it lands                                                                                               |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `DELETE /me` account deletion | `apps/api` — required for App Store submission, and the missing half of the portability principle             |
-| Library endpoint (keyset)     | Already in the roadmap backlog; mobile makes it load-bearing. `/news` and `/me/history` are the shape to copy |
-| GPL-3.0 vs. App Store terms   | Phase 0 decision                                                                                              |
-| Demo instance for App Review  | A reviewer has no server; a server-picker-first app reads as "minimum functionality" (4.2) without one        |
+The subway case, and check-ins are the one action people take with no signal.
 
-Report/block is **no longer on this list**: entry creation moved to the central
-catalog, so the app carries no user-authored titles or covers. Profile fields and
-list names remain user-supplied — worth revisiting if comments land.
+| Piece                | Where it landed                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Cache on disk        | `lib/persist.ts` — MMKV behind `createSyncStoragePersister`, restored by `PersistQueryClientProvider`      |
+| Connectivity         | `lib/network.ts` — `onlineManager.setEventListener` fed by `expo-network`, plus `useIsOnline()` for the UI |
+| Queued writes        | `lib/offline.ts` — `TrackingWrite`, `runTrackingWrite`, `setMutationDefaults(TRACKING_MUTATION_KEY, …)`    |
+| Staleness            | `StaleNotice` on Home, Profile, News, History, Lists and the media screen; `OfflineFallback` for a cold one |
+
+Five things are worth knowing about how it landed.
+
+- **A closure cannot survive a queue, so the writes stopped being closures.**
+  Phase 3's `apply(patch, () => trackingApi.checkIn(id, n))` was the thing that
+  had to go. A mutation React Query pauses is persisted as its `mutationKey` and
+  its variables and *nothing else*, so on the next launch there is no function
+  left to call. The write is now a value — `{ op: 'checkIn', id, part }` — the
+  request comes from `runTrackingWrite` via the client's mutation defaults, and
+  the optimistic patch is **derived** from that same value by `trackingPatch`
+  rather than passed beside it. Two things fell out of that which were not the
+  goal: the sweep rules for `completed`/`planned` and the ADR-0007 date stamping
+  moved out of the media screen into a pure function, and the whole write path
+  became testable in the node vitest project.
+- **The invalidation had to move too, for the same reason.** A write that
+  resumes on reconnect has no screen behind it, so `invalidateTracking`'s
+  four-key fan-out is registered in the mutation *defaults*, not only in the
+  hook. Without that a queued check-in would land on the server and leave home,
+  profile and history stale until the app was killed.
+- **One cache per instance, keyed by origin.** The query keys are `['media',
+slug]`, `['home']` — nothing in them names a server, so a single persisted dump
+  would let instance A's library be restored into instance B's session. The
+  persister key carries the origin, the `QueryClient` is rebuilt with it (the
+  layout is keyed on origin rather than carrying a dependency array that
+  pretends to say so), and **Change server** deletes that instance's entry on
+  the way out, which is the last moment anything knows which key it was.
+- **Offline changes when the commit feedback fires, and it has to.** §07 puts
+  the impact on a committed write, which online means the server's 200. Offline
+  there will never be one — so the haptic and the undo toast fire at queue time
+  instead, and the toast says `· will sync` so the difference is stated rather
+  than hidden. It is the same rule, not a second one: the buzz answers "your tap
+  did something", and offline the queueing is the something.
+- **`networkMode: 'online'` pauses queries as well as mutations**, which is a
+  trap: a screen with nothing cached does not fail offline, it stays `isPending`
+  forever, and an endless skeleton is indistinguishable from a hang. Hence
+  `OfflineFallback`, which wraps the skeleton rather than sitting beside it so
+  no screen has to reach for `useIsOnline` to state the rule.
+
+Two things the plan asked for and did not get. There is **no exponential
+backoff or retry ceiling** on the queue beyond React Query's own — a write that
+the server rejects on resume rolls nothing back, because the context that would
+roll it back was not persisted either; it invalidates instead, and the truth
+arrives with the refetch. And the persisted cache is **not encrypted**: MMKV
+supports it, the session token is in SecureStore where it belongs, and what is
+left is a list of what you watched, on a device that is already locked.
+
+### Shipping
+
+| Gap                           | Where it landed                                                                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DELETE /me` account deletion | Built. `apps/api/src/routes/v1/profile.ts`, delegating to better-auth's `deleteUser`; `DeleteAccountSheet` on Profile → Account                                     |
+| Library endpoint (keyset)     | **Already closed** — `GET /v1/me/history` (ADR-0007) is the keyset-paged whole collection, and superseded the backlog item before this phase started                |
+| GPL-3.0 vs. App Store terms   | Phase 0 decision, unchanged                                                                                                                                        |
+| Demo instance for App Review  | The app's half is built: `TRACKT_DEMO_INSTANCE` at build time → `extra.demoInstance` → a **Use the demo instance** button on the picker. The server behind it is ops |
+| EAS build / submit            | `apps/mobile/eas.json` — `development` / `preview` / `production`, plus the Android submit config                                                                   |
+| EAS Update                    | **Not wired.** The profiles name channels; `expo-updates` and `updates.url` embed a project id that does not exist until the first `eas init`                       |
+| Privacy policy                | [`mobile-privacy.md`](mobile-privacy.md) — short because the app has no backend, and saying so precisely beats boilerplate                                          |
+
+Three things are worth knowing.
+
+- **Deletion is delegated, not re-implemented.** `DELETE /api/v1/me` is a thin
+  `/v1` wrapper over better-auth's `deleteUser`: verifying the password against
+  the credential account and revoking every live session are the two things this
+  must not get wrong, and both are already correct one layer down. What the
+  wrapper adds is the surface the clients actually speak — one prefix, one
+  session header, one error shape, one OpenAPI entry — and what `auth.ts` adds
+  is a `beforeDelete` that takes the avatar off disk, the one thing a foreign
+  key cannot reach. Everything else rides `onDelete: 'cascade'`, with `media`'s
+  `created_by` and `list_items.added_by` staying deliberate `set null`s so
+  leaving cannot take a shared catalog row with it.
+- **The password, and nothing on top of it.** No "type your username to
+  confirm" as well: the phone is already unlocked and already signed in, so what
+  the sheet has to establish is that this is the account holder, which only the
+  password does. Two rituals do not double the deliberation, they train people
+  through both.
+- **The demo instance is an offer, not a default.** The picker still never
+  guesses — no default origin, no suggestion list — and the demo address is
+  still probed before it is adopted, so a misconfigured build offers nothing
+  rather than stranding whoever taps it. Unset is the default, and a
+  self-hoster's build never sees the button.
+
+One thing the environment decided rather than the plan: `expo install` could not
+be used for the new native dependencies, because `api.expo.dev` was unreachable
+from the build machine and that is where the SDK's version map lives. MMKV 4 and
+its `react-native-nitro-modules` peer were therefore **pinned by hand** —
+`~4.3.2` against `~0.35.10`, matching the nitro minor MMKV's nitrogen output was
+generated against, which is the pairing the ABI cares about. `expo-doctor`'s two
+network checks (the config schema and the React Native Directory metadata) are
+skipped for the same reason, so the versions want a real device build behind
+them before a release. `AGENTS.md`'s "let `expo install` choose" still stands;
+this was a deviation under duress and is worth re-running when the API is
+reachable.
 
 ## Verification
 
@@ -377,7 +465,18 @@ list names remain user-supplied — worth revisiting if comments land.
   Phase 4 adds its sibling: `test/lib/motion.test.ts` holds the swipe geometry
   and the four durations to §04 and §07. Same principle — the components that
   read them need a renderer, the numbers do not, and the numbers are what a
-  redesign changes.
+  redesign changes. Phase 5 adds the third of the family,
+  `test/lib/offline.test.ts` — and it is the one that pays for the pattern. The
+  queue's whole failure mode is silent: a `TrackingWrite` that does not survive
+  `JSON.stringify`, or a `mutationKey` that resolves to no `mutationFn`, loses a
+  check-in with nothing anywhere reporting it. Both are one assertion, and the
+  optimistic-patch rules (the `completed`/`planned` sweep, the ADR-0007 stamping)
+  come free with them now that `trackingPatch` is pure.
 - Manual passes on a physical iOS and Android device against a local instance
   (the `start-app` skill brings the dev stack up; point the app at the LAN IP
   rather than `localhost`), and against a second instance to prove the picker.
+  Two things only a device shows: haptics (a simulator rejects rather than
+  no-ops) and the offline path, which needs a real radio to turn off — kill the
+  connection, check in, kill the app, restore the connection, relaunch, and the
+  check-in should be on the server without anyone tapping anything.
+- Shipping has its own runbook: [`mobile-shipping.md`](mobile-shipping.md).

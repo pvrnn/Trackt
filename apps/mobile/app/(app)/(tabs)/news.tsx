@@ -10,8 +10,10 @@ import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
   Loading,
+  OfflineFallback,
   PageFrame,
   PageTitle,
+  StaleNotice,
   useTabContentInset,
 } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
@@ -56,7 +58,8 @@ export default function NewsTab() {
     return { kind, ...(days === null ? {} : { from: windowStart(days) }) };
   }, [kind, window]);
 
-  const { articles, isLoading, isError, isLoadingMore, hasMore, loadMore } = useNewsFeed(filters);
+  const { articles, updatedAt, isLoading, isError, isLoadingMore, hasMore, loadMore } =
+    useNewsFeed(filters);
 
   return (
     <PageFrame fadeOnFocus>
@@ -79,6 +82,7 @@ export default function NewsTab() {
                     : undefined
                 }
               />
+              <StaleNotice updatedAt={updatedAt} />
             </View>
             <ChipRow>
               <Chip label="All" selected={kind === undefined} onPress={() => setKind(undefined)} />
@@ -108,7 +112,9 @@ export default function NewsTab() {
         ListEmptyComponent={
           <View style={styles.gutter}>
             {isLoading ? (
-              <Loading />
+              <OfflineFallback>
+                <Loading />
+              </OfflineFallback>
             ) : isError ? (
               <EmptyState
                 title="News is offline"

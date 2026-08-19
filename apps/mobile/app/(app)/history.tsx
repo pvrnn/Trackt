@@ -23,7 +23,15 @@ import { Chip, ChipDivider, ChipRow } from '../../src/components/Chip';
 import { Cover } from '../../src/components/Cover';
 import { GlassCard } from '../../src/components/GlassCard';
 import { KindDot } from '../../src/components/KindDot';
-import { BackLink, EmptyState, Loading, PageFrame, PageTitle } from '../../src/components/Page';
+import {
+  BackLink,
+  EmptyState,
+  Loading,
+  OfflineFallback,
+  PageFrame,
+  PageTitle,
+  StaleNotice,
+} from '../../src/components/Page';
 import { Touchable } from '../../src/components/Touchable';
 import { PrismText } from '../../src/components/PrismText';
 import { duration, staggerDelay } from '../../src/lib/motion';
@@ -83,8 +91,17 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  const { entries, years, totals, isLoading, isError, isLoadingMore, hasMore, loadMore } =
-    useHistory({ year, season, kind, status });
+  const {
+    entries,
+    years,
+    totals,
+    updatedAt,
+    isLoading,
+    isError,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+  } = useHistory({ year, season, kind, status });
 
   const cardWidth = Math.floor((width - layout.gutter * 2 - space.md) / 2);
 
@@ -131,6 +148,7 @@ export default function HistoryScreen() {
             <View style={styles.gutter}>
               <BackLink label="Profile" />
               <PageTitle title="History" count={`${totals.titles} titles · ${scope}`} />
+              <StaleNotice updatedAt={updatedAt} />
             </View>
 
             <ChipRow>
@@ -214,7 +232,9 @@ export default function HistoryScreen() {
         ListEmptyComponent={
           <View style={styles.gutter}>
             {isLoading ? (
-              <Loading />
+              <OfflineFallback>
+                <Loading />
+              </OfflineFallback>
             ) : isError ? (
               <EmptyState title="Couldn't load" body="The instance didn't answer." />
             ) : filtered ? (

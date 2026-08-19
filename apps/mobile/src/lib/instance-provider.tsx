@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { configureAuth, resetAuth } from './auth-client';
 import { configureMobileClient } from './client';
 import { setActiveInstance } from './instance';
+import { clearPersistedCache } from './persist';
 import { clearStoredOrigin, loadStoredOrigin, storeOrigin } from './storage';
 
 /**
@@ -62,10 +63,15 @@ export function InstanceProvider({ children }: { children: ReactNode }) {
 
   const forgetInstance = useCallback(async () => {
     await clearStoredOrigin();
+    // The persisted query cache is keyed by origin (phase 5), and this is the
+    // last moment anything knows which key that was — after this the entry
+    // would sit in MMKV until its `maxAge` expired it, holding one account's
+    // library on a device that has been handed to someone else.
+    if (origin) clearPersistedCache(origin);
     setActiveInstance(null);
     resetAuth();
     setOrigin(null);
-  }, []);
+  }, [origin]);
 
   const value = useMemo<InstanceState>(
     () => ({ ready, origin, selectInstance, forgetInstance }),
