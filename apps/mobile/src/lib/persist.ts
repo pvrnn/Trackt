@@ -1,6 +1,6 @@
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import type { Persister } from '@tanstack/react-query-persist-client';
-import { createMMKV } from 'react-native-mmkv';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type { MMKV } from 'react-native-mmkv';
 import { cacheKeyForOrigin } from './offline';
 
@@ -18,17 +18,94 @@ import { cacheKeyForOrigin } from './offline';
  * `cacheKeyForOrigin`. A second instance per origin would leak a file per
  * server the user ever typed in.
  */
-let instance: MMKV | null = null;
+
+/** What the persister needs of a backend, and all either backend provides. */
+interface SyncStorage {
+  getString(key: string): string | undefined;
+  set(key: string, value: string): void;
+  remove(key: string): void;
+}
+
+/**
+ * The cache with nowhere to go — used only when MMKV's native module is
+ * missing, which in practice means Expo Go.
+ *
+ * MMKV 4 is a Nitro module: native code compiled into the client, not
+ * JavaScript a bundler can ship. Expo Go is a prebuilt binary with a fixed set
+ * of native modules and MMKV is not in it, so `require`ing it there throws at
+ * import time and takes the root layout down with it. A dev client (the
+ * `development` profile in `eas.json`) has it; Expo Go never will.
+ *
+ * Falling back keeps the app launchable there, and everything offline does
+ * *within* a session — `onlineManager` pausing queries, a check-in queued as a
+ * value, the undo toast, `StaleNotice` — works against this backend exactly as
+ * it does against MMKV, because all of that lives in the query client in
+ * memory. What is lost is the part that spans a launch: nothing is restored on
+ * open, and a write still queued when the app is killed is gone. That is a
+ * degradation to develop against, never one to ship, which is why it says so
+ * out loud below.
+ */
+function createMemoryStorage(): SyncStorage {
+  const entries = new Map<string, string>();
+  return {
+    getString: (key) => entries.get(key),
+    set: (key, value) => {
+      entries.set(key, value);
+    },
+    remove: (key) => {
+      entries.delete(key);
+    },
+  };
+}
+
+let instance: SyncStorage | null = null;
 
 /**
  * Lazily, because `createMMKV` opens the memory-mapped file on the native side
  * the moment it is called — and this module is imported by the instance
  * provider, which is above the splash. Nothing should touch the filesystem to
  * satisfy an import.
+ *
+ * The `require` is deliberate and cannot be the static import it used to be:
+ * `react-native-mmkv` resolves NitroModules as its module body runs, so a
+ * top-level import throws where the native module is absent — before any code
+ * here gets the chance to fall back.
  */
-function storage(): MMKV {
-  instance ??= createMMKV({ id: 'trackt.cache' });
+function storage(): SyncStorage {
+  if (instance) return instance;
+
+  // Asked before requiring, not caught after: MMKV logs the Nitro failure with
+  // `console.error` on its way out, and a caught error still leaves a red
+  // full-screen LogBox over the app on every launch. Expo Go is the one
+  // environment we can name in advance, so name it.
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+    warnMemoryOnly();
+    instance = createMemoryStorage();
+    return instance;
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createMMKV } = require('react-native-mmkv') as {
+      createMMKV: (config: { id: string }) => MMKV;
+    };
+    instance = createMMKV({ id: 'trackt.cache' });
+  } catch {
+    // A dev client or a store build missing MMKV is a broken build rather than
+    // a known environment, so it falls back too — but it is not expected, and
+    // silently serving a cache that evaporates would hide it.
+    warnMemoryOnly();
+    instance = createMemoryStorage();
+  }
   return instance;
+}
+
+function warnMemoryOnly(): void {
+  console.warn(
+    '[trackt] react-native-mmkv is unavailable — the offline cache is in memory only ' +
+      'and will not survive a relaunch. Expected in Expo Go; build a dev client ' +
+      '(eas build --profile development) for the real thing.',
+  );
 }
 
 /** Throttle the dump to disk. A burst of check-ins writes once, not eight times. */

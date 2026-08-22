@@ -24,6 +24,15 @@ If your dev database predates the central-catalog pivot ([ADR-0001](docs/adr/000
 
 Open the app in [Expo Go](https://expo.dev/go) — a physical device on the same network can scan the QR. The app has no baked-in base URL (ADR-0008 §2), so the first screen is a server picker: give it the origin of a running `apps/api`, **including the scheme**, since `https://` is assumed for a bare host. `apps/api` binds `0.0.0.0` and trusts `exp://*` in development, so no server-side change is needed.
 
+Expo Go runs the app, with one thing missing. `react-native-mmkv` (the offline
+cache, phase 5) is a Nitro module — native code compiled into the client — and
+Expo Go ships a fixed set that does not include it. `lib/persist.ts` detects
+Expo Go and falls back to an in-memory cache, warning once so the degradation is
+not silent: everything offline does within a session still works, but nothing is
+restored on launch and a write still queued when the app is killed is lost.
+Testing the cross-launch half of phase 5 needs a dev client (`eas build
+--profile development`).
+
 On an Android emulator the client has to reach both Metro and the API, which `adb reverse` handles without exposing anything on the network:
 
 ```sh
@@ -34,7 +43,14 @@ adb shell am start -a android.intent.action.VIEW -d "exp://127.0.0.1:8081"
 
 The instance address is then `http://localhost:3001` — not `10.0.2.2`, because the reverse makes the emulator's own loopback the right one. The forwards are lost when the emulator or the adb server restarts; re-running the two `reverse` commands is enough.
 
-Two things that bite on WSL2, where the emulator and the Android SDK live on the Windows side: call the Windows `adb.exe` (there is no adb in the distro, and the Windows adb server is the one the emulator is attached to), and expect a fresh AVD to have no Expo Go — sideload the SDK-matched APK from `https://api.expo.dev/v2/versions/latest` (`.data.sdkVersions["<sdk>"].androidClientUrl`) via `adb install`. `expo run:android` is not the way around this: it needs an Android SDK and JDK inside the distro.
+Three things bite on WSL2, where the emulator and the Android SDK live on the Windows side: call the Windows `adb.exe` (there is no adb in the distro, and the Windows adb server is the one the emulator is attached to), and expect a fresh AVD to have no Expo Go — sideload the SDK-matched APK from `https://api.expo.dev/v2/versions/latest` (`.data.sdkVersions["<sdk>"].androidClientUrl`) via `adb install`. `expo run:android` is not the way around this: it needs an Android SDK and JDK inside the distro. And `adb reverse` forwards to the _Windows_ loopback, which WSL2 relays back
+in — a relay that goes stale when the listener behind it restarts, so restarting
+Metro can leave `adb reverse` connecting to nothing and Expo Go reporting
+"Failed to download remote update" while `curl localhost:8081` from the distro
+still answers. Check it from the Windows side
+(`/mnt/c/Windows/System32/curl.exe http://127.0.0.1:8081/status`); when that is
+the failure, launch against the distro's own address instead —
+`adb shell am start -a android.intent.action.VIEW -d "exp://$(hostname -I | awk '{print $1}'):8081"`.
 
 ## Before you push
 
