@@ -16,10 +16,10 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { AddToListDialog } from '../components/media/AddToListDialog';
 import { CoverCard } from '../components/media/CoverCard';
 import { LogDatesDialog } from '../components/media/LogDatesDialog';
-import { ProgressPosition } from '../components/media/ProgressPosition';
+import { PartBlockRow, PartRow } from '../components/media/PartRows';
+import { ProgressCard } from '../components/media/ProgressCard';
 import { RatingPopover } from '../components/media/RatingPopover';
 import { Button } from '../components/ui/Button';
-import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
@@ -28,11 +28,13 @@ import {
   coverGradient,
   dateRangeLabel,
   todayIso,
+  KIND_LABELS_SINGULAR,
   firstUnwatched,
   invalidateTracking,
+  partBlocks,
+  partWindow,
   partsUpTo,
   progressUpTo,
-  usesProgressSlider,
   stampedDates,
   trackingApi,
   useMediaDetail,
@@ -83,8 +85,6 @@ function groupRelations(relations: MediaDetail['relations']) {
   ).filter(([, items]) => items.length > 0);
 }
 
-const CHECKLIST_CHUNK = 100;
-
 function partNoun(detail: MediaDetail): { singular: string; prefix: string } | null {
   if (detail.kind === 'series' || detail.kind === 'anime') {
     return { singular: 'Episode', prefix: 'E' };
@@ -117,7 +117,8 @@ function MediaPage() {
   const queryClient = useQueryClient();
   const { isPending: authPending, navUser } = useAuthedPage();
   const { data, isError, refetch } = useMediaDetail(slug);
-  const [visibleParts, setVisibleParts] = useState(CHECKLIST_CHUNK);
+  /** Which block of parts is expanded, or null for "the one you are in". */
+  const [openBlock, setOpenBlock] = useState<number | null>(null);
   const [addingToList, setAddingToList] = useState(false);
   // The dialog's *initial* dates, or null when it's closed. Held here rather
   // than read from `viewer` on open, so the auto-open path can hand it the
@@ -163,7 +164,7 @@ function MediaPage() {
     viewerMutation.mutate({ patch, run });
 
   useEffect(() => {
-    setVisibleParts(CHECKLIST_CHUNK);
+    setOpenBlock(null);
   }, [slug]);
 
   useEffect(() => {
@@ -233,31 +234,80 @@ function MediaPage() {
   const checkable = noun !== null && listLength > 0;
   /** 'Watched' or 'Read', per kind — the checklist's done state, in words. */
   const doneLabel = trackingVerbLabel(detail.kind);
-  const progressRatio = checkable && total ? watchedSet.size / total : null;
-  /** Past 30 parts the checklist is a wall, so the position leads instead. */
-  const longWork = checkable && usesProgressSlider(total);
   /** The highest part with everything before it seen — what a position means. */
   const position = progressUpTo(watchedSet);
-  // A long work gets the position and nothing else: hundreds of tiles is the
-  // wall this replaced, and offering it anyway just moves the wall down a fold.
-  const showGrid = !longWork;
+  /** Blocks of forty, or none when the work is short enough to list part by part. */
+  const blocks = total !== null ? partBlocks(total, position) : [];
+  const volumes = detail.kind === 'manga' || detail.kind === 'webtoon';
+  // The block you are in is the one that opens, until you say otherwise.
+  const activeBlock = blocks.find((block) => block.index === openBlock) ??
+    blocks.find((block) => position >= block.from && position <= block.to) ??
+    blocks[0] ?? { index: 1, from: 1, to: 0, size: 0, done: 0, complete: false, partial: false };
+  const insideBlock = position >= activeBlock.from && position <= activeBlock.to;
+  const windowRows = partWindow(activeBlock.from, activeBlock.to, position);
 
   const setPosition = (upTo: number) =>
     applyViewer({ watched: partsUpTo(upTo) }, () => trackingApi.setProgress(detail.id, upTo));
 
+  /** Every part row writes the position — see `PartRows`. */
+  const partRow = (number: number) => (
+    <PartRow
+      key={number}
+      label={`${noun?.singular ?? 'Part'} ${number}`}
+      done={watchedSet.has(number)}
+      isNext={number === next}
+      onClick={() => setPosition(watchedSet.has(number) ? number - 1 : number)}
+    />
+  );
+
+  /**
+   * The primary action names the next unit and nothing more. A movie has no
+   * next unit, so it gets the one step it does have.
+   */
+  const primary = checkable
+    ? position >= (total ?? position)
+      ? { label: 'UP TO DATE', done: true, onClick: () => setPosition(position) }
+      : {
+          label: `${trackingVerbLabel(detail.kind, 'present').toUpperCase()} ${noun!.prefix}${position + 1}`,
+          done: false,
+          onClick: () => setPosition(position + 1),
+        }
+    : viewer.status === 'completed'
+      ? { label: 'WATCHED', done: true, onClick: () => setEditingDates({ ...viewer }) }
+      : {
+          label: 'MARK WATCHED',
+          done: false,
+          onClick: () => {
+            const dates = stampedDates('completed', viewer, todayIso());
+            applyViewer({ status: 'completed', ...dates }, () =>
+              trackingApi.setStatus(detail.id, 'completed'),
+            );
+            if (viewer.status === null || viewer.status === 'planned') setEditingDates(dates);
+          },
+        };
+
   const relationGroups = groupRelations(detail.relations);
-  /** '04 JAN → 11 FEB' when the log has dates; null puts '＋ DATES' on the pill. */
+  /** '04 JAN → 11 FEB' when the log has dates; null offers to add them. */
   const dateLabel = dateRangeLabel(viewer.startedAt, viewer.finishedAt);
 
-  const countOf = (n: number | null, noun: string) =>
-    n !== null ? `${n} ${noun}${n === 1 ? '' : 'S'}` : null;
-  const metaParts = [
+  const countOf = (n: number | null, unit: string) =>
+    n !== null ? `${n} ${unit}${n === 1 ? '' : 'S'}` : null;
+  /** Kind · year · genres, one line — which is why there is no GENRES section. */
+  const metaLine = [
+    KIND_LABELS_SINGULAR[detail.kind].toUpperCase(),
     detail.year !== null ? String(detail.year) : null,
+    detail.genres.length > 0 ? detail.genres.slice(0, 3).join(', ').toUpperCase() : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  /** What the work itself is doing: airing/ended, which season, how many parts. */
+  const factsLine = [
     detail.status ? detail.status.toUpperCase() : null,
     detail.seasonNumber !== null ? `SEASON ${detail.seasonNumber}` : null,
-    // One count, labelled by kind's part (EPISODE/CHAPTER); movies have none (ADR-0003).
     noun ? countOf(total, noun.singular.toUpperCase()) : null,
-  ].filter(Boolean);
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   const detailRows: [string, string][] = [
     ['STATUS', detail.status ? detail.status.toUpperCase() : '—'],
@@ -278,62 +328,60 @@ function MediaPage() {
 
   return (
     <Shell user={navUser}>
-      {/* hero */}
-      <div>
-        <div className="mx-auto flex max-w-[1360px] flex-col gap-8 px-10 pt-14 pb-10 md:flex-row">
+      {/* Hero: full-bleed backdrop, the artwork carries the page. */}
+      <div className="relative overflow-hidden border-b border-white/9">
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{ background: coverGradient(detail.kind, detail.title) }}
+        />
+        {detail.coverUrl && (
           <div
-            className="cover relative flex h-[360px] w-[240px] shrink-0 items-end bg-cover bg-center p-5"
+            aria-hidden
+            className="absolute inset-0 bg-cover bg-center opacity-80"
+            style={{ backgroundImage: `url(${detail.coverUrl})` }}
+          />
+        )}
+        {/* The scrim is what makes the panel a header rather than a picture:
+            it carries the art down into the page's own ink so there is no seam,
+            and gives the title something to sit on whatever the cover is. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,12,16,0.35)_0%,rgba(14,12,16,0.55)_45%,rgba(14,12,16,0.92)_100%)]"
+        />
+
+        <div className="relative mx-auto flex max-w-[1360px] flex-col gap-10 px-10 pt-16 pb-11 md:flex-row md:items-end">
+          <div
+            className="cover h-[360px] w-[240px] shrink-0 bg-cover bg-center"
             style={
               detail.coverUrl
                 ? { backgroundImage: `url(${detail.coverUrl})` }
                 : { background: coverGradient(detail.kind, detail.title) }
             }
-          >
-            {progressRatio !== null && progressRatio > 0 && (
-              <span
-                aria-hidden
-                className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-white/10"
-              >
-                <span
-                  className="block h-full bg-prism"
-                  style={{ width: `${Math.round(progressRatio * 100)}%` }}
-                />
-              </span>
-            )}
-          </div>
+          />
 
-          <div className="flex min-w-0 flex-1 flex-col gap-3.5">
-            <div className="flex flex-wrap items-center gap-3">
-              <KindDot kind={detail.kind} showLabel />
-              {metaParts.length > 0 && (
-                <span className="font-label text-xs tracking-label text-dim">
-                  {metaParts.join(' · ')}
-                </span>
-              )}
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {/* Kind, year and genres on one line — which is why there is no
+                separate GENRES section any more. */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <KindDot kind={detail.kind} />
+              <span className="font-label text-xs tracking-label text-muted">{metaLine}</span>
             </div>
-            <h1 className="font-heading text-[clamp(40px,6vw,72px)] leading-[0.95] uppercase">
+
+            <h1 className="font-heading text-[clamp(44px,6vw,78px)] leading-[0.94] uppercase">
               {detail.title}
             </h1>
+
             {detail.description && (
-              <p className="max-w-[640px] text-[15px] leading-relaxed text-muted">
+              <p className="max-w-[620px] text-[16px] leading-relaxed text-muted">
                 {detail.description}
               </p>
             )}
 
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              {checkable && next !== null && (
-                <Button
-                  onClick={() =>
-                    applyViewer({ watched: [...viewer.watched, next] }, () =>
-                      trackingApi.checkIn(detail.id, next),
-                    )
-                  }
-                >
-                  ✓ {trackingVerbLabel(detail.kind, 'present').toUpperCase()} {noun!.prefix}
-                  {next}
-                </Button>
-              )}
-              {/* Named by the hidden label *plus* the trigger, so the pill
+            {/* Status and dates are facts, not buttons — the chip changes the
+                one, the date segment opens the editor for the other. */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Named by the hidden label *plus* the trigger, so the chip
                   announces "Status, COMPLETED" — an `aria-label` here would
                   replace the value and leave only "status". */}
               <span id="log-status-label" className="sr-only">
@@ -355,26 +403,24 @@ function MediaPage() {
                   }
                   const status = value as LogStatus;
                   // The API sweeps progress for these two (PRD §3.1); mirror it
-                  // optimistically so the grid doesn't lag a refetch behind.
+                  // optimistically so the rows don't lag a refetch behind.
                   const sweep: ViewerPatch =
                     !checkable || listLength === 0
                       ? {}
                       : status === 'completed'
-                        ? { watched: Array.from({ length: listLength }, (_, i) => i + 1) }
+                        ? { watched: partsUpTo(listLength) }
                         : status === 'planned'
                           ? { watched: [] }
                           : {};
                   // Same for the dates the server stamps (ADR-0007), so the
-                  // DATES pill fills in as the status pill changes.
+                  // date segment fills in as the status chip changes.
                   const dates = stampedDates(status, viewer, todayIso());
                   applyViewer({ status, ...sweep, ...dates }, () =>
                     trackingApi.setStatus(detail.id, status),
                   );
                   // The one transition with no evidence behind its date: the
                   // user is logging something they watched at some unknown time
-                  // in the past, and today is almost certainly wrong. Every
-                  // other transition has a check-in or a prior date backing it,
-                  // and must not interrupt.
+                  // in the past, and today is almost certainly wrong.
                   if (
                     status === 'completed' &&
                     (viewer.status === null || viewer.status === 'planned')
@@ -390,30 +436,44 @@ function MediaPage() {
                   type="button"
                   onClick={() => setEditingDates({ ...viewer })}
                   title="Edit the dates you started and finished this"
-                  className={clsx(
-                    'cursor-pointer rounded-full border px-5 py-[11px] text-[13px] font-bold tracking-btn transition',
-                    dateLabel
-                      ? 'border-pink bg-pink-selected text-pink'
-                      : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
-                  )}
+                  className="cursor-pointer font-label text-xs font-semibold tracking-label text-muted transition-colors hover:text-pink"
                 >
-                  {dateLabel ?? '＋ DATES'}
+                  {dateLabel ?? '＋ ADD DATES'}
                 </button>
               )}
-              <RatingPopover
-                score={viewer.score}
-                onChange={(score) => {
-                  if (score === null) {
-                    applyViewer({ score: null }, () => trackingApi.clearScore(detail.id));
-                  } else {
-                    applyViewer({ score }, () => trackingApi.setScore(detail.id, score));
-                  }
-                }}
-              />
+              {factsLine && (
+                <>
+                  <span className="font-label text-xs text-dim">·</span>
+                  <span className="font-label text-xs font-semibold tracking-label text-muted">
+                    {factsLine}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* One primary, two secondaries. Nothing else competes. */}
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={primary.onClick}
+                className={clsx(
+                  'flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full px-7 transition',
+                  primary.done
+                    ? 'bg-glass text-muted inset-ring inset-ring-white/15 hover:inset-ring-pink'
+                    : 'bg-prism text-on-prism hover:brightness-110',
+                )}
+              >
+                <span aria-hidden className="text-[15px] leading-none">
+                  {primary.done ? '★' : '✓'}
+                </span>
+                <span className="font-label text-[13px] font-bold tracking-label whitespace-nowrap">
+                  {primary.label}
+                </span>
+              </button>
+
               <button
                 type="button"
                 aria-pressed={viewer.favorited}
-                title={viewer.favorited ? 'Remove from favourites' : 'Add to favourites'}
                 onClick={() =>
                   applyViewer({ favorited: !viewer.favorited }, () =>
                     viewer.favorited
@@ -422,176 +482,171 @@ function MediaPage() {
                   )
                 }
                 className={clsx(
-                  'cursor-pointer rounded-full border px-5 py-[11px] text-[13px] font-bold tracking-btn transition',
+                  'flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full px-5 inset-ring transition',
                   viewer.favorited
-                    ? 'border-pink bg-pink-selected text-pink'
-                    : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
+                    ? 'bg-pink-selected text-pink inset-ring-pink/50'
+                    : 'bg-glass text-muted inset-ring-white/15 hover:text-pink hover:inset-ring-pink',
                 )}
               >
-                {viewer.favorited ? '♥ FAVOURITE' : '♡ FAVOURITE'}
+                <span aria-hidden className="text-[15px] leading-none">
+                  {viewer.favorited ? '♥' : '♡'}
+                </span>
+                <span className="font-label text-xs font-bold tracking-label">FAVOURITE</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setAddingToList(true)}
-                className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-5 py-[11px] text-[13px] font-bold tracking-btn text-fg transition hover:border-pink hover:text-pink"
+                className="flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full bg-glass px-5 text-muted inset-ring inset-ring-white/15 transition hover:text-pink hover:inset-ring-pink"
               >
-                ＋ LIST
+                <span aria-hidden className="text-[15px] leading-none">
+                  ＋
+                </span>
+                <span className="font-label text-xs font-bold tracking-label">LIST</span>
               </button>
             </div>
+
             {viewerMutation.isError && (
               <p role="alert" className="text-sm text-red-400">
                 That didn’t save — try again.
               </p>
             )}
-
-            <div className="mt-3 flex gap-8">
-              <Stat
-                value={
-                  detail.community.averageScore !== null
-                    ? detail.community.averageScore.toFixed(1)
-                    : '—'
-                }
-                label={`${detail.community.ratingCount} ${detail.community.ratingCount === 1 ? 'RATING' : 'RATINGS'}`}
-                prism
-              />
-              {checkable && total !== null && (
-                <Stat value={`${watchedSet.size}/${total}`} label="YOUR PROGRESS" />
-              )}
-              {viewer.score !== null && <Stat value={viewer.score.toFixed(1)} label="YOUR SCORE" />}
-            </div>
           </div>
         </div>
       </div>
 
       <main className="mx-auto grid max-w-[1360px] grid-cols-1 gap-12 px-10 pt-10 pb-20 lg:grid-cols-[2fr_1fr]">
-        {/* checklist */}
-        <section className="flex min-w-0 flex-col gap-5">
-          <h2 className="font-heading text-[32px] uppercase">
-            {noun ? `${noun.singular}s` : 'Tracking'}
-          </h2>
-          {checkable ? (
+        {/* LEFT: the counter, then the parts it scopes. */}
+        <section className="flex min-w-0 flex-col gap-[18px]">
+          <div className="flex flex-wrap items-center gap-4">
+            <h2 className="font-heading text-[32px] uppercase">
+              {noun ? `${noun.singular}s` : 'Tracking'}
+            </h2>
+            <div className="flex-1" />
+            {checkable && total !== null && (
+              <button
+                type="button"
+                onClick={() => setPosition(position >= total ? 0 : total)}
+                className="cursor-pointer font-label text-[11px] tracking-label text-pink transition-colors hover:brightness-125"
+              >
+                {position >= total ? 'CLEAR PROGRESS' : `MARK ALL ${doneLabel.toUpperCase()}`}
+              </button>
+            )}
+          </div>
+
+          {checkable && total !== null ? (
             <>
-              {longWork && total !== null && (
-                <ProgressPosition
-                  noun={noun!.singular}
-                  total={total}
-                  position={position}
-                  watchedCount={watchedSet.size}
-                  doneLabel={doneLabel}
-                  onCommit={setPosition}
-                />
-              )}
-              {showGrid ? (
+              <ProgressCard
+                unitLabel={`${noun!.singular.toUpperCase()}S ${doneLabel.toUpperCase()}`}
+                total={total}
+                position={position}
+                watchedCount={watchedSet.size}
+                onCommit={setPosition}
+              />
+
+              {blocks.length > 0 ? (
                 <>
-                  <div className="flex flex-wrap items-center gap-4 font-label text-[11px] tracking-label text-dim">
-                    <span className="flex items-center gap-2">
-                      <span
-                        aria-hidden
-                        className="size-3 rounded-[4px] border border-pink bg-pink"
+                  <div className="flex flex-col gap-2">
+                    {blocks.map((block) => (
+                      <PartBlockRow
+                        key={block.index}
+                        block={block}
+                        label={
+                          volumes
+                            ? `Volume ${block.index}`
+                            : `${noun!.singular}s ${block.from}–${block.to}`
+                        }
+                        rangeLabel={`${noun!.prefix} ${block.from}–${block.to}`}
+                        open={block.index === activeBlock.index}
+                        onClick={() =>
+                          setOpenBlock((current) => (current === block.index ? null : block.index))
+                        }
                       />
-                      {doneLabel.toUpperCase()}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span
-                        aria-hidden
-                        className="size-3 rounded-[4px] border border-pink bg-pink-row"
-                      />
-                      UP NEXT
-                    </span>
-                    <span>
-                      {watchedSet.size} / {listLength} {noun!.singular.toUpperCase()}S
-                    </span>
+                    ))}
                   </div>
-                  {/* A tile grid rather than the mockup's full-width rows: at ~56px
-                  each, a 24-episode season ran past a full viewport, and manga
-                  routinely carry hundreds of chapters. */}
-                  <ul className="flex flex-wrap gap-2">
-                    {Array.from(
-                      { length: Math.min(listLength, visibleParts) },
-                      (_, i) => i + 1,
-                    ).map((number) => {
-                      const watched = watchedSet.has(number);
-                      const isNext = number === next;
-                      return (
-                        <li key={number}>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              applyViewer(
-                                {
-                                  watched: watched
-                                    ? viewer.watched.filter((n) => n !== number)
-                                    : [...viewer.watched, number],
-                                },
-                                () =>
-                                  watched
-                                    ? trackingApi.uncheck(detail.id, number)
-                                    : trackingApi.checkIn(detail.id, number),
-                              )
-                            }
-                            aria-pressed={watched}
-                            // The tile shows a bare number; the label carries what
-                            // the row's WATCHED / UP NEXT text used to say.
-                            aria-label={`${noun!.singular} ${number}${
-                              watched ? ` — ${doneLabel.toLowerCase()}` : isNext ? ' — up next' : ''
-                            }`}
-                            title={`${noun!.singular} ${number}`}
-                            className={clsx(
-                              'flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-cover border px-2',
-                              'font-label text-[13px] font-semibold tabular-nums transition',
-                              watched
-                                ? 'border-pink bg-pink text-on-prism'
-                                : isNext
-                                  ? 'border-pink bg-pink-row font-bold text-pink'
-                                  : 'border-glass-border bg-glass text-muted hover:border-pink hover:text-pink',
-                            )}
-                          >
-                            {number}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {listLength > visibleParts && (
-                    <Button variant="secondary" onClick={() => setVisibleParts(listLength)}>
-                      SHOW ALL {listLength}
-                    </Button>
-                  )}
+
+                  <div className="mt-2 flex items-center gap-4">
+                    <h3 className="font-heading text-xl uppercase">
+                      {volumes
+                        ? `Volume ${activeBlock.index}`
+                        : `${noun!.singular}s ${activeBlock.from}–${activeBlock.to}`}
+                      {insideBlock ? ' · around you' : ''}
+                    </h3>
+                    <span className="h-px flex-1 bg-white/9" />
+                  </div>
+                  <div className="flex flex-col gap-2">{windowRows.map(partRow)}</div>
+                  <p className="font-label text-[11px] leading-relaxed tracking-label text-faint">
+                    OPEN A {volumes ? 'VOLUME' : 'BLOCK'} TO JUMP THERE · THE SLIDER TRAVELS FURTHER
+                  </p>
                 </>
-              ) : null}
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {Array.from({ length: total }, (_, i) => i + 1).map(partRow)}
+                </div>
+              )}
             </>
           ) : (
-            <GlassCard className="px-6 py-5 text-[15px] text-muted">
+            <p className="rounded-card bg-glass px-6 py-5 text-[15px] text-muted inset-ring inset-ring-white/10">
               {detail.kind === 'movie'
-                ? 'Movies track in one step — set the status above to Completed when you’ve watched it.'
+                ? 'Movies track in one step — the button above is the whole log.'
                 : 'This entry has no episode or chapter count yet, so there’s nothing granular to tick off. Set a status above to track it.'}
-            </GlassCard>
+            </p>
           )}
         </section>
 
-        {/* side column */}
+        {/* RIGHT */}
         <aside className="flex flex-col gap-8">
+          {/* The rating: your score against the instance's, which is the only
+              comparison that makes either number mean anything. */}
+          <div className="flex gap-2.5">
+            <div className="flex flex-1 items-center gap-3.5 rounded-card-sm bg-glass px-4.5 py-4 inset-ring inset-ring-white/10 backdrop-blur-[16px]">
+              {viewer.score !== null ? (
+                <span className="text-prism font-display text-[38px] leading-none">
+                  {viewer.score.toFixed(1)}
+                </span>
+              ) : (
+                <span className="font-display text-[38px] leading-none text-faint">–</span>
+              )}
+              <div className="flex flex-col gap-0.5">
+                <span className="font-label text-[11px] tracking-label text-muted">
+                  {viewer.score !== null ? 'YOUR RATING' : 'RATE THIS'}
+                </span>
+                <span className="font-label text-[11px] tracking-label text-dim">
+                  {detail.community.averageScore !== null
+                    ? `${detail.community.averageScore.toFixed(1)} FROM ${detail.community.ratingCount} HERE`
+                    : 'NO RATINGS HERE YET'}
+                </span>
+              </div>
+            </div>
+            <RatingPopover
+              score={viewer.score}
+              onChange={(score) => {
+                if (score === null) {
+                  applyViewer({ score: null }, () => trackingApi.clearScore(detail.id));
+                } else {
+                  applyViewer({ score }, () => trackingApi.setScore(detail.id, score));
+                }
+              }}
+              trigger={<span aria-hidden>✎</span>}
+              triggerClassName="grid w-14 shrink-0 cursor-pointer place-items-center rounded-card-sm bg-glass text-base text-pink transition inset-ring inset-ring-white/10 outline-none hover:inset-ring-pink"
+            />
+          </div>
+
           <section className="flex flex-col gap-3.5">
             <h2 className="font-heading text-2xl uppercase">Details</h2>
-            <GlassCard className="flex flex-col overflow-hidden rounded-card-sm">
+            <div className="flex flex-col">
               {detailRows.map(([key, value]) => (
                 <div
                   key={key}
-                  className="flex justify-between gap-4 border-b border-white/7 px-4.5 py-3 last:border-b-0"
+                  className="flex items-baseline justify-between gap-4 py-3 inset-ring-0 [box-shadow:inset_0_-1px_0_rgba(255,255,255,0.07)]"
                 >
-                  <span className="shrink-0 font-label text-xs tracking-label text-dim">{key}</span>
-                  <span className="text-right text-[13px] text-muted">{value}</span>
+                  <span className="shrink-0 font-label text-[11px] tracking-label text-dim">
+                    {key}
+                  </span>
+                  <span className="text-right text-[13px]">{value}</span>
                 </div>
               ))}
-            </GlassCard>
-          </section>
-
-          <section className="flex flex-col gap-3.5">
-            <h2 className="font-heading text-2xl uppercase">Comments</h2>
-            <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-              Comments land with the v1.x social layer — episode threads, spoiler blurring, the
-              works.
-            </GlassCard>
+            </div>
           </section>
 
           {relationGroups.map(([label, items]) => (
@@ -605,8 +660,6 @@ function MediaPage() {
                         kind={item.kind}
                         title={item.title}
                         coverUrl={item.coverUrl ?? undefined}
-                        // Only when the kind differs — that's the cross-kind case
-                        // (a manga under SOURCE MATERIAL) that needs disambiguating.
                         caption={
                           item.kind === detail.kind ? undefined : (
                             <KindDot kind={item.kind} showLabel />
@@ -681,15 +734,6 @@ function Shell({ user, children }: { user: AppNavUser; children?: React.ReactNod
         <AppNav user={user} />
         {children}
       </div>
-    </div>
-  );
-}
-
-function Stat({ value, label, prism = false }: { value: string; label: string; prism?: boolean }) {
-  return (
-    <div>
-      <div className={clsx('font-display text-[32px]', prism && 'text-prism')}>{value}</div>
-      <div className="font-label text-[11px] tracking-label text-dim">{label}</div>
     </div>
   );
 }

@@ -75,22 +75,6 @@ export function firstUnwatched(watched: ReadonlySet<number>, limit: number): num
 }
 
 /**
- * Past this many parts the media page stops offering a tile per part and leads
- * with a position instead — a slider and a typed-in number (`PUT …/progress`).
- *
- * Thirty is where the grid stops being a checklist and starts being a wall:
- * a two-cour anime is 24-26, and everything above that — a long-running manga,
- * a webtoon, a 500-episode shounen — is a work nobody catches up on one tap at
- * a time. The tiles do not go away; they stop being the first thing offered.
- */
-export const PROGRESS_SLIDER_MIN_PARTS = 30;
-
-/** Is this work long enough that a position beats a checklist? */
-export function usesProgressSlider(total: number | null): boolean {
-  return total !== null && total >= PROGRESS_SLIDER_MIN_PARTS;
-}
-
-/**
  * The viewer's *position*: the highest N with every part 1..N checked in.
  *
  * Not `watched.size`, and the difference is the whole reason this exists.

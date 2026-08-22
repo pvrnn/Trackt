@@ -3,14 +3,12 @@ import { LOG_DATE_FLOOR, type UpNextEntry } from '@trackt/shared';
 import { upNextPartKey } from '../src/home.js';
 import {
   PART_BLOCK_SIZE,
-  PROGRESS_SLIDER_MIN_PARTS,
   firstUnwatched,
   partBlocks,
   partWindow,
   partsUpTo,
   progressUpTo,
   stampedDates,
-  usesProgressSlider,
   validateLogDates,
 } from '../src/media.js';
 
@@ -111,21 +109,6 @@ describe('partWindow', () => {
 
   it('clamps to the block start rather than showing parts before it', () => {
     expect(partWindow(1, 40, 1)).toEqual([1, 2, 3, 4, 5, 6]);
-  });
-});
-
-describe('usesProgressSlider', () => {
-  it('leaves a two-cour season on the checklist', () => {
-    expect(usesProgressSlider(24)).toBe(false);
-  });
-
-  it('takes over at the threshold and above', () => {
-    expect(usesProgressSlider(PROGRESS_SLIDER_MIN_PARTS)).toBe(true);
-    expect(usesProgressSlider(900)).toBe(true);
-  });
-
-  it('says no when the count is unknown — an airing season has no scale to drag', () => {
-    expect(usesProgressSlider(null)).toBe(false);
   });
 });
 
