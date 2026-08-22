@@ -16,6 +16,7 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { AddToListDialog } from '../components/media/AddToListDialog';
 import { CoverCard } from '../components/media/CoverCard';
 import { LogDatesDialog } from '../components/media/LogDatesDialog';
+import { ProgressPosition } from '../components/media/ProgressPosition';
 import { RatingPopover } from '../components/media/RatingPopover';
 import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -29,6 +30,9 @@ import {
   todayIso,
   firstUnwatched,
   invalidateTracking,
+  partsUpTo,
+  progressUpTo,
+  usesProgressSlider,
   stampedDates,
   trackingApi,
   useMediaDetail,
@@ -230,6 +234,16 @@ function MediaPage() {
   /** 'Watched' or 'Read', per kind — the checklist's done state, in words. */
   const doneLabel = trackingVerbLabel(detail.kind);
   const progressRatio = checkable && total ? watchedSet.size / total : null;
+  /** Past 30 parts the checklist is a wall, so the position leads instead. */
+  const longWork = checkable && usesProgressSlider(total);
+  /** The highest part with everything before it seen — what a position means. */
+  const position = progressUpTo(watchedSet);
+  // A long work gets the position and nothing else: hundreds of tiles is the
+  // wall this replaced, and offering it anyway just moves the wall down a fold.
+  const showGrid = !longWork;
+
+  const setPosition = (upTo: number) =>
+    applyViewer({ watched: partsUpTo(upTo) }, () => trackingApi.setProgress(detail.id, upTo));
 
   const relationGroups = groupRelations(detail.relations);
   /** '04 JAN → 11 FEB' when the log has dates; null puts '＋ DATES' on the pill. */
@@ -457,76 +471,94 @@ function MediaPage() {
           </h2>
           {checkable ? (
             <>
-              <div className="flex flex-wrap items-center gap-4 font-label text-[11px] tracking-label text-dim">
-                <span className="flex items-center gap-2">
-                  <span aria-hidden className="size-3 rounded-[4px] border border-pink bg-pink" />
-                  {doneLabel.toUpperCase()}
-                </span>
-                <span className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className="size-3 rounded-[4px] border border-pink bg-pink-row"
-                  />
-                  UP NEXT
-                </span>
-                <span>
-                  {watchedSet.size} / {listLength} {noun!.singular.toUpperCase()}S
-                </span>
-              </div>
-              {/* A tile grid rather than the mockup's full-width rows: at ~56px
+              {longWork && total !== null && (
+                <ProgressPosition
+                  noun={noun!.singular}
+                  total={total}
+                  position={position}
+                  watchedCount={watchedSet.size}
+                  doneLabel={doneLabel}
+                  onCommit={setPosition}
+                />
+              )}
+              {showGrid ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-4 font-label text-[11px] tracking-label text-dim">
+                    <span className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className="size-3 rounded-[4px] border border-pink bg-pink"
+                      />
+                      {doneLabel.toUpperCase()}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className="size-3 rounded-[4px] border border-pink bg-pink-row"
+                      />
+                      UP NEXT
+                    </span>
+                    <span>
+                      {watchedSet.size} / {listLength} {noun!.singular.toUpperCase()}S
+                    </span>
+                  </div>
+                  {/* A tile grid rather than the mockup's full-width rows: at ~56px
                   each, a 24-episode season ran past a full viewport, and manga
                   routinely carry hundreds of chapters. */}
-              <ul className="flex flex-wrap gap-2">
-                {Array.from({ length: Math.min(listLength, visibleParts) }, (_, i) => i + 1).map(
-                  (number) => {
-                    const watched = watchedSet.has(number);
-                    const isNext = number === next;
-                    return (
-                      <li key={number}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            applyViewer(
-                              {
-                                watched: watched
-                                  ? viewer.watched.filter((n) => n !== number)
-                                  : [...viewer.watched, number],
-                              },
-                              () =>
-                                watched
-                                  ? trackingApi.uncheck(detail.id, number)
-                                  : trackingApi.checkIn(detail.id, number),
-                            )
-                          }
-                          aria-pressed={watched}
-                          // The tile shows a bare number; the label carries what
-                          // the row's WATCHED / UP NEXT text used to say.
-                          aria-label={`${noun!.singular} ${number}${
-                            watched ? ` — ${doneLabel.toLowerCase()}` : isNext ? ' — up next' : ''
-                          }`}
-                          title={`${noun!.singular} ${number}`}
-                          className={clsx(
-                            'flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-cover border px-2',
-                            'font-label text-[13px] font-semibold tabular-nums transition',
-                            watched
-                              ? 'border-pink bg-pink text-on-prism'
-                              : isNext
-                                ? 'border-pink bg-pink-row font-bold text-pink'
-                                : 'border-glass-border bg-glass text-muted hover:border-pink hover:text-pink',
-                          )}
-                        >
-                          {number}
-                        </button>
-                      </li>
-                    );
-                  },
-                )}
-              </ul>
-              {listLength > visibleParts && (
-                <Button variant="secondary" onClick={() => setVisibleParts(listLength)}>
-                  SHOW ALL {listLength}
-                </Button>
-              )}
+                  <ul className="flex flex-wrap gap-2">
+                    {Array.from(
+                      { length: Math.min(listLength, visibleParts) },
+                      (_, i) => i + 1,
+                    ).map((number) => {
+                      const watched = watchedSet.has(number);
+                      const isNext = number === next;
+                      return (
+                        <li key={number}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              applyViewer(
+                                {
+                                  watched: watched
+                                    ? viewer.watched.filter((n) => n !== number)
+                                    : [...viewer.watched, number],
+                                },
+                                () =>
+                                  watched
+                                    ? trackingApi.uncheck(detail.id, number)
+                                    : trackingApi.checkIn(detail.id, number),
+                              )
+                            }
+                            aria-pressed={watched}
+                            // The tile shows a bare number; the label carries what
+                            // the row's WATCHED / UP NEXT text used to say.
+                            aria-label={`${noun!.singular} ${number}${
+                              watched ? ` — ${doneLabel.toLowerCase()}` : isNext ? ' — up next' : ''
+                            }`}
+                            title={`${noun!.singular} ${number}`}
+                            className={clsx(
+                              'flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-cover border px-2',
+                              'font-label text-[13px] font-semibold tabular-nums transition',
+                              watched
+                                ? 'border-pink bg-pink text-on-prism'
+                                : isNext
+                                  ? 'border-pink bg-pink-row font-bold text-pink'
+                                  : 'border-glass-border bg-glass text-muted hover:border-pink hover:text-pink',
+                            )}
+                          >
+                            {number}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {listLength > visibleParts && (
+                    <Button variant="secondary" onClick={() => setVisibleParts(listLength)}>
+                      SHOW ALL {listLength}
+                    </Button>
+                  )}
+                </>
+              ) : null}
             </>
           ) : (
             <GlassCard className="px-6 py-5 text-[15px] text-muted">

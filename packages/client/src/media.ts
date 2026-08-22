@@ -75,6 +75,42 @@ export function firstUnwatched(watched: ReadonlySet<number>, limit: number): num
 }
 
 /**
+ * Past this many parts the media page stops offering a tile per part and leads
+ * with a position instead — a slider and a typed-in number (`PUT …/progress`).
+ *
+ * Thirty is where the grid stops being a checklist and starts being a wall:
+ * a two-cour anime is 24-26, and everything above that — a long-running manga,
+ * a webtoon, a 500-episode shounen — is a work nobody catches up on one tap at
+ * a time. The tiles do not go away; they stop being the first thing offered.
+ */
+export const PROGRESS_SLIDER_MIN_PARTS = 30;
+
+/** Is this work long enough that a position beats a checklist? */
+export function usesProgressSlider(total: number | null): boolean {
+  return total !== null && total >= PROGRESS_SLIDER_MIN_PARTS;
+}
+
+/**
+ * The viewer's *position*: the highest N with every part 1..N checked in.
+ *
+ * Not `watched.size`, and the difference is the whole reason this exists.
+ * Progress can be sparse — someone who ticked episodes 1, 2 and 9 has a count
+ * of three and a position of two — and a slider showing three would claim they
+ * had seen episode 3. The count still has a place (it is what "X of N" means);
+ * the position is what a control that sets a range may honestly show.
+ */
+export function progressUpTo(watched: ReadonlySet<number>): number {
+  let n = 0;
+  while (watched.has(n + 1)) n++;
+  return n;
+}
+
+/** `[1, 2, …, upTo]` — the watched list a position implies, for optimistic patches. */
+export function partsUpTo(upTo: number): number[] {
+  return Array.from({ length: Math.max(0, upTo) }, (_, i) => i + 1);
+}
+
+/**
  * What a status change does to the log's dates, mirroring the server's rules
  * (ADR-0007) so the stamped value shows the instant the status pill changes
  * instead of a request later. The server is still the authority — this feeds
@@ -147,6 +183,11 @@ export const trackingApi = {
   setScore: (id: string, score: number) => mutate(`media/${id}/rating`, 'PUT', { score }),
   clearScore: (id: string) => mutate(`media/${id}/rating`, 'DELETE'),
   checkIn: (id: string, number: number) => mutate(`media/${id}/progress/${number}`, 'PUT'),
+  /**
+   * "I am at part N": marks 1..upTo seen and clears anything past it, in one
+   * request. `0` clears the work's progress.
+   */
+  setProgress: (id: string, upTo: number) => mutate(`media/${id}/progress`, 'PUT', { upTo }),
   uncheck: (id: string, number: number) => mutate(`media/${id}/progress/${number}`, 'DELETE'),
   favorite: (id: string) => mutate(`media/${id}/favorite`, 'PUT'),
   unfavorite: (id: string) => mutate(`media/${id}/favorite`, 'DELETE'),

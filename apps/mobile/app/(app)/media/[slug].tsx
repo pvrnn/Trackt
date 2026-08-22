@@ -6,9 +6,11 @@ import {
   dateRangeLabel,
   firstUnwatched,
   invalidateTracking,
+  progressUpTo,
   todayIso,
   trackingApi,
   useMediaDetail,
+  usesProgressSlider,
 } from '@trackt/client';
 import {
   trackingVerbLabel,
@@ -35,8 +37,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToListSheet } from '../../../src/components/AddToListSheet';
 import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
+import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import { LogDatesSheet } from '../../../src/components/LogDatesSheet';
+import { PartProgress } from '../../../src/components/PartProgress';
 import {
   BackLink,
   EmptyState,
@@ -71,6 +75,9 @@ const HEADER_HEIGHT = layout.touchTarget;
 /** How far the hero scrolls before the bar is fully opaque. */
 const HEADER_FADE = [80, 150] as const;
 
+/** One frozen empty page of rows: a fresh `[]` per render re-keys the list. */
+const EMPTY_ROWS: number[][] = [];
+
 /** Which sheet is up, if any. One at a time — they are all modal. */
 type OpenSheet = 'status' | 'rating' | 'list' | null;
 
@@ -100,7 +107,6 @@ export default function MediaScreen() {
   // read off `viewer` at open time, so the auto-open after a COMPLETED status
   // change can hand it the dates it just stamped without racing the cache.
   const [editingDates, setEditingDates] = useState<LogDates | null>(null);
-
   const columns = Math.max(
     4,
     Math.floor((width - layout.gutter * 2 + space.sm) / (TILE_MIN + space.sm)),
@@ -176,6 +182,14 @@ export default function MediaScreen() {
   // extend one past the highest watched part.
   const next = checkable ? firstUnwatched(watched, total ?? listLength + 1) : null;
 
+  /** Past 30 parts the grid is a wall, so the position leads instead. */
+  const longWork = checkable && usesProgressSlider(total);
+  /** The highest part with everything before it seen — what a position means. */
+  const position = progressUpTo(watched);
+  // A long work gets the position and nothing else: hundreds of tiles is the
+  // wall this replaced, and offering it anyway just moves the wall down a fold.
+  const showGrid = !longWork;
+
   const togglePart = (number: number) => {
     setSweeping(false);
     apply(
@@ -183,6 +197,11 @@ export default function MediaScreen() {
         ? { op: 'uncheck', id: detail.id, part: number }
         : { op: 'checkIn', id: detail.id, part: number },
     );
+  };
+
+  const setPosition = (upTo: number) => {
+    setSweeping(false);
+    apply({ op: 'setProgress', id: detail.id, upTo });
   };
 
   const setStatus = (status: LogStatus | null) => {
@@ -210,9 +229,9 @@ export default function MediaScreen() {
   return (
     <PageFrame>
       <FlashList
-        data={rows}
+        data={showGrid ? rows : EMPTY_ROWS}
         keyExtractor={(row) => `parts-${row[0]}`}
-        extraData={`${watched.size}-${sweeping}`}
+        extraData={`${watched.size}-${sweeping}-${showGrid}`}
         scrollEventThrottle={16}
         onScroll={(event) => {
           scrollY.value = event.nativeEvent.contentOffset.y;
@@ -244,10 +263,25 @@ export default function MediaScreen() {
                     detail.kind === 'manga' || detail.kind === 'webtoon' ? 'Chapters' : 'Episodes'
                   }
                 />
-                <Text style={[type.eyebrow, styles.dim]}>
-                  {watched.size} OF {detail.partCount}{' '}
-                  {trackingVerbLabel(detail.kind).toUpperCase()}
-                </Text>
+                {longWork && total !== null ? (
+                  <PartProgress
+                    // Keyed by the position so a value that moves under the
+                    // control — a queued write landing, a rolled-back patch —
+                    // resets its drafts instead of being mirrored by an effect.
+                    key={position}
+                    noun={partNoun(detail).singular}
+                    total={total}
+                    position={position}
+                    watchedCount={watched.size}
+                    doneLabel={trackingVerbLabel(detail.kind)}
+                    onCommit={setPosition}
+                  />
+                ) : (
+                  <Text style={[type.eyebrow, styles.dim]}>
+                    {watched.size} OF {detail.partCount}{' '}
+                    {trackingVerbLabel(detail.kind).toUpperCase()}
+                  </Text>
+                )}
               </View>
             ) : null}
           </View>
@@ -388,17 +422,26 @@ function PartTile({
     );
   }, [watched, number, staggered, fill]);
 
+  // Watched is a *solid* pink tile with dark text, the way web's grid draws it
+  // (`bg-pink text-on-prism`). It used to be an 18% pink wash next to up-next's
+  // 12% one, with pink text on both — two states six percent apart, which on a
+  // phone in daylight is no difference at all. Filled means done; outlined
+  // means next.
   const fillStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
       fill.value,
       [0, 1],
-      [isNext ? surface.pinkRow : surface.glass, surface.pinkSelected],
+      [isNext ? surface.pinkRow : surface.glass, color.pink],
     ),
     borderColor: interpolateColor(
       fill.value,
       [0, 1],
       [isNext ? color.pink : surface.glassBorder, color.pink],
     ),
+  }));
+
+  const textStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(fill.value, [0, 1], [isNext ? color.pink : color.dim, color.onPrism]),
   }));
 
   return (
@@ -412,9 +455,7 @@ function PartTile({
       android_ripple={ripple()}
       style={[styles.tile, { width: size, height: size }, fillStyle, press.animatedStyle]}
     >
-      <Text style={[type.eyebrow, watched || isNext ? styles.tileWatchedText : styles.dim]}>
-        {number}
-      </Text>
+      <Animated.Text style={[type.eyebrow, textStyle]}>{number}</Animated.Text>
     </AnimatedPressable>
   );
 }
@@ -536,7 +577,8 @@ function Hero({
           it (§00). One tap, no confirmation — the grid below is the undo. */}
       {next !== null ? (
         <PrismButton
-          label={`✓ ${trackingVerbLabel(media.kind, 'present')} ${noun.prefix}${next}`}
+          icon="check"
+          label={`${trackingVerbLabel(media.kind, 'present')} ${noun.prefix}${next}`}
           onPress={onCheckInNext}
           style={styles.checkIn}
         />
@@ -544,7 +586,8 @@ function Hero({
 
       <View style={styles.pills}>
         <ActionPill
-          label={viewer.status ? LOG_STATUS_LABELS[viewer.status] : '＋ LOG'}
+          label={viewer.status ? LOG_STATUS_LABELS[viewer.status] : 'LOG'}
+          {...(viewer.status ? {} : { icon: 'plus' as const })}
           selected={viewer.status !== null}
           onPress={() => onOpen('status')}
           accessibilityLabel={`Status: ${viewer.status ? LOG_STATUS_LABELS[viewer.status] : 'not logged'}`}
@@ -553,24 +596,27 @@ function Hero({
             one exists — the same rule web applies. */}
         {viewer.status !== null ? (
           <ActionPill
-            label={range ?? '＋ DATES'}
+            label={range ?? 'DATES'}
+            {...(range ? {} : { icon: 'plus' as const })}
             selected={range !== null}
             onPress={onEditDates}
             accessibilityLabel={`Dates: ${range ?? 'none set'}`}
           />
         ) : null}
         <ActionPill
-          label={viewer.score !== null ? `★ ${viewer.score.toFixed(1)}` : 'RATE'}
+          label={viewer.score !== null ? viewer.score.toFixed(1) : 'RATE'}
+          {...(viewer.score !== null ? { icon: 'star-filled' as const } : {})}
           selected={viewer.score !== null}
           onPress={() => onOpen('rating')}
           accessibilityLabel={`Your rating: ${viewer.score !== null ? viewer.score.toFixed(1) : 'none'}`}
         />
         <ActionPill
-          label={viewer.favorited ? '♥ FAVOURITE' : '♡ FAVOURITE'}
+          label="FAVOURITE"
+          icon={viewer.favorited ? 'heart-filled' : 'heart'}
           selected={viewer.favorited}
           onPress={onToggleFavorite}
         />
-        <ActionPill label="＋ LIST" onPress={() => onOpen('list')} />
+        <ActionPill label="LIST" icon="plus" onPress={() => onOpen('list')} />
       </View>
 
       <View style={styles.stats}>
@@ -596,11 +642,13 @@ function Hero({
 /** A glass pill that opens a sheet or toggles a flag; pink once it holds a value. */
 function ActionPill({
   label,
+  icon,
   selected = false,
   onPress,
   accessibilityLabel,
 }: {
   label: string;
+  icon?: IconName;
   selected?: boolean;
   onPress: () => void;
   accessibilityLabel?: string;
@@ -617,6 +665,7 @@ function ActionPill({
       android_ripple={ripple()}
       style={[styles.pill, selected ? styles.pillSelected : null, press.animatedStyle]}
     >
+      {icon ? <Icon name={icon} color={selected ? color.pink : color.fg} size={16} /> : null}
       <Text style={[type.button, selected ? styles.pinkText : styles.fg]}>
         {label.toUpperCase()}
       </Text>
@@ -737,7 +786,10 @@ const styles = StyleSheet.create({
   },
   pill: {
     minHeight: layout.touchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: space.xs,
     borderRadius: radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: surface.glassBorderStrong,
@@ -789,6 +841,7 @@ const styles = StyleSheet.create({
   },
   partsHead: {
     marginTop: layout.sectionGap,
+    gap: space.md,
   },
   partRow: {
     flexDirection: 'row',
@@ -802,18 +855,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
-  },
-  tileWatched: {
-    backgroundColor: surface.pinkSelected,
-    borderColor: color.pink,
-  },
-  /** Up next: outlined, not filled — it is the target, not a result. */
-  tileNext: {
-    borderColor: color.pink,
-    backgroundColor: surface.pinkRow,
-  },
-  tileWatchedText: {
-    color: color.pink,
   },
   footer: {
     gap: layout.sectionGap,

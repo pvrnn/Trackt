@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { LOG_DATE_FLOOR, type UpNextEntry } from '@trackt/shared';
 import { upNextPartKey } from '../src/home.js';
-import { firstUnwatched, stampedDates, validateLogDates } from '../src/media.js';
+import {
+  PROGRESS_SLIDER_MIN_PARTS,
+  firstUnwatched,
+  partsUpTo,
+  progressUpTo,
+  stampedDates,
+  usesProgressSlider,
+  validateLogDates,
+} from '../src/media.js';
 
 describe('firstUnwatched', () => {
   it('offers part 1 when nothing is watched', () => {
@@ -24,6 +32,52 @@ describe('firstUnwatched', () => {
 
   it('handles an empty range', () => {
     expect(firstUnwatched(new Set(), 0)).toBeNull();
+  });
+});
+
+describe('progressUpTo', () => {
+  it('is zero when nothing is watched', () => {
+    expect(progressUpTo(new Set())).toBe(0);
+  });
+
+  it('counts the unbroken run from part 1', () => {
+    expect(progressUpTo(new Set([1, 2, 3]))).toBe(3);
+  });
+
+  it('stops at the first gap rather than counting what is ticked', () => {
+    // The distinction the slider exists for: three parts seen, position two —
+    // showing three would claim part 3 had been watched.
+    expect(progressUpTo(new Set([1, 2, 9]))).toBe(2);
+  });
+
+  it('is zero when part 1 is missing, however much else is ticked', () => {
+    expect(progressUpTo(new Set([2, 3, 4]))).toBe(0);
+  });
+});
+
+describe('partsUpTo', () => {
+  it('is the 1-based range a position implies', () => {
+    expect(partsUpTo(4)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('is empty at zero — and at a negative, which no caller should send', () => {
+    expect(partsUpTo(0)).toEqual([]);
+    expect(partsUpTo(-3)).toEqual([]);
+  });
+});
+
+describe('usesProgressSlider', () => {
+  it('leaves a two-cour season on the checklist', () => {
+    expect(usesProgressSlider(24)).toBe(false);
+  });
+
+  it('takes over at the threshold and above', () => {
+    expect(usesProgressSlider(PROGRESS_SLIDER_MIN_PARTS)).toBe(true);
+    expect(usesProgressSlider(900)).toBe(true);
+  });
+
+  it('says no when the count is unknown — an airing season has no scale to drag', () => {
+    expect(usesProgressSlider(null)).toBe(false);
   });
 });
 

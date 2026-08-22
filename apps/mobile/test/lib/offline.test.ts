@@ -29,6 +29,7 @@ const TODAY = '2026-08-19';
 const WRITES: TrackingWrite[] = [
   { op: 'checkIn', id: 'm1', part: 3 },
   { op: 'uncheck', id: 'm1', part: 3 },
+  { op: 'setProgress', id: 'm1', upTo: 120 },
   { op: 'setStatus', id: 'm1', status: 'completed' },
   { op: 'clearStatus', id: 'm1' },
   { op: 'setScore', id: 'm1', score: 8.5 },
@@ -69,6 +70,7 @@ describe('runTrackingWrite', () => {
     expect(calls).toEqual([
       'PUT media/m1/progress/3',
       'DELETE media/m1/progress/3',
+      'PUT media/m1/progress {"upTo":120}',
       'PUT media/m1/log {"status":"completed"}',
       'DELETE media/m1/log',
       'PUT media/m1/rating {"score":8.5}',
@@ -154,6 +156,26 @@ describe('trackingPatch', () => {
     expect(
       trackingPatch({ op: 'uncheck', id: 'm1', part: 3 }, withViewer({ watched: [1, 3] }), TODAY),
     ).toEqual({ watched: [1] });
+  });
+
+  it('takes the position as the whole watched list, dropping anything past it', () => {
+    // Not a batch of check-ins: the slider says where the viewer *is*, so a
+    // stray check-in at 9 does not survive a move back to 4. The server's rule,
+    // mirrored — or the grid would keep showing what the write is about to drop.
+    expect(
+      trackingPatch(
+        { op: 'setProgress', id: 'm1', upTo: 4 },
+        withViewer({ watched: [1, 2, 9] }),
+        TODAY,
+      ),
+    ).toEqual({ watched: [1, 2, 3, 4] });
+    expect(
+      trackingPatch(
+        { op: 'setProgress', id: 'm1', upTo: 0 },
+        withViewer({ watched: [1, 2] }),
+        TODAY,
+      ),
+    ).toEqual({ watched: [] });
   });
 
   it('does not double-add a part already checked in', () => {

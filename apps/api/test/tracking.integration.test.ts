@@ -285,6 +285,7 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
     for (const [method, url, payload] of [
       ['PUT', `/api/v1/media/${bebopId}/log`, { status: 'planned' }],
       ['PUT', `/api/v1/media/${bebopId}/rating`, { score: 8 }],
+      ['PUT', `/api/v1/media/${bebopId}/progress`, { upTo: 3 }],
       ['PUT', `/api/v1/media/${bebopId}/progress/1`, undefined],
       ['DELETE', `/api/v1/media/${bebopId}/progress/1`, undefined],
     ] as const) {
@@ -435,6 +436,67 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
       payload: { status: 'paused' },
     });
     expect((await getDetail(bebopId)).viewer?.watched).toEqual([4]);
+  });
+
+  it('sets a position in one write, and clears everything past it', async () => {
+    // From no log at all, so the auto-start below is this write's doing and
+    // not something an earlier case in the suite left behind.
+    await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/media/${bebopId}/log`,
+      headers: { cookie },
+    });
+
+    // The control behind this is a slider on a work with hundreds of parts:
+    // one request, not `upTo` of them.
+    const set = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/progress`,
+      headers: { cookie },
+      payload: { upTo: 12 },
+    });
+    expect(set.statusCode).toBe(200);
+    const detail = await getDetail(bebopId);
+    expect(detail.viewer?.watched).toEqual(Array.from({ length: 12 }, (_, i) => i + 1));
+    // A position is also a first interaction, so it starts the log.
+    expect(detail.viewer?.status).toBe('in_progress');
+
+    // Dragging back is the destructive half of the contract: "I am at 4" is a
+    // statement about the whole work, so the check-ins above it do not survive.
+    await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/progress`,
+      headers: { cookie },
+      payload: { upTo: 4 },
+    });
+    expect((await getDetail(bebopId)).viewer?.watched).toEqual([1, 2, 3, 4]);
+
+    const cleared = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/progress`,
+      headers: { cookie },
+      payload: { upTo: 0 },
+    });
+    expect(cleared.statusCode).toBe(200);
+    expect((await getDetail(bebopId)).viewer?.watched).toEqual([]);
+  });
+
+  it('rejects a position past the known count, and one on a movie', async () => {
+    const tooHigh = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${bebopId}/progress`,
+      headers: { cookie },
+      payload: { upTo: 27 },
+    });
+    expect(tooHigh.statusCode).toBe(400);
+
+    const movie = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/media/${matrixId}/progress`,
+      headers: { cookie },
+      payload: { upTo: 1 },
+    });
+    expect(movie.statusCode).toBe(400);
   });
 
   it('completes a movie without error despite having no parts', async () => {
