@@ -22,7 +22,11 @@ export async function seedMedia(db: Db): Promise<void> {
         partCount: sql`excluded.part_count`,
         seasonNumber: sql`excluded.season_number`,
         description: sql`excluded.description`,
-        coverUrl: sql`excluded.cover_url`,
+        // COALESCE, not a plain overwrite: the fixtures carry no artwork, and a
+        // re-seed is something you run against a database that has been living
+        // — a populated cover must survive it. Every other column is fixture
+        // data by definition; this is the one a real run fills in.
+        coverUrl: sql`coalesce(excluded.cover_url, ${media.coverUrl})`,
         releaseDate: sql`excluded.release_date`,
         status: sql`excluded.status`,
         externalIds: sql`excluded.external_ids`,
