@@ -148,16 +148,23 @@ export function RatingCard({
         onPress={onPress}
         style={({ pressed }) => [styles.rating, { opacity: pressed ? 0.75 : 1 }]}
       >
-        {score !== null ? (
-          <View style={styles.shrink}>
+        {/* The number keeps its slot whether or not there is one, so the two
+            lines beside it start at the same x either way. Unrated fills it
+            with an outline star rather than a dash: Anton's dash glyph is a
+            short low bar that reads as a rendering fault, and a star at the
+            number's own size says *rate me* while holding the same geometry. */}
+        <View style={styles.scoreSlot}>
+          {score !== null ? (
             <PrismText style={styles.score}>{score.toFixed(1)}</PrismText>
-          </View>
-        ) : (
-          <Text style={[styles.score, styles.faint]}>—</Text>
-        )}
+          ) : (
+            <Icon name="star" color={color.faint} size={30} />
+          )}
+        </View>
         <View style={styles.ratingText}>
-          <Text style={[type.eyebrow, styles.muted]}>YOUR RATING</Text>
-          <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
+          {/* "YOUR RATING" over nothing is a label for a value that does not
+              exist; unrated, the card says what it is for instead. */}
+          <Text style={styles.ratingLabel}>{score !== null ? 'YOUR RATING' : 'RATE THIS'}</Text>
+          <Text style={styles.ratingMeta} numberOfLines={1}>
             {community}
           </Text>
         </View>
@@ -229,23 +236,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.md,
     paddingVertical: space.md,
-    paddingHorizontal: space.lg,
+    paddingHorizontal: space.md + 3,
     borderRadius: radius.cover,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
+  },
+  /** Wide enough for '10.0', so the label column never shifts. */
+  scoreSlot: {
+    minWidth: 54,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   score: {
     fontFamily: type.stat.fontFamily,
     fontSize: 30,
     lineHeight: 32,
   },
-  shrink: {
-    alignSelf: 'center',
-  },
   ratingText: {
     flex: 1,
     gap: 1,
+  },
+  /** The mockup's two lines: 10/0.1em bold muted over 10/0.06em dim. */
+  ratingLabel: {
+    fontFamily: type.eyebrow.fontFamily,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: color.muted,
+  },
+  ratingMeta: {
+    fontFamily: type.eyebrow.fontFamily,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    color: color.dim,
   },
   pencil: {
     width: 52,
