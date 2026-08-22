@@ -12,6 +12,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../src/components/Avatar';
 import { Cover } from '../../../src/components/Cover';
+import { DeleteAccountSheet } from '../../../src/components/DeleteAccountSheet';
 import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
 import { FriendsSheet } from '../../../src/components/FriendsSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
@@ -20,8 +21,10 @@ import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
   Loading,
+  OfflineFallback,
   PageFrame,
   SectionTitle,
+  StaleNotice,
   useTabContentInset,
 } from '../../../src/components/Page';
 import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
@@ -50,7 +53,7 @@ import { type } from '../../../src/theme/typography';
 export default function ProfileTab() {
   const { user, isPending: sessionPending, refetch: refetchSession } = useAuthedScreen();
   const { origin, forgetInstance } = useInstance();
-  const { data, isPending, isError, refetch, isRefetching } = useProfileSummary();
+  const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useProfileSummary();
   const { data: friends } = useFriends();
   const queryClient = useQueryClient();
   const bottomInset = useTabContentInset();
@@ -58,6 +61,7 @@ export default function ProfileTab() {
   const [editing, setEditing] = useState(false);
   const editPress = usePressMotion();
   const [managingFriends, setManagingFriends] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (sessionPending || !user) {
     return (
@@ -114,7 +118,9 @@ export default function ProfileTab() {
         {data?.user.bio ? <Text style={[type.body, styles.bio]}>{data.user.bio}</Text> : null}
 
         {isPending ? (
-          <Loading />
+          <OfflineFallback>
+            <Loading />
+          </OfflineFallback>
         ) : isError || !data ? (
           <EmptyState
             title="Couldn't load"
@@ -122,6 +128,7 @@ export default function ProfileTab() {
           />
         ) : (
           <>
+            <StaleNotice updatedAt={dataUpdatedAt} />
             <View style={styles.stats}>
               <Stat value={data.stats.titlesTracked} label="Tracked" />
               <Stat value={data.stats.completed} label="Completed" />
@@ -235,6 +242,14 @@ export default function ProfileTab() {
             variant="secondary"
             onPress={() => void forgetInstance()}
           />
+          {/* Last, and quiet: required for App Store submission and the missing
+              half of the portability principle, but nothing anyone is looking
+              for on this screen. The sheet behind it does the asking. */}
+          <PrismButton
+            label="Delete account"
+            variant="secondary"
+            onPress={() => setDeleting(true)}
+          />
         </View>
       </ScrollView>
 
@@ -252,6 +267,20 @@ export default function ProfileTab() {
       ) : null}
 
       {managingFriends ? <FriendsSheet onClose={() => setManagingFriends(false)} /> : null}
+
+      {deleting ? (
+        <DeleteAccountSheet
+          username={data?.user.username ?? user.username}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => {
+            // The account is gone and the server has revoked its sessions, but
+            // this client still holds one in SecureStore and a query cache full
+            // of a profile that no longer exists. Sign out locally to drop
+            // both; `useAuthedScreen` sends the now-sessionless app to login.
+            void authClient().signOut();
+          }}
+        />
+      ) : null}
     </PageFrame>
   );
 }

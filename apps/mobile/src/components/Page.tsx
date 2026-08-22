@@ -1,3 +1,4 @@
+import { relativeTime } from '@trackt/client';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -6,9 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactElement, ReactNode } from 'react';
 import type { RefreshControlProps } from 'react-native';
 import { duration } from '../lib/motion';
+import { useIsOnline } from '../lib/network';
 import { AuraBackground } from './AuraBackground';
 import { PrismText } from './PrismText';
-import { color, layout, space, surface } from '../theme/tokens';
+import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -173,6 +175,51 @@ export function EmptyState({
   );
 }
 
+/**
+ * "This is what we had last time we could ask" (mobile plan, phase 5).
+ *
+ * A read screen offline serves its persisted cache, and the whole point of
+ * doing that instead of spinning is that the user can still look things up on
+ * the tube. What it must not do is let them mistake it for live: the one thing
+ * an offline screen owes its reader is the age of what it is showing.
+ *
+ * Renders nothing while online. Nothing while there is nothing to date either
+ * — a screen with no data has a `StaleNotice`'s job done by `OfflineState`
+ * below, and a strip saying "updated 0M ago" over an empty screen is a lie.
+ */
+export function StaleNotice({ updatedAt }: { updatedAt: number }) {
+  const isOnline = useIsOnline();
+  if (isOnline || !updatedAt) return null;
+  return (
+    <View style={styles.stale}>
+      <Text style={[type.eyebrow, styles.staleText]}>
+        OFFLINE · UPDATED {relativeTime(new Date(updatedAt).toISOString())} AGO
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * The other half: what a screen shows while it is waiting, when the wait is
+ * offline with nothing cached for it at all.
+ *
+ * Wraps the skeleton rather than sitting beside it so the rule lives in one
+ * place and no screen has to reach for `useIsOnline` to state it. Without it
+ * the screen skeletons forever: `networkMode: 'online'` *pauses* a query it
+ * cannot run rather than failing it, so `isPending` never resolves and the
+ * loading state is indistinguishable from a hang.
+ */
+export function OfflineFallback({ children }: { children: ReactNode }) {
+  const isOnline = useIsOnline();
+  if (isOnline) return <>{children}</>;
+  return (
+    <EmptyState
+      title="You're offline"
+      body="This loads the moment the instance is reachable again. Anything you check in until then is queued and sent when it is."
+    />
+  );
+}
+
 /** The bottom padding a tab screen's scroll content needs to clear the glass bar. */
 export function useTabContentInset(): number {
   const insets = useSafeAreaInsets();
@@ -219,6 +266,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: space.xxl,
+  },
+  stale: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: surface.glassBorderStrong,
+    backgroundColor: surface.glass,
+  },
+  staleText: {
+    color: color.muted,
   },
   empty: {
     gap: space.md,

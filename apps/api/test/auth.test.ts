@@ -168,3 +168,91 @@ describe('mobile trusted origins', () => {
     ).not.toContain('exp://*');
   });
 });
+
+/**
+ * Account deletion (`DELETE /api/v1/me`, mobile plan phase 5).
+ *
+ * Here rather than only in the Postgres suite because the interesting half is
+ * the auth wiring, not the cascade: the route delegates to better-auth, which
+ * refuses unless `user.deleteUser.enabled` is set and the password checks out.
+ * Both of those are options on `baseAuthOptions`, and the memory adapter
+ * exercises them exactly. `profile.integration.test.ts` covers what the
+ * foreign keys then do.
+ */
+describe('account deletion', () => {
+  let app: App;
+  let cookie: string;
+
+  beforeAll(async () => {
+    app = await buildApp({ env, auth: buildAuth() });
+    const response = await app.inject(
+      signUp({
+        name: 'Doomed',
+        email: 'doomed@example.com',
+        password: 'password123',
+        username: 'doomed',
+      }),
+    );
+    expect(response.statusCode).toBe(200);
+    cookie = (response.headers['set-cookie'] as string[] | string | undefined)
+      ?.toString()
+      .split(';')[0] as string;
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('requires a session', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/me',
+      payload: { password: 'password123' },
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('requires a password', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/me',
+      headers: { cookie },
+      payload: {},
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('rejects the wrong password without deleting anything', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/me',
+      headers: { cookie },
+      payload: { password: 'not-the-password' },
+    });
+    expect(response.statusCode).toBe(400);
+    const session = await app.inject({
+      method: 'GET',
+      url: '/api/auth/get-session',
+      headers: { cookie },
+    });
+    expect(session.json()).not.toBeNull();
+  });
+
+  it('deletes the account and the session with it', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/me',
+      headers: { cookie },
+      payload: { password: 'password123' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ deleted: true });
+
+    const session = await app.inject({
+      method: 'GET',
+      url: '/api/auth/get-session',
+      headers: { cookie },
+    });
+    expect(session.json()).toBeNull();
+  });
+});

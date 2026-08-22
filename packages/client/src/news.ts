@@ -61,6 +61,13 @@ export interface NewsFeedState {
   hasMore: boolean;
   loadMore: () => void;
   /**
+  /**
+   * When this data was last successfully fetched, as an epoch millisecond
+   * stamp — 0 while nothing has landed. Mobile shows it as the age of a cache
+   * it is serving offline (mobile plan, phase 5); web has no use for it yet.
+   */
+  updatedAt: number;
+  /**
    * Pull-to-refresh. Re-fetches every page loaded so far rather than just the
    * first: the feed is keyset-paged and strictly forward, so dropping back to
    * one page would silently discard everything the reader had already scrolled
@@ -89,6 +96,7 @@ export function useNewsFeed(filters: NewsFilters): NewsFeedState {
   });
 
   return {
+    updatedAt: query.dataUpdatedAt,
     articles: query.data?.pages.flatMap((page) => page.articles) ?? [],
     isLoading: query.isPending,
     isError: query.isError,

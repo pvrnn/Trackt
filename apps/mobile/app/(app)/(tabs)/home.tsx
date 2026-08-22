@@ -1,10 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import {
   KIND_LABELS_SINGULAR,
   activityVerbLabel,
-  invalidateTracking,
   relativeTime,
-  trackingApi,
   upNextPartKey,
   useHomeSummary,
 } from '@trackt/client';
@@ -25,9 +23,11 @@ import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
   Loading,
+  OfflineFallback,
   PageFrame,
   PageTitle,
   SectionTitle,
+  StaleNotice,
   useTabContentInset,
 } from '../../../src/components/Page';
 import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
@@ -37,6 +37,8 @@ import { Touchable } from '../../../src/components/Touchable';
 import { PrismText } from '../../../src/components/PrismText';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { duration, staggerDelay } from '../../../src/lib/motion';
+import { useIsOnline } from '../../../src/lib/network';
+import { TRACKING_MUTATION_KEY, type PartWrite } from '../../../src/lib/offline';
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, nativeSurface, radius, space, surface } from '../../../src/theme/tokens';
@@ -60,10 +62,10 @@ import { type } from '../../../src/theme/typography';
  */
 export default function HomeTab() {
   const { user, isPending: sessionPending } = useAuthedScreen();
-  const { data, isPending, isError, refetch, isRefetching } = useHomeSummary();
+  const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useHomeSummary();
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
+  const isOnline = useIsOnline();
   const toast = useToast();
   const writeFailed = useWriteFailedToast();
   // Which rows this session has checked in. The row stays put until the next
@@ -71,43 +73,76 @@ export default function HomeTab() {
   // say so itself — otherwise a second tap checks in the same part twice.
   const [checkedIn, setCheckedIn] = useState<ReadonlySet<string>>(new Set());
 
-  const markCheckedIn = (entry: UpNextEntry, done: boolean) =>
+  const markCheckedIn = (write: PartWrite, done: boolean) =>
     setCheckedIn((current) => {
       const set = new Set(current);
-      if (done) set.add(upNextPartKey(entry));
-      else set.delete(upNextPartKey(entry));
+      const key = upNextPartKey({ id: write.id, next: write.part });
+      if (done) set.add(key);
+      else set.delete(key);
       return set;
     });
 
-  const uncheck = useMutation({
-    mutationFn: (entry: UpNextEntry) => trackingApi.uncheck(entry.id, entry.next),
-    onMutate: (entry) => markCheckedIn(entry, false),
-    onError: (error, entry) => {
-      markCheckedIn(entry, true);
+  /** The row a write refers to, as the dashboard stood when it was tapped. */
+  const entryFor = (write: { id: string; part: number }): UpNextEntry | null =>
+    data?.upNext.find((row) => row.id === write.id && row.next === write.part) ?? null;
+
+  /** The commit: the buzz §07 allows, and the five-second undo window. */
+  const commit = (entry: UpNextEntry, queued: boolean) => {
+    commitHaptic();
+    toast({
+      message: `${entry.title} — ${partLabel(entry)} checked in${queued ? ' · will sync' : ''}`,
+      action: { label: 'Undo', onPress: () => uncheck.mutate(undoWrite(entry)) },
+    });
+  };
+
+  // Two observers, and no `mutationFn` or `onSettled` on either: both come from
+  // the client's defaults for this key, which is the copy a write that was
+  // paused offline and restored from disk can also reach (phase 5). The
+  // invalidation is therefore the same four-key sweep the media screen runs, so
+  // a check-in here also moves that title's detail, the profile feed and
+  // history.
+  //
+  // The callbacks are options-level rather than passed to `mutate()`, which
+  // matters more than it looks: a second `mutate()` on the same observer
+  // detaches the first mutation from it, and per-call callbacks live on the
+  // observer. Two rows tapped in quick succession would have silently lost the
+  // first one's toast and its rollback.
+  const uncheck = useMutation<void, Error, PartWrite>({
+    mutationKey: TRACKING_MUTATION_KEY,
+    onMutate: (write) => markCheckedIn(write, false),
+    onError: (error, write) => {
+      markCheckedIn(write, true);
       errorHaptic();
       writeFailed(error, 'Couldn’t undo that — it’s still checked in.');
     },
-    onSettled: () => invalidateTracking(queryClient),
   });
 
-  const checkIn = useMutation({
-    mutationFn: (entry: UpNextEntry) => trackingApi.checkIn(entry.id, entry.next),
-    onMutate: (entry) => markCheckedIn(entry, true),
-    onSuccess: (_result, entry) => {
-      commitHaptic();
-      toast({
-        message: `${entry.title} — ${partLabel(entry)} checked in`,
-        action: { label: 'Undo', onPress: () => uncheck.mutate(entry) },
-      });
+  const checkIn = useMutation<
+    void,
+    Error,
+    PartWrite,
+    { entry: UpNextEntry | null; queued: boolean }
+  >({
+    mutationKey: TRACKING_MUTATION_KEY,
+    onMutate: (write) => {
+      markCheckedIn(write, true);
+      // Offline the write is queued rather than sent, so there is no 200 coming
+      // to hang the commit off — and the undo window has to open now or never.
+      // Online it still waits for the server, which is what makes the undo a
+      // real undo rather than a promise.
+      const entry = entryFor(write);
+      const queued = !isOnline;
+      if (queued && entry) commit(entry, true);
+      return { entry, queued };
     },
-    onError: (error, entry) => {
-      markCheckedIn(entry, false);
+    onSuccess: (_data, _write, context) => {
+      if (context && !context.queued && context.entry) commit(context.entry, false);
+    },
+    onError: (error, write) => {
+      markCheckedIn(write, false);
       errorHaptic();
       writeFailed(error);
     },
-    // Same sweep as the media screen: this also moves that title's detail, the
-    // profile feed and history.
-    onSettled: () => invalidateTracking(queryClient),
   });
 
   if (sessionPending || !user) {
@@ -140,7 +175,9 @@ export default function HomeTab() {
         />
 
         {isPending ? (
-          <SkeletonRows />
+          <OfflineFallback>
+            <SkeletonRows />
+          </OfflineFallback>
         ) : isError || !data ? (
           <EmptyState
             title="Couldn't load"
@@ -148,6 +185,7 @@ export default function HomeTab() {
           />
         ) : (
           <>
+            <StaleNotice updatedAt={dataUpdatedAt} />
             {data.upNext.length === 0 ? (
               <EmptyState
                 title="Nothing queued"
@@ -161,7 +199,7 @@ export default function HomeTab() {
                     entry={entry}
                     index={index}
                     checkedIn={checkedIn.has(upNextPartKey(entry))}
-                    onCheckIn={() => checkIn.mutate(entry)}
+                    onCheckIn={() => checkIn.mutate(checkInWrite(entry))}
                   />
                 ))}
               </View>
@@ -241,6 +279,15 @@ export default function HomeTab() {
 }
 
 /** 'E13' / 'CH204' — the part a row's check-in targets, in the row's own words. */
+/** The two writes an up-next row can produce, as values (`lib/offline.ts`). */
+function checkInWrite(entry: UpNextEntry): PartWrite {
+  return { op: 'checkIn', id: entry.id, part: entry.next };
+}
+
+function undoWrite(entry: UpNextEntry): PartWrite {
+  return { op: 'uncheck', id: entry.id, part: entry.next };
+}
+
 function partLabel(entry: UpNextEntry): string {
   return `${entry.partKind === 'episode' ? 'E' : 'CH'}${entry.next}`;
 }

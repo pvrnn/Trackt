@@ -32,8 +32,12 @@ export function useHomeSummary() {
  * keeps the same media id and only advances `next`, so the card stayed
  * `✓ WATCHED` and its button stayed inert — one check-in per title per page
  * load, until a full reload built a fresh dashboard.
+ *
+ * Takes the two fields rather than the whole entry, so the mobile client can
+ * key the same set from a queued `PartWrite`, which is all that survives a
+ * write paused offline.
  */
-export function upNextPartKey(entry: UpNextEntry): string {
+export function upNextPartKey(entry: Pick<UpNextEntry, 'id' | 'next'>): string {
   return `${entry.id}:${entry.next}`;
 }
 

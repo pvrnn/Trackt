@@ -1,7 +1,16 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
+import {
+  createDb,
+  media,
+  progress,
+  runMigrations,
+  seedMedia,
+  userMedia,
+  users,
+  type Db,
+} from '@trackt/db';
 import { canonicalMediaId, loadEnv, type MediaDetail, type ProfileSummary } from '@trackt/shared';
 import { createAuth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
@@ -316,6 +325,120 @@ describe.runIf(available)('profile + favourites (postgres)', () => {
     const profile = await getProfile();
     expect(profile.stats).toMatchObject({ completed: 1, titlesTracked: 1, meanRating: 8.5 });
     expect(profile.activity.length).toBeGreaterThan(0);
+  });
+
+  describe('account deletion (DELETE /me)', () => {
+    /**
+     * On its own account, not the suite's: the point of the endpoint is that
+     * everything goes, and running it against the shared user would take the
+     * rest of the file with it.
+     */
+    async function throwawayAccount(): Promise<{ id: string; cookie: string }> {
+      const stamp = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      const signUp = await app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-up/email',
+        payload: {
+          name: 'Doomed Account',
+          username: `doom${stamp}`.slice(0, 20),
+          email: `doomed-${stamp}@example.com`,
+          password: 'a-strong-password-1',
+        },
+      });
+      expect(signUp.statusCode).toBe(200);
+      return {
+        id: signUp.json().user.id as string,
+        cookie: (signUp.headers['set-cookie'] as string[] | string | undefined)
+          ?.toString()
+          .split(';')[0] as string,
+      };
+    }
+
+    it('requires a session', async () => {
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/me',
+        payload: { password: 'a-strong-password-1' },
+      });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('rejects a wrong password and leaves the account standing', async () => {
+      const account = await throwawayAccount();
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/me',
+        headers: { cookie: account.cookie },
+        payload: { password: 'not-the-password' },
+      });
+      expect(response.statusCode).toBe(400);
+      const [row] = await db.select({ id: users.id }).from(users).where(eq(users.id, account.id));
+      expect(row).toBeDefined();
+      // Still signed in, too — a failed deletion must not cost the session.
+      const profile = await app.inject({
+        method: 'GET',
+        url: '/api/v1/me/profile',
+        headers: { cookie: account.cookie },
+      });
+      expect(profile.statusCode).toBe(200);
+    });
+
+    it('deletes the account, its tracking rows and its session', async () => {
+      const account = await throwawayAccount();
+      // Something to cascade: a log row and a progress row, which are the two
+      // tables a check-in touches.
+      const checkIn = await app.inject({
+        method: 'PUT',
+        url: `/api/v1/media/${bebopId}/progress/1`,
+        headers: { cookie: account.cookie },
+      });
+      expect(checkIn.statusCode).toBe(200);
+      expect(
+        await db
+          .select({ userId: userMedia.userId })
+          .from(userMedia)
+          .where(eq(userMedia.userId, account.id)),
+      ).not.toHaveLength(0);
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/me',
+        headers: { cookie: account.cookie },
+        payload: { password: 'a-strong-password-1' },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ deleted: true });
+
+      expect(
+        await db.select({ id: users.id }).from(users).where(eq(users.id, account.id)),
+      ).toHaveLength(0);
+      expect(
+        await db
+          .select({ userId: userMedia.userId })
+          .from(userMedia)
+          .where(eq(userMedia.userId, account.id)),
+      ).toHaveLength(0);
+      expect(
+        await db
+          .select({ userId: progress.userId })
+          .from(progress)
+          .where(eq(progress.userId, account.id)),
+      ).toHaveLength(0);
+
+      // The cookie is a key to a session row that went with the user.
+      const after = await app.inject({
+        method: 'GET',
+        url: '/api/v1/me/profile',
+        headers: { cookie: account.cookie },
+      });
+      expect(after.statusCode).toBe(401);
+
+      // And the catalog it was tracking is untouched — `media.created_by` is a
+      // deliberate `set null`, not a cascade.
+      expect(
+        await db.select({ id: media.id }).from(media).where(eq(media.id, bebopId)),
+      ).toHaveLength(1);
+    });
   });
 });
 

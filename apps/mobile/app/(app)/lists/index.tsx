@@ -5,7 +5,15 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from '../../../src/components/Cover';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
-import { BackLink, EmptyState, Loading, PageScroll, PageTitle } from '../../../src/components/Page';
+import {
+  BackLink,
+  EmptyState,
+  Loading,
+  OfflineFallback,
+  PageScroll,
+  PageTitle,
+  StaleNotice,
+} from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
 import { color, radius, space, surface } from '../../../src/theme/tokens';
@@ -23,7 +31,7 @@ import { type } from '../../../src/theme/typography';
  * opens so the next thing you do is fill it.
  */
 export default function ListsScreen() {
-  const { data, isPending, isError } = useLists();
+  const { data, dataUpdatedAt, isPending, isError } = useLists();
   const router = useRouter();
   const [creating, setCreating] = useState(false);
 
@@ -36,7 +44,9 @@ export default function ListsScreen() {
       </View>
 
       {isPending ? (
-        <Loading />
+        <OfflineFallback>
+          <Loading />
+        </OfflineFallback>
       ) : isError || !data ? (
         <EmptyState title="Couldn't load" body="The instance didn't answer." />
       ) : data.length === 0 ? (
@@ -46,6 +56,7 @@ export default function ListsScreen() {
         />
       ) : (
         <View style={styles.cards}>
+          <StaleNotice updatedAt={dataUpdatedAt} />
           {data.map((list) => (
             <ListCard key={list.id} list={list} />
           ))}
