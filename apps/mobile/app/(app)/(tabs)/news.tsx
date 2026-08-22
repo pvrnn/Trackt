@@ -2,7 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import { KIND_LABELS, TOPIC_LABELS, formatNewsDate, todayIso, useNewsFeed } from '@trackt/client';
 import { MEDIA_KINDS, type MediaKind, type NewsArticleSummary } from '@trackt/shared';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip, ChipRow } from '../../../src/components/Chip';
 import { Cover } from '../../../src/components/Cover';
@@ -56,7 +56,8 @@ export default function NewsTab() {
     return { kind, ...(days === null ? {} : { from: windowStart(days) }) };
   }, [kind, window]);
 
-  const { articles, isLoading, isError, isLoadingMore, hasMore, loadMore } = useNewsFeed(filters);
+  const { articles, isLoading, isError, isLoadingMore, hasMore, loadMore, refresh, isRefreshing } =
+    useNewsFeed(filters);
 
   return (
     <PageFrame fadeOnFocus>
@@ -64,6 +65,14 @@ export default function NewsTab() {
         data={articles}
         keyExtractor={(article) => article.id}
         contentContainerStyle={{ paddingBottom: bottomInset }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refresh}
+            tintColor={color.pink}
+            colors={[color.pink]}
+          />
+        }
         onEndReachedThreshold={0.6}
         onEndReached={() => {
           if (hasMore) loadMore();

@@ -60,6 +60,14 @@ export interface NewsFeedState {
   isLoadingMore: boolean;
   hasMore: boolean;
   loadMore: () => void;
+  /**
+   * Pull-to-refresh. Re-fetches every page loaded so far rather than just the
+   * first: the feed is keyset-paged and strictly forward, so dropping back to
+   * one page would silently discard everything the reader had already scrolled
+   * past.
+   */
+  refresh: () => void;
+  isRefreshing: boolean;
 }
 
 /**
@@ -89,6 +97,13 @@ export function useNewsFeed(filters: NewsFilters): NewsFeedState {
     loadMore: () => {
       if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
     },
+    refresh: () => {
+      void query.refetch();
+    },
+    // `isRefetching` is also true while a *next* page is loading, and a
+    // pull-to-refresh spinner that appears when the reader hits the bottom of
+    // the list is a lie about what is happening.
+    isRefreshing: query.isRefetching && !query.isFetchingNextPage,
   };
 }
 
