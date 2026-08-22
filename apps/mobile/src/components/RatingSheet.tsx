@@ -6,6 +6,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import { selectionHaptic } from '../lib/haptics';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
+import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
 import { PrismText } from './PrismText';
 import { Sheet, useSheetController } from './Sheet';
@@ -116,9 +117,9 @@ const STAR_SIZE = 20;
  * Ten stars, filled to the score, and — from phase 4 — the scrubber.
  *
  * A half step is a filled star clipped to half its width over an outline one:
- * the same construction web uses, because no font in the app ships a half-star
- * glyph and the ones that exist in Unicode render as tofu on at least one of
- * the two platforms.
+ * the same construction web uses, because there is no half-star mark to draw —
+ * and the stars themselves are `Icon` paths, since the ☆/★ characters render
+ * at a different weight per platform, when the loaded faces have them at all.
  *
  * The pan reads an absolute position rather than a translation, so putting a
  * finger down at 7.5 selects 7.5 — a relative drag would need the user to know
@@ -171,10 +172,10 @@ function Stars({ score, onScrub }: { score: number; onScrub: (score: number) => 
           const fill = Math.min(Math.max(score - i, 0), 1);
           return (
             <View key={i} style={styles.starSlot}>
-              <Text style={[styles.star, styles.starEmpty]}>☆</Text>
+              <Icon name="star" color={color.faint} size={STAR_SIZE} />
               {fill > 0 ? (
                 <View style={[styles.starFill, { width: STAR_SIZE * fill }]}>
-                  <Text style={[styles.star, styles.pink]}>★</Text>
+                  <Icon name="star-filled" color={color.pink} size={STAR_SIZE} />
                 </View>
               ) : null}
             </View>
@@ -206,14 +207,6 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     overflow: 'hidden',
-  },
-  star: {
-    width: STAR_SIZE,
-    fontSize: STAR_SIZE,
-    lineHeight: 24,
-  },
-  starEmpty: {
-    color: color.faint,
   },
   shrink: {
     alignSelf: 'flex-start',

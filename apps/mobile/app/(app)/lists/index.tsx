@@ -40,7 +40,12 @@ export default function ListsScreen() {
       <View style={styles.head}>
         <BackLink label="Profile" />
         <PageTitle title="Lists" count={data ? `${data.length} lists` : undefined} />
-        <PrismButton label="＋ New list" onPress={() => setCreating(true)} style={styles.newList} />
+        <PrismButton
+          label="New list"
+          icon="plus"
+          onPress={() => setCreating(true)}
+          style={styles.newList}
+        />
       </View>
 
       {isPending ? (

@@ -14,17 +14,18 @@ import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Avatar } from './Avatar';
 import { Field } from './Field';
+import { Icon, type IconName } from './Icon';
 import { Loading } from './Page';
 import { PrismButton } from './PrismButton';
 import { Sheet, SheetError, useSheetController } from './Sheet';
 
-/** Search-result action label per viewer-relative `friendState`. */
-const ACTION_LABEL: Record<FriendState, string> = {
-  none: '＋ ADD',
-  outgoing: 'PENDING ✕',
-  incoming: 'ACCEPT',
-  friends: '✓ FRIENDS',
-  self: 'YOU',
+/** Search-result action per viewer-relative `friendState`: a drawn mark, a word. */
+const ACTION: Record<FriendState, { label: string; icon?: IconName }> = {
+  none: { label: 'ADD', icon: 'plus' },
+  outgoing: { label: 'PENDING', icon: 'close' },
+  incoming: { label: 'ACCEPT' },
+  friends: { label: 'FRIENDS', icon: 'check' },
+  self: { label: 'YOU' },
 };
 
 /**
@@ -127,7 +128,7 @@ export function FriendsSheet({ onClose }: { onClose: () => void }) {
                 username={result.username}
                 image={result.image}
                 action={{
-                  label: ACTION_LABEL[result.friendState],
+                  ...ACTION[result.friendState],
                   // 'friends' and 'self' have nothing left to do — the label is
                   // the state, and the control says so rather than looking live.
                   disabled:
@@ -162,6 +163,7 @@ export function FriendsSheet({ onClose }: { onClose: () => void }) {
 
 interface RowAction {
   label: string;
+  icon?: IconName;
   disabled?: boolean;
   selected?: boolean;
   onPress: () => void;
@@ -198,7 +200,7 @@ function PersonRow({
   );
 }
 
-function RowButton({ label, disabled = false, selected = false, onPress }: RowAction) {
+function RowButton({ label, icon, disabled = false, selected = false, onPress }: RowAction) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -212,7 +214,10 @@ function RowButton({ label, disabled = false, selected = false, onPress }: RowAc
         { opacity: disabled ? 0.5 : pressed ? 0.7 : 1 },
       ]}
     >
-      <Text style={[type.button, selected ? styles.pink : styles.fg]}>{label}</Text>
+      <View style={styles.actionContent}>
+        {icon ? <Icon name={icon} color={selected ? color.pink : color.fg} size={16} /> : null}
+        <Text style={[type.button, selected ? styles.pink : styles.fg]}>{label}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -244,6 +249,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: surface.glassBorderStrong,
+  },
+  actionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
   },
   actionSelected: {
     borderColor: color.pink,

@@ -160,7 +160,8 @@ export default function ProfileTab() {
                     onPress={() => setManagingFriends(true)}
                     style={({ pressed }) => [styles.addFriend, { opacity: pressed ? 0.7 : 1 }]}
                   >
-                    <Text style={[type.button, styles.pink]}>＋ ADD FRIEND</Text>
+                    <Icon name="plus" color={color.pink} size={16} />
+                    <Text style={[type.button, styles.pink]}>ADD FRIEND</Text>
                     {/* The badge is why this control is here and not only in
                         the sheet: an incoming request has no other surface. */}
                     {data.stats.incomingRequestCount > 0 ? (
@@ -300,7 +301,7 @@ function Destination({
         <Text style={[type.section, styles.fg]}>{title.toUpperCase()}</Text>
         <Text style={[type.eyebrow, styles.dim]}>{detail.toUpperCase()}</Text>
       </View>
-      <Text style={[type.section, styles.chevron]}>›</Text>
+      <Icon name="chevron-right" color={color.faint} size={20} />
     </Touchable>
   );
 }
@@ -424,9 +425,6 @@ const styles = StyleSheet.create({
   },
   destinationText: {
     gap: space.xs,
-  },
-  chevron: {
-    color: color.faint,
   },
   shelf: {
     gap: space.md,

@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { dateToIso, isoToDate } from '../lib/dates';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
+import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
 import { Sheet, SheetError, useSheetController } from './Sheet';
 
@@ -151,7 +152,7 @@ function DateRow({
           onPress={onClear}
           style={({ pressed }) => [styles.clear, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Text style={[type.button, styles.dim]}>✕</Text>
+          <Icon name="close" color={color.dim} size={16} />
         </Pressable>
       ) : null}
     </View>

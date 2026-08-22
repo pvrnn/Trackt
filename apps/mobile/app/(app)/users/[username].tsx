@@ -193,7 +193,8 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
     <View style={styles.actions}>
       {profile.friendState === 'none' ? (
         <PrismButton
-          label="＋ Add friend"
+          label="Add friend"
+          icon="plus"
           busy={sendRequest.isPending}
           disabled={busy}
           onPress={() => sendRequest.mutate(profile.user.username, handlers)}
@@ -202,7 +203,8 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
       ) : null}
       {profile.friendState === 'outgoing' ? (
         <PrismButton
-          label="Request sent ✕"
+          label="Request sent"
+          icon="close"
           variant="secondary"
           busy={remove.isPending}
           disabled={busy}
@@ -230,7 +232,8 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
       ) : null}
       {profile.friendState === 'friends' ? (
         <PrismButton
-          label="✓ Friends"
+          label="Friends"
+          icon="check"
           variant="secondary"
           disabled={busy}
           onPress={() => setConfirmingUnfriend(true)}
