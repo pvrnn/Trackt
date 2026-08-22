@@ -1,36 +1,38 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import type { LayoutChangeEvent } from 'react-native';
 import { selectionHaptic } from '../lib/haptics';
-import { color, layout, radius, space, surface } from '../theme/tokens';
+import { PRISM, color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
 import { PrismText } from './PrismText';
 import { Sheet, useSheetController } from './Sheet';
 
-/** 0–10 in half steps: 21 values, exactly what `RatingScoreSchema` admits. */
-const SCORES = Array.from({ length: 21 }, (_, i) => i / 2);
+/** 0–10 in half steps — exactly what `RatingScoreSchema` admits. */
+const STEP = 0.5;
+const MAX = 10;
 
 /**
- * The score picker (`PUT|DELETE /media/:id/rating`).
+ * The score picker (`PUT|DELETE /media/:id/rating`), drawn from the rate sheet
+ * in `docs/design/Mobile App.dc.html`: the number in PRISM at 40, what is being
+ * rated beside it, one slider, and SAVE next to a round dismiss.
  *
- * Web's version is a row of ten stars split into half-star hit targets — 12px
- * wide each, which is a third of the 44pt minimum this app does not break
- * (`Mobile System.dc.html` §01). So the stars stay as the *readout*, showing
- * the selection at a glance, and the input underneath is a scrolling row of the
- * 21 values, each a real target.
+ * It replaces a readout of ten stars over a scrolling row of 21 chips. The
+ * stars were there because web's half-star targets are 12px and this app does
+ * not break the 44pt minimum, and the chips were there because a pan is not
+ * something switch control can perform. The slider answers both: the whole
+ * 0–10 range is one gesture, and the track carries `accessibilityRole
+ * "adjustable"` with increment/decrement actions, which is the platform's own
+ * accessible slider — a half step per action, the same half steps the schema
+ * allows.
  *
- * Phase 4 makes the readout draggable — a pan across the stars scrubs the
- * score, ticking at each half step — and the chips remain, because a pan is not
- * usable with one hand on a 6.7" phone and switch control has nothing to pan.
- * A drag is the fast way to 7.5; the chips are the only way for some people.
- *
- * Unlike the other action sheets this one does not commit on tap: 0.0 through
- * 10.0 is a range you scrub, and every intermediate value would otherwise be a
- * PUT. SAVE commits; the sheet opens on the current score.
+ * Unlike the other action sheets this one does not commit on touch: every
+ * intermediate value of a scrub would otherwise be a PUT. SAVE commits, the
+ * cross dismisses, and the sheet opens on the current score.
  */
 export function RatingSheet({
   score,
@@ -45,7 +47,7 @@ export function RatingSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
-  const [draft, setDraft] = useState<number | null>(score);
+  const [draft, setDraft] = useState<number>(score ?? 0);
 
   const commit = (next: number | null) => {
     onSave(next);
@@ -53,134 +55,119 @@ export function RatingSheet({
   };
 
   return (
-    <Sheet title="Your rating" subtitle={mediaTitle} controller={sheet}>
+    <Sheet title="Rate this" controller={sheet}>
       <View style={styles.readout}>
-        <Stars score={draft ?? 0} onScrub={setDraft} />
-        <View style={styles.shrink}>
-          <PrismText style={type.title}>{(draft ?? 0).toFixed(1)}</PrismText>
-        </View>
+        <PrismText style={styles.score}>{draft.toFixed(1)}</PrismText>
+        <Text style={styles.caption} numberOfLines={1}>
+          {mediaTitle.toUpperCase()}
+        </Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scores}
-      >
-        {SCORES.map((value) => {
-          const selected = draft === value;
-          return (
-            <Pressable
-              key={value}
-              accessibilityRole="button"
-              accessibilityLabel={`Rate ${value.toFixed(1)}`}
-              accessibilityState={{ selected }}
-              onPress={() => {
-                selectionHaptic();
-                setDraft(value);
-              }}
-              style={({ pressed }) => [
-                styles.score,
-                selected ? styles.scoreSelected : null,
-                { opacity: pressed ? 0.7 : 1 },
-              ]}
-            >
-              <Text style={[type.label, selected ? styles.pink : styles.dim]}>
-                {value.toFixed(1)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <ScoreSlider value={draft} onChange={setDraft} />
 
       <View style={styles.actions}>
-        <PrismButton
-          label={score === null ? 'No rating' : 'Clear rating'}
-          variant="secondary"
-          disabled={score === null}
-          onPress={() => commit(null)}
-          style={styles.action}
-        />
-        <PrismButton
-          label="Save"
-          disabled={draft === null}
-          onPress={() => commit(draft)}
-          style={styles.action}
-        />
+        <PrismButton label="Save" onPress={() => commit(draft)} style={styles.save} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close without saving"
+          onPress={sheet.dismiss}
+          android_ripple={{ color: surface.pinkRow }}
+          style={({ pressed }) => [styles.dismiss, { opacity: pressed ? 0.75 : 1 }]}
+        >
+          <Icon name="close" color={color.muted} size={18} />
+        </Pressable>
       </View>
+
+      {/* Not in the mockup, and it cannot be left out: this sheet is the only
+          place a rating can be taken back off a title. Quiet, and only once
+          there is something to clear. */}
+      {score !== null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Clear your rating"
+          onPress={() => commit(null)}
+          style={({ pressed }) => [styles.clear, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <Text style={[type.eyebrow, styles.dim]}>CLEAR RATING</Text>
+        </Pressable>
+      ) : null}
     </Sheet>
   );
 }
 
-const STAR_SIZE = 20;
-
 /**
- * Ten stars, filled to the score, and — from phase 4 — the scrubber.
+ * The scrub: a 4pt rail with a PRISM fill and the design's solid light knob.
  *
- * A half step is a filled star clipped to half its width over an outline one:
- * the same construction web uses, because there is no half-star mark to draw —
- * and the stars themselves are `Icon` paths, since the ☆/★ characters render
- * at a different weight per platform, when the loaded faces have them at all.
- *
- * The pan reads an absolute position rather than a translation, so putting a
- * finger down at 7.5 selects 7.5 — a relative drag would need the user to know
- * where they started, which on a readout they may be seeing for the first time
- * they do not. `minDistance(0)` is what makes a tap on a star work as well as
- * a drag across them; each half step it crosses ticks (§07's threshold haptic).
- *
- * Still hidden from assistive tech: the value is announced by the chips and
- * printed beside them, and a screen reader hearing "star star star" would be
- * all this adds.
+ * A tap and a pan raced, for the reason `ProgressCard`'s slider gives — except
+ * here the sheet does not scroll, so the pan may activate on touch and a single
+ * tap can land a score directly. Each half step it crosses ticks (§07's
+ * threshold haptic); nothing is written until SAVE.
  */
-function Stars({ score, onScrub }: { score: number; onScrub: (score: number) => void }) {
+function ScoreSlider({ value, onChange }: { value: number; onChange: (score: number) => void }) {
   const trackWidth = useSharedValue(0);
   const lastStep = useSharedValue(-1);
 
   const scrub = (x: number) => {
     'worklet';
     if (trackWidth.value <= 0) return;
-    const step = Math.round((Math.min(Math.max(x, 0), trackWidth.value) / trackWidth.value) * 20);
+    const ratio = Math.min(Math.max(x, 0), trackWidth.value) / trackWidth.value;
+    const step = Math.round((ratio * MAX) / STEP);
     if (step === lastStep.value) return;
     lastStep.value = step;
     runOnJS(selectionHaptic)();
-    runOnJS(onScrub)(step / 2);
+    runOnJS(onChange)(step * STEP);
   };
+
+  const release = () => {
+    'worklet';
+    lastStep.value = -1;
+  };
+
+  const tap = Gesture.Tap().onEnd((event) => {
+    scrub(event.x);
+    release();
+  });
 
   const pan = Gesture.Pan()
     .minDistance(0)
-    // The row is 218 × 24; without the slop the scrubber is a hairline to
-    // anything but a fingertip landing exactly on it.
-    .hitSlop({ vertical: 14 })
+    // The rail is 4pt tall; without the slop it is a hairline to anything but a
+    // fingertip landing exactly on it.
+    .hitSlop({ vertical: 16 })
     .onBegin((event) => scrub(event.x))
     .onUpdate((event) => scrub(event.x))
-    .onFinalize(() => {
-      lastStep.value = -1;
-    });
+    .onFinalize(release);
 
-  const onLayout = (event: LayoutChangeEvent) => {
-    trackWidth.value = event.nativeEvent.layout.width;
-  };
+  const percent = (value / MAX) * 100;
 
   return (
-    <GestureDetector gesture={pan}>
+    <GestureDetector gesture={Gesture.Race(tap, pan)}>
       <View
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        onLayout={onLayout}
-        style={styles.stars}
+        accessibilityRole="adjustable"
+        accessibilityLabel="Your score"
+        accessibilityValue={{ min: 0, max: MAX, now: value, text: value.toFixed(1) }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === 'increment') {
+            onChange(Math.min(MAX, value + STEP));
+          }
+          if (event.nativeEvent.actionName === 'decrement') {
+            onChange(Math.max(0, value - STEP));
+          }
+        }}
+        onLayout={(event: LayoutChangeEvent) => {
+          trackWidth.value = event.nativeEvent.layout.width;
+        }}
+        style={styles.track}
       >
-        {Array.from({ length: 10 }, (_, i) => {
-          const fill = Math.min(Math.max(score - i, 0), 1);
-          return (
-            <View key={i} style={styles.starSlot}>
-              <Icon name="star" color={color.faint} size={STAR_SIZE} />
-              {fill > 0 ? (
-                <View style={[styles.starFill, { width: STAR_SIZE * fill }]}>
-                  <Icon name="star-filled" color={color.pink} size={STAR_SIZE} />
-                </View>
-              ) : null}
-            </View>
-          );
-        })}
+        <View style={styles.rail}>
+          <LinearGradient
+            colors={[...PRISM]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.fill, { width: `${percent}%` }]}
+          />
+        </View>
+        <View style={[styles.knob, { left: `${percent}%` }]} />
       </View>
     </GestureDetector>
   );
@@ -189,56 +176,74 @@ function Stars({ score, onScrub }: { score: number; onScrub: (score: number) => 
 const styles = StyleSheet.create({
   readout: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'baseline',
     gap: space.md,
   },
-  stars: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  starSlot: {
-    width: STAR_SIZE,
-    height: 24,
-  },
-  starFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    overflow: 'hidden',
-  },
-  shrink: {
-    alignSelf: 'flex-start',
-  },
-  scores: {
-    gap: space.sm,
-    paddingVertical: space.xs,
-  },
+  /** Anton 40, the mockup's own size for the value being set. */
   score: {
-    minWidth: layout.touchTarget,
-    minHeight: layout.touchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: space.sm,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorder,
-    backgroundColor: surface.glass,
+    fontFamily: type.title.fontFamily,
+    fontSize: 40,
+    lineHeight: 42,
   },
-  scoreSelected: {
-    borderColor: color.pink,
-    backgroundColor: surface.pinkSelected,
+  caption: {
+    flex: 1,
+    fontFamily: type.eyebrow.fontFamily,
+    fontSize: 11,
+    letterSpacing: 0.88,
+    color: color.dim,
+  },
+  track: {
+    height: layout.touchTarget,
+    justifyContent: 'center',
+    marginHorizontal: space.sm,
+  },
+  rail: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+    backgroundColor: surface.glassBorder,
+  },
+  fill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  knob: {
+    position: 'absolute',
+    top: '50%',
+    width: 22,
+    height: 22,
+    marginLeft: -11,
+    marginTop: -11,
+    borderRadius: 11,
+    backgroundColor: color.fg,
+    shadowColor: '#000',
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   actions: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: space.md,
   },
-  action: {
+  save: {
     flex: 1,
   },
-  pink: {
-    color: color.pink,
+  dismiss: {
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: surface.glassBorderStrong,
+    backgroundColor: surface.glass,
+  },
+  clear: {
+    alignSelf: 'center',
+    minHeight: layout.touchTarget,
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
   },
   dim: {
     color: color.dim,
