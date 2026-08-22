@@ -17,7 +17,7 @@ import {
   visibilityLabel,
 } from '@trackt/client';
 
-export const Route = createFileRoute('/lists/$id')({
+export const Route = createFileRoute('/lists_/$id')({
   head: () => ({ meta: [{ title: 'List — Trackt' }] }),
   component: ListDetailPage,
 });
