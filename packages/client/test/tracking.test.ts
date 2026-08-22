@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { LOG_DATE_FLOOR, type UpNextEntry } from '@trackt/shared';
 import { upNextPartKey } from '../src/home.js';
 import {
+  PART_BLOCK_SIZE,
   PROGRESS_SLIDER_MIN_PARTS,
   firstUnwatched,
+  partBlocks,
+  partWindow,
   partsUpTo,
   progressUpTo,
   stampedDates,
@@ -63,6 +66,51 @@ describe('partsUpTo', () => {
   it('is empty at zero — and at a negative, which no caller should send', () => {
     expect(partsUpTo(0)).toEqual([]);
     expect(partsUpTo(-3)).toEqual([]);
+  });
+});
+
+describe('partBlocks', () => {
+  it('leaves a season alone — 26 rows is a list, not a wall', () => {
+    expect(partBlocks(26, 4)).toEqual([]);
+    expect(partBlocks(PART_BLOCK_SIZE, 0)).toEqual([]);
+  });
+
+  it('chops a long work into blocks of 40, the last one short', () => {
+    const blocks = partBlocks(312, 112);
+    expect(blocks).toHaveLength(8);
+    expect(blocks[0]).toMatchObject({ index: 1, from: 1, to: 40, size: 40 });
+    expect(blocks[7]).toMatchObject({ index: 8, from: 281, to: 312, size: 32 });
+  });
+
+  it('folds the position into each block: done, complete, partial', () => {
+    const blocks = partBlocks(312, 112);
+    // 112 read: volumes 1-2 finished, volume 3 part-way, the rest untouched.
+    expect(blocks[1]).toMatchObject({ done: 40, complete: true, partial: false });
+    expect(blocks[2]).toMatchObject({ done: 32, complete: false, partial: true });
+    expect(blocks[3]).toMatchObject({ done: 0, complete: false, partial: false });
+  });
+
+  it('is all-empty at position zero and all-complete at the end', () => {
+    expect(partBlocks(312, 0).every((block) => block.done === 0)).toBe(true);
+    expect(partBlocks(312, 312).every((block) => block.complete)).toBe(true);
+  });
+});
+
+describe('partWindow', () => {
+  it('puts two behind the position and three ahead', () => {
+    expect(partWindow(81, 120, 112)).toEqual([110, 111, 112, 113, 114, 115]);
+  });
+
+  it('starts at the block when the position is outside it', () => {
+    expect(partWindow(121, 160, 112)).toEqual([121, 122, 123, 124, 125, 126]);
+  });
+
+  it('does not run past the end of a short last block', () => {
+    expect(partWindow(281, 312, 311)).toEqual([309, 310, 311, 312]);
+  });
+
+  it('clamps to the block start rather than showing parts before it', () => {
+    expect(partWindow(1, 40, 1)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 });
 

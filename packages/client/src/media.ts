@@ -105,6 +105,72 @@ export function progressUpTo(watched: ReadonlySet<number>): number {
   return n;
 }
 
+/**
+ * How many parts one block covers (`Mobile Media.dc.html`, "VOLUMES, NOT
+ * CHAPTERS"): 312 chapters becomes 8 rows of 40, each with its own count and
+ * bar, so where you are in the whole work fits on one screen. Forty is the
+ * mockup's number and roughly a manga volume.
+ */
+export const PART_BLOCK_SIZE = 40;
+
+/** One block of parts, with the viewer's position folded in. */
+export interface PartBlock {
+  /** 1-based; `Volume 3`, `Episodes 41–80`. */
+  index: number;
+  from: number;
+  to: number;
+  size: number;
+  /** Parts of this block at or below the position — 0..size. */
+  done: number;
+  complete: boolean;
+  /** Started but not finished: what earns the pink half-state. */
+  partial: boolean;
+}
+
+/**
+ * Chop a work into blocks, or return none when it is short enough to list part
+ * by part. The threshold is the block size itself: a 26-episode season is 26
+ * rows, which is a list; a 312-chapter manga is 8 rows, which is a map.
+ */
+export function partBlocks(total: number, position: number, size = PART_BLOCK_SIZE): PartBlock[] {
+  if (total <= size) return [];
+  const blocks: PartBlock[] = [];
+  for (let index = 1; (index - 1) * size < total; index++) {
+    const from = (index - 1) * size + 1;
+    const to = Math.min(total, index * size);
+    const span = to - from + 1;
+    const done = Math.min(Math.max(position - from + 1, 0), span);
+    blocks.push({
+      index,
+      from,
+      to,
+      size: span,
+      done,
+      complete: done >= span,
+      partial: done > 0 && done < span,
+    });
+  }
+  return blocks;
+}
+
+/**
+ * The rows an opened block actually renders: a window around where you are
+ * (`Mobile Media.dc.html`, "ROWS LOAD IN A WINDOW") — two behind, the next one,
+ * three ahead. Never the whole block, never the whole work; travelling further
+ * than that is the slider's job, not scrolling's.
+ *
+ * When the position is outside the block the window starts at its beginning,
+ * which is what makes an untouched volume open on its first chapter.
+ */
+export function partWindow(from: number, to: number, position: number, span = 6): number[] {
+  const anchor = position >= from && position <= to ? position : from - 1;
+  const start = Math.max(from, anchor - 2);
+  const end = Math.min(to, start + span - 1);
+  const rows: number[] = [];
+  for (let n = start; n <= end; n++) rows.push(n);
+  return rows;
+}
+
 /** `[1, 2, …, upTo]` — the watched list a position implies, for optimistic patches. */
 export function partsUpTo(upTo: number): number[] {
   return Array.from({ length: Math.max(0, upTo) }, (_, i) => i + 1);
