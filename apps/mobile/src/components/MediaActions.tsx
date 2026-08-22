@@ -139,46 +139,41 @@ export function RatingCard({
       : 'NO RATINGS HERE YET';
 
   return (
-    <View style={styles.ratingRow}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={
-          score !== null ? `Your rating: ${score.toFixed(1)}. Change it` : 'Rate this'
-        }
-        onPress={onPress}
-        style={({ pressed }) => [styles.rating, { opacity: pressed ? 0.75 : 1 }]}
-      >
-        {/* The number keeps its slot whether or not there is one, so the two
-            lines beside it start at the same x either way. Unrated fills it
-            with an outline star rather than a dash: Anton's dash glyph is a
-            short low bar that reads as a rendering fault, and a star at the
-            number's own size says *rate me* while holding the same geometry. */}
-        <View style={styles.scoreSlot}>
-          {score !== null ? (
-            <PrismText style={styles.score}>{score.toFixed(1)}</PrismText>
-          ) : (
-            <Icon name="star" color={color.faint} size={30} />
-          )}
-        </View>
-        <View style={styles.ratingText}>
-          {/* "YOUR RATING" over nothing is a label for a value that does not
-              exist; unrated, the card says what it is for instead. */}
-          <Text style={styles.ratingLabel}>{score !== null ? 'YOUR RATING' : 'RATE THIS'}</Text>
-          <Text style={styles.ratingMeta} numberOfLines={1}>
-            {community}
-          </Text>
-        </View>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={score !== null ? 'Edit your rating' : 'Rate this'}
-        onPress={onPress}
-        android_ripple={{ color: surface.pinkRow }}
-        style={({ pressed }) => [styles.pencil, { opacity: pressed ? 0.75 : 1 }]}
-      >
-        <Icon name="pencil" color={color.pink} size={17} />
-      </Pressable>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        score !== null ? `Your rating: ${score.toFixed(1)}. Change it` : 'Rate this'
+      }
+      onPress={onPress}
+      android_ripple={{ color: surface.pinkRow }}
+      style={({ pressed }) => [styles.rating, { opacity: pressed ? 0.75 : 1 }]}
+    >
+      {/* The number keeps its slot whether or not there is one, so the two
+          lines beside it start at the same x either way. Unrated fills it with
+          an outline star rather than a dash: Anton's dash glyph is a short low
+          bar that reads as a rendering fault, and a star at the number's own
+          size says *rate me* while holding the same geometry. */}
+      <View style={styles.scoreSlot}>
+        {score !== null ? (
+          <PrismText style={styles.score}>{score.toFixed(1)}</PrismText>
+        ) : (
+          <Icon name="star" color={color.faint} size={30} />
+        )}
+      </View>
+      <View style={styles.ratingText}>
+        {/* "YOUR RATING" over nothing is a label for a value that does not
+            exist; unrated, the card says what it is for instead. */}
+        <Text style={styles.ratingLabel}>{score !== null ? 'YOUR RATING' : 'RATE THIS'}</Text>
+        <Text style={styles.ratingMeta} numberOfLines={1}>
+          {community}
+        </Text>
+      </View>
+      {/* The pencil stays as the *mark* that this readout is editable — the
+          mockup's own affordance — but not as a second button beside a card
+          that already opens the same sheet. One control, one target, and the
+          target is the whole card rather than a 52pt box at the end of it. */}
+      <Icon name="pencil" color={color.pink} size={17} />
+    </Pressable>
   );
 }
 
@@ -226,17 +221,12 @@ const styles = StyleSheet.create({
     fontSize: 8,
     letterSpacing: 0.64,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    gap: space.sm,
-  },
   rating: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
     paddingVertical: space.md,
-    paddingHorizontal: space.md + 3,
+    paddingHorizontal: space.lg,
     borderRadius: radius.cover,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: surface.glassBorder,
@@ -269,15 +259,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.6,
     color: color.dim,
-  },
-  pencil: {
-    width: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorder,
-    backgroundColor: surface.glass,
   },
   onPrism: {
     color: color.onPrism,
