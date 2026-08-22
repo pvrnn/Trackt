@@ -2,8 +2,9 @@
 
 > **Status:** **Phases 1–3 shipped** (contracts, catalog service, instance API + web) —
 > recorded as [ADR-0005](adr/0005-news-and-newsroom-agent.md), which is authoritative
-> where it and this plan disagree. **Phases 0, 4 and 5 — `packages/llm`, `apps/newsroom`,
-> and the MCP server — are not built**; the sections below are still the plan for them.
+> where it and this plan disagree. **Phases 0, 4, 5 and 6 — `packages/llm`, `apps/newsroom`,
+> the MCP server, and the offline prompt optimizer — are not built**; the sections below are
+> still the plan for them.
 > Deltas the implementation settled differently are noted inline as **[shipped: …]**.
 > Deeper context: [PRD](PRD.md), [ROADMAP](ROADMAP.md), [ADR-0001](adr/0001-central-slim-catalog.md),
 > [ADR-0002](adr/0002-federated-catalog-search.md), [ADR-0003](adr/0003-per-season-media.md),
@@ -44,8 +45,9 @@ Two existing facts shape the rest:
 | Autonomy | **Agent writes drafts; a human publishes.** Catalog media/relation writes are *proposals* attached to a draft, applied only on approval. |
 | Agent surface | **Admin REST first**, with a thin **MCP server** over the same client, so the same operations are drivable by hand from an MCP client. |
 | Sourcing | **RSS/Atom feeds the operator registers.** We fetch and extract the linked page ourselves — no provider-side browsing tool. Original synthesis + attribution, never verbatim reproduction. |
+| Prompt quality | **Measured, then optimized offline.** Prompts are versioned data, not code; an out-of-band GEPA/DSPy harness ([Phase 6](#phase-6--prompt-optimization-gepadspy-offline)) proposes better ones against a graded fixture set. The runtime stays TypeScript and gains no dependency — a checked-in hand-written bundle is always the fallback. |
 
-The provider-agnostic requirement is a hard constraint. The other four are defaults chosen to
+The provider-agnostic requirement is a hard constraint. The other five are defaults chosen to
 match existing architecture decisions and are open to revision before implementation.
 
 ---
@@ -73,6 +75,12 @@ match existing architecture decisions and are open to revision before implementa
 `apps/newsroom` is project-operated like `apps/catalog`: **not** in `docker-compose.yml`, not
 something a self-hoster runs, so no instance pays model or fetching cost and the "no live
 provider connectors, no scraping" decision (ROADMAP) stays true instance-side.
+
+Off to the side of that flow, and never in it, sits
+[Phase 6](#phase-6--prompt-optimization-gepadspy-offline): recorded runs and reviewed drafts
+feed an offline GEPA/DSPy harness in `tools/prompt-optimizer/`, whose only output is a
+checked-in prompt bundle the agent loads. It is a build-time asset, not a runtime component —
+nothing in the diagram above calls it, and deleting it leaves a working agent.
 
 ---
 
@@ -363,12 +371,59 @@ extraction, and `node-cron`.
 `src/catalog-admin-client.ts` is the single typed client for every admin call (bearer token,
 retry with backoff on 5xx, Zod-parsed responses). Both the pipeline and the MCP server use it.
 
-### Prompts (`src/prompts/`)
+### Prompts (`src/prompts/`) — versioned data, not code
 
-Plain `.ts` template modules, not inline strings — one per step, so switching models means
-tuning text in one place. Kept stable and content-free at the top (style guide, house rules,
-kind vocabulary) so providers that do implicit prefix caching benefit for free; we don't
-depend on it or assert on it.
+Two layers, and the split is what makes [Phase 6](#phase-6--prompt-optimization-gepadspy-offline)
+possible at all:
+
+- **The frame** (`src/prompts/<step>.ts`) — everything mechanical and invariant: the rendered
+  JSON schema, the input serialization, the house rules and kind vocabulary, the assembly of
+  the user message. Code, reviewed as code, never rewritten by a machine.
+- **The instruction bundle** (`prompts/<step>/<id>.json`, loaded at startup) — the one text
+  block the frame interpolates, plus optional few-shot demos:
+
+  ```jsonc
+  {
+    "step": "write",            // cluster | write
+    "id": "default",            // file name; the hand-written baseline
+    "models": ["*"],            // or ["qwen*", "deepseek*"] — see fallback below
+    "instruction": "You are …", // the optimizable text
+    "demos": [],                // optional few-shot examples, same shape as the step's IO
+    "provenance": {             // hand | gepa
+      "kind": "hand", "createdAt": "2026-…", "notes": "baseline"
+    }
+  }
+  ```
+
+`resolvePrompt(step, model)` picks the most specific bundle whose `models` glob matches the
+configured `LLM_MODEL`, and falls back to `default` — which is hand-written, always present,
+and the only one the test suite runs. **Deleting every optimized bundle must leave a working
+agent**; that is the property that keeps ADR-0005's "no provider-specific feature on the
+critical path" true once prompts start being tuned per model family.
+
+Bundles are checked in, so a prompt change is a reviewable diff with a test run behind it,
+exactly like a schema change. Keeping the frame's stable prefix first still lets providers
+with implicit prefix caching benefit for free; we don't depend on it or assert on it.
+
+### Recorded runs (`src/record.ts`) — the corpus everything downstream needs
+
+With `NEWSROOM_RECORD_DIR` set, every model step appends a JSONL trace:
+
+```ts
+type StepTrace = {
+  runId: string; step: 'cluster' | 'write';
+  promptId: string; model: string;
+  input: unknown;        // exactly what the frame was given — extracted text, never raw HTML
+  rawOutput: string; parsed: unknown | null;
+  checks: CheckResult[]; // the code-level guardrails below, per check, with messages
+  usage: { inputTokens: number; outputTokens: number }; latencyMs: number;
+};
+```
+
+`extract.ts` already captures everything the model sees, so a trace plus its extraction fixture
+is a **replayable rollout with no network** — which is what makes the pipeline tests cheap, and
+what Phase 6 grades against. Build it in Phase 4 even though nothing consumes it yet:
+reconstructing this corpus after the fact means re-fetching pages that have since changed.
 
 ### Editorial and legal guardrails (in the prompts *and* enforced in code)
 
@@ -381,6 +436,12 @@ depend on it or assert on it.
   catalog cover, or a PRISM gradient placeholder.
 - Code-level rejection of a draft with no linked source, or whose title matches a source
   headline verbatim.
+
+Write these as `src/checks.ts` — a list of named, pure `(draft, sources) => CheckResult`
+functions the pipeline runs before `publish.ts` — rather than inline `if`s. They are then
+three things at once: the runtime guardrail, the assertion set in `pipeline.test.ts`, and
+**the scoring function Phase 6 optimizes against**. GEPA's own advice is to reuse the checks
+you already have rather than invent a metric; this is that, arranged in advance.
 
 ### Scheduling
 
@@ -404,6 +465,184 @@ second face over `catalog-admin-client.ts`**, not a parallel implementation. Too
 so drafts can be reviewed and published conversationally. This is MCP as a *client-facing*
 protocol and is independent of which model the pipeline itself uses.
 
+## Phase 6 — Prompt optimization (GEPA/DSPy, offline)
+
+Phases 0–5 give the agent a pipeline, a schema and a review gate. What they do **not** give it
+is a way to know whether its prompts are any good. Two of the pipeline's steps are pure
+judgement — `cluster.ts` decides what counts as one story and what isn't news at all, `write.ts`
+decides what a well-attributed article reads like — and both would otherwise be tuned by
+reading a few drafts and editing prose until they look better. That is unmeasurable, it does
+not survive a model swap (the whole point of Phase 0 is that the model *will* be swapped), and
+it silently regresses.
+
+This phase adds the measurement, and then an optimizer that consumes it.
+
+### What GEPA and DSPy actually are
+
+**DSPy** (Stanford) is a Python framework for programming — rather than prompting — language
+models: you declare a *signature* (typed inputs → typed outputs), compose *modules*, and hand
+the program to an *optimizer* that rewrites the instructions and selects few-shot demos against
+a metric you define. Prompt text becomes a compiled artifact instead of a hand-tuned string.
+
+**GEPA** (Genetic-Pareto, [arXiv:2507.19457](https://arxiv.org/abs/2507.19457), Agrawal et al.
+2025; ICLR 2026 oral) is the optimizer we care about, available as `dspy.GEPA` and wrapping the
+standalone [`gepa-ai/gepa`](https://github.com/gepa-ai/gepa) engine. Its loop:
+
+1. Sample a candidate from a **Pareto frontier** — the set of prompts each of which is best on
+   *at least one* evaluation instance, not the single best on average. That is what stops the
+   search collapsing onto one local optimum and keeps complementary strategies alive.
+2. Run it on a minibatch, capturing full traces.
+3. Feed those traces **plus the metric's natural-language feedback** to a *reflection LM*,
+   which diagnoses why the candidate failed and writes a new instruction targeting that.
+4. Keep the mutant if it improves; occasionally merge lineages.
+
+The interesting part for us is step 3. A metric that returns `0.4` tells the optimizer nothing;
+a metric that returns `0.4` **and** "the draft cited two sources but framed a single-sourced
+renewal claim as fact; the title reproduced Deadline's headline word for word" tells it exactly
+what to write into the next instruction. GEPA's own guidance is to build that feedback out of
+artifacts you already have — validators, schema errors, test failures. `src/checks.ts` from
+Phase 4 *is* that artifact set, which is why it is specified as named pure functions with
+messages rather than inline `if`s.
+
+Sample efficiency is why this is affordable at our scale: the paper reports GEPA beating GRPO
+by ~10% average (up to 20%) using **up to 35× fewer rollouts** — on the order of 100–500 metric
+calls rather than 5,000–25,000 — and beating MIPROv2, the previous best DSPy prompt optimizer,
+by over 10%. A GEPA run against our fixtures is a coffee-break job with a two-figure API bill,
+not a training run.
+
+### Decision: the optimizer lives outside the Node graph and outside the runtime
+
+`tools/prompt-optimizer/` — Python, **not** a pnpm workspace package, not in
+`pnpm-workspace.yaml`, not in `turbo.json`, not in CI's default pipeline, not a dependency of
+`apps/newsroom`. `pyproject.toml` + `uv.lock`, `dspy` and `gepa` pinned, a `README.md`, and a
+`make optimize STEP=write` entry point. Nothing in the TypeScript build ever imports it, and a
+contributor who never touches prompts never installs Python.
+
+```
+tools/prompt-optimizer/
+  programs/          # one dspy.Module per optimizable step, mirroring src/prompts/<step>.ts
+  metrics/           # feedback metrics — the real work of this phase
+  data/              # graded fixtures, exported from recorded runs
+  export/            # writes prompts/<step>/gepa-<date>.json back into apps/newsroom
+```
+
+The output of a run is **a JSON bundle in the format Phase 4 already loads** — an instruction
+string and optional demos — committed by a human after reading the diff. Not a DSPy program,
+not a pickle: `dspy.save(save_program=False)` state is DSPy's private shape (instructions,
+demos, LM config), and our runtime is not DSPy. We lift the instruction out and throw the
+container away. That is the seam that keeps a Python research tool from becoming a production
+dependency.
+
+### The programs and how they stay honest about the contract
+
+One `dspy.Module` per optimizable step, whose signature mirrors the corresponding frame in
+`src/prompts/`. The output schema is **not** re-declared in Python: `apps/newsroom` gains a
+`pnpm --filter @trackt/newsroom export-schemas` script that dumps the Zod output schemas to
+`tools/prompt-optimizer/data/schemas/*.json` via the same `zod-to-json-schema` Phase 0 already
+uses. If the contract changes and the export is stale, the optimizer fails loudly instead of
+tuning a prompt for a shape the pipeline no longer accepts.
+
+The task model is the model we actually ship against: DSPy reaches any OpenAI-compatible
+endpoint through LiteLLM, so `dspy.LM("openai/<LLM_MODEL>", api_base=LLM_BASE_URL,
+api_key=LLM_API_KEY)` points the optimizer at the exact `.env` the runtime uses — Qwen, Kimi,
+DeepSeek, OpenRouter or a local Ollama alike. `reflection_lm` is configured separately and is
+deliberately a *stronger, more expensive* model: it is called a handful of times per run, so
+its cost is noise, and its job is writing good instructions rather than executing the task.
+
+### The dataset
+
+GEPA needs far less data than its reputation suggests — the engine runs on a few dozen
+examples, and the paper's headline results come from small validation sets. Ours comes from
+the review gate we already built:
+
+- **`cluster`** — 60–100 recorded pending-item batches with a human grouping: which items are
+  the same story, which are not news at all, what the topic is. Cheap to label; the reviewer is
+  already reading these.
+- **`write`** — every draft that went through `PATCH /v1/admin/news/:id`. A **published**
+  article is a positive; a **rejected** one is a negative with a reason; and an article the
+  editor *edited before publishing* is the most valuable row of all, because the diff between
+  the model's draft and the published text is exactly the feedback GEPA's reflection step
+  wants. Capturing that means storing the pre-edit body — a `news_article.draft_body` column,
+  or simply the recorded trace matched by `articleId`; the trace is enough and costs no schema
+  change.
+
+Split ~70/30 into `trainset`/`valset`. **The valset is never used to write prompts by hand** —
+it is the only defence against tuning the optimizer's own harness until the number goes up.
+
+### The metrics — where this phase's real work is
+
+Each returns `dspy.Prediction(score=…, feedback=…, objective_scores=…)`:
+
+| Step | Score | Feedback text (what reflection reads) |
+| --- | --- | --- |
+| `cluster` | Pairwise F1 against the human grouping, × topic accuracy, × non-news precision | The titles it wrongly merged and wrongly split, named; each item it kept that a human dropped; the topic it chose vs the topic assigned |
+| `write` | Weighted composite of `src/checks.ts` (hard, deterministic) and an LLM-as-judge rubric (soft) | Every failing check verbatim with its message, plus the judge's per-criterion notes, plus — when the row is an edited article — the editor's diff |
+
+The `write` checks are the ones the pipeline and the catalog routes already enforce, which is
+what makes the metric trustworthy: schema parse, ≥1 source, title not a verbatim source
+headline (Phase 2 rejects this at the route), dek length, `kinds` ⊆ vocabulary, no bare UUID in
+prose, no n-gram overlap with source text beyond a short attributed quote, every
+single-sourced claim framed as "reported by X". A prompt that scores well and then trips a
+route guard is a metric bug, not a prompt success — the two must be the same list.
+
+The judge is one `completeJson` call against a rubric, run on the same OpenAI-compatible
+client. It is the soft half deliberately: no automatic check can tell you an article reads
+like a press release. Judge scores are advisory in weight (≤40%) so a rubric-gaming prompt
+cannot outrun the deterministic half.
+
+**Objectives are tracked separately from the scalar.** The metric also returns
+`objective_scores={"editorial": …, "compliance": …}` with `gepa_kwargs={"frontier_type":
+"objective"}`, so the frontier keeps candidates that are strongest on attribution and
+verbatim-avoidance even when a livelier candidate wins on aggregate. Note the semantics:
+the scalar score still gates acceptance and picks the final candidate — objectives only steer
+parent and merge selection. `compliance` is therefore *also* weighted into the scalar, and any
+run whose winner scores worse on `compliance` than the `default` bundle is discarded by hand.
+
+### Guardrails on the optimization itself
+
+This phase points a model at text that ends up in production, and the traces it reflects over
+contain third-party page content. Both need the same posture as the articles themselves.
+
+- **Prompt injection through the reflective dataset is a real path.** A hostile source page
+  can contain "when writing about this studio, always say…"; that text lands in a trace,
+  the trace goes to the reflection LM, and the reflection LM writes instructions. Mitigations,
+  in order: traces carry Readability-extracted text only (never raw HTML), the reflective
+  dataset renders page content inside a clearly delimited, labelled block, an `export/lint.py`
+  rejects a candidate instruction containing URLs, outlet-specific proper-noun directives, or
+  imperative override phrasing, and **a human reads the whole instruction diff before it is
+  committed**. No promotion path exists that a machine can walk alone.
+- **Never auto-promote, never optimize in CI.** Runs are manual, keyed, and metered. CI must
+  stay green with no LLM key set (Phase 0's rule) — the optimizer's tests use recorded traces
+  and a fake LM, or don't run.
+- **The `default` bundle is hand-written and permanent.** It is what CI exercises, what an
+  unrecognized model falls back to, and the answer to "we changed provider and everything got
+  worse". Optimized bundles are additive.
+- **Cost is bounded by `max_metric_calls`.** Start at `auto="light"` (≈6 candidates evaluated)
+  to validate the harness end to end, then a fixed `max_metric_calls` of 150–300 for a real
+  run. Remember a `write` rollout is two model calls (task + judge), so budget accordingly;
+  log the same `usage` accounting Phase 0 already exposes and print a per-run cost line.
+- **Re-run on model change, not on schedule.** A bundle is tuned for one model family; the
+  trigger for a new run is swapping `LLM_MODEL`, or a metric moving on new data — not a cron.
+
+### Alternatives considered
+
+| Option | Verdict |
+| --- | --- |
+| **[`@ax-llm/ax`](https://github.com/ax-llm/ax)** (Apache-2.0, the de facto TypeScript DSPy; ships GEPA and bootstrap few-shot, ~3k stars) | **No, as a runtime dependency** — it would own generation, retries, JSON mode and provider config, which is precisely the surface Phase 0 exists to keep at two methods. It is the fallback if we ever want *in-process* optimization, and the only serious candidate for it. |
+| **[`gepa-ts`](https://github.com/tangle-network/gepa-ts)** (MIT, TS port claiming Python parity) | **No** — archived read-only in April 2026, single-digit adoption. Not something to build an editorial pipeline on. |
+| Optimizing with **MIPROv2** instead | Available in the same DSPy install and worth running as a baseline, but GEPA's textual-feedback channel is exactly what our checks produce, and the paper puts it >10% ahead. Use MIPROv2 as the control, not the plan. |
+| **RL / fine-tuning** a small model | Out of scope by an order of magnitude in cost and by the vendor-neutrality constraint — a fine-tuned model is the lock-in Phase 0 refuses. |
+| Hand-tuning prompts, no harness | The status quo. Fine for the first weeks of Phase 4; unmeasurable the moment there are two model families and two people editing. |
+
+### When to do this
+
+**Not before Phase 4 has run for real.** The prerequisite is data: a few dozen reviewed drafts
+and a handful of labelled cluster batches. Build the trace recorder and the bundle loader *in*
+Phase 4 (they are cheap then and expensive to retrofit), run the agent by hand for a few weeks,
+then do this phase against a corpus that actually reflects the feeds we read. Doing it earlier
+optimizes against fixtures we invented, which is how you get a prompt that is excellent at the
+examples and mediocre at the job.
+
 ## Docs to write with the implementation
 
 - **`docs/adr/0005-news-and-newsroom-agent.md`** — records: news is central-only and read
@@ -419,6 +658,14 @@ protocol and is independent of which model the pipeline itself uses.
   new adapter.
 - `README.md` layout block gains `newsroom/` and `packages/llm/`; `.env.example` and
   `turbo.json` gain the new variables.
+- **A new ADR when Phase 6 lands** (`docs/adr/000N-offline-prompt-optimization.md`, number
+  taken at the time) — records: prompts are versioned data with a permanent hand-written
+  fallback; the optimizer is Python, offline, and outside the pnpm/turbo graph; model-authored
+  instructions are human-reviewed diffs, never auto-promoted; the metric and the runtime
+  guardrails are one list. Two of those are architecture stances a future contributor will
+  otherwise re-litigate (Python in a TS monorepo; machine-written text in `main`).
+- **`docs/newsroom.md`** also covers the optimization loop: labelling a corpus, running
+  `make optimize`, reading the report, and what disqualifies a candidate bundle.
 
 ## Tests
 
@@ -432,9 +679,13 @@ protocol and is independent of which model the pipeline itself uses.
 | `apps/newsroom/test/extract.test.ts` | fixture HTML → text, robots.txt refusal, per-host throttle |
 | `apps/newsroom/test/resolve.test.ts` | unresolvable proposal produces **no** media row; resolved proposal derives the right canonical UUID |
 | `apps/newsroom/test/pipeline.test.ts` | fixture feeds + a **fake `LlmClient`**; no network, no key needed in CI |
+| `apps/newsroom/test/prompts.test.ts` | bundle resolution: model glob precedence, fallback to `default`, malformed bundle rejected at load, **a bundle set stripped to `default` alone still runs the pipeline** |
+| `apps/newsroom/test/checks.test.ts` | each guardrail in `src/checks.ts` against a passing and a failing draft — the same list Phase 6 scores against, so a drift here is a metric bug |
+| `tools/prompt-optimizer/tests/` (pytest, **not in `pnpm test`**) | metrics score recorded traces deterministically; feedback strings name the offending item; `export/lint.py` rejects an instruction carrying a URL or an override phrase |
 
 The fake `LlmClient` is the payoff of the port: the whole pipeline is testable with zero API
-calls. Follow the existing integration idiom exactly — per-suite database
+calls. The optimizer's own tests are the one suite outside `pnpm test` — Python, run by hand,
+never gating CI, because CI must stay green with no LLM key and no Python toolchain. Follow the existing integration idiom exactly — per-suite database
 (`trackt_news_test`), `TEST_DATABASE_URL_NEWS` override, `describe.runIf(available)`,
 `app.inject()`, `CI_REQUIRE_DB` turning a skip into a failure. Register the new
 `TEST_DATABASE_URL_*` in `turbo.json`.
@@ -468,9 +719,21 @@ pnpm dev                                        # web :3000, api :3001, catalog 
    invented, and that per-run token usage is logged.
 7. **MCP** — `pnpm --filter @trackt/newsroom mcp`, connect an MCP client, list drafts and
    publish one; verify it appears at `/news`.
-8. `pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` — exactly what CI runs, with
-   no LLM key set, proving nothing in the suite needs a provider.
-9. `docker/smoke-test-catalog.sh` still passes with the new routes registered.
+8. **Prompt bundles are swappable and optional** — run the agent once with the shipped
+   bundles, then delete every file under `apps/newsroom/prompts/*/` except `default.json` and
+   run it again. Both runs must produce a schema-valid draft; only the prose should differ.
+9. **Optimization round trip** (Phase 6, run by hand, never in CI) —
+   `cd tools/prompt-optimizer && uv run make optimize STEP=write AUTO=light`. Confirm it reads
+   the exported schemas rather than a hand-copied one, that the printed report shows train and
+   **val** scores plus a per-objective breakdown, that the winner beats `default` on the val
+   set *and* does not regress `compliance`, and that `export/` wrote a bundle the TypeScript
+   loader accepts. Then re-run the pipeline against the new bundle and check the draft still
+   passes every `src/checks.ts` guard — a candidate that scores well and trips a route guard
+   means the metric has drifted from the runtime.
+10. `pnpm lint && pnpm typecheck && pnpm test && pnpm format:check` — exactly what CI runs, with
+    no LLM key set **and no Python installed**, proving nothing in the suite needs a provider or
+    the optimizer.
+11. `docker/smoke-test-catalog.sh` still passes with the new routes registered.
 
 ## Known follow-ups (explicitly out of scope)
 
@@ -481,3 +744,18 @@ pnpm dev                                        # web :3000, api :3001, catalog 
 - Newsroom cover-image sourcing beyond the catalog-cover fallback.
 - Per-instance news curation / hiding (would need the instance-mirror model this plan declines).
 - Notifications on a followed show's news — belongs with the v1.x airing-calendar work.
+- **GEPA as inference-time search** — setting the valset to the live batch with
+  `track_best_outputs=True` turns the optimizer into a per-story search that returns the best
+  draft it found. Real quality gain, but it multiplies per-article cost by the search budget
+  and puts a Python process on the publishing path. Out of scope; revisit only if drafts stay
+  weak after prompt optimization.
+- **`optimize_anything` beyond prompts** — the same engine optimizes any text artifact against
+  an evaluator (the GEPA project reports agent-architecture and policy search with it). The
+  obvious candidates here are the extraction character budget, the cluster/write step boundary,
+  and the judge rubric itself. Interesting, and strictly after the prompt loop is boring.
+- **Few-shot demos in bundles** — the format carries `demos`, but Phase 6 optimizes
+  instructions first. Demos cost input tokens on every call forever, so they need their own
+  cost/benefit measurement before being turned on.
+- **In-process optimization via `@ax-llm/ax`** — would remove the Python side entirely at the
+  cost of adopting a framework in `packages/llm`. Only worth it if we ever want the agent to
+  adapt online, which nothing currently asks for.
