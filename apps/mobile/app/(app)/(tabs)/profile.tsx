@@ -16,6 +16,7 @@ import { DeleteAccountSheet } from '../../../src/components/DeleteAccountSheet';
 import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
 import { FriendsSheet } from '../../../src/components/FriendsSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
+import { Icon } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
@@ -26,6 +27,7 @@ import {
   StaleNotice,
   useTabContentInset,
 } from '../../../src/components/Page';
+import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
 import { Touchable } from '../../../src/components/Touchable';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { PrismText } from '../../../src/components/PrismText';
@@ -57,6 +59,7 @@ export default function ProfileTab() {
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState(false);
+  const editPress = usePressMotion();
   const [managingFriends, setManagingFriends] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -91,15 +94,26 @@ export default function ProfileTab() {
               {(data?.user.name ?? user.name).toUpperCase()}
             </Text>
             <Text style={[type.eyebrow, styles.dim]}>@{data?.user.username ?? user.username}</Text>
-            {data ? (
-              <PrismButton
-                label="Edit profile"
-                variant="secondary"
-                onPress={() => setEditing(true)}
-                style={styles.shrink}
-              />
-            ) : null}
           </View>
+          {/* A gear, not an EDIT PROFILE pill. The pill was the widest thing in
+              the header and it sat under the name, pushing the identity block
+              off the avatar's centre line for a control used about twice a
+              year. Top-right is where the design files this (`Mobile App`'s
+              profile list opens with a ⚙ "Settings & export" row), and an icon
+              at 44pt costs the header no vertical space at all. */}
+          {data ? (
+            <AnimatedPressable
+              accessibilityRole="button"
+              accessibilityLabel="Edit profile"
+              onPress={() => setEditing(true)}
+              onPressIn={editPress.onPressIn}
+              onPressOut={editPress.onPressOut}
+              android_ripple={ripple(true)}
+              style={[styles.gear, editPress.animatedStyle]}
+            >
+              <Icon name="settings" color={color.fg} size={22} />
+            </AnimatedPressable>
+          ) : null}
         </View>
         {data?.user.bio ? <Text style={[type.body, styles.bio]}>{data.user.bio}</Text> : null}
 
@@ -336,6 +350,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.lg,
+  },
+  gear: {
+    minWidth: layout.touchTarget,
+    minHeight: layout.touchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
   headerText: {
     flex: 1,
