@@ -12,6 +12,7 @@ import {
   PartNumberParamSchema,
   RateBodySchema,
   RatingScoreSchema,
+  SetProgressBodySchema,
   UpdateLogBodySchema,
   type LogStatus,
 } from '@trackt/shared';
@@ -45,9 +46,70 @@ function chunked<T>(items: T[], size = BULK_CHUNK): T[][] {
 }
 
 /**
+ * Set the viewer's position in a work: every part up to `upTo` is checked in,
+ * and everything past it is cleared. The bulk primitive behind both the
+ * `completed`/`planned` sweeps (PRD §3.1) and `PUT …/progress` — done
+ * server-side so it stays one request and one consistent state, where per-part
+ * calls would be N round trips (a 900-chapter manga is not a UI's problem).
+ *
+ * Clearing above the mark is the point rather than a side effect: "I am at
+ * chapter 120" is a statement about the whole work, so a stray check-in at 400
+ * cannot survive it. That makes the call destructive of sparse progress, and
+ * the only control that issues it is one whose meaning is a *position*.
+ */
+async function setProgressUpTo(db: Db, userId: string, row: MediaRow, upTo: number): Promise<void> {
+  const partKind = PART_KIND_BY_MEDIA[row.kind];
+  if (!partKind) return; // movies have no parts
+
+  const partsOfMedia = db
+    .select({ id: mediaPart.id })
+    .from(mediaPart)
+    .where(and(eq(mediaPart.mediaId, row.id), eq(mediaPart.kind, partKind)));
+
+  if (upTo <= 0) {
+    await db
+      .delete(progress)
+      .where(and(eq(progress.userId, userId), inArray(progress.partId, partsOfMedia)));
+    return;
+  }
+
+  const numbers = Array.from({ length: upTo }, (_, i) => i + 1);
+  for (const chunk of chunked(numbers)) {
+    await db
+      .insert(mediaPart)
+      .values(chunk.map((number) => ({ mediaId: row.id, kind: partKind, number: String(number) })))
+      .onConflictDoNothing();
+  }
+
+  const parts = await db
+    .select({ id: mediaPart.id, number: mediaPart.number })
+    .from(mediaPart)
+    .where(and(eq(mediaPart.mediaId, row.id), eq(mediaPart.kind, partKind)));
+  const within = parts.filter((part) => Number(part.number) <= upTo);
+  const beyond = parts.filter((part) => Number(part.number) > upTo);
+
+  for (const chunk of chunked(within)) {
+    await db
+      .insert(progress)
+      .values(chunk.map((part) => ({ userId, partId: part.id })))
+      .onConflictDoNothing();
+  }
+  for (const chunk of chunked(beyond)) {
+    await db.delete(progress).where(
+      and(
+        eq(progress.userId, userId),
+        inArray(
+          progress.partId,
+          chunk.map((part) => part.id),
+        ),
+      ),
+    );
+  }
+}
+
+/**
  * Check in, or clear, every part of a work at once — what `completed` and
- * `planned` mean for progress (PRD §3.1). Done server-side so it stays one
- * request and one consistent state; per-part calls would be N round trips.
+ * `planned` mean for progress (PRD §3.1).
  *
  * Clearing is destructive and has no undo: `planned` discards existing check-ins.
  */
@@ -57,40 +119,30 @@ async function setAllProgress(
   row: MediaRow,
   watched: boolean,
 ): Promise<void> {
-  const partKind = PART_KIND_BY_MEDIA[row.kind];
-  if (!partKind) return; // movies have no parts
-
-  const partsOfMedia = db
-    .select({ id: mediaPart.id })
-    .from(mediaPart)
-    .where(and(eq(mediaPart.mediaId, row.id), eq(mediaPart.kind, partKind)));
-
-  if (!watched) {
-    await db
-      .delete(progress)
-      .where(and(eq(progress.userId, userId), inArray(progress.partId, partsOfMedia)));
-    return;
-  }
-
+  if (!watched) return setProgressUpTo(db, userId, row, 0);
   // Nothing to complete against until the catalog knows how many parts exist.
   const total = row.partCount;
   if (total === null || total <= 0) return;
+  await setProgressUpTo(db, userId, row, total);
+}
 
-  const numbers = Array.from({ length: total }, (_, i) => i + 1);
-  for (const chunk of chunked(numbers)) {
-    await db
-      .insert(mediaPart)
-      .values(chunk.map((number) => ({ mediaId: row.id, kind: partKind, number: String(number) })))
-      .onConflictDoNothing();
-  }
-
-  const parts = await partsOfMedia;
-  for (const chunk of chunked(parts)) {
-    await db
-      .insert(progress)
-      .values(chunk.map((part) => ({ userId, partId: part.id })))
-      .onConflictDoNothing();
-  }
+/**
+ * First interaction starts the log; never overrides an existing status.
+ *
+ * Status is untouched on purpose: checking in an episode of a `paused` show
+ * must not silently re-open it (the original `DO NOTHING` contract). Only a
+ * missing start date is filled in — `setWhere` keeps the statement a no-op for
+ * the overwhelmingly common case, so a check-in stays one cheap upsert.
+ */
+async function startLog(db: Db, userId: string, mediaId: string): Promise<void> {
+  await db
+    .insert(userMedia)
+    .values({ userId, mediaId, status: 'in_progress', startedAt: sql`CURRENT_DATE` })
+    .onConflictDoUpdate({
+      target: [userMedia.userId, userMedia.mediaId],
+      set: { startedAt: sql`CURRENT_DATE` },
+      setWhere: sql`${userMedia.startedAt} IS NULL`,
+    });
 }
 
 /**
@@ -406,6 +458,54 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
+  /**
+   * "I am at chapter 120" — the bulk position write (`SetProgressBodySchema`).
+   *
+   * The client for a work with hundreds of parts is a slider and a typed-in
+   * number, not a grid of tiles, and both mean a *position*: everything up to
+   * it is seen, everything past it is not. Ticking that off part by part would
+   * be `upTo` requests, which is why this is a route rather than a loop in the
+   * UI. Destructive of sparse check-ins by design — see `setProgressUpTo`.
+   */
+  app.put(
+    '/media/:id/progress',
+    {
+      schema: {
+        tags: ['tracking'],
+        params: MediaIdParamsSchema,
+        body: SetProgressBodySchema,
+        response: {
+          200: z.object({ upTo: z.number() }),
+          400: ApiErrorSchema,
+          401: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const ctx = await requireUserAndMedia(request, reply, request.params.id);
+      if (!ctx) return;
+      const { upTo } = request.body;
+      const partKind = PART_KIND_BY_MEDIA[ctx.row.kind];
+      if (!partKind) {
+        return reply
+          .status(400)
+          .send({ error: `${ctx.row.kind} entries have no episodes/chapters to check in` });
+      }
+      const total = ctx.row.partCount;
+      if (total !== null && upTo > total) {
+        return reply.status(400).send({ error: `number exceeds the ${total} known parts` });
+      }
+
+      await setProgressUpTo(ctx.db, ctx.user.id, ctx.row, upTo);
+      // A position of zero is "none of this yet" and starts nothing; anything
+      // above it is a check-in like any other.
+      if (upTo > 0) await startLog(ctx.db, ctx.user.id, ctx.row.id);
+      return { upTo };
+    },
+  );
+
   app.put(
     '/media/:id/progress/:number',
     {
@@ -456,25 +556,7 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
         .insert(progress)
         .values({ userId: ctx.user.id, partId: part!.id })
         .onConflictDoNothing();
-      // First interaction starts the log; never overrides an existing status.
-      await ctx.db
-        .insert(userMedia)
-        .values({
-          userId: ctx.user.id,
-          mediaId: ctx.row.id,
-          status: 'in_progress',
-          startedAt: sql`CURRENT_DATE`,
-        })
-        .onConflictDoUpdate({
-          target: [userMedia.userId, userMedia.mediaId],
-          // Status is untouched on purpose: checking in an episode of a `paused`
-          // show must not silently re-open it (the previous `DO NOTHING`
-          // contract). Only a missing start date is filled in — `setWhere` keeps
-          // the statement a no-op for the overwhelmingly common case, so a
-          // check-in stays one cheap upsert.
-          set: { startedAt: sql`CURRENT_DATE` },
-          setWhere: sql`${userMedia.startedAt} IS NULL`,
-        });
+      await startLog(ctx.db, ctx.user.id, ctx.row.id);
 
       return { number, watched: true as const };
     },

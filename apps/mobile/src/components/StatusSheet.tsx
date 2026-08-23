@@ -3,6 +3,7 @@ import { LOG_STATUSES, type LogStatus } from '@trackt/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
+import { Icon } from './Icon';
 import { Sheet, useSheetController } from './Sheet';
 
 /**
@@ -82,7 +83,7 @@ function Row({
       >
         {label.toUpperCase()}
       </Text>
-      {selected ? <Text style={[type.button, styles.selectedText]}>✓</Text> : null}
+      {selected ? <Icon name="check" color={color.pink} size={18} /> : null}
     </Pressable>
   );
 }

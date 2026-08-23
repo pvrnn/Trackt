@@ -15,6 +15,11 @@
     body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: #d96bb0; }
+    input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
+    input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 14px rgba(0,0,0,0.7); cursor: grab; }
+    input[type=range]::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); }
+    input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border: none; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 14px rgba(0,0,0,0.7); }
   </style>
 </helmet>
 
@@ -23,12 +28,14 @@
 
 <div style="position: relative;">
 <!-- nav -->
-<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
   <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
   <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
     <a href="Home.dc.html" style="color: #948da1;">HOME</a>
     <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="News.dc.html" style="color: #948da1;">NEWS</a>
     <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
+    <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
     <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
   </div>
   <div style="flex: 1;"></div>
@@ -36,115 +43,167 @@
   <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
 </div>
 
-<!-- hero -->
-<div style="border-bottom: 1px solid rgba(255,255,255,0.09);">
-  <div style="max-width: 1360px; margin: 0 auto; padding: 56px 40px 40px; display: flex; gap: 40px;">
-    <div style="width: 240px; height: 360px; flex-shrink: 0; border-radius: 16px; background: linear-gradient(160deg, #35296b 0%, #0e0c1a 100%); display: flex; align-items: flex-end; padding: 20px; position: relative; overflow: hidden;">
-      <span style="font-family: Anton; font-size: 30px; line-height: 1.05; text-transform: uppercase; color: rgba(255,255,255,0.94);">Neon Harbor</span>
-      <div style="position: absolute; left: 0; bottom: 0; height: 5px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: 38%;"></div>
+<!-- date editor modal -->
+<div style="position: fixed; inset: 0; z-index: 50; background: rgba(8,6,12,0.72); backdrop-filter: blur(6px); align-items: center; justify-content: center; display: {{ modalDisplay }};">
+  <div style="width: 420px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 40px 90px -20px rgba(0,0,0,0.9); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-family: Anton; font-size: 28px; text-transform: uppercase; line-height: 1;">Viewing dates</div>
+      <div style="color: #b8b1c4; font-size: 14px; line-height: 1.55;">When you started and finished. Leave the finish date empty if you are still going.</div>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 0;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div style="width: 8px; height: 8px; border-radius: 999px; background: #4a6ee8;"></div>
-          <span style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; color: #b8b1c4;">SERIES</span>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">STARTED</div>
+        <input type="date" value="{{ startVal }}" onChange="{{ onStart }}" style="background: rgba(255,255,255,0.06); border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 10px; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 13px; padding: 11px 14px; color-scheme: dark;">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">FINISHED</div>
+        <input type="date" value="{{ finishVal }}" onChange="{{ onFinish }}" style="background: rgba(255,255,255,0.06); border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 10px; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 13px; padding: 11px 14px; color-scheme: dark;">
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div onClick="{{ closeDates }}" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 26px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">SAVE</div>
+      <div onClick="{{ clearDates }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #948da1; cursor: pointer;" style-hover="color: #d96bb0;">CLEAR</div>
+      <div style="flex: 1;"></div>
+      <div onClick="{{ closeDates }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #948da1; cursor: pointer;" style-hover="color: #f0edf4;">CANCEL</div>
+    </div>
+  </div>
+</div>
+
+<!-- hero: full-bleed backdrop, the artwork carries the page -->
+<div style="position: relative; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,0.09);">
+  <div style="position: absolute; inset: 0; background: linear-gradient(150deg, #4a3f8f 0%, #2a2150 38%, #14101a 72%, #0e0c10 100%);"></div>
+  <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.4; mix-blend-mode: overlay;"></div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,12,16,0.35) 0%, rgba(14,12,16,0.55) 45%, rgba(14,12,16,0.92) 100%);"></div>
+
+  <div style="position: relative; max-width: 1360px; margin: 0 auto; padding: 64px 40px 44px; display: flex; gap: 40px; align-items: flex-end;">
+    <div style="width: 240px; height: 360px; flex-shrink: 0; border-radius: 8px; background: linear-gradient(160deg, #35296b 0%, #0e0c1a 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 24px 60px -18px rgba(217,107,176,0.35), 0 8px 40px -10px rgba(0,0,0,0.9);"></div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+      <!-- kind · year · genres, one line, no separate genre section -->
+      <div style="display: flex; align-items: center; gap: 9px;">
+        <div style="width: 7px; height: 7px; border-radius: 999px; background: #4a6ee8;"></div>
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #b8b1c4;">SERIES · 2024 · NEO-NOIR, DRAMA</div>
+      </div>
+      <div style="font-family: Anton; font-size: 78px; line-height: 0.94; text-transform: uppercase;">Neon Harbor</div>
+      <div style="color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 620px;">A dockworker in a drowned port city moonlights as a courier for the last honest smuggler on the coast. Slow-burn neo-noir about tides, debts, and the people who keep other people's secrets.</div>
+
+      <!-- status and dates are facts, not buttons. The date segment opens the editor. -->
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 14px; border-radius: 999px; background: rgba(217,107,176,0.18); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); cursor: pointer;">
+          <div style="width: 6px; height: 6px; border-radius: 999px; background: #d96bb0;"></div>
+          <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">IN PROGRESS</span>
+          <span style="font-size: 9px; color: #d96bb0;">▾</span>
         </div>
-        <span style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">2024–&nbsp;·&nbsp;AIRING&nbsp;·&nbsp;2 SEASONS · 22 EPISODES</span>
+        <div onClick="{{ openDates }}" style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4; cursor: pointer;" style-hover="color: #d96bb0;">{{ datesLabel }}</div>
+        <span style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">·</span>
+        <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">AIRING · 2 SEASONS · 22 EPISODES</span>
       </div>
-      <div style="font-family: Anton; font-size: 72px; line-height: 0.95; text-transform: uppercase;">Neon Harbor</div>
-      <div style="color: #b8b1c4; font-size: 15px; line-height: 1.6; max-width: 640px;">A dockworker in a drowned port city moonlights as a courier for the last honest smuggler on the coast. Slow-burn neo-noir about tides, debts, and the people who keep other people's secrets.</div>
-      <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
-        <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">✓ CHECK IN S2 E5</div>
-        <div style="background: rgba(217,107,176,0.15); color: #d96bb0; border: 1px solid #d96bb0; border-radius: 999px; font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 11px 20px;">IN PROGRESS ▾</div>
-        <div style="background: rgba(255,255,255,0.05); color: #f0edf4; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 11px 20px; cursor: pointer;" style-hover="border-color: #d96bb0; color: #d96bb0;">＋ LIST</div>
-        <div style="background: rgba(255,255,255,0.05); color: #f0edf4; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 11px 20px; cursor: pointer;" style-hover="border-color: #d96bb0; color: #d96bb0;">RATE</div>
-      </div>
-      <div style="display: flex; gap: 32px; margin-top: 12px;">
-        <div><div style="font-family: Anton; font-size: 32px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div><div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">1,204 RATINGS</div></div>
-        <div><div style="font-family: Anton; font-size: 32px;">9/22</div><div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">YOUR PROGRESS</div></div>
-        <div><div style="font-family: Anton; font-size: 32px;">42</div><div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">MIN / EPISODE</div></div>
+
+      <!-- one primary, three secondaries. Nothing else competes. -->
+      <div style="display: flex; gap: 12px; align-items: center; margin-top: 4px;">
+        <div onClick="{{ watchNext }}" style="background: {{ ctaBg }}; box-shadow: {{ ctaRing }}; color: {{ ctaFg }}; border-radius: 999px; height: 52px; padding: 0 28px; display: flex; align-items: center; gap: 10px; cursor: pointer;" style-hover="filter: brightness(1.08);">
+          <span style="font-size: 15px; line-height: 1;">{{ ctaGlyph }}</span>
+          <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; white-space: nowrap;">{{ ctaLabel }}</span>
+        </div>
+        <sc-for list="{{ iconActions }}" as="a" hint-placeholder-count="3">
+          <div onClick="{{ a.toggle }}" style="height: 52px; padding: 0 20px; border-radius: 999px; background: {{ a.bg }}; box-shadow: inset 0 0 0 1px {{ a.bd }}; display: flex; align-items: center; gap: 9px; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
+            <span style="font-size: 15px; line-height: 1; color: {{ a.fg }};">{{ a.glyph }}</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: {{ a.labelFg }};">{{ a.label }}</span>
+          </div>
+        </sc-for>
       </div>
     </div>
   </div>
 </div>
 
-<div style="max-width: 1360px; margin: 0 auto; padding: 40px 40px 80px; display: grid; grid-template-columns: 2fr 1fr; gap: 48px;">
-  <!-- episodes -->
-  <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">Episodes</div>
-      <div style="display: flex; gap: 8px; margin-left: 12px;">
-        <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 7px 16px; border-radius: 999px; background: rgba(255,255,255,0.05); color: #b8b1c4; border: 1px solid rgba(255,255,255,0.12); cursor: pointer;">S1</div>
-        <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 7px 16px; border-radius: 999px; background: rgba(217,107,176,0.18); color: #d96bb0; border: 1px solid #d96bb0;">S2</div>
+<div style="max-width: 1360px; margin: 0 auto; padding: 40px 40px 80px; display: grid; grid-template-columns: 2fr 1fr; gap: 48px; align-items: start;">
+
+  <!-- LEFT -->
+  <div style="display: flex; flex-direction: column; gap: 32px; min-width: 0;">
+
+    <!-- EPISODES — season first, then the counter it scopes, then the rows -->
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">Episodes</div>
+        <div style="display: flex; gap: 8px;">
+          <sc-for list="{{ seasons }}" as="s" hint-placeholder-count="2">
+            <div onClick="{{ s.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: {{ s.bg }}; color: {{ s.fg }}; box-shadow: inset 0 0 0 1px {{ s.bd }}; cursor: pointer;">{{ s.label }}</div>
+          </sc-for>
+        </div>
+        <div style="flex: 1;"></div>
+        <div onClick="{{ markAll }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; cursor: pointer;">{{ markAllLabel }}</div>
       </div>
-    </div>
-    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(16px);">
-      <div style="display: flex; gap: 3px; align-items: flex-end; height: 44px;">
-        <sc-for list="{{ heat }}" as="h" hint-placeholder-count="12">
-          <div style="flex: 1; background: {{ h.c }}; height: {{ h.v }}; border-radius: 3px 3px 0 0;" title="{{ h.t }}"></div>
+      <!-- UNIFIED PROGRESS — same control as mobile: editable number, steppers, slider -->
+      <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.4); border-radius: 16px; padding: 20px 24px 22px; display: flex; flex-direction: column; gap: 16px; backdrop-filter: blur(16px);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">{{ unitLabel }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ pct }}</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px;">
+            <input value="{{ val }}" onChange="{{ onInput }}" onFocus="{{ onFocus }}" onBlur="{{ onBlur }}" inputMode="numeric" style="font-family: Anton; font-size: 52px; line-height: 1; width: {{ inputWidth }}; background: transparent; border: none; outline: none; padding: 0; color: #f0edf4; box-shadow: inset 0 -2px 0 {{ underline }}; transition: box-shadow 140ms ease;">
+            <span style="font-family: Anton; font-size: 26px; color: #948da1; flex-shrink: 0;">/ {{ total }}</span>
+          </div>
+          <div style="flex: 2; min-width: 0; position: relative; height: 26px; display: flex; align-items: center;">
+            <div style="position: absolute; left: 0; right: 0; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1);"></div>
+            <div style="position: absolute; left: 0; height: 6px; width: {{ pct }}; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+            <input type="range" min="0" max="{{ reachable }}" value="{{ num }}" onChange="{{ onSlide }}" style="position: relative; width: 100%; margin: 0; height: 26px; cursor: grab;">
+          </div>
+          <div style="display: flex; gap: 8px; flex-shrink: 0;">
+            <div onClick="{{ dec }}" style="width: 46px; height: 46px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #b8b1c4; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">−</div>
+            <div onClick="{{ inc }}" style="width: 46px; height: 46px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #14101a; cursor: pointer;" style-hover="filter: brightness(1.1);">+</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{ episodes }}" as="ep" hint-placeholder-count="7">
+          <div onClick="{{ ep.tap }}" style="background: {{ ep.bg }}; box-shadow: inset 0 0 0 1px {{ ep.bd }}; border-radius: 12px; display: flex; align-items: center; gap: 16px; padding: 13px 18px; opacity: {{ ep.op }}; cursor: {{ ep.cursor }}; backdrop-filter: blur(16px);">
+            <div style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 999px; background: {{ ep.boxBg }}; box-shadow: inset 0 0 0 1px {{ ep.boxBd }}; color: #14101a; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">{{ ep.check }}</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: #948da1; width: 52px; flex-shrink: 0;">{{ ep.code }}</div>
+            <div style="flex: 1; min-width: 0; font-size: 15px; font-weight: {{ ep.wt }}; color: {{ ep.fg }}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ ep.name }}</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.06em; color: #948da1; width: 110px; text-align: right; flex-shrink: 0;">{{ ep.aired }}</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.06em; color: #948da1; width: 62px; text-align: right; flex-shrink: 0;">{{ ep.runtime }}</div>
+          </div>
         </sc-for>
       </div>
-      <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; display: flex; justify-content: space-between;"><span>E1</span><span>EPISODE RATINGS · SEASON 2</span><span>E12</span></div>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-      <sc-for list="{{ episodes }}" as="ep" hint-placeholder-count="7">
-        <div style="background: {{ ep.bg }}; border: 1px solid {{ ep.bd }}; border-radius: 12px; display: flex; align-items: center; gap: 14px; padding: 13px 18px; opacity: {{ ep.op }}; backdrop-filter: blur(16px);">
-          <div onClick="{{ ep.toggle }}" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 999px; background: {{ ep.boxBg }}; border: 1px solid {{ ep.boxBd }}; color: #14101a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; cursor: pointer;">{{ ep.check }}</div>
-          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; width: 52px;">{{ ep.code }}</div>
-          <div style="font-size: 14px; flex: 1; font-weight: {{ ep.wt }}; color: {{ ep.fg }};">{{ ep.name }}</div>
-          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: {{ ep.metaFg }};">{{ ep.meta }}</div>
-        </div>
-      </sc-for>
     </div>
   </div>
 
-  <!-- side -->
+  <!-- RIGHT -->
   <div style="display: flex; flex-direction: column; gap: 32px;">
-    <div style="display: flex; flex-direction: column; gap: 14px;">
-      <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Comments</div>
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(16px);">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 12px;">J</div>
-            <span style="font-weight: 600; font-size: 13px;">june_k</span>
-            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">S2 E4 · 2H</span>
-          </div>
-          <div style="font-size: 14px; color: #b8b1c4; line-height: 1.5;">That last shot of the flooded tram line — this show's cinematography budget went somewhere real.</div>
-          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">▲ 14 · REPLY</div>
-        </div>
-        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(16px);">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #8b5cf6, #3d2a80); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px;">R</div>
-            <span style="font-weight: 600; font-size: 13px;">rex</span>
-            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">S2 E5 · 5H</span>
-            <span style="font-family: 'Space Grotesk'; font-size: 10px; color: #d96bb0; letter-spacing: 0.08em;">SPOILER</span>
-          </div>
-          <div style="font-size: 14px; color: #b8b1c4; line-height: 1.5; filter: blur(5px); cursor: pointer;" style-hover="filter: blur(0px);">The lighthouse keeper being the buyer all along recontextualizes every S1 dock scene.</div>
-          <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">▲ 31 · REPLY</div>
+    <!-- rating: the work, not the episode -->
+    <div style="display: flex; gap: 10px;">
+      <div style="flex: 1; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 14px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; backdrop-filter: blur(16px);">
+        <div style="font-family: Anton; font-size: 38px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">YOUR RATING</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">9.4 FROM 1,204 HERE</div>
         </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 12px 18px; color: #948da1; font-size: 14px;">Add a comment…</div>
+      <div style="width: 56px; flex-shrink: 0; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #d96bb0; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">✎</div>
     </div>
+
     <div style="display: flex; flex-direction: column; gap: 14px;">
       <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Details</div>
-      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; backdrop-filter: blur(16px); display: flex; flex-direction: column;">
-        <sc-for list="{{ details }}" as="d" hint-placeholder-count="5">
-          <div style="padding: 12px 18px; display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.07);">
-            <span style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.08em; color: #948da1;">{{ d.k }}</span>
-            <span style="font-size: 13px; color: #b8b1c4; text-align: right;">{{ d.v }}</span>
+      <div style="display: flex; flex-direction: column;">
+        <sc-for list="{{ details }}" as="d" hint-placeholder-count="6">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 12px 0; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.07);">
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; flex-shrink: 0;">{{ d.k }}</span>
+            <span style="font-size: 13px; color: #f0edf4; text-align: right;">{{ d.v }}</span>
           </div>
         </sc-for>
       </div>
-      <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #6a6478;">Metadata from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
+      <div style="font-family: 'Space Grotesk'; font-size: 11px; line-height: 1.6; color: #6a6478;">Metadata from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
     </div>
+
     <div style="display: flex; flex-direction: column; gap: 14px;">
       <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Related</div>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
         <sc-for list="{{ related }}" as="r" hint-placeholder-count="3">
-          <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 6px;">
-            <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ r.grad }}; display: flex; align-items: flex-end; padding: 10px; overflow: hidden;">
-              <span style="font-family: Anton; font-size: 13px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ r.title }}</span>
-            </div>
+          <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 7px;">
+            <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ r.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 28px -12px rgba(217,107,176,0.28), 0 4px 18px -6px rgba(0,0,0,0.85);"></div>
+            <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ r.rel }}</div>
+            <div style="font-size: 12px; font-weight: 600; line-height: 1.25;">{{ r.title }}</div>
           </a>
         </sc-for>
       </div>
@@ -155,57 +214,157 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { watched: { 1: true, 2: true, 3: true, 4: true } };
+  state = {
+    num: 4, draft: null, focus: false, season: 2,
+    fav: false, listed: false,
+    start: '2026-07-12', finish: '', datesOpen: false,
+  };
+
+  EPS = {
+    1: [
+      { n: 1, name: 'Low Tide', aired: '02 FEB 2024', runtime: '44 MIN' },
+      { n: 2, name: 'The Weighing House', aired: '09 FEB 2024', runtime: '42 MIN' },
+      { n: 3, name: 'Cargo', aired: '16 FEB 2024', runtime: '41 MIN' },
+      { n: 4, name: 'Nightwatch', aired: '23 FEB 2024', runtime: '43 MIN' },
+      { n: 5, name: 'The Honest Man', aired: '01 MAR 2024', runtime: '45 MIN' },
+      { n: 6, name: 'Debts', aired: '08 MAR 2024', runtime: '42 MIN' },
+      { n: 7, name: 'Slack Water', aired: '15 MAR 2024', runtime: '48 MIN' },
+      { n: 8, name: 'The Long Dock', aired: '22 MAR 2024', runtime: '52 MIN' },
+      { n: 9, name: 'Ebb', aired: '29 MAR 2024', runtime: '50 MIN' },
+      { n: 10, name: 'Harbour Light', aired: '05 APR 2024', runtime: '58 MIN' },
+    ],
+    2: [
+      { n: 1, name: 'High Water', aired: '06 JUN 2026', runtime: '42 MIN' },
+      { n: 2, name: 'Ledger', aired: '13 JUN 2026', runtime: '41 MIN' },
+      { n: 3, name: 'The Narrows', aired: '20 JUN 2026', runtime: '44 MIN' },
+      { n: 4, name: 'Riptide', aired: '27 JUN 2026', runtime: '43 MIN' },
+      { n: 5, name: 'Undertow', aired: '04 JUL 2026', runtime: '42 MIN' },
+      { n: 6, name: 'Dead Reckoning', aired: '11 JUL 2026', runtime: '44 MIN', future: true },
+      { n: 7, name: 'Salvage', aired: '18 JUL 2026', runtime: '—', future: true },
+      { n: 8, name: 'Slipway', aired: '25 JUL 2026', runtime: '—', future: true },
+      { n: 9, name: 'The Buyer', aired: '01 AUG 2026', runtime: '—', future: true },
+      { n: 10, name: 'Deep Draft', aired: '08 AUG 2026', runtime: '—', future: true },
+      { n: 11, name: 'Flood', aired: '15 AUG 2026', runtime: '—', future: true },
+      { n: 12, name: 'Home Port', aired: '22 AUG 2026', runtime: '—', future: true },
+    ],
+  };
+
+  fmt(iso) {
+    if (!iso) return '';
+    const M = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return iso.slice(8, 10) + ' ' + M[+iso.slice(5, 7) - 1];
+  }
+  clamp(n, max) { return Math.max(0, Math.min(max, n)); }
+
   renderVals() {
-    const eps = [
-      { n: 1, code: 'S2 E1', name: 'High Water', meta: '8.2' },
-      { n: 2, code: 'S2 E2', name: 'Ledger', meta: '7.9' },
-      { n: 3, code: 'S2 E3', name: 'The Narrows', meta: '8.8' },
-      { n: 4, code: 'S2 E4', name: 'Riptide', meta: '8.5' },
-      { n: 5, code: 'S2 E5', name: 'Undertow', meta: '42 MIN' },
-      { n: 6, code: 'S2 E6', name: 'Dead Reckoning', meta: 'JUL 14', future: true },
-      { n: 7, code: 'S2 E7', name: 'Salvage', meta: 'JUL 21', future: true },
-    ];
-    let nextFound = false;
-    const episodes = eps.map((e) => {
-      const w = !!this.state.watched[e.n];
-      const isNext = !w && !e.future && !nextFound;
-      if (isNext) nextFound = true;
-      return {
-        code: e.code, name: e.name, meta: e.meta,
-        bg: isNext ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.05)',
-        bd: isNext ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.1)',
-        op: e.future ? 0.45 : 1,
-        boxBg: w ? '#d96bb0' : 'transparent',
-        boxBd: w || isNext ? '#d96bb0' : 'rgba(255,255,255,0.2)',
-        check: w ? '✓' : '',
-        wt: isNext ? 600 : 400,
-        fg: w ? '#b8b1c4' : '#f0edf4',
-        metaFg: w ? '#d96bb0' : '#948da1',
-        toggle: e.future ? null : () => this.setState((s) => ({ watched: Object.assign({}, s.watched, { [e.n]: !s.watched[e.n] }) })),
-      };
-    });
+    const eps = this.EPS[this.state.season];
+    const max = eps.length;
+    const aired = eps.filter((e) => !e.future).length;
+    const n = this.clamp(this.state.num, aired);
+    const display = this.state.draft === null ? String(n) : this.state.draft;
+    const next = eps.find((e) => e.n === n + 1 && !e.future);
+    const grad = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
+
+    const has = !!(this.state.start || this.state.finish);
+    const dateLabel = this.state.start && this.state.finish
+      ? this.fmt(this.state.start) + ' → ' + this.fmt(this.state.finish)
+      : (this.state.start ? 'FROM ' + this.fmt(this.state.start) : '＋ ADD DATES');
+
     return {
-      episodes,
-      heat: [
-        { v: '55%', c: '#8a5a8f', t: 'E1 · 7.6' }, { v: '48%', c: '#75517f', t: 'E2 · 7.4' },
-        { v: '72%', c: '#c46ba5', t: 'E3 · 8.8' }, { v: '64%', c: '#a95f96', t: 'E4 · 8.5' },
-        { v: '30%', c: '#453050', t: 'E5 · —' }, { v: '30%', c: '#2e2138', t: 'E6 · —' },
-        { v: '30%', c: '#2e2138', t: 'E7 · —' }, { v: '30%', c: '#2e2138', t: 'E8 · —' },
-        { v: '30%', c: '#2e2138', t: 'E9 · —' }, { v: '30%', c: '#2e2138', t: 'E10 · —' },
-        { v: '30%', c: '#2e2138', t: 'E11 · —' }, { v: '30%', c: '#2e2138', t: 'E12 · —' },
+      unitLabel: aired < max ? 'EPISODES WATCHED · ' + aired + ' AIRED SO FAR' : 'EPISODES WATCHED',
+      total: max,
+      reachable: aired,
+      num: n,
+      val: display,
+      inputWidth: Math.max(1, display.length) + 'ch',
+      underline: this.state.focus ? '#d96bb0' : 'transparent',
+      pct: Math.round((n / max) * 100) + '%',
+      onFocus: () => this.setState({ focus: true, draft: String(n) }),
+      onInput: (e) => this.setState({ draft: e.target.value.replace(/[^0-9]/g, '').slice(0, 3) }),
+      onBlur: () => {
+        const v = this.state.draft;
+        this.setState({ focus: false, draft: null });
+        if (v !== null && v !== '') this.setState({ num: this.clamp(parseInt(v, 10), aired) });
+      },
+      onSlide: (e) => this.setState({ num: this.clamp(parseInt(e.target.value, 10), aired) }),
+      inc: () => this.setState({ num: this.clamp(n + 1, aired) }),
+      dec: () => this.setState({ num: this.clamp(n - 1, max) }),
+
+      ctaLabel: next ? 'WATCH S' + this.state.season + ' E' + next.n : (n >= aired ? 'UP TO DATE' : 'WATCH NEXT'),
+      ctaGlyph: next ? '✓' : '★',
+      ctaBg: next ? grad : 'rgba(255,255,255,0.05)',
+      ctaFg: next ? '#14101a' : '#b8b1c4',
+      ctaRing: next ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.15)',
+      watchNext: () => { if (next) this.setState({ num: next.n }); },
+
+      iconActions: [
+        { glyph: this.state.fav ? '♥' : '♡', label: 'FAVOURITE',
+          fg: this.state.fav ? '#d96bb0' : '#b8b1c4',
+          labelFg: this.state.fav ? '#d96bb0' : '#b8b1c4',
+          bg: this.state.fav ? 'rgba(217,107,176,0.16)' : 'rgba(255,255,255,0.05)',
+          bd: this.state.fav ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.15)',
+          toggle: () => this.setState({ fav: !this.state.fav }) },
+        { glyph: this.state.listed ? '☰' : '＋', label: 'LIST',
+          fg: this.state.listed ? '#d96bb0' : '#b8b1c4',
+          labelFg: this.state.listed ? '#d96bb0' : '#b8b1c4',
+          bg: this.state.listed ? 'rgba(217,107,176,0.16)' : 'rgba(255,255,255,0.05)',
+          bd: this.state.listed ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.15)',
+          toggle: () => this.setState({ listed: !this.state.listed }) },
+        { glyph: '↗', label: 'SHARE', fg: '#b8b1c4', labelFg: '#b8b1c4',
+          bg: 'rgba(255,255,255,0.05)', bd: 'rgba(255,255,255,0.15)', toggle: null },
       ],
+
+      seasons: [1, 2].map((s) => ({
+        label: 'S' + s,
+        bg: this.state.season === s ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
+        fg: this.state.season === s ? '#d96bb0' : '#b8b1c4',
+        bd: this.state.season === s ? '#d96bb0' : 'rgba(255,255,255,0.12)',
+        pick: () => this.setState({ season: s, num: 0, draft: null }),
+      })),
+      markAllLabel: n >= aired ? 'CLEAR SEASON' : 'MARK SEASON WATCHED',
+      markAll: () => this.setState({ num: n >= aired ? 0 : aired, draft: null }),
+
+      episodes: eps.map((e) => {
+        const w = e.n <= n;
+        const isNext = !!next && next.n === e.n;
+        return {
+          code: 'S' + this.state.season + ' E' + e.n,
+          name: e.name, aired: e.aired, runtime: e.runtime,
+          bg: isNext ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.05)',
+          bd: isNext ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.1)',
+          op: e.future ? 0.45 : 1,
+          cursor: e.future ? 'default' : 'pointer',
+          boxBg: w ? '#d96bb0' : 'transparent',
+          boxBd: w || isNext ? '#d96bb0' : 'rgba(255,255,255,0.2)',
+          check: w ? '✓' : '',
+          wt: isNext ? 700 : 400,
+          fg: w ? '#b8b1c4' : '#f0edf4',
+          tap: e.future ? null : () => this.setState({ num: w ? e.n - 1 : e.n, draft: null }),
+        };
+      }),
+
+      datesLabel: dateLabel,
+      openDates: () => this.setState({ datesOpen: true }),
+      closeDates: () => this.setState({ datesOpen: false }),
+      clearDates: () => this.setState({ start: '', finish: '', datesOpen: false }),
+      onStart: (e) => this.setState({ start: e.target.value }),
+      onFinish: (e) => this.setState({ finish: e.target.value }),
+      startVal: this.state.start,
+      finishVal: this.state.finish,
+      modalDisplay: this.state.datesOpen ? 'flex' : 'none',
+
       details: [
         { k: 'STATUS', v: 'Airing · weekly' },
         { k: 'NETWORK', v: 'Harbor Studios' },
         { k: 'CREATED BY', v: 'L. Okafor, D. Marsh' },
-        { k: 'GENRES', v: 'Neo-noir, Drama' },
+        { k: 'FIRST AIRED', v: '2 February 2024' },
+        { k: 'RUNTIME', v: '43 min average' },
         { k: 'EXTERNAL', v: 'TMDB · TVmaze' },
       ],
       related: [
-        { title: 'The Long Static', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
-        { title: 'Glass Orchard', grad: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)' },
-        { title: 'Paper Cities', grad: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)' },
+        { rel: 'SAME CREATOR', title: 'The Long Static', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
+        { rel: 'SIMILAR', title: 'Glass Orchard', grad: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)' },
+        { rel: 'SIMILAR', title: 'Sable Coast', grad: 'linear-gradient(160deg, #2a4a8c 0%, #080d17 100%)' },
       ],
     };
   }

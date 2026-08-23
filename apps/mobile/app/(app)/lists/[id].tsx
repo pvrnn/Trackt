@@ -13,6 +13,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { ConfirmSheet } from '../../../src/components/ConfirmSheet';
 import { Cover } from '../../../src/components/Cover';
+import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
 import { BackLink, EmptyState, Loading, PageScroll, PageTitle } from '../../../src/components/Page';
@@ -113,7 +114,9 @@ export default function ListScreen() {
             />
           </View>
         ) : null}
-        {reorderable ? <Text style={[type.eyebrow, styles.dim]}>USE ↑ ↓ TO REORDER</Text> : null}
+        {reorderable ? (
+          <Text style={[type.eyebrow, styles.dim]}>USE THE ARROWS TO REORDER</Text>
+        ) : null}
       </View>
 
       {list.entries.length === 0 ? (
@@ -121,7 +124,7 @@ export default function ListScreen() {
           title="Empty list"
           body={
             list.isOwner
-              ? 'Open a title and use ＋ LIST to put it here.'
+              ? 'Open a title and use its LIST button to put it here.'
               : 'Nothing has been added to this list yet.'
           }
         />
@@ -228,20 +231,24 @@ function Row({
           {reorderable ? (
             <>
               <IconButton
-                glyph="↑"
+                icon="arrow-up"
                 label={`Move ${entry.title} up`}
                 disabled={first}
                 onPress={() => onMove('up')}
               />
               <IconButton
-                glyph="↓"
+                icon="arrow-down"
                 label={`Move ${entry.title} down`}
                 disabled={last}
                 onPress={() => onMove('down')}
               />
             </>
           ) : null}
-          <IconButton glyph="✕" label={`Remove ${entry.title} from this list`} onPress={onRemove} />
+          <IconButton
+            icon="close"
+            label={`Remove ${entry.title} from this list`}
+            onPress={onRemove}
+          />
         </View>
       ) : null}
     </View>
@@ -249,12 +256,12 @@ function Row({
 }
 
 function IconButton({
-  glyph,
+  icon,
   label,
   disabled = false,
   onPress,
 }: {
-  glyph: string;
+  icon: IconName;
   label: string;
   disabled?: boolean;
   onPress: () => void;
@@ -269,7 +276,7 @@ function IconButton({
       android_ripple={{ color: 'rgba(217,107,176,0.12)', borderless: true }}
       style={({ pressed }) => [styles.icon, { opacity: disabled ? 0.25 : pressed ? 0.6 : 1 }]}
     >
-      <Text style={[type.button, styles.dim]}>{glyph}</Text>
+      <Icon name={icon} color={color.dim} size={18} />
     </Pressable>
   );
 }

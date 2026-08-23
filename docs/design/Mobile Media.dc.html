@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #17181b; font-family: Archivo, sans-serif; }
+    a { color: #d96bb0; text-decoration: none; }
+    a:hover { color: #e88cc4; }
+    input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
+    input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; margin-top: -10px; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 14px rgba(0,0,0,0.7); cursor: grab; }
+    input[type=range]::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); }
+    input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border: none; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 14px rgba(0,0,0,0.7); }
+  </style>
+</helmet>
+
+<div style="padding: 48px 40px 96px; display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT MOBILE · MEDIA PAGE</div>
+    <div style="font-family: Anton; font-size: 52px; line-height: 1; text-transform: uppercase; color: #f0edf4;">Media detail</div>
+    <div style="color: #9aa3b5; font-size: 15px; max-width: 700px;">Both screens are live. Type into the big number, drag the slider, or use −/+. The manga screen shows how a 312-chapter work behaves without per-chapter metadata. <a href="Mobile System.dc.html">Mobile system →</a></div>
+  </div>
+
+  <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+
+    <!-- ============ A · HIGH-COUNT (MANGA, 312 CH, NO METADATA) ============ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">A · 312 CHAPTERS · COUNTER MODE</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative;">
+
+            <!-- hero, shorter: on a 312-chapter work the counter matters more than the art -->
+            <div style="position: relative; height: 330px; flex-shrink: 0; background: linear-gradient(165deg, #8c2a6b 0%, #4a1840 44%, #0e0c10 100%);">
+              <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.4; mix-blend-mode: overlay;"></div>
+              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,12,16,0.72) 0%, transparent 26%, transparent 40%, rgba(14,12,16,0.88) 76%, #0e0c10 100%);"></div>
+              <div style="position: absolute; top: 56px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 11px; border-radius: 999px; background: rgba(14,12,16,0.62); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); cursor: pointer;">
+                  <span style="font-size: 15px; color: #f0edf4; line-height: 1;">‹</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #f0edf4;">BACK</span>
+                </div>
+                <div style="width: 34px; height: 34px; border-radius: 999px; background: rgba(14,12,16,0.62); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; font-size: 15px; color: #f0edf4; cursor: pointer;">⋯</div>
+              </div>
+              <div style="position: absolute; left: 20px; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 9px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 6px; height: 6px; border-radius: 999px; background: #d96bb0;"></div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #b8b1c4;">WEBTOON · 2019 · FANTASY, ACTION</div>
+                </div>
+                <div style="font-family: Anton; font-size: 40px; line-height: 0.92; text-transform: uppercase;">Moonlit Courier</div>
+                <div style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px; border-radius: 999px; background: rgba(217,107,176,0.18); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55);">
+                    <div style="width: 5px; height: 5px; border-radius: 999px; background: #d96bb0;"></div>
+                    <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">READING</span>
+                  </div>
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">FROM 02 FEB</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">·</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">ONGOING · WEEKLY</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 0 20px 24px; display: flex; flex-direction: column; gap: 22px;">
+
+              <!-- primary action names the next unit, nothing more -->
+              <div style="display: flex; gap: 10px; flex-shrink: 0;">
+                <div onClick="{{ mInc }}" style="flex: 1; min-width: 0; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; border-radius: 999px; height: 52px; display: flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer;" style-hover="filter: brightness(1.08);">
+                  <span style="font-size: 15px; line-height: 1;">✓</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{ mCta }}</span>
+                </div>
+                <div style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
+                  <span style="font-size: 15px; line-height: 1; color: #b8b1c4;">♡</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">FAV</span>
+                </div>
+                <div style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
+                  <span style="font-size: 15px; line-height: 1; color: #b8b1c4;">＋</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">LIST</span>
+                </div>
+              </div>
+
+              <!-- rating -->
+              <div style="display: flex; gap: 10px; flex-shrink: 0;">
+                <div style="flex: 1; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 13px 15px; display: flex; align-items: center; gap: 12px;">
+                  <div style="font-family: Anton; font-size: 30px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">9.5</div>
+                  <div style="display: flex; flex-direction: column; gap: 1px;">
+                    <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">YOUR RATING</div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.06em; color: #948da1;">9.1 FROM 842 HERE</div>
+                  </div>
+                </div>
+                <div style="width: 52px; flex-shrink: 0; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #d96bb0; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">✎</div>
+              </div>
+
+              <!-- UNIFIED PROGRESS: identical control for movie / series / manga. Sits after read+fav+list+rating. -->
+              <div style="flex-shrink: 0; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.4); border-radius: 16px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">{{ mUnitLabel }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ mPct }}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px;">
+                    <input value="{{ mVal }}" onChange="{{ mOnInput }}" onFocus="{{ mOnFocus }}" onBlur="{{ mOnBlur }}" inputMode="numeric" style="font-family: Anton; font-size: 46px; line-height: 1; width: {{ mInputWidth }}; background: transparent; border: none; outline: none; padding: 0; color: #f0edf4; box-shadow: inset 0 -2px 0 {{ mUnderline }}; transition: box-shadow 140ms ease;">
+                    <span style="font-family: Anton; font-size: 24px; color: #948da1; flex-shrink: 0;">/ {{ mTotal }}</span>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                    <div onClick="{{ mDec }}" style="width: 46px; height: 46px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #b8b1c4; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">−</div>
+                    <div onClick="{{ mInc }}" style="width: 46px; height: 46px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #14101a; cursor: pointer;" style-hover="filter: brightness(1.1);">+</div>
+                  </div>
+                </div>
+                <div style="position: relative; height: 26px; display: flex; align-items: center;">
+                  <div style="position: absolute; left: 0; right: 0; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1);"></div>
+                  <div style="position: absolute; left: 0; height: 6px; width: {{ mPct }}; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+                  <input type="range" min="0" max="{{ mTotal }}" value="{{ mNum }}" onChange="{{ mOnSlide }}" style="position: relative; width: 100%; margin: 0; height: 26px; cursor: grab;">
+                </div>
+              </div>
+
+              <div style="color: #b8b1c4; font-size: 14px; line-height: 1.6; flex-shrink: 0;">A night courier ferries contraband letters across a city that rearranges itself after dark, and starts reading the ones nobody claims.</div>
+
+              <!-- VOLUMES: 312 chapters as 8 rows, not 312. Each row is a range with its own progress. -->
+              <div style="display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="font-family: Anton; font-size: 22px; text-transform: uppercase;">Volumes</div>
+                  <div style="flex: 1;"></div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ mVolCount }}</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <sc-for list="{{ mVolumes }}" as="v" hint-placeholder-count="8">
+                    <div onClick="{{ v.tap }}" style="background: {{ v.bg }}; box-shadow: inset 0 0 0 1px {{ v.bd }}; border-radius: 11px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px rgba(217,107,176,0.45);">
+                      <div style="width: 24px; height: 24px; border-radius: 999px; flex-shrink: 0; background: {{ v.boxBg }}; box-shadow: inset 0 0 0 1px {{ v.boxBd }}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #14101a;">{{ v.check }}</div>
+                      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+                        <div style="display: flex; align-items: baseline; gap: 8px;">
+                          <div style="font-size: 13px; font-weight: {{ v.wt }}; color: {{ v.fg }};">{{ v.label }}</div>
+                          <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.06em; color: #948da1;">{{ v.range }}</div>
+                        </div>
+                        <div style="height: 3px; border-radius: 999px; background: rgba(255,255,255,0.09); overflow: hidden;">
+                          <div style="height: 100%; width: {{ v.pct }}; border-radius: 999px; background: {{ v.fill }};"></div>
+                        </div>
+                      </div>
+                      <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; color: {{ v.metaFg }}; flex-shrink: 0;">{{ v.meta }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; line-height: 1.6; letter-spacing: 0.04em; color: #948da1;">Tap a volume to open its chapter list. Only the volume you open loads rows — never all 312.</div>
+              </div>
+
+              <!-- the opened volume: a window, not the whole work -->
+              <div style="display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="font-family: Anton; font-size: 18px; text-transform: uppercase;">{{ mOpenLabel }}</div>
+                  <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.09);"></div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; cursor: pointer;">CLOSE</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <sc-for list="{{ mChapters }}" as="c" hint-placeholder-count="6">
+                    <div onClick="{{ c.tap }}" style="background: {{ c.bg }}; box-shadow: inset 0 0 0 1px {{ c.bd }}; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                      <div style="width: 20px; height: 20px; border-radius: 999px; flex-shrink: 0; background: {{ c.boxBg }}; box-shadow: inset 0 0 0 1px {{ c.boxBd }}; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #14101a;">{{ c.check }}</div>
+                      <div style="flex: 1; min-width: 0; font-family: 'Space Grotesk'; font-size: 12px; font-weight: {{ c.wt }}; letter-spacing: 0.04em; color: {{ c.fg }};">{{ c.label }}</div>
+                      <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.06em; color: #948da1; flex-shrink: 0;">{{ c.meta }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div style="position: absolute; left: 20px; right: 20px; bottom: 46px; z-index: 40; display: {{ mToastDisplay }};">
+            <div style="background: #241f2e; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 16px 40px -12px rgba(0,0,0,0.9); border-radius: 999px; padding: 12px 18px; display: flex; align-items: center; gap: 12px;">
+              <div style="width: 18px; height: 18px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #14101a; flex-shrink: 0;">✓</div>
+              <div style="flex: 1; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ mToast }}</div>
+              <div onClick="{{ mUndo }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; cursor: pointer; flex-shrink: 0;">UNDO</div>
+            </div>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.9); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ============ B · LOW-COUNT (SERIES, 7 EP, TITLES KNOWN) ============ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">B · 7 EPISODES · LIST MODE</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative;">
+            <div style="position: relative; height: 366px; flex-shrink: 0; background: linear-gradient(165deg, #4a3f8f 0%, #2a2150 42%, #0e0c10 100%);">
+              <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.4; mix-blend-mode: overlay;"></div>
+              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,12,16,0.72) 0%, transparent 24%, transparent 42%, rgba(14,12,16,0.88) 78%, #0e0c10 100%);"></div>
+              <div style="position: absolute; top: 56px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 11px; border-radius: 999px; background: rgba(14,12,16,0.62); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); cursor: pointer;">
+                  <span style="font-size: 15px; color: #f0edf4; line-height: 1;">‹</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #f0edf4;">BACK</span>
+                </div>
+                <div style="width: 34px; height: 34px; border-radius: 999px; background: rgba(14,12,16,0.62); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; font-size: 15px; color: #f0edf4; cursor: pointer;">⋯</div>
+              </div>
+              <div style="position: absolute; left: 20px; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 9px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 6px; height: 6px; border-radius: 999px; background: #4a6ee8;"></div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #b8b1c4;">SERIES · 2008 · CRIME, DRAMA</div>
+                </div>
+                <div style="font-family: Anton; font-size: 44px; line-height: 0.92; text-transform: uppercase;">Breaking Bad</div>
+                <div style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px; border-radius: 999px; background: rgba(217,107,176,0.18); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55);">
+                    <div style="width: 5px; height: 5px; border-radius: 999px; background: #d96bb0;"></div>
+                    <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">IN PROGRESS</span>
+                  </div>
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">FROM 02 AUG</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">·</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">ENDED · 5 SEASONS</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 0 20px 24px; display: flex; flex-direction: column; gap: 22px;">
+              <div style="display: flex; gap: 10px; flex-shrink: 0;">
+                <div onClick="{{ sWatchNext }}" style="flex: 1; min-width: 0; background: {{ sCtaBg }}; box-shadow: {{ sCtaRing }}; color: {{ sCtaFg }}; border-radius: 999px; height: 52px; display: flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer;" style-hover="filter: brightness(1.08);">
+                  <span style="font-size: 15px; line-height: 1;">{{ sCtaGlyph }}</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{ sCtaLabel }}</span>
+                </div>
+                <div style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
+                  <span style="font-size: 15px; line-height: 1; color: #b8b1c4;">♡</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">FAV</span>
+                </div>
+                <div style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
+                  <span style="font-size: 15px; line-height: 1; color: #b8b1c4;">＋</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">LIST</span>
+                </div>
+              </div>
+
+              <!-- rating -->
+              <div style="display: flex; gap: 10px; flex-shrink: 0;">
+                <div style="flex: 1; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 13px 15px; display: flex; align-items: center; gap: 12px;">
+                  <div style="font-family: Anton; font-size: 30px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
+                  <div style="display: flex; flex-direction: column; gap: 1px;">
+                    <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">YOUR RATING</div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.06em; color: #948da1;">9.4 FROM 1,204 HERE</div>
+                  </div>
+                </div>
+                <div style="width: 52px; flex-shrink: 0; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #d96bb0; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">✎</div>
+              </div>
+
+              <!-- UNIFIED PROGRESS: same control, same place, same code path as the manga screen -->
+              <div style="flex-shrink: 0; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.4); border-radius: 16px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">{{ sUnitLabel }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ sPct }}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px;">
+                    <input value="{{ sVal }}" onChange="{{ sOnInput }}" onFocus="{{ sOnFocus }}" onBlur="{{ sOnBlur }}" inputMode="numeric" style="font-family: Anton; font-size: 46px; line-height: 1; width: {{ sInputWidth }}; background: transparent; border: none; outline: none; padding: 0; color: #f0edf4; box-shadow: inset 0 -2px 0 {{ sUnderline }}; transition: box-shadow 140ms ease;">
+                    <span style="font-family: Anton; font-size: 24px; color: #948da1; flex-shrink: 0;">/ 7</span>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                    <div onClick="{{ sDec }}" style="width: 46px; height: 46px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #b8b1c4; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">−</div>
+                    <div onClick="{{ sInc }}" style="width: 46px; height: 46px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #14101a; cursor: pointer;" style-hover="filter: brightness(1.1);">+</div>
+                  </div>
+                </div>
+                <div style="position: relative; height: 26px; display: flex; align-items: center;">
+                  <div style="position: absolute; left: 0; right: 0; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1);"></div>
+                  <div style="position: absolute; left: 0; height: 6px; width: {{ sPct }}; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+                  <input type="range" min="0" max="7" value="{{ sNum }}" onChange="{{ sOnSlide }}" style="position: relative; width: 100%; margin: 0; height: 26px; cursor: grab;">
+                </div>
+              </div>
+
+              <!-- rows still earn their place at 7 units, because the titles exist -->
+              <div style="display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="font-family: Anton; font-size: 22px; text-transform: uppercase;">Episodes</div>
+                  <div style="flex: 1;"></div>
+                  <div style="display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 13px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); cursor: pointer;">
+                    <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4;">SEASON 1</span>
+                    <span style="font-size: 9px; color: #948da1;">▾</span>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <sc-for list="{{ sEpisodes }}" as="e" hint-placeholder-count="7">
+                    <div onClick="{{ e.tap }}" style="background: {{ e.bg }}; box-shadow: inset 0 0 0 1px {{ e.bd }}; border-radius: 11px; display: flex; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer;">
+                      <div style="width: 24px; height: 24px; border-radius: 999px; flex-shrink: 0; background: {{ e.boxBg }}; box-shadow: inset 0 0 0 1px {{ e.boxBd }}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #14101a;">{{ e.check }}</div>
+                      <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; color: #948da1; width: 22px; flex-shrink: 0;">{{ e.num }}</div>
+                      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                        <div style="font-size: 13px; font-weight: {{ e.wt }}; color: {{ e.fg }}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ e.name }}</div>
+                        <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.06em; color: #948da1;">{{ e.sub }}</div>
+                      </div>
+                      <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; color: {{ e.metaFg }}; flex-shrink: 0;">{{ e.meta }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;">
+                <div style="font-family: Anton; font-size: 22px; text-transform: uppercase;">Details</div>
+                <div style="display: flex; flex-direction: column;">
+                  <sc-for list="{{ details }}" as="d" hint-placeholder-count="5">
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 11px 0; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.07);">
+                      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; flex-shrink: 0;">{{ d.k }}</span>
+                      <span style="font-size: 13px; color: #f0edf4; text-align: right;">{{ d.v }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.9); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ============ THE RULE ============ -->
+    <div style="width: 380px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">SCALING RULE</div>
+      <sc-for list="{{ rules }}" as="r" hint-placeholder-count="6">
+        <div style="background: rgba(255,255,255,0.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 15px 17px; display: flex; flex-direction: column; gap: 7px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ r.k }}</div>
+          <div style="color: #d8d2e0; font-size: 13px; line-height: 1.6;">{{ r.v }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1300, &quot;height&quot;: 1000}}">
+class Component extends DCLogic {
+  state = {
+    // manga
+    mNum: 112, mDraft: null, mFocus: false, mToast: null, mPrev: null, mOpenVol: null,
+    // series
+    sNum: 3, sDraft: null, sFocus: false,
+  };
+
+  M_TOTAL = 312;
+  VOL_SIZE = 40;
+  S_EPS = [
+    { n: 1, name: 'Pilot', sub: '20 JAN 2008', mins: '58 MIN', score: '8.9' },
+    { n: 2, name: "Cat's in the Bag…", sub: '27 JAN 2008', mins: '48 MIN', score: '8.6' },
+    { n: 3, name: "…And the Bag's in the River", sub: '10 FEB 2008', mins: '48 MIN', score: '8.7' },
+    { n: 4, name: 'Cancer Man', sub: '17 FEB 2008', mins: '48 MIN', score: '8.2' },
+    { n: 5, name: 'Gray Matter', sub: '24 FEB 2008', mins: '48 MIN', score: '8.3' },
+    { n: 6, name: 'Crazy Handful of Nothin\u2019', sub: '02 MAR 2008', mins: '48 MIN', score: '9.2' },
+    { n: 7, name: 'A No-Rough-Stuff-Type Deal', sub: '09 MAR 2008', mins: '48 MIN', score: '8.7' },
+  ];
+
+  clamp(n, max) { return Math.max(0, Math.min(max, n)); }
+
+  setM(n, note) {
+    const v = this.clamp(n, this.M_TOTAL);
+    this.setState((s) => ({ mPrev: s.mNum, mNum: v, mDraft: null }));
+    if (note) {
+      this.setState({ mToast: note });
+      clearTimeout(this._t);
+      this._t = setTimeout(() => this.setState({ mToast: null }), 5000);
+    }
+  }
+
+  renderVals() {
+    const M = this.M_TOTAL;
+    const m = this.state.mNum;
+    const mPct = Math.round((m / M) * 100);
+    const mDisplay = this.state.mDraft === null ? String(m) : this.state.mDraft;
+
+    const volCount = Math.ceil(M / this.VOL_SIZE);
+    const mVolumes = [];
+    for (let i = 1; i <= volCount; i++) {
+      const from = (i - 1) * this.VOL_SIZE + 1;
+      const to = Math.min(M, i * this.VOL_SIZE);
+      const size = to - from + 1;
+      const read = this.clamp(m - from + 1, size);
+      const full = read >= size;
+      const partial = read > 0 && !full;
+      const isOpen = (this.state.mOpenVol || Math.max(1, Math.ceil(m / this.VOL_SIZE))) === i;
+      mVolumes.push({
+        label: 'Volume ' + i,
+        range: 'CH ' + from + '–' + to,
+        pct: Math.round((read / size) * 100) + '%',
+        fill: full ? 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)' : (partial ? '#d96bb0' : 'transparent'),
+        meta: full ? size + '/' + size : read + '/' + size,
+        metaFg: full ? '#d96bb0' : (partial ? '#f0edf4' : '#948da1'),
+        boxBg: full ? '#d96bb0' : 'transparent',
+        boxBd: full || partial ? '#d96bb0' : 'rgba(255,255,255,0.2)',
+        check: full ? '✓' : (partial ? '·' : ''),
+        bg: isOpen ? 'rgba(217,107,176,0.1)' : 'rgba(255,255,255,0.05)',
+        bd: isOpen ? 'rgba(217,107,176,0.45)' : 'rgba(255,255,255,0.1)',
+        wt: partial ? 700 : 400,
+        fg: full ? '#b8b1c4' : '#f0edf4',
+        tap: () => this.setState({ mOpenVol: isOpen ? null : i }),
+      });
+    }
+
+    // only the opened volume renders rows — and only a window around where you are
+    const openVol = this.state.mOpenVol || Math.max(1, Math.ceil(m / this.VOL_SIZE));
+    const vFrom = (openVol - 1) * this.VOL_SIZE + 1;
+    const vTo = Math.min(M, openVol * this.VOL_SIZE);
+    const anchor = m >= vFrom && m <= vTo ? m : vFrom - 1;
+    const winFrom = Math.max(vFrom, anchor - 2);
+    const winTo = Math.min(vTo, winFrom + 5);
+    const mChapters = [];
+    for (let c = winFrom; c <= winTo; c++) {
+      const read = c <= m;
+      const isNext = c === m + 1;
+      mChapters.push({
+        label: 'Chapter ' + c,
+        meta: read ? 'READ' : (isNext ? 'NEXT' : ''),
+        boxBg: read ? '#d96bb0' : 'transparent',
+        boxBd: read || isNext ? '#d96bb0' : 'rgba(255,255,255,0.2)',
+        check: read ? '✓' : '',
+        bg: isNext ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.04)',
+        bd: isNext ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.08)',
+        wt: isNext ? 700 : 400,
+        fg: read ? '#b8b1c4' : '#f0edf4',
+        tap: () => this.setM(read ? c - 1 : c, read ? null : 'Read through chapter ' + c),
+      });
+    }
+
+    // series
+    const sMax = this.S_EPS.length;
+    const s = this.state.sNum;
+    const sNext = s < sMax ? this.S_EPS[s] : null;
+    const sDisplay = this.state.sDraft === null ? String(s) : this.state.sDraft;
+    const grad = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
+
+    return {
+      // ---- manga counter
+      mTotal: M,
+      mNum: m,
+      mVal: mDisplay,
+      mInputWidth: Math.max(2, mDisplay.length) + 'ch',
+      mUnderline: this.state.mFocus ? '#d96bb0' : 'transparent',
+      mPct: mPct + '%',
+      mCta: m >= M ? 'CAUGHT UP' : 'READ CH ' + (m + 1),
+      mOnFocus: () => this.setState({ mFocus: true, mDraft: String(m) }),
+      mOnInput: (e) => {
+        const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+        this.setState({ mDraft: raw });
+      },
+      mOnBlur: () => {
+        const v = this.state.mDraft;
+        this.setState({ mFocus: false });
+        if (v === null || v === '') { this.setState({ mDraft: null }); return; }
+        this.setM(parseInt(v, 10), 'Set to chapter ' + this.clamp(parseInt(v, 10), M));
+      },
+      mOnSlide: (e) => this.setM(parseInt(e.target.value, 10)),
+      mInc: () => this.setM(m + 1, m + 1 <= M ? 'Read chapter ' + (m + 1) : null),
+      mDec: () => this.setM(m - 1),
+      mUnitLabel: 'CHAPTERS READ',
+      mVolCount: volCount + ' VOLUMES · ' + M + ' CHAPTERS',
+      mVolumes,
+      mOpenLabel: (m >= vFrom && m <= vTo)
+        ? 'Volume ' + openVol + ' · around you'
+        : 'Volume ' + openVol + ' · ch ' + vFrom + '–' + vTo,
+      mChapters,
+      mToastDisplay: this.state.mToast ? 'block' : 'none',
+      mToast: this.state.mToast || '',
+      mUndo: () => {
+        const p = this.state.mPrev;
+        this.setState({ mToast: null });
+        if (p !== null) this.setState({ mNum: p, mPrev: null });
+      },
+
+      // ---- series
+      sNum: s,
+      sVal: sDisplay,
+      sInputWidth: Math.max(1, sDisplay.length) + 'ch',
+      sUnderline: this.state.sFocus ? '#d96bb0' : 'transparent',
+      sPct: Math.round((s / sMax) * 100) + '%',
+      sUnitLabel: 'EPISODES WATCHED · SEASON 1',
+      sOnFocus: () => this.setState({ sFocus: true, sDraft: String(s) }),
+      sOnInput: (e) => this.setState({ sDraft: e.target.value.replace(/[^0-9]/g, '').slice(0, 3) }),
+      sOnBlur: () => {
+        const v = this.state.sDraft;
+        this.setState({ sFocus: false, sDraft: null });
+        if (v !== null && v !== '') this.setState({ sNum: this.clamp(parseInt(v, 10), sMax) });
+      },
+      sOnSlide: (e) => this.setState({ sNum: parseInt(e.target.value, 10) }),
+      sInc: () => this.setState({ sNum: this.clamp(s + 1, sMax) }),
+      sDec: () => this.setState({ sNum: this.clamp(s - 1, sMax) }),
+      sCtaLabel: sNext ? 'WATCH E' + sNext.n : 'ALL CAUGHT UP',
+      sCtaGlyph: sNext ? '✓' : '★',
+      sCtaBg: sNext ? grad : 'rgba(255,255,255,0.05)',
+      sCtaFg: sNext ? '#14101a' : '#b8b1c4',
+      sCtaRing: sNext ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.15)',
+      sWatchNext: () => this.setState({ sNum: this.clamp(s + 1, sMax) }),
+      sEpisodes: this.S_EPS.map((e) => {
+        const w = e.n <= s;
+        const isNext = e.n === s + 1;
+        return {
+          num: 'E' + e.n, name: e.name, sub: e.sub,
+          meta: w ? e.score : e.mins,
+          metaFg: w ? '#d96bb0' : '#948da1',
+          bg: isNext ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.05)',
+          bd: isNext ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.1)',
+          boxBg: w ? '#d96bb0' : 'transparent',
+          boxBd: w || isNext ? '#d96bb0' : 'rgba(255,255,255,0.2)',
+          check: w ? '✓' : '',
+          wt: isNext ? 700 : 400,
+          fg: w ? '#b8b1c4' : '#f0edf4',
+          tap: () => this.setState({ sNum: w ? e.n - 1 : e.n }),
+        };
+      }),
+      details: [
+        { k: 'FIRST AIRED', v: '20 January 2008' },
+        { k: 'STATUS', v: 'Ended · 62 episodes' },
+        { k: 'NETWORK', v: 'AMC' },
+        { k: 'CREATED BY', v: 'Vince Gilligan' },
+        { k: 'RUNTIME', v: '48 min average' },
+      ],
+
+      rules: [
+        { k: 'ONE CONTROL FOR EVERY KIND', v: 'The same block, in the same place — after read, fav, list and rating — on a movie, a series and a 312-chapter manga. Only the unit label changes. A movie is this control with a total of 1: one tap on + and it reads 1 / 1, 100%.' },
+        { k: 'THE COUNTER IS THE SOURCE OF TRUTH', v: 'Progress is one integer, not a set of ticked boxes. A list is a view onto that integer, so setting 187 by typing, dragging or tapping a row are all the same write. That is also why it works with no per-chapter metadata at all.' },
+        { k: 'THREE WAYS TO SET IT', v: 'Type into the number for a precise jump (you know you are on 187), drag the slider for coarse travel across 312 in one gesture, tap −/+ for single units. Tapping a row in a volume does the same write.' },
+        { k: 'WHEN TO SHOW ROWS', v: 'Under ~50 units with real titles, list them — the titles are the value. Over that, or with no metadata, lead with the counter and collapse the work into volume rows. The threshold is metadata, not just count: 24 untitled chapters still read better as a counter.' },
+        { k: 'VOLUMES, NOT CHAPTERS', v: '312 chapters becomes 8 volume rows of 40, each with its own mini progress bar and n/40 count. You can see where you are in the whole work in one screen instead of scrolling 312 rows.' },
+        { k: 'ROWS LOAD IN A WINDOW', v: 'Opening a volume renders 6 chapters around your position — two behind, the next one ringed pink, three ahead. Never the whole volume, never the whole work. Jumping far is the slider’s job, not scrolling’s.' },
+        { k: 'BACKFILL IS ONE TAP', v: 'Tapping a row sets the counter to that number, so marking chapter 140 marks everything up to it. Tapping a read row sets it to one below, which is how you correct an overshoot without a dialog.' },
+        { k: 'WHEN METADATA ARRIVES', v: 'Nothing about the counter changes — chapter titles and dates just start appearing in the window rows and the volume labels. The screen is designed to degrade to numbers, not to depend on titles.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

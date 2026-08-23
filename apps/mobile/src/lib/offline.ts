@@ -1,5 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { invalidateTracking, makeQueryClient, stampedDates, trackingApi } from '@trackt/client';
+import {
+  invalidateTracking,
+  makeQueryClient,
+  partsUpTo,
+  stampedDates,
+  trackingApi,
+} from '@trackt/client';
 import type { LogStatus, MediaDetail } from '@trackt/shared';
 
 /**
@@ -39,6 +45,13 @@ import type { LogStatus, MediaDetail } from '@trackt/shared';
 export type TrackingWrite =
   | { op: 'checkIn'; id: string; part: number }
   | { op: 'uncheck'; id: string; part: number }
+  /**
+   * "I am at part N" — the whole position in one write, which is what the
+   * slider on a 900-chapter work sends. It is not a batch of check-ins: parts
+   * past `upTo` are cleared, so replaying it after an hour offline still means
+   * the same thing it meant when it was queued.
+   */
+  | { op: 'setProgress'; id: string; upTo: number }
   | { op: 'setStatus'; id: string; status: LogStatus }
   | { op: 'clearStatus'; id: string }
   | { op: 'setScore'; id: string; score: number }
@@ -67,6 +80,8 @@ export function runTrackingWrite(write: TrackingWrite): Promise<void> {
       return trackingApi.checkIn(write.id, write.part);
     case 'uncheck':
       return trackingApi.uncheck(write.id, write.part);
+    case 'setProgress':
+      return trackingApi.setProgress(write.id, write.upTo);
     case 'setStatus':
       return trackingApi.setStatus(write.id, write.status);
     case 'clearStatus':
@@ -200,6 +215,10 @@ export function trackingPatch(
         : { watched: [...viewer.watched, write.part] };
     case 'uncheck':
       return { watched: viewer.watched.filter((n) => n !== write.part) };
+    case 'setProgress':
+      // Everything up to the mark, and nothing past it — the server's rule,
+      // mirrored, or the grid would keep showing check-ins the write drops.
+      return { watched: partsUpTo(write.upTo) };
     case 'clearStatus':
       return { status: null, startedAt: null, finishedAt: null };
     case 'setStatus': {

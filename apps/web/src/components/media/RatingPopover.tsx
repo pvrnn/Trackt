@@ -1,7 +1,7 @@
 import * as Popover from '@radix-ui/react-popover';
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import clsx from 'clsx';
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Button } from '../ui/Button';
 
 /** Ten stars at half-star precision cover 0.5–10; `0` keeps its own pill (PRD §3.2). */
@@ -15,9 +15,14 @@ const STARS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 export function RatingPopover({
   score,
   onChange,
+  trigger,
+  triggerClassName,
 }: {
   score: number | null;
   onChange: (score: number | null) => void;
+  /** Replaces the default pill — the media page anchors it to a pencil. */
+  trigger?: ReactNode;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
@@ -44,18 +49,26 @@ export function RatingPopover({
       <Popover.Trigger
         id={triggerId}
         aria-labelledby={`${labelId} ${triggerId}`}
-        className={clsx(
-          'inline-flex cursor-pointer items-center gap-2 rounded-full border py-[11px] pr-4 pl-5',
-          'font-label text-xs font-semibold tracking-label transition outline-none',
-          rated
-            ? 'border-pink bg-pink-selected text-pink'
-            : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
-        )}
+        className={
+          trigger
+            ? triggerClassName
+            : clsx(
+                'inline-flex cursor-pointer items-center gap-2 rounded-full border py-[11px] pr-4 pl-5',
+                'font-label text-xs font-semibold tracking-label transition outline-none',
+                rated
+                  ? 'border-pink bg-pink-selected text-pink'
+                  : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
+              )
+        }
       >
-        {rated ? `★ ${score.toFixed(1)}` : 'RATE'}
-        <span aria-hidden className={clsx('text-[10px]', rated ? 'text-pink' : 'text-dim')}>
-          ▾
-        </span>
+        {trigger ?? (
+          <>
+            {rated ? `★ ${score.toFixed(1)}` : 'RATE'}
+            <span aria-hidden className={clsx('text-[10px]', rated ? 'text-pink' : 'text-dim')}>
+              ▾
+            </span>
+          </>
+        )}
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content

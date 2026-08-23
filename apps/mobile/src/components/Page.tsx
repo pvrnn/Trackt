@@ -9,6 +9,7 @@ import type { RefreshControlProps } from 'react-native';
 import { duration } from '../lib/motion';
 import { useIsOnline } from '../lib/network';
 import { AuraBackground } from './AuraBackground';
+import { Icon } from './Icon';
 import { PrismText } from './PrismText';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
@@ -138,7 +139,8 @@ export function BackLink({ label = 'Back' }: { label?: string }) {
       onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
       style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
     >
-      <Text style={[type.eyebrow, styles.backText]}>‹ {label.toUpperCase()}</Text>
+      <Icon name="chevron-left" color={color.dim} size={16} />
+      <Text style={[type.eyebrow, styles.backText]}>{label.toUpperCase()}</Text>
     </Pressable>
   );
 }
@@ -255,7 +257,9 @@ const styles = StyleSheet.create({
   },
   back: {
     minHeight: layout.touchTarget,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
     alignSelf: 'flex-start',
   },
   backText: {

@@ -128,3 +128,17 @@ export type RateBody = z.infer<typeof RateBodySchema>;
  * always bound it.
  */
 export const PartNumberParamSchema = z.coerce.number().int().positive().max(99999);
+
+/**
+ * Bulk progress (`PUT /v1/media/:id/progress`): "I am at chapter N".
+ *
+ * One number rather than a list of parts, because that is what the control it
+ * serves means — a slider or a typed-in position on a work with hundreds of
+ * parts, where ticking each one is thousands of requests. `0` is a valid
+ * position and clears the work's progress, which is why this is `nonnegative`
+ * where the per-part param is `positive`.
+ */
+export const SetProgressBodySchema = z.object({
+  upTo: z.number().int().nonnegative().max(99999),
+});
+export type SetProgressBody = z.infer<typeof SetProgressBodySchema>;

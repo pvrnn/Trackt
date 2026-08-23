@@ -40,6 +40,10 @@ export const surface = {
   divider: 'rgba(255,255,255,0.09)',
   pinkSelected: 'rgba(217,107,176,0.18)',
   pinkRow: 'rgba(217,107,176,0.12)',
+  /** The ring the progress card wears (`Mobile Media.dc.html`): pink at 40%. */
+  pinkBorder: 'rgba(217,107,176,0.40)',
+  /** The stronger pink hairline on a row that is up next: 50%. */
+  pinkBorderStrong: 'rgba(217,107,176,0.50)',
 } as const;
 
 /**

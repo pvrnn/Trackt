@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { Icon, type IconName } from './Icon';
 import { AnimatedPressable, usePressMotion } from './Press';
 import { PRISM, color, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
@@ -20,6 +21,7 @@ import { type } from '../theme/typography';
  */
 export function PrismButton({
   label,
+  icon,
   onPress,
   disabled = false,
   busy = false,
@@ -27,6 +29,7 @@ export function PrismButton({
   style,
 }: {
   label: string;
+  icon?: IconName;
   onPress: () => void;
   disabled?: boolean;
   busy?: boolean;
@@ -35,14 +38,14 @@ export function PrismButton({
 }) {
   const inert = disabled || busy;
   const press = usePressMotion();
+  const tint = variant === 'primary' ? color.onPrism : color.fg;
   const content = (
     <View style={styles.content}>
-      {busy && (
-        <ActivityIndicator size="small" color={variant === 'primary' ? color.onPrism : color.fg} />
-      )}
-      <Text style={[type.button, { color: variant === 'primary' ? color.onPrism : color.fg }]}>
-        {label.toUpperCase()}
-      </Text>
+      {busy ? <ActivityIndicator size="small" color={tint} /> : null}
+      {/* The glyph the label used to spell out (`Icon`): drawn, and dropped
+          while the spinner holds its place so the pill never wears two marks. */}
+      {icon && !busy ? <Icon name={icon} color={tint} size={16} /> : null}
+      <Text style={[type.button, { color: tint }]}>{label.toUpperCase()}</Text>
     </View>
   );
 

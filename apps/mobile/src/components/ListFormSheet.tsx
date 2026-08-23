@@ -13,6 +13,7 @@ import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Chip } from './Chip';
 import { Field } from './Field';
+import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
 import { Sheet, SheetError, useSheetController } from './Sheet';
 
@@ -116,7 +117,7 @@ export function ListFormSheet({
         style={({ pressed }) => [styles.toggle, { opacity: pressed ? 0.7 : 1 }]}
       >
         <View style={[styles.box, isRanked ? styles.boxOn : null]}>
-          {isRanked ? <Text style={[type.button, styles.pink]}>✓</Text> : null}
+          {isRanked ? <Icon name="check" color={color.pink} size={14} /> : null}
         </View>
         <Text style={[type.body, styles.fg]}>Ranked — order matters, and I can reorder it</Text>
       </Pressable>
@@ -190,8 +191,5 @@ const styles = StyleSheet.create({
   },
   faint: {
     color: color.faint,
-  },
-  pink: {
-    color: color.pink,
   },
 });

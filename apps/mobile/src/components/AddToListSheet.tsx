@@ -6,6 +6,7 @@ import { commitHaptic, errorHaptic } from '../lib/haptics';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Field } from './Field';
+import { Icon } from './Icon';
 import { Loading } from './Page';
 import { PrismButton } from './PrismButton';
 import { Sheet, SheetError, useSheetController } from './Sheet';
@@ -104,9 +105,18 @@ export function AddToListSheet({
                     {entry.itemCount} {entry.itemCount === 1 ? 'TITLE' : 'TITLES'}
                   </Text>
                 </View>
-                <Text style={[type.button, contains ? styles.pink : styles.dim]}>
-                  {pending === entry.id ? '…' : contains ? '✓ ADDED' : '＋ ADD'}
-                </Text>
+                <View style={styles.action}>
+                  {pending === entry.id ? null : (
+                    <Icon
+                      name={contains ? 'check' : 'plus'}
+                      color={contains ? color.pink : color.dim}
+                      size={16}
+                    />
+                  )}
+                  <Text style={[type.button, contains ? styles.pink : styles.dim]}>
+                    {pending === entry.id ? '…' : contains ? 'ADDED' : 'ADD'}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -159,6 +169,11 @@ const styles = StyleSheet.create({
   rowSelected: {
     borderColor: color.pink,
     backgroundColor: surface.pinkSelected,
+  },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
   },
   rowText: {
     flex: 1,

@@ -21,7 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersUsernameRouteImport } from './routes/users.$username'
 import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
-import { Route as ListsIdRouteImport } from './routes/lists.$id'
+import { Route as ListsIdRouteImport } from './routes/lists_.$id'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -84,16 +84,16 @@ const MediaSlugRoute = MediaSlugRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListsIdRoute = ListsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ListsRoute,
+  id: '/lists_/$id',
+  path: '/lists/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
-  '/lists': typeof ListsRouteWithChildren
+  '/lists': typeof ListsRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
@@ -108,7 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
-  '/lists': typeof ListsRouteWithChildren
+  '/lists': typeof ListsRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
@@ -124,13 +124,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
-  '/lists': typeof ListsRouteWithChildren
+  '/lists': typeof ListsRoute
   '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
-  '/lists/$id': typeof ListsIdRoute
+  '/lists_/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
   '/users/$username': typeof UsersUsernameRoute
@@ -177,7 +177,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/search'
-    | '/lists/$id'
+    | '/lists_/$id'
     | '/media/$slug'
     | '/news_/$slug'
     | '/users/$username'
@@ -187,12 +187,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoryRoute: typeof HistoryRoute
   HomeRoute: typeof HomeRoute
-  ListsRoute: typeof ListsRouteWithChildren
+  ListsRoute: typeof ListsRoute
   LoginRoute: typeof LoginRoute
   NewsRoute: typeof NewsRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
+  ListsIdRoute: typeof ListsIdRoute
   MediaSlugRoute: typeof MediaSlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
   UsersUsernameRoute: typeof UsersUsernameRoute
@@ -284,36 +285,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lists/$id': {
-      id: '/lists/$id'
-      path: '/$id'
+    '/lists_/$id': {
+      id: '/lists_/$id'
+      path: '/lists/$id'
       fullPath: '/lists/$id'
       preLoaderRoute: typeof ListsIdRouteImport
-      parentRoute: typeof ListsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface ListsRouteChildren {
-  ListsIdRoute: typeof ListsIdRoute
-}
-
-const ListsRouteChildren: ListsRouteChildren = {
-  ListsIdRoute: ListsIdRoute,
-}
-
-const ListsRouteWithChildren = ListsRoute._addFileChildren(ListsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
   HomeRoute: HomeRoute,
-  ListsRoute: ListsRouteWithChildren,
+  ListsRoute: ListsRoute,
   LoginRoute: LoginRoute,
   NewsRoute: NewsRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
+  ListsIdRoute: ListsIdRoute,
   MediaSlugRoute: MediaSlugRoute,
   NewsSlugRoute: NewsSlugRoute,
   UsersUsernameRoute: UsersUsernameRoute,

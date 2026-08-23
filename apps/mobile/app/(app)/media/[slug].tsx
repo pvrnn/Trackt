@@ -1,11 +1,12 @@
-import { FlashList } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  KIND_LABELS_SINGULAR,
   LOG_STATUS_LABELS,
   dateRangeLabel,
   firstUnwatched,
   invalidateTracking,
+  partBlocks,
+  partWindow,
+  progressUpTo,
   todayIso,
   trackingApi,
   useMediaDetail,
@@ -20,23 +21,17 @@ import {
 } from '@trackt/shared';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Animated, {
-  interpolate,
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
+import { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToListSheet } from '../../../src/components/AddToListSheet';
 import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
-import { KindDot } from '../../../src/components/KindDot';
 import { LogDatesSheet } from '../../../src/components/LogDatesSheet';
+import { MediaActionRow, RatingCard } from '../../../src/components/MediaActions';
+import { MediaHero } from '../../../src/components/MediaHero';
 import {
   BackLink,
   EmptyState,
@@ -46,47 +41,50 @@ import {
   SectionTitle,
   StaleNotice,
 } from '../../../src/components/Page';
-import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
-import { PrismButton } from '../../../src/components/PrismButton';
-import { PrismText } from '../../../src/components/PrismText';
+import { PartBlockRow, PartRow } from '../../../src/components/PartRows';
+import { ProgressCard } from '../../../src/components/ProgressCard';
 import { RatingSheet } from '../../../src/components/RatingSheet';
 import { StatusSheet } from '../../../src/components/StatusSheet';
 import { Touchable } from '../../../src/components/Touchable';
-import { duration, staggerDelay } from '../../../src/lib/motion';
-import {
-  EMPTY_VIEWER,
-  patchViewer,
-  trackingPatch,
-  type TrackingWrite,
-} from '../../../src/lib/offline';
+import { EMPTY_VIEWER, patchViewer, trackingPatch } from '../../../src/lib/offline';
+import type { TrackingWrite } from '../../../src/lib/offline';
 import { useViewerMutation } from '../../../src/lib/tracking';
 import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
-
-const TILE_MIN = 56;
 
 /** The collapsed bar `Mobile System.dc.html` fixes for both platforms: 44pt. */
 const HEADER_HEIGHT = layout.touchTarget;
 
 /** How far the hero scrolls before the bar is fully opaque. */
-const HEADER_FADE = [80, 150] as const;
+const HEADER_FADE = [120, 220] as const;
 
 /** Which sheet is up, if any. One at a time — they are all modal. */
 type OpenSheet = 'status' | 'rating' | 'list' | null;
 
 /**
- * The media page (`GET /media/:idOrSlug`) — the screen every other one links to,
- * and from phase 3 the screen where most of the writing happens.
+ * The media screen, rebuilt on `docs/design/Mobile Media.dc.html`.
  *
- * It is a `FlashList` of part rows rather than a `ScrollView`, because the part
- * grid is the one list in the app with no ceiling: a long-running manga carries
- * hundreds of chapters, and rendering them all into a scroll view is the
- * difference between a screen that opens and one that hangs. The hero, the
- * synopsis and the related shelves ride as the list's header and footer.
+ * The design's argument, and now the screen's: **the counter is the source of
+ * truth.** Progress is one integer, not a set of ticked boxes, so one control —
+ * the same block, in the same place, on a movie, a season and a 1120-chapter
+ * manga — carries it, and everything else is a view onto that integer. Type
+ * into the number, drag the slider, tap −/+, or tap a row: all four are the
+ * same write (`setProgress`).
  *
- * Every write is optimistic (`useViewerMutation`): the tile fills, the pill
- * changes, and a failure rolls the cache back and says so in a toast. The four
- * sheets are mounted only while open.
+ * That is what makes the screen work with the catalog we actually have. Flat
+ * numbered parts (ADR-0003) carry no titles, no air dates, no runtimes, and the
+ * mockup's own rule is that rows earn their place through *metadata*, not
+ * count — "24 untitled chapters still read better as a counter". So the counter
+ * always leads here, and the parts below it are:
+ *
+ * - a work of 40 or fewer: every part, as a row;
+ * - anything longer: blocks of 40, each with its own bar, and one opened block
+ *   showing a six-row window around where you are.
+ *
+ * A 1120-chapter manga is 28 rows and a window, never 1120 tiles. That also
+ * retires the `FlashList` this screen used to be: with the grid gone nothing
+ * here is unbounded, so it is an ordinary scroll view again, and the hero can
+ * be a full-bleed panel rather than a list header.
  */
 export default function MediaScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -94,44 +92,19 @@ export default function MediaScreen() {
   const queryClient = useQueryClient();
   const { apply } = useViewerMutation(slug);
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const [sheet, setSheet] = useState<OpenSheet>(null);
   // The dates sheet's *initial* value, or null when closed. Held rather than
   // read off `viewer` at open time, so the auto-open after a COMPLETED status
   // change can hand it the dates it just stamped without racing the cache.
   const [editingDates, setEditingDates] = useState<LogDates | null>(null);
-
-  const columns = Math.max(
-    4,
-    Math.floor((width - layout.gutter * 2 + space.sm) / (TILE_MIN + space.sm)),
-  );
-  const tileWidth = Math.floor((width - layout.gutter * 2 - space.sm * (columns - 1)) / columns);
+  // Which block of parts is expanded, or null for "the one you are in".
+  const [openBlock, setOpenBlock] = useState<number | null>(null);
 
   const viewer = media?.viewer ?? EMPTY_VIEWER;
   const watched = useMemo(() => new Set(viewer.watched), [viewer.watched]);
 
-  // How far the list has scrolled, for the hero parallax and the header bar.
-  // Written from a plain `onScroll` rather than `useAnimatedScrollHandler`:
-  // `FlashList` invokes the `onScroll` prop as an ordinary JS callback, so a
-  // worklet handler passed to it would never be recognised as one. Only the
-  // *input* crosses the bridge — everything derived from it runs on the UI
-  // thread, which is what keeps the parallax off the JS frame budget.
+  // How far the screen has scrolled, for the hero parallax and the header bar.
   const scrollY = useSharedValue(0);
-
-  // A status change can flip every tile in the grid at once (COMPLETED sweeps
-  // progress, PLANNED clears it); a tap flips one. Only the first staggers, and
-  // the screen is told which it is by the handler that caused it rather than
-  // inferring it from the count — the write is where that is known for certain.
-  const [sweeping, setSweeping] = useState(false);
-
-  const rows = useMemo(() => {
-    const total = media?.partCount ?? 0;
-    const out: number[][] = [];
-    for (let start = 1; start <= total; start += columns) {
-      out.push(Array.from({ length: Math.min(columns, total - start + 1) }, (_, i) => start + i));
-    }
-    return out;
-  }, [media?.partCount, columns]);
 
   if (isPending) {
     return (
@@ -166,24 +139,16 @@ export default function MediaScreen() {
 
   const detail = media;
   /** Movies track in one step; every other kind counts parts (ADR-0003). */
-  const checkable = detail.kind !== 'movie';
+  const hasParts = detail.kind !== 'movie';
   /** Null while a season is airing or a count is unknown — not zero. */
-  const total = checkable ? detail.partCount : null;
-  /** What the checklist covers: the count, or one past the highest check-in. */
-  const listLength = total ?? (viewer.watched.length > 0 ? Math.max(...viewer.watched) : 0);
-  // Candidates stop at the known part count — never offer "CHECK IN E13" on a
-  // 12-episode series, which the server would reject. Only an unknown total may
-  // extend one past the highest watched part.
-  const next = checkable ? firstUnwatched(watched, total ?? listLength + 1) : null;
+  const total = hasParts ? detail.partCount : null;
+  const noun = partNoun(detail);
+  /** Where the viewer is: the unbroken run from part 1 (`progressUpTo`). */
+  const position = progressUpTo(watched);
+  const blocks = total !== null ? partBlocks(total, position) : [];
+  const doneWithAll = total !== null && position >= total;
 
-  const togglePart = (number: number) => {
-    setSweeping(false);
-    apply(
-      watched.has(number)
-        ? { op: 'uncheck', id: detail.id, part: number }
-        : { op: 'checkIn', id: detail.id, part: number },
-    );
-  };
+  const setPosition = (upTo: number) => apply({ op: 'setProgress', id: detail.id, upTo });
 
   const setStatus = (status: LogStatus | null) => {
     const write: TrackingWrite =
@@ -191,12 +156,10 @@ export default function MediaScreen() {
         ? { op: 'clearStatus', id: detail.id }
         : { op: 'setStatus', id: detail.id, status };
     // The same patch `useViewerMutation` is about to apply, computed here for
-    // the two things the screen does that the cache cannot: stagger the grid
-    // when a status change sweeps it (PRD §3.1), and open the dates sheet on
-    // the stamped pair. Derived, never re-derived — `trackingPatch` is pure, so
-    // asking twice is cheaper than two definitions drifting apart.
+    // the one thing the screen does that the cache cannot: open the dates sheet
+    // on the pair it just stamped. `trackingPatch` is pure, so asking twice is
+    // cheaper than two definitions drifting apart.
     const patch = trackingPatch(write, detail, todayIso());
-    setSweeping('watched' in patch);
     apply(write);
     // The one transition with no evidence behind its date: the user is logging
     // something they watched at some unknown time in the past, and today is
@@ -207,69 +170,100 @@ export default function MediaScreen() {
     }
   };
 
+  /**
+   * The primary action, in the design's words: name the next unit and nothing
+   * more. A movie has no next unit, so it gets the one step it does have.
+   */
+  const primary = hasParts
+    ? doneWithAll
+      ? { label: 'CAUGHT UP', caughtUp: true, onPress: () => setSheet('status') }
+      : {
+          label: `${trackingVerbLabel(detail.kind, 'present').toUpperCase()} ${noun.prefix}${position + 1}`,
+          caughtUp: false,
+          onPress: () => setPosition(position + 1),
+        }
+    : viewer.status === 'completed'
+      ? { label: 'WATCHED', caughtUp: true, onPress: () => setSheet('status') }
+      : {
+          label: 'MARK WATCHED',
+          caughtUp: false,
+          onPress: () => setStatus('completed'),
+        };
+
   return (
     <PageFrame>
-      <FlashList
-        data={rows}
-        keyExtractor={(row) => `parts-${row[0]}`}
-        extraData={`${watched.size}-${sweeping}`}
+      <Animated.ScrollView
         scrollEventThrottle={16}
         onScroll={(event) => {
           scrollY.value = event.nativeEvent.contentOffset.y;
         }}
         contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }}
-        ListHeaderComponent={
-          <View style={{ paddingTop: insets.top + HEADER_HEIGHT }}>
-            <Hero
-              scrollY={scrollY}
-              media={detail}
-              watched={watched}
-              next={next}
-              onCheckInNext={() => {
-                if (next !== null) togglePart(next);
-              }}
-              onOpen={setSheet}
-              onEditDates={() => setEditingDates({ ...viewer })}
-              onToggleFavorite={() =>
-                apply({ op: viewer.favorited ? 'unfavorite' : 'favorite', id: detail.id })
-              }
+      >
+        <MediaHero
+          media={detail}
+          scrollY={scrollY}
+          statusLabel={viewer.status ? LOG_STATUS_LABELS[viewer.status].toUpperCase() : null}
+          dateLabel={dateRangeLabel(viewer.startedAt, viewer.finishedAt)}
+          onEditStatus={() => setSheet('status')}
+          onEditDates={() => setEditingDates({ ...viewer })}
+        />
+
+        <View style={[styles.gutter, styles.body]}>
+          <StaleNotice updatedAt={dataUpdatedAt} />
+
+          <MediaActionRow
+            label={primary.label}
+            caughtUp={primary.caughtUp}
+            favorited={viewer.favorited}
+            onPrimary={primary.onPress}
+            onToggleFavorite={() =>
+              apply({ op: viewer.favorited ? 'unfavorite' : 'favorite', id: detail.id })
+            }
+            onAddToList={() => setSheet('list')}
+          />
+
+          <RatingCard
+            score={viewer.score}
+            communityScore={detail.community.averageScore}
+            ratingCount={detail.community.ratingCount}
+            onPress={() => setSheet('rating')}
+          />
+
+          {hasParts && total !== null ? (
+            <ProgressCard
+              // Keyed by the position so a value that moves under the control —
+              // a queued write landing, a rolled-back patch — resets its drafts
+              // instead of being mirrored by an effect.
+              key={position}
+              unitLabel={`${noun.plural.toUpperCase()} ${trackingVerbLabel(detail.kind).toUpperCase()}`}
+              total={total}
+              position={position}
+              watchedCount={watched.size}
+              onCommit={setPosition}
             />
-            <View style={styles.gutter}>
-              <StaleNotice updatedAt={dataUpdatedAt} />
-            </View>
-            {rows.length > 0 ? (
-              <View style={[styles.gutter, styles.partsHead]}>
-                <SectionTitle
-                  title={
-                    detail.kind === 'manga' || detail.kind === 'webtoon' ? 'Chapters' : 'Episodes'
-                  }
-                />
-                <Text style={[type.eyebrow, styles.dim]}>
-                  {watched.size} OF {detail.partCount}{' '}
-                  {trackingVerbLabel(detail.kind).toUpperCase()}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        }
-        ListFooterComponent={<Footer media={detail} />}
-        renderItem={({ item }) => (
-          <View style={[styles.gutter, styles.partRow]}>
-            {item.map((number) => (
-              <PartTile
-                key={number}
-                number={number}
-                size={tileWidth}
-                watched={watched.has(number)}
-                isNext={number === next}
-                staggered={sweeping}
-                noun={partNoun(detail)}
-                onPress={() => togglePart(number)}
-              />
-            ))}
-          </View>
-        )}
-      />
+          ) : null}
+
+          {detail.description ? (
+            <Text style={[type.body, styles.muted]}>{detail.description}</Text>
+          ) : null}
+        </View>
+
+        {hasParts ? (
+          <PartsSection
+            detail={detail}
+            noun={noun}
+            total={total}
+            position={position}
+            watched={watched}
+            blocks={blocks}
+            openBlock={openBlock}
+            onToggleBlock={(index) => setOpenBlock((current) => (current === index ? null : index))}
+            onSetPosition={setPosition}
+          />
+        ) : null}
+
+        <Footer media={detail} />
+      </Animated.ScrollView>
 
       <HeaderBar title={detail.title} scrollY={scrollY} />
 
@@ -325,97 +319,134 @@ export default function MediaScreen() {
   );
 }
 
-/** 'Episode'/'Chapter' and its short prefix, or null for a movie (ADR-0003). */
-function partNoun(detail: MediaDetail): { singular: string; prefix: string } {
+/** 'Episode'/'Chapter', its plural, and the short prefix a button uses. */
+function partNoun(detail: MediaDetail): { singular: string; plural: string; prefix: string } {
   return detail.kind === 'manga' || detail.kind === 'webtoon'
-    ? { singular: 'Chapter', prefix: 'CH' }
-    : { singular: 'Episode', prefix: 'E' };
+    ? { singular: 'Chapter', plural: 'Chapters', prefix: 'CH' }
+    : { singular: 'Episode', plural: 'Episodes', prefix: 'E' };
 }
 
 /**
- * One part in the grid — and, from phase 3, a real button: tap to check in, tap
- * again to undo. The up-next part is outlined pink before it is filled, which
- * is what makes "where was I" answerable at a glance.
+ * The parts, at whatever scale the work is.
  *
- * From phase 4 the fill is animated rather than switched. Two things make that
- * more than decoration. A single tap gets a 140ms fade, which is what tells the
- * eye *which* tile it just hit in a grid of sixty identical squares. And when a
- * status change sweeps the whole grid — COMPLETED marks every part at once —
- * the tiles land in sequence (`staggered`), so the sweep reads as one action
- * the user caused rather than as the screen having been replaced.
+ * Short work: every part, as a row. Long work: blocks of forty, and a six-row
+ * window inside the one you open — the design's "never the whole volume, never
+ * the whole work". An unknown count (an airing season) has no scale to block
+ * up, so it gets the window around the position and nothing else.
  *
- * The stagger is suppressed for a single toggle, because a chapter 240 tile
- * would otherwise wait a quarter second to acknowledge its own tap. And when
- * `number` changes the fill *snaps*: this tile is a recycled `FlashList` cell
- * that has just become a different part, and animating that would flash a fill
- * across the grid on every scroll.
- *
- * The label carries what the bare number can't: the tile shows `13`, the screen
- * reader hears "Episode 13, watched".
+ * Every row writes the position: tapping part 140 marks everything to it,
+ * tapping a part already done sets the position to one below, which is how an
+ * overshoot is corrected without a dialog.
  */
-function PartTile({
-  number,
-  size,
-  watched,
-  isNext,
-  staggered,
+function PartsSection({
+  detail,
   noun,
-  onPress,
+  total,
+  position,
+  watched,
+  blocks,
+  openBlock,
+  onToggleBlock,
+  onSetPosition,
 }: {
-  number: number;
-  size: number;
-  watched: boolean;
-  isNext: boolean;
-  /** True when this change is part of a bulk sweep, not a single tap. */
-  staggered: boolean;
-  noun: { singular: string; prefix: string };
-  onPress: () => void;
+  detail: MediaDetail;
+  noun: { singular: string; plural: string; prefix: string };
+  total: number | null;
+  position: number;
+  watched: ReadonlySet<number>;
+  blocks: ReturnType<typeof partBlocks>;
+  openBlock: number | null;
+  onToggleBlock: (index: number) => void;
+  onSetPosition: (upTo: number) => void;
 }) {
-  const press = usePressMotion();
-  const fill = useSharedValue(watched ? 1 : 0);
-  const recycledAs = useRef(number);
+  const volumes = detail.kind === 'manga' || detail.kind === 'webtoon';
+  const next = firstUnwatched(watched, total ?? position + 1);
 
-  useEffect(() => {
-    const target = watched ? 1 : 0;
-    if (recycledAs.current !== number) {
-      recycledAs.current = number;
-      fill.value = target;
-      return;
-    }
-    fill.value = withDelay(
-      staggered ? staggerDelay(number - 1, 6) : 0,
-      withTiming(target, { duration: duration.micro }),
+  const row = (number: number) => (
+    <PartRow
+      key={number}
+      label={`${noun.singular} ${number}`}
+      done={watched.has(number)}
+      isNext={number === next}
+      // Tapping what you have done sets the position below it; tapping ahead
+      // brings everything up to it. One write either way.
+      onPress={() => onSetPosition(watched.has(number) ? number - 1 : number)}
+    />
+  );
+
+  if (total === null) {
+    // No count yet: no blocks, no percentage — just where you are and what is
+    // immediately around it.
+    const around = partWindow(1, position + 4, position);
+    return (
+      <View style={[styles.gutter, styles.parts]}>
+        <SectionTitle title={noun.plural} />
+        <Text style={[type.eyebrow, styles.dim]}>{position} SO FAR · COUNT NOT PUBLISHED YET</Text>
+        <View style={styles.rows}>{around.map(row)}</View>
+      </View>
     );
-  }, [watched, number, staggered, fill]);
+  }
 
-  const fillStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      fill.value,
-      [0, 1],
-      [isNext ? surface.pinkRow : surface.glass, surface.pinkSelected],
-    ),
-    borderColor: interpolateColor(
-      fill.value,
-      [0, 1],
-      [isNext ? color.pink : surface.glassBorder, color.pink],
-    ),
-  }));
+  if (blocks.length === 0) {
+    return (
+      <View style={[styles.gutter, styles.parts]}>
+        <SectionTitle title={noun.plural} />
+        <View style={styles.rows}>{Array.from({ length: total }, (_, i) => i + 1).map(row)}</View>
+      </View>
+    );
+  }
+
+  // The block you are in is the one that opens, until you say otherwise.
+  const current = Math.min(
+    blocks.length,
+    Math.max(1, Math.ceil(Math.max(position, 1) / blocks[0]!.size)),
+  );
+  const activeIndex = openBlock ?? current;
+  const active = blocks.find((block) => block.index === activeIndex) ?? blocks[0]!;
+  const window = partWindow(active.from, active.to, position);
+  const inside = position >= active.from && position <= active.to;
 
   return (
-    <AnimatedPressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: watched }}
-      accessibilityLabel={`${noun.singular} ${number}${watched ? ' — watched' : isNext ? ' — up next' : ''}`}
-      onPress={onPress}
-      onPressIn={press.onPressIn}
-      onPressOut={press.onPressOut}
-      android_ripple={ripple()}
-      style={[styles.tile, { width: size, height: size }, fillStyle, press.animatedStyle]}
-    >
-      <Text style={[type.eyebrow, watched || isNext ? styles.tileWatchedText : styles.dim]}>
-        {number}
+    <View style={[styles.gutter, styles.parts]}>
+      <View style={styles.partsHead}>
+        <SectionTitle title={volumes ? 'Volumes' : noun.plural} />
+        <Text style={[type.eyebrow, styles.dim]}>
+          {blocks.length} {volumes ? 'VOLUMES' : 'BLOCKS'} · {total} {noun.plural.toUpperCase()}
+        </Text>
+      </View>
+
+      <View style={styles.rows}>
+        {blocks.map((block) => (
+          <PartBlockRow
+            key={block.index}
+            block={block}
+            label={volumes ? `Volume ${block.index}` : `${noun.plural} ${block.from}–${block.to}`}
+            rangeLabel={
+              volumes
+                ? `${noun.prefix} ${block.from}–${block.to}`
+                : `${block.size} ${noun.plural.toUpperCase()}`
+            }
+            open={block.index === activeIndex}
+            onPress={() => onToggleBlock(block.index)}
+          />
+        ))}
+      </View>
+
+      <View style={styles.windowHead}>
+        <Text style={[type.section, styles.fg]}>
+          {(volumes
+            ? `Volume ${active.index}`
+            : `${noun.plural} ${active.from}–${active.to}`
+          ).toUpperCase()}
+          {inside ? ' · AROUND YOU' : ''}
+        </Text>
+        <View style={styles.rule} />
+      </View>
+      <View style={styles.rows}>{window.map(row)}</View>
+      <Text style={[type.eyebrow, styles.faint]}>
+        OPEN A {volumes ? 'VOLUME' : 'BLOCK'} TO JUMP THERE · THE SLIDER TRAVELS FURTHER
       </Text>
-    </AnimatedPressable>
+    </View>
   );
 }
 
@@ -437,6 +468,13 @@ function HeaderBar({ title, scrollY }: { title: string; scrollY: SharedValue<num
     opacity: interpolate(scrollY.value, [...HEADER_FADE], [0, 1], 'clamp'),
   }));
 
+  // Over the hero art the back link needs its own ink to sit on (the mockup's
+  // floating pill); once the bar's own glass has arrived it would be a second
+  // surface on top of a surface, so it fades out as that fades in.
+  const pillStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [...HEADER_FADE], [1, 0], 'clamp'),
+  }));
+
   return (
     <View
       style={[styles.headerBar, { paddingTop: insets.top, height: insets.top + HEADER_HEIGHT }]}
@@ -449,178 +487,24 @@ function HeaderBar({ title, scrollY }: { title: string; scrollY: SharedValue<num
         importantForAccessibility="no-hide-descendants"
       >
         <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
-        {/* The blur alone is not enough. The part grid scrolling underneath
-            stays legible through it, and "CHAPTERS · 65 OF 180" sliding across
-            "‹ BACK" and the title is the exact thing §05 forbids of a sheet —
-            content behind fighting the text. Same 82% ink the tab bar puts over
-            its own blur. */}
+        {/* The blur alone is not enough: §05 forbids content behind fighting
+            the text. Same 82% ink the tab bar puts over its own blur. */}
         <View style={[StyleSheet.absoluteFill, styles.headerFill]} />
         <View style={styles.headerRule} />
       </Animated.View>
       <View style={styles.headerRow}>
-        <BackLink />
+        <View>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, styles.backPill, pillStyle]}
+            pointerEvents="none"
+          />
+          <BackLink />
+        </View>
         <Animated.Text numberOfLines={1} style={[type.section, styles.headerTitle, glassStyle]}>
           {title.toUpperCase()}
         </Animated.Text>
       </View>
     </View>
-  );
-}
-
-function Hero({
-  media,
-  scrollY,
-  watched,
-  next,
-  onCheckInNext,
-  onOpen,
-  onEditDates,
-  onToggleFavorite,
-}: {
-  media: MediaDetail;
-  scrollY: SharedValue<number>;
-  watched: ReadonlySet<number>;
-  next: number | null;
-  onCheckInNext: () => void;
-  onOpen: (sheet: OpenSheet) => void;
-  onEditDates: () => void;
-  onToggleFavorite: () => void;
-}) {
-  const viewer = media.viewer ?? EMPTY_VIEWER;
-  const range = dateRangeLabel(viewer.startedAt, viewer.finishedAt);
-  const noun = partNoun(media);
-
-  // The cover holds back at a third of the scroll and fades as the bar takes
-  // over, so the two halves of the header hand off to each other instead of
-  // both being on screen at once. Pulling *down* scales it up rather than
-  // leaving a gap — the one place in the app where overscroll is not just slack.
-  const coverStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: interpolate(scrollY.value, [0, 300], [0, 100], 'clamp') },
-      { scale: scrollY.value < 0 ? 1 + Math.min(-scrollY.value, 120) / 600 : 1 },
-    ],
-    opacity: interpolate(scrollY.value, [...HEADER_FADE], [1, 0.25], 'clamp'),
-  }));
-
-  return (
-    <View style={[styles.gutter, styles.hero]}>
-      <View style={styles.heroRow}>
-        <Animated.View style={coverStyle}>
-          <Cover
-            kind={media.kind}
-            title={media.title}
-            coverUrl={media.coverUrl}
-            width={120}
-            showTitle={false}
-          />
-        </Animated.View>
-        <View style={styles.heroText}>
-          <View style={styles.metaRow}>
-            <KindDot kind={media.kind} />
-            <Text style={[type.eyebrow, styles.dim]}>
-              {KIND_LABELS_SINGULAR[media.kind]}
-              {media.year ? ` · ${media.year}` : ''}
-              {media.seasonNumber ? ` · S${media.seasonNumber}` : ''}
-            </Text>
-          </View>
-          <Text style={[type.title, styles.fg]}>{media.title.toUpperCase()}</Text>
-          {media.originalTitle && media.originalTitle !== media.title ? (
-            <Text style={[type.bodySm, styles.dim]} numberOfLines={2}>
-              {media.originalTitle}
-            </Text>
-          ) : null}
-        </View>
-      </View>
-
-      {/* The daily action, in the top third of the screen where the design puts
-          it (§00). One tap, no confirmation — the grid below is the undo. */}
-      {next !== null ? (
-        <PrismButton
-          label={`✓ ${trackingVerbLabel(media.kind, 'present')} ${noun.prefix}${next}`}
-          onPress={onCheckInNext}
-          style={styles.checkIn}
-        />
-      ) : null}
-
-      <View style={styles.pills}>
-        <ActionPill
-          label={viewer.status ? LOG_STATUS_LABELS[viewer.status] : '＋ LOG'}
-          selected={viewer.status !== null}
-          onPress={() => onOpen('status')}
-          accessibilityLabel={`Status: ${viewer.status ? LOG_STATUS_LABELS[viewer.status] : 'not logged'}`}
-        />
-        {/* The dates live on the log row, so there is nothing to edit before
-            one exists — the same rule web applies. */}
-        {viewer.status !== null ? (
-          <ActionPill
-            label={range ?? '＋ DATES'}
-            selected={range !== null}
-            onPress={onEditDates}
-            accessibilityLabel={`Dates: ${range ?? 'none set'}`}
-          />
-        ) : null}
-        <ActionPill
-          label={viewer.score !== null ? `★ ${viewer.score.toFixed(1)}` : 'RATE'}
-          selected={viewer.score !== null}
-          onPress={() => onOpen('rating')}
-          accessibilityLabel={`Your rating: ${viewer.score !== null ? viewer.score.toFixed(1) : 'none'}`}
-        />
-        <ActionPill
-          label={viewer.favorited ? '♥ FAVOURITE' : '♡ FAVOURITE'}
-          selected={viewer.favorited}
-          onPress={onToggleFavorite}
-        />
-        <ActionPill label="＋ LIST" onPress={() => onOpen('list')} />
-      </View>
-
-      <View style={styles.stats}>
-        {media.community.averageScore !== null ? (
-          <Stat
-            value={media.community.averageScore.toFixed(1)}
-            label={`${media.community.ratingCount} ratings`}
-          />
-        ) : null}
-        {media.partCount ? (
-          <Stat value={`${watched.size}/${media.partCount}`} label="Progress" />
-        ) : null}
-        {media.status ? <Stat value={media.status.toUpperCase()} label="Status" /> : null}
-      </View>
-
-      {media.description ? (
-        <Text style={[type.body, styles.muted]}>{media.description}</Text>
-      ) : null}
-    </View>
-  );
-}
-
-/** A glass pill that opens a sheet or toggles a flag; pink once it holds a value. */
-function ActionPill({
-  label,
-  selected = false,
-  onPress,
-  accessibilityLabel,
-}: {
-  label: string;
-  selected?: boolean;
-  onPress: () => void;
-  accessibilityLabel?: string;
-}) {
-  const press = usePressMotion();
-  return (
-    <AnimatedPressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      {...(accessibilityLabel ? { accessibilityLabel } : {})}
-      onPress={onPress}
-      onPressIn={press.onPressIn}
-      onPressOut={press.onPressOut}
-      android_ripple={ripple()}
-      style={[styles.pill, selected ? styles.pillSelected : null, press.animatedStyle]}
-    >
-      <Text style={[type.button, selected ? styles.pinkText : styles.fg]}>
-        {label.toUpperCase()}
-      </Text>
-    </AnimatedPressable>
   );
 }
 
@@ -687,17 +571,6 @@ function Shelf({ title, works }: { title: string; works: (RelatedWork | SearchRe
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={styles.stat}>
-      <View style={styles.shrink}>
-        <PrismText style={type.stat}>{value}</PrismText>
-      </View>
-      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
-    </View>
-  );
-}
-
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailRow}>
@@ -711,52 +584,30 @@ const styles = StyleSheet.create({
   gutter: {
     paddingHorizontal: layout.gutter,
   },
-  hero: {
+  body: {
     gap: space.lg,
+    paddingTop: space.lg,
   },
-  heroRow: {
-    flexDirection: 'row',
-    gap: space.lg,
+  parts: {
+    gap: space.md,
+    marginTop: layout.sectionGap,
   },
-  heroText: {
-    flex: 1,
-    gap: space.sm,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  checkIn: {
-    alignSelf: 'flex-start',
-  },
-  pills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.sm,
-  },
-  pill: {
-    minHeight: layout.touchTarget,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorderStrong,
-    backgroundColor: surface.glass,
-    paddingHorizontal: space.lg,
-  },
-  pillSelected: {
-    borderColor: color.pink,
-    backgroundColor: surface.pinkSelected,
-  },
-  stats: {
-    flexDirection: 'row',
-    gap: space.xl,
-  },
-  stat: {
+  partsHead: {
     gap: space.xs,
   },
-  shrink: {
-    alignSelf: 'flex-start',
+  rows: {
+    gap: space.sm,
+  },
+  windowHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    marginTop: space.md,
+  },
+  rule: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: surface.glassBorder,
   },
   headerBar: {
     position: 'absolute',
@@ -787,33 +638,13 @@ const styles = StyleSheet.create({
     flex: 1,
     color: color.fg,
   },
-  partsHead: {
-    marginTop: layout.sectionGap,
-  },
-  partRow: {
-    flexDirection: 'row',
-    gap: space.sm,
-    marginBottom: space.sm,
-  },
-  tile: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.thumb,
+  backPill: {
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(14,12,16,0.62)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorder,
-    backgroundColor: surface.glass,
-  },
-  tileWatched: {
-    backgroundColor: surface.pinkSelected,
-    borderColor: color.pink,
-  },
-  /** Up next: outlined, not filled — it is the target, not a result. */
-  tileNext: {
-    borderColor: color.pink,
-    backgroundColor: surface.pinkRow,
-  },
-  tileWatchedText: {
-    color: color.pink,
+    borderColor: surface.glassBorderStrong,
+    marginVertical: space.xs,
+    marginHorizontal: -space.sm,
   },
   footer: {
     gap: layout.sectionGap,
@@ -859,13 +690,13 @@ const styles = StyleSheet.create({
   fg: {
     color: color.fg,
   },
-  pinkText: {
-    color: color.pink,
-  },
   muted: {
     color: color.muted,
   },
   dim: {
     color: color.dim,
+  },
+  faint: {
+    color: color.faint,
   },
 });
