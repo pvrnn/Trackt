@@ -1,11 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  KIND_LABELS,
-  activityVerbLabel,
-  relativeTime,
-  useFriends,
-  useProfileSummary,
-} from '@trackt/client';
+import { KIND_LABELS, activityVerbLabel, relativeTime, useProfileSummary } from '@trackt/client';
 import { MEDIA_KINDS, type FavoriteEntry } from '@trackt/shared';
 import { useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -14,7 +8,6 @@ import { Avatar } from '../../../src/components/Avatar';
 import { Cover } from '../../../src/components/Cover';
 import { DeleteAccountSheet } from '../../../src/components/DeleteAccountSheet';
 import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
-import { FriendsSheet } from '../../../src/components/FriendsSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
@@ -48,18 +41,16 @@ import { type } from '../../../src/theme/typography';
  * already treats History as a secondary destination anyway.
  *
  * Phase 3 gives it its two writes: the profile edit (name, bio, photo) and the
- * friends sheet, which is also the app's only accept/decline inbox.
+ * friends screen, which is also the app's only accept/decline inbox.
  */
 export default function ProfileTab() {
   const { user, isPending: sessionPending, refetch: refetchSession } = useAuthedScreen();
   const { origin, forgetInstance } = useInstance();
   const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useProfileSummary();
-  const { data: friends } = useFriends();
   const queryClient = useQueryClient();
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState(false);
-  const [managingFriends, setManagingFriends] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   if (sessionPending || !user) {
@@ -133,6 +124,16 @@ export default function ProfileTab() {
             {/* The second navigation level the four-tab spine displaces here —
                 one row each, glyph to chevron, the way the design files it. */}
             <View style={styles.destinations}>
+              <Destination
+                icon="person"
+                href="/friends"
+                label="Friends"
+                meta={
+                  data.stats.incomingRequestCount > 0
+                    ? `${data.stats.friendCount} · ${data.stats.incomingRequestCount} REQUESTS`
+                    : String(data.stats.friendCount)
+                }
+              />
               <Destination icon="list" href="/lists" label="Lists" meta="YOUR COLLECTIONS" />
               <Destination
                 icon="clock"
@@ -141,58 +142,6 @@ export default function ProfileTab() {
                 meta={`${data.stats.completed} DONE`}
               />
               <Destination icon="settings" label="Edit profile" onPress={() => setEditing(true)} />
-            </View>
-
-            <View>
-              <SectionTitle
-                title="Friends"
-                action={
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      data.stats.incomingRequestCount > 0
-                        ? `Friends — ${data.stats.incomingRequestCount} pending requests`
-                        : 'Add a friend'
-                    }
-                    onPress={() => setManagingFriends(true)}
-                    style={({ pressed }) => [styles.addFriend, { opacity: pressed ? 0.7 : 1 }]}
-                  >
-                    <Icon name="plus" color={color.pink} size={16} />
-                    <Text style={[type.button, styles.pink]}>ADD FRIEND</Text>
-                    {/* The badge is why this control is here and not only in
-                        the sheet: an incoming request has no other surface. */}
-                    {data.stats.incomingRequestCount > 0 ? (
-                      <Text style={[type.eyebrow, styles.badge]}>
-                        {data.stats.incomingRequestCount}
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                }
-              />
-              {friends && friends.friends.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.shelf}
-                >
-                  {friends.friends.map((friend) => (
-                    <Touchable
-                      key={friend.id}
-                      href={`/users/${friend.username}`}
-                      style={styles.friend}
-                    >
-                      <Avatar name={friend.username} image={friend.image} size={56} />
-                      <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
-                        {friend.username}
-                      </Text>
-                    </Touchable>
-                  ))}
-                </ScrollView>
-              ) : (
-                <Text style={[type.bodySm, styles.dim]}>
-                  No friends yet — search by name or handle to send a request.
-                </Text>
-              )}
             </View>
 
             {data.favorites.length > 0 ? (
@@ -272,8 +221,6 @@ export default function ProfileTab() {
         />
       ) : null}
 
-      {managingFriends ? <FriendsSheet onClose={() => setManagingFriends(false)} /> : null}
-
       {deleting ? (
         <DeleteAccountSheet
           username={data?.user.username ?? user.username}
@@ -306,7 +253,7 @@ function Destination({
   onPress,
 }: {
   icon: IconName;
-  href?: '/history' | '/lists';
+  href?: '/history' | '/lists' | '/friends';
   label: string;
   meta?: string | undefined;
   onPress?: () => void;

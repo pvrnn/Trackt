@@ -484,7 +484,7 @@
               <div style="width: 68px; height: 68px; border-radius: 999px; flex-shrink: 0; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-family: Anton; font-size: 28px;">M</div>
               <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
                 <div style="font-family: Anton; font-size: 26px; line-height: 1; text-transform: uppercase;">Mara V.</div>
-                <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">@marav · 214 FOLLOWERS</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">@marav · {{ mFriendCount }} FRIENDS · 214 FOLLOWERS</div>
                 <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #d96bb0;">● 23-DAY STREAK</div>
               </div>
             </div>
@@ -514,6 +514,60 @@
                 </div>
               </sc-for>
             </div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="height: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ t.fg }};">{{ t.glyph }}</div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.82); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== FRIENDS ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">FRIENDS · PUSHED FROM PROFILE ROW</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(440px 340px at 25% 0%, rgba(217,107,176,0.4), transparent 68%), radial-gradient(380px 300px at 95% 55%, rgba(139,92,246,0.32), transparent 68%), radial-gradient(400px 340px at 20% 100%, rgba(217,164,65,0.24), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div style="position: relative; flex-shrink: 0; padding: 58px 20px 12px; display: flex; align-items: center; gap: 12px;">
+            <div style="font-family: 'Space Grotesk'; font-size: 20px; color: #948da1;">‹</div>
+            <div style="font-family: Anton; font-size: 24px; text-transform: uppercase; flex: 1;">Friends</div>
+            <div onClick="{{ mInvite }}" style="width: 34px; height: 34px; border-radius: 999px; background: linear-gradient(120deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-size: 17px; font-weight: 700;">＋</div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; padding: 0 20px 12px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 0 14px;">
+              <span style="color: #948da1; font-size: 14px;">⌕</span>
+              <input value="{{ mQuery }}" onChange="{{ mOnQuery }}" placeholder="Name, @handle, or contacts" style="flex: 1; background: transparent; border: none; outline: none; color: #f0edf4; font-family: Archivo, sans-serif; font-size: 14px; padding: 12px 0;">
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <sc-for list="{{ mTabs }}" as="t" hint-placeholder-count="3">
+                <div onClick="{{ t.onClick }}" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 8px 13px; border-radius: 999px; background: {{ t.bg }}; box-shadow: inset 0 0 0 1px {{ t.bd }}; color: {{ t.fg }};">{{ t.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; position: relative; padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 6px;">
+            <sc-for list="{{ mPeople }}" as="p" hint-placeholder-count="7">
+              <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px {{ p.cardBd }}; border-radius: 10px; padding: 11px 12px; display: flex; align-items: center; gap: 11px; flex-shrink: 0;">
+                <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; background: {{ p.grad }}; display: flex; align-items: center; justify-content: center; color: #14101a; font-family: Anton; font-size: 15px;">{{ p.initials }}</div>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                  <div style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ p.name }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.04em; color: #948da1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ p.meta }}</div>
+                </div>
+                <div style="display: flex; gap: 6px; flex-shrink: 0; align-items: center;">
+                  <div onClick="{{ p.onSecondary }}" style="display: {{ p.secondaryDisplay }}; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); color: #948da1; font-size: 12px;">✕</div>
+                  <div onClick="{{ p.onPrimary }}" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 9px 12px; border-radius: 999px; background: {{ p.bg }}; box-shadow: inset 0 0 0 1px {{ p.bd }}; color: {{ p.fg }};">{{ p.action }}</div>
+                </div>
+              </div>
+            </sc-for>
+            <div style="display: {{ mEmptyDisplay }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); border-radius: 10px; padding: 28px; text-align: center; font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #6a6478;">{{ mEmptyText }}</div>
+            <div style="display: {{ mInviteDisplay }}; background: rgba(217,107,176,0.14); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.45); border-radius: 10px; padding: 13px 14px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #d96bb0; text-align: center; flex-shrink: 0;">INVITE LINK COPIED — SHARE SHEET OPENS</div>
           </div>
           <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
             <sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="4">
@@ -597,8 +651,75 @@
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;swipeHint&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Swipe check-in&quot;}}">
+const FG = [
+  'linear-gradient(135deg, #d9a441, #d96bb0)', 'linear-gradient(135deg, #8b5cf6, #4a6ee8)',
+  'linear-gradient(135deg, #d96bb0, #8b5cf6)', 'linear-gradient(135deg, #4a6ee8, #35d6c0)',
+  'linear-gradient(135deg, #e8874a, #d9a441)', 'linear-gradient(135deg, #35d6c0, #4a6ee8)',
+];
+const ROSTER = [
+  { id: 'sam', name: 'Sam Okonkwo', handle: 'samok', note: 'Neon Harbor S2E4', kind: 'friend' },
+  { id: 'iris', name: 'Iris Delacroix', handle: 'irisd', note: 'Moonlit Courier Ch 88', kind: 'friend' },
+  { id: 'ben', name: 'Ben Alvarez', handle: 'balv', note: '31-day streak', kind: 'friend' },
+  { id: 'noor', name: 'Noor Haddad', handle: 'noorh', note: 'The Long Static · done', kind: 'friend' },
+  { id: 'kai', name: 'Kai Lindqvist', handle: 'kail', note: 'Sable Coast S1E2', kind: 'friend' },
+  { id: 'tess', name: 'Tess Moreau', handle: 'tessm', note: 'Copper Veil Ch 12', kind: 'friend' },
+  { id: 'ravi', name: 'Ravi Menon', handle: 'ravim', note: 'Wants to be friends', kind: 'request' },
+  { id: 'juno', name: 'Juno Park', handle: 'junop', note: 'From TV Time import', kind: 'request' },
+  { id: 'mila', name: 'Mila Brandt', handle: 'milab', note: 'Wants to be friends', kind: 'request' },
+  { id: 'omar', name: 'Omar Reza', handle: 'omarr', note: 'In your contacts', kind: 'suggested' },
+  { id: 'lena', name: 'Lena Fischer', handle: 'lenaf', note: 'Friend of Sam', kind: 'suggested' },
+  { id: 'dov', name: 'Dov Katz', handle: 'dovk', note: 'From TV Time import', kind: 'suggested' },
+  { id: 'yuki', name: 'Yuki Sato', handle: 'yukis', note: 'Same 4 webtoons', kind: 'suggested' },
+];
+
 class Component extends DCLogic {
-  state = { dragId: null, startX: 0, dx: {}, committed: {}, toast: null, animating: {} };
+  state = { dragId: null, startX: 0, dx: {}, committed: {}, toast: null, animating: {}, fTab: 'FRIENDS', fQuery: '', fInvited: false, fStatus: {} };
+
+  fKind(p) { return this.state.fStatus[p.id] || p.kind; }
+
+  fSet(id, kind) { this.setState((s) => ({ fStatus: Object.assign({}, s.fStatus, { [id]: kind }) })); }
+
+  fCard(p, i) {
+    const kind = this.fKind(p);
+    const base = { kind, name: p.name, grad: FG[i % FG.length],
+      initials: p.name.split(' ').map((w) => w[0]).join(''),
+      meta: '@' + p.handle + ' · ' + p.note, cardBd: 'rgba(255,255,255,0.1)',
+      secondaryDisplay: 'none', onSecondary: () => {} };
+    if (kind === 'request') return Object.assign(base, { action: 'ACCEPT', bg: 'linear-gradient(120deg, #d96bb0, #8b5cf6)', bd: 'transparent', fg: '#14101a', cardBd: 'rgba(217,164,65,0.4)', onPrimary: () => this.fSet(p.id, 'friend'), secondaryDisplay: 'flex', onSecondary: () => this.fSet(p.id, 'declined') });
+    if (kind === 'friend') return Object.assign(base, { action: 'FRIENDS ✓', bg: 'rgba(139,92,246,0.16)', bd: 'rgba(139,92,246,0.5)', fg: '#c4b5fd', onPrimary: () => this.fSet(p.id, 'suggested') });
+    if (kind === 'requested') return Object.assign(base, { action: 'REQUESTED', bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.15)', fg: '#948da1', onPrimary: () => this.fSet(p.id, 'suggested') });
+    if (kind === 'declined') return Object.assign(base, { action: 'UNDO', bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.15)', fg: '#948da1', onPrimary: () => this.fSet(p.id, 'request') });
+    return Object.assign(base, { action: '＋ ADD', bg: 'rgba(217,107,176,0.14)', bd: 'rgba(217,107,176,0.5)', fg: '#d96bb0', onPrimary: () => this.fSet(p.id, 'requested') });
+  }
+
+  friendVals() {
+    const q = this.state.fQuery.trim().toLowerCase();
+    const cards = ROSTER.map((p, i) => this.fCard(p, i));
+    const mFriendCount = cards.filter((c) => c.kind === 'friend').length;
+    const mRequestCount = cards.filter((c) => c.kind === 'request').length;
+    let mPeople;
+    if (q) mPeople = cards.filter((c) => (c.name + ' ' + c.meta).toLowerCase().includes(q));
+    else if (this.state.fTab === 'FRIENDS') mPeople = cards.filter((c) => c.kind === 'friend');
+    else if (this.state.fTab === 'REQUESTS') mPeople = cards.filter((c) => c.kind === 'request' || c.kind === 'declined');
+    else mPeople = cards.filter((c) => c.kind === 'suggested' || c.kind === 'requested');
+    const mTabs = [
+      { label: 'FRIENDS ' + mFriendCount, key: 'FRIENDS' },
+      { label: 'REQUESTS ' + mRequestCount, key: 'REQUESTS' },
+      { label: 'SUGGESTED', key: 'SUGGESTED' },
+    ].map((t) => {
+      const on = this.state.fTab === t.key && !q;
+      return { label: t.label, bg: on ? 'linear-gradient(120deg, rgba(217,107,176,0.9), rgba(139,92,246,0.9))' : 'transparent',
+        bd: on ? 'transparent' : 'rgba(255,255,255,0.15)', fg: on ? '#14101a' : '#948da1',
+        onClick: () => this.setState({ fTab: t.key, fQuery: '' }) };
+    });
+    return { mPeople, mTabs, mFriendCount, mRequestCount,
+      mQuery: this.state.fQuery,
+      mOnQuery: (e) => this.setState({ fQuery: e.target.value }),
+      mInvite: () => this.setState({ fInvited: !this.state.fInvited }),
+      mInviteDisplay: this.state.fInvited ? 'block' : 'none',
+      mEmptyDisplay: mPeople.length ? 'none' : 'block',
+      mEmptyText: q ? 'NO MATCHES' : 'NOTHING HERE YET' };
+  }
 
   ARM = 96;
 
@@ -637,6 +758,8 @@ class Component extends DCLogic {
 
   renderVals() {
     const hint = this.props.swipeHint ?? false;
+    const F = this.friendVals();
+    const mFriendCount = F.mFriendCount, mRequestCount = F.mRequestCount;
     const all = this.data();
     const rows = all.map((r) => {
       const dx = this.state.dx[r.id] || 0;
@@ -772,11 +895,13 @@ class Component extends DCLogic {
         { title: 'Watch with Sam', meta: '8 TITLES · FOLLOWERS · YESTERDAY', badge: 'COLLAB', badgeFg: '#b8b1c4', badgeBd: 'rgba(255,255,255,0.2)', badgeDisplay: 'block',
           covers: ['linear-gradient(160deg, #8a5c2a, #17100a)', 'linear-gradient(160deg, #b0722a, #140e08)', 'linear-gradient(160deg, #c48a2a, #141008)', 'linear-gradient(160deg, #d9a441, #171008)'] },
       ],
+      ...F,
       profStats: [
         { v: '186', k: 'EPISODES' }, { v: '412', k: 'CHAPTERS' },
         { v: '41', k: 'COMPLETED' }, { v: '318h', k: 'WATCHED' },
       ],
       profRows: [
+        { glyph: '◍', label: 'Friends', meta: mFriendCount + ' · ' + mRequestCount + ' REQUESTS' },
         { glyph: '☰', label: 'Lists', meta: '4' },
         { glyph: '◷', label: 'History', meta: '2026' },
         { glyph: '◈', label: 'Activity', meta: '12 NEW' },

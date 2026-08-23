@@ -23,6 +23,8 @@ export type IconName =
   | 'pencil'
   | 'list'
   | 'clock'
+  | 'search'
+  | 'person'
   | 'close'
   | 'chevron-left'
   | 'chevron-right'
@@ -43,6 +45,9 @@ const PATHS: Record<Exclude<IconName, 'settings'>, string> = {
   list: 'M4 7h16M4 12h16M4 17h10',
   // A clock: the face as two arcs, then the hands.
   clock: 'M12 3.2a8.8 8.8 0 1 1 0 17.6 8.8 8.8 0 0 1 0-17.6M12 7.2V12l3.4 2',
+  search: 'M10.5 4.5a6 6 0 1 1 0 12 6 6 0 0 1 0-12M15 15l4.6 4.6',
+  // The tab bar's profile glyph, at row scale: head over shoulders.
+  person: 'M12 5.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2M4.8 20a7.2 7.2 0 0 1 14.4 0',
   close: 'M6 6l12 12M18 6L6 18',
   'chevron-left': 'M14.5 5.5L8 12l6.5 6.5',
   'chevron-right': 'M9.5 5.5L16 12l-6.5 6.5',
