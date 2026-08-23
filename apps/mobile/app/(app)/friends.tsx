@@ -143,7 +143,7 @@ export default function FriendsScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.inviteFill}
           >
-            <Icon name="plus" color={color.onPrism} size={18} />
+            <Icon name="share" color={color.onPrism} size={17} />
           </LinearGradient>
         </AnimatedPressable>
       </View>

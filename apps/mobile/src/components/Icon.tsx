@@ -25,6 +25,7 @@ export type IconName =
   | 'clock'
   | 'search'
   | 'person'
+  | 'share'
   | 'close'
   | 'chevron-left'
   | 'chevron-right'
@@ -48,6 +49,9 @@ const PATHS: Record<Exclude<IconName, 'settings'>, string> = {
   search: 'M10.5 4.5a6 6 0 1 1 0 12 6 6 0 0 1 0-12M15 15l4.6 4.6',
   // The tab bar's profile glyph, at row scale: head over shoulders.
   person: 'M12 5.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2M4.8 20a7.2 7.2 0 0 1 14.4 0',
+  // The platform share mark: something leaving a tray, upward.
+  share:
+    'M12 15.5V4M8.4 7.6 12 4l3.6 3.6M5.5 12.5v5.6a1.6 1.6 0 0 0 1.6 1.6h9.8a1.6 1.6 0 0 0 1.6-1.6v-5.6',
   close: 'M6 6l12 12M18 6L6 18',
   'chevron-left': 'M14.5 5.5L8 12l6.5 6.5',
   'chevron-right': 'M9.5 5.5L16 12l-6.5 6.5',
