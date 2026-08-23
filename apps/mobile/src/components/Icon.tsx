@@ -21,6 +21,8 @@ export type IconName =
   | 'plus'
   | 'minus'
   | 'pencil'
+  | 'list'
+  | 'clock'
   | 'close'
   | 'chevron-left'
   | 'chevron-right'
@@ -38,6 +40,9 @@ const PATHS: Record<Exclude<IconName, 'settings'>, string> = {
   minus: 'M5 12h14',
   // A pencil at 45°: nib at the bottom left, eraser end top right.
   pencil: 'M4 20l1-4.2L15.6 5.2a2.1 2.1 0 0 1 3 3L8.2 19z',
+  list: 'M4 7h16M4 12h16M4 17h10',
+  // A clock: the face as two arcs, then the hands.
+  clock: 'M12 3.2a8.8 8.8 0 1 1 0 17.6 8.8 8.8 0 0 1 0-17.6M12 7.2V12l3.4 2',
   close: 'M6 6l12 12M18 6L6 18',
   'chevron-left': 'M14.5 5.5L8 12l6.5 6.5',
   'chevron-right': 'M9.5 5.5L16 12l-6.5 6.5',

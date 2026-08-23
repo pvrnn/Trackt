@@ -16,7 +16,7 @@ import { DeleteAccountSheet } from '../../../src/components/DeleteAccountSheet';
 import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
 import { FriendsSheet } from '../../../src/components/FriendsSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
-import { Icon } from '../../../src/components/Icon';
+import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
@@ -27,7 +27,7 @@ import {
   StaleNotice,
   useTabContentInset,
 } from '../../../src/components/Page';
-import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
+import { ripple } from '../../../src/components/Press';
 import { Touchable } from '../../../src/components/Touchable';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { PrismText } from '../../../src/components/PrismText';
@@ -59,7 +59,6 @@ export default function ProfileTab() {
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState(false);
-  const editPress = usePressMotion();
   const [managingFriends, setManagingFriends] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -88,32 +87,27 @@ export default function ProfileTab() {
         }
       >
         <View style={styles.header}>
-          <Avatar name={data?.user.name ?? user.name} image={data?.user.image} size={88} />
+          <Avatar name={data?.user.name ?? user.name} image={data?.user.image} size={68} />
           <View style={styles.headerText}>
-            <Text style={[type.title, styles.fg]} numberOfLines={2}>
+            <Text style={styles.name} numberOfLines={2}>
               {(data?.user.name ?? user.name).toUpperCase()}
             </Text>
-            <Text style={[type.eyebrow, styles.dim]}>@{data?.user.username ?? user.username}</Text>
+            {/* Handle and reach on one line, the streak on its own in pink —
+                the design's identity block. A streak is the one number here
+                that decays if you stop, which is why it gets the colour. */}
+            <Text style={[type.eyebrow, styles.dim]}>
+              @{data?.user.username ?? user.username}
+              {data
+                ? ` · ${data.stats.friendCount} ${data.stats.friendCount === 1 ? 'FRIEND' : 'FRIENDS'}`
+                : ''}
+            </Text>
+            {data && data.stats.dayStreak > 0 ? (
+              <View style={styles.streak}>
+                <View style={styles.streakDot} />
+                <Text style={[type.eyebrow, styles.pink]}>{data.stats.dayStreak}-DAY STREAK</Text>
+              </View>
+            ) : null}
           </View>
-          {/* A gear, not an EDIT PROFILE pill. The pill was the widest thing in
-              the header and it sat under the name, pushing the identity block
-              off the avatar's centre line for a control used about twice a
-              year. Top-right is where the design files this (`Mobile App`'s
-              profile list opens with a ⚙ "Settings & export" row), and an icon
-              at 44pt costs the header no vertical space at all. */}
-          {data ? (
-            <AnimatedPressable
-              accessibilityRole="button"
-              accessibilityLabel="Edit profile"
-              onPress={() => setEditing(true)}
-              onPressIn={editPress.onPressIn}
-              onPressOut={editPress.onPressOut}
-              android_ripple={ripple(true)}
-              style={[styles.gear, editPress.animatedStyle]}
-            >
-              <Icon name="settings" color={color.fg} size={22} />
-            </AnimatedPressable>
-          ) : null}
         </View>
         {data?.user.bio ? <Text style={[type.body, styles.bio]}>{data.user.bio}</Text> : null}
 
@@ -132,18 +126,21 @@ export default function ProfileTab() {
             <View style={styles.stats}>
               <Stat value={data.stats.titlesTracked} label="Tracked" />
               <Stat value={data.stats.completed} label="Completed" />
-              <Stat value={data.stats.dayStreak} label="Day streak" />
-              <Stat value={data.stats.friendCount} label="Friends" />
+              <Stat value={data.stats.episodesThisYear} label="Episodes" />
+              <Stat value={data.stats.chaptersThisYear} label="Chapters" />
             </View>
 
-            {/* The second navigation level the four-tab spine displaces here. */}
+            {/* The second navigation level the four-tab spine displaces here —
+                one row each, glyph to chevron, the way the design files it. */}
             <View style={styles.destinations}>
+              <Destination icon="list" href="/lists" label="Lists" meta="YOUR COLLECTIONS" />
               <Destination
+                icon="clock"
                 href="/history"
-                title="History"
-                detail={`${data.stats.completed} completed`}
+                label="History"
+                meta={`${data.stats.completed} DONE`}
               />
-              <Destination href="/lists" title="Lists" detail="Your collections" />
+              <Destination icon="settings" label="Edit profile" onPress={() => setEditing(true)} />
             </View>
 
             <View>
@@ -198,11 +195,19 @@ export default function ProfileTab() {
               )}
             </View>
 
-            {MEDIA_KINDS.map((kind) => {
-              const favorites = data.favorites.filter((entry) => entry.kind === kind);
-              if (favorites.length === 0) return null;
-              return <FavoriteBlock key={kind} label={KIND_LABELS[kind]} entries={favorites} />;
-            })}
+            {data.favorites.length > 0 ? (
+              <View style={styles.favourites}>
+                <SectionTitle title="Favourites" />
+                {/* One heading, then a shelf per kind — because the rank is per
+                    kind (`favorite.position`), and a single mixed shelf would
+                    put two number ones next to each other. */}
+                {MEDIA_KINDS.map((kind) => {
+                  const favorites = data.favorites.filter((entry) => entry.kind === kind);
+                  if (favorites.length === 0) return null;
+                  return <FavoriteBlock key={kind} label={KIND_LABELS[kind]} entries={favorites} />;
+                })}
+              </View>
+            ) : null}
 
             {data.activity.length > 0 ? (
               <View>
@@ -286,43 +291,82 @@ export default function ProfileTab() {
   );
 }
 
+/**
+ * One navigation row: a pink glyph, the destination, what is behind it, and a
+ * chevron (`Mobile App.dc.html`, profile). Not the two-line card it used to be —
+ * at 14/600 with the count on the right, four of these fit where two did, which
+ * is the point of moving lists and history *into* the profile in the first
+ * place.
+ */
 function Destination({
+  icon,
   href,
-  title,
-  detail,
+  label,
+  meta,
+  onPress,
 }: {
-  href: '/history' | '/lists';
-  title: string;
-  detail: string;
+  icon: IconName;
+  href?: '/history' | '/lists';
+  label: string;
+  meta?: string | undefined;
+  onPress?: () => void;
 }) {
+  const body = (
+    <>
+      <Icon name={icon} color={color.pink} size={17} />
+      <Text style={[type.cardTitle, styles.rowLabel]}>{label}</Text>
+      {meta ? <Text style={[type.eyebrow, styles.dim]}>{meta.toUpperCase()}</Text> : null}
+      <Icon name="chevron-right" color={color.faint} size={16} />
+    </>
+  );
+
+  if (href) {
+    return (
+      <Touchable href={href} style={styles.destination}>
+        {body}
+      </Touchable>
+    );
+  }
   return (
-    <Touchable href={href} style={styles.destination}>
-      <View style={styles.destinationText}>
-        <Text style={[type.section, styles.fg]}>{title.toUpperCase()}</Text>
-        <Text style={[type.eyebrow, styles.dim]}>{detail.toUpperCase()}</Text>
-      </View>
-      <Icon name="chevron-right" color={color.faint} size={20} />
-    </Touchable>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      android_ripple={ripple()}
+      style={({ pressed }) => [styles.destination, { opacity: pressed ? 0.7 : 1 }]}
+    >
+      {body}
+    </Pressable>
   );
 }
 
 function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEntry[] }) {
   return (
-    <View>
-      <SectionTitle title={label} />
+    <View style={styles.favouriteBlock}>
+      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.shelf}
       >
         {entries.map((entry) => (
-          <Touchable key={entry.id} href={`/media/${entry.slug}`}>
-            <Cover kind={entry.kind} title={entry.title} coverUrl={entry.coverUrl} width={96} />
-            <View style={styles.rankRow}>
-              <Text style={[type.eyebrow, styles.rank]}>{String(entry.rank).padStart(2, '0')}</Text>
-              <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={1}>
-                {entry.title}
-              </Text>
+          <Touchable
+            key={entry.id}
+            href={`/media/${entry.slug}`}
+            accessibilityLabel={`${entry.title}, number ${entry.rank}`}
+          >
+            <Cover
+              kind={entry.kind}
+              title={entry.title}
+              coverUrl={entry.coverUrl}
+              width={88}
+              showTitle={false}
+            />
+            {/* The rank rides *on* the cover. Under it, it needed a caption to
+                explain itself and the shelf grew a second line of text for a
+                number that is already an ordering. */}
+            <View style={styles.rankBadge}>
+              <Text style={styles.rank}>{String(entry.rank).padStart(2, '0')}</Text>
             </View>
           </Touchable>
         ))}
@@ -331,13 +375,14 @@ function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEnt
   );
 }
 
+/** Value and label on one baseline: the design's small card, not a tile. */
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <GlassCard style={styles.stat}>
       <View style={styles.shrink}>
-        <PrismText style={type.stat}>{String(value)}</PrismText>
+        <PrismText style={styles.statValue}>{String(value)}</PrismText>
       </View>
-      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
+      <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
     </GlassCard>
   );
 }
@@ -351,13 +396,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.lg,
-  },
-  gear: {
-    minWidth: layout.touchTarget,
-    minHeight: layout.touchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
   },
   headerText: {
     flex: 1,
@@ -378,11 +416,64 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: space.md,
   },
+  name: {
+    fontFamily: type.title.fontFamily,
+    fontSize: 26,
+    lineHeight: 27,
+    color: color.fg,
+  },
+  streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+  },
+  streakDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: color.pink,
+  },
+  statValue: {
+    fontFamily: type.stat.fontFamily,
+    fontSize: 20,
+    lineHeight: 21,
+  },
+  statLabel: {
+    fontFamily: type.eyebrow.fontFamily,
+    fontSize: 9,
+    letterSpacing: 0.72,
+    color: color.dim,
+  },
+  rowLabel: {
+    flex: 1,
+    color: color.fg,
+  },
+  favourites: {
+    gap: space.md,
+  },
+  favouriteBlock: {
+    gap: space.sm,
+  },
+  rankBadge: {
+    position: 'absolute',
+    top: space.sm,
+    left: space.sm,
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(14,12,16,0.85)',
+  },
+  // 2×2 of compact cards: value and label share a baseline, so the block is a
+  // reading of the year rather than four tiles competing with the name above.
   stat: {
     flexGrow: 1,
     flexBasis: '45%',
-    padding: space.lg,
-    gap: space.xs,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: space.sm,
+    paddingVertical: space.md - 2,
+    paddingHorizontal: space.md,
+    borderRadius: radius.cardSm - 4,
   },
   shrink: {
     alignSelf: 'flex-start',
@@ -415,10 +506,10 @@ const styles = StyleSheet.create({
   destination: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 64,
+    gap: space.md,
+    minHeight: layout.touchTarget + 6,
     paddingHorizontal: space.lg,
-    borderRadius: radius.cover,
+    borderRadius: radius.cardSm - 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
@@ -441,6 +532,9 @@ const styles = StyleSheet.create({
     marginTop: space.sm,
   },
   rank: {
+    fontFamily: type.title.fontFamily,
+    fontSize: 11,
+    lineHeight: 14,
     color: color.pink,
   },
   activityCard: {
