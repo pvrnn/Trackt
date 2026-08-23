@@ -1,5 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { KIND_LABELS, activityVerbLabel, relativeTime, useProfileSummary } from '@trackt/client';
+import {
+  KIND_LABELS,
+  activityVerbLabel,
+  relativeTime,
+  useFriends,
+  useProfileSummary,
+} from '@trackt/client';
 import { MEDIA_KINDS, type FavoriteEntry } from '@trackt/shared';
 import { useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -47,6 +53,7 @@ export default function ProfileTab() {
   const { user, isPending: sessionPending, refetch: refetchSession } = useAuthedScreen();
   const { origin, forgetInstance } = useInstance();
   const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useProfileSummary();
+  const { data: friends } = useFriends();
   const queryClient = useQueryClient();
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
@@ -124,16 +131,6 @@ export default function ProfileTab() {
             {/* The second navigation level the four-tab spine displaces here —
                 one row each, glyph to chevron, the way the design files it. */}
             <View style={styles.destinations}>
-              <Destination
-                icon="person"
-                href="/friends"
-                label="Friends"
-                meta={
-                  data.stats.incomingRequestCount > 0
-                    ? `${data.stats.friendCount} · ${data.stats.incomingRequestCount} REQUESTS`
-                    : String(data.stats.friendCount)
-                }
-              />
               <Destination icon="list" href="/lists" label="Lists" meta="YOUR COLLECTIONS" />
               <Destination
                 icon="clock"
@@ -142,6 +139,59 @@ export default function ProfileTab() {
                 meta={`${data.stats.completed} DONE`}
               />
               <Destination icon="settings" label="Edit profile" onPress={() => setEditing(true)} />
+            </View>
+
+            {/* Friends gets a shelf of its own, the shape Favourites has:
+                faces are what you actually recognise, and the section title
+                carries the way in to the roster — plus the request badge, which
+                is the one thing on this screen that wants answering. */}
+            <View style={styles.favourites}>
+              <SectionTitle
+                title="Friends"
+                action={
+                  <Touchable
+                    href="/friends"
+                    accessibilityLabel={
+                      data.stats.incomingRequestCount > 0
+                        ? `All friends — ${data.stats.incomingRequestCount} pending requests`
+                        : 'All friends'
+                    }
+                    style={styles.addFriend}
+                  >
+                    {data.stats.incomingRequestCount > 0 ? (
+                      <Text style={[type.eyebrow, styles.badge]}>
+                        {data.stats.incomingRequestCount}
+                      </Text>
+                    ) : null}
+                    <Text style={[type.button, styles.pink]}>ALL</Text>
+                    <Icon name="chevron-right" color={color.pink} size={16} />
+                  </Touchable>
+                }
+              />
+              {friends && friends.friends.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.shelf}
+                >
+                  {friends.friends.map((friend) => (
+                    <Touchable
+                      key={friend.id}
+                      href={`/users/${friend.username}`}
+                      style={styles.friend}
+                    >
+                      <Avatar name={friend.username} image={friend.image} size={56} />
+                      <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
+                        {friend.username}
+                      </Text>
+                    </Touchable>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text style={[type.bodySm, styles.dim]}>
+                  No friends yet — search by name or handle to send a request.
+                </Text>
+              )}
             </View>
 
             {data.favorites.length > 0 ? (
