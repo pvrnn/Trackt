@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decodeNewsCursor, encodeNewsCursor } from '../src/news.js';
-import { fetchNewsArticle, fetchNewsList } from '../src/news-client.js';
+import { fetchNewsArticle, fetchNewsForMedia, fetchNewsList } from '../src/news-client.js';
 
 /**
  * Wire-contract tests for the news clients (ADR-0005), mirroring
@@ -175,6 +175,61 @@ describe('fetchNewsArticle', () => {
       },
     });
     expect(seen?.pathname).toBe('/v1/news/a%2Fb');
+  });
+});
+
+describe('fetchNewsForMedia', () => {
+  const mediaId = '7a1b2c3d-4e5f-4a6b-8c9d-0e1f2a3b4c5d';
+
+  it('sends the id and the limit, and asks the by-media route', async () => {
+    let seen: URL | undefined;
+    await fetchNewsForMedia('http://catalog.test', mediaId, {
+      ...OPTIONS,
+      limit: 3,
+      fetchImpl: async (input) => {
+        seen = new URL(String(input));
+        return new Response(JSON.stringify({ articles: [], nextCursor: null }), {
+          headers: { 'content-type': 'application/json' },
+        });
+      },
+    });
+    expect(seen?.pathname).toBe('/v1/news/by-media');
+    expect(Object.fromEntries(seen?.searchParams ?? [])).toEqual({ id: mediaId, limit: '3' });
+  });
+
+  it('leaves the limit off when the caller did not set one', async () => {
+    let seen: URL | undefined;
+    await fetchNewsForMedia('http://catalog.test', mediaId, {
+      ...OPTIONS,
+      fetchImpl: async (input) => {
+        seen = new URL(String(input));
+        return new Response(JSON.stringify({ articles: [], nextCursor: null }), {
+          headers: { 'content-type': 'application/json' },
+        });
+      },
+    });
+    expect(seen?.searchParams.has('limit')).toBe(false);
+  });
+
+  it('throws on a non-2xx so the API route degrades in one place', async () => {
+    await expect(
+      fetchNewsForMedia('http://catalog.test', mediaId, {
+        ...OPTIONS,
+        fetchImpl: fetchReturning({}, 500),
+      }),
+    ).rejects.toThrow(/500/);
+  });
+
+  it('skips an article this build cannot parse and keeps the rest', async () => {
+    const result = await fetchNewsForMedia('http://catalog.test', mediaId, {
+      ...OPTIONS,
+      fetchImpl: fetchReturning({
+        articles: [validArticle, { ...validArticle, id: crypto.randomUUID(), topic: 'merch' }],
+        nextCursor: null,
+      }),
+    });
+    expect(result.articles).toHaveLength(1);
+    expect(result.skipped).toHaveLength(1);
   });
 });
 

@@ -288,8 +288,9 @@ route, matching the `/search` precedent
 > cursors cannot address a page by number). Per-topic tag colours were dropped for the
 > existing selected-chip treatment (no new tokens), and the `＋ PLAN TO WATCH` card button
 > is absent (a feed summary carries no per-viewer tracking state). `/news` is public, via a
-> new `useOptionalSession`. The "In the news" media-detail strip was **not** built, though
-> `/v1/news/by-media` that would back it is. **The topic filter row was later removed** —
+> new `useOptionalSession`. The "In the news" media-detail strip landed later, as a sidebar
+> section over a proxied `/api/v1/news/by-media`: it renders nothing at all when the work has
+> no news (or the catalog is unreachable), rather than leaving an empty block on the page. **The topic filter row was later removed** —
 > the feed filters by kind and date only, and `?topic=` is no longer a page search param.
 > Topic survives as the badge on each card, and `GET /v1/news`/`/api/v1/news` still accept
 > a `topic` filter for other consumers.
@@ -319,8 +320,8 @@ unset, the routes return an empty feed so a catalog-less dev instance still rend
   Render markdown with a small allow-listed renderer (no raw HTML) — the body is
   model-authored, so treat it as untrusted input.
 - `src/components/layout/AppNav.tsx` and `MarketingNav.tsx` — a NEWS entry.
-- Optional in the same phase if cheap: an "In the news" strip on `media.$slug.tsx` backed by
-  `/v1/news/by-media`.
+- `src/components/news/MediaNews.tsx` — the "In the news" strip on `media.$slug.tsx`, backed
+  by `/v1/news/by-media`. Deferred out of this phase and landed after it.
 
 `routeTree.gen.ts` regenerates itself — don't hand-edit.
 

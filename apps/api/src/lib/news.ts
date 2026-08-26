@@ -3,9 +3,11 @@ import type { FastifyBaseLogger } from 'fastify';
 import { buildProviderMediaRow, insertNewProviderMedia, media, type Db } from '@trackt/db';
 import {
   fetchNewsArticle,
+  fetchNewsForMedia,
   fetchNewsList,
   type NewsArticle,
   type NewsArticleDetail,
+  type NewsByMediaQuery,
   type NewsLinkedWork,
   type NewsListQuery,
   type NewsListResponse,
@@ -70,6 +72,7 @@ class TtlMemo<T> {
 
 const listMemo = new TtlMemo<NewsListResponse>();
 const articleMemo = new TtlMemo<NewsArticle | null>();
+const byMediaMemo = new TtlMemo<NewsListResponse>();
 
 export interface NewsOptions {
   timeoutMs: number;
@@ -130,6 +133,55 @@ export async function loadNewsList(
     return page;
   } catch (error) {
     options.logger.warn({ err: error }, 'central news feed failed, serving an empty feed');
+    return EMPTY_FEED;
+  }
+}
+
+/**
+ * The "In the news" strip on a media detail page: recent articles touching one
+ * work, summaries only.
+ *
+ * Degrades like the feed rather than erroring — the strip is one section of a
+ * page whose subject is the work, and a dead catalog should cost the reader
+ * that section, not the page.
+ *
+ * Nothing here is viewer-scoped: the answer is article summaries, which carry
+ * no linked works and so cannot leak a hidden one. Whether the *work* is
+ * visible is already settled by the media route that rendered the page.
+ */
+export async function loadNewsForMedia(
+  catalogUrl: string | undefined,
+  query: NewsByMediaQuery,
+  options: NewsOptions,
+): Promise<NewsListResponse> {
+  if (!catalogUrl) return EMPTY_FEED;
+
+  const key = `${query.id}|${query.limit}`;
+  const cached = byMediaMemo.get(key);
+  if (cached) return cached;
+
+  try {
+    const response = await fetchNewsForMedia(catalogUrl, query.id, {
+      limit: query.limit,
+      timeoutMs: options.timeoutMs,
+      fetchImpl: options.fetchImpl,
+    });
+    if (response.skipped.length > 0) {
+      options.logger.warn(
+        { skipped: response.skipped },
+        'skipping central news articles that do not match this build (upgrade to pick them up)',
+      );
+    }
+    // The contract never pages this route, so the envelope's cursor is null by
+    // construction rather than by what the catalog happened to send.
+    const strip: NewsListResponse = { articles: response.articles, nextCursor: null };
+    byMediaMemo.set(key, strip);
+    return strip;
+  } catch (error) {
+    options.logger.warn(
+      { err: error, id: query.id },
+      'central news by-media failed, serving an empty strip',
+    );
     return EMPTY_FEED;
   }
 }
@@ -271,4 +323,5 @@ export async function loadNewsArticle(
 export function clearNewsCache(): void {
   listMemo.clear();
   articleMemo.clear();
+  byMediaMemo.clear();
 }
