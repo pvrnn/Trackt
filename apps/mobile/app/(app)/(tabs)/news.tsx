@@ -2,15 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import { KIND_LABELS, TOPIC_LABELS, formatNewsDate, todayIso, useNewsFeed } from '@trackt/client';
 import { MEDIA_KINDS, type MediaKind, type NewsArticleSummary } from '@trackt/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -29,6 +21,7 @@ import {
   PageFrame,
   PageTitle,
   StaleNotice,
+  pullToRefresh,
   useTabContentInset,
 } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
@@ -154,14 +147,7 @@ export default function NewsTab() {
         data={articles}
         keyExtractor={(article) => article.id}
         contentContainerStyle={{ paddingBottom: bottomInset }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refresh}
-            tintColor={color.pink}
-            colors={[color.pink]}
-          />
-        }
+        refreshControl={pullToRefresh(isRefreshing, refresh)}
         onEndReachedThreshold={0.6}
         onEndReached={() => {
           if (hasMore) loadMore();

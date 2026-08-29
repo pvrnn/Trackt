@@ -15,22 +15,16 @@ import {
 } from '@trackt/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../../../src/components/Avatar';
 import { ConfirmSheet } from '../../../src/components/ConfirmSheet';
-import { Cover } from '../../../src/components/Cover';
+import { Shelf, ShelfItem } from '../../../src/components/Shelf';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { KindDot } from '../../../src/components/KindDot';
-import {
-  BackLink,
-  EmptyState,
-  Loading,
-  PageScroll,
-  SectionTitle,
-} from '../../../src/components/Page';
+import { BackLink, PageScroll, ScreenState, SectionTitle } from '../../../src/components/Page';
+import { Stat, Stats } from '../../../src/components/Stat';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
-import { PrismText } from '../../../src/components/PrismText';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { useOptionalSession } from '../../../src/lib/session';
 import { useWriteFailedToast } from '../../../src/lib/toast';
@@ -58,24 +52,13 @@ export default function PublicProfileScreen() {
   const { data: profile, isPending, isError } = usePublicProfile(username);
   const { user: viewer } = useOptionalSession();
 
-  if (isPending) {
+  if (isPending || isError || !profile) {
     return (
-      <PageScroll>
-        <BackLink />
-        <Loading />
-      </PageScroll>
-    );
-  }
-
-  if (isError || !profile) {
-    return (
-      <PageScroll>
-        <BackLink />
-        <EmptyState
-          title="No such profile"
-          body={`Nobody on this instance goes by @${username}.`}
-        />
-      </PageScroll>
+      <ScreenState
+        isPending={isPending}
+        title="No such profile"
+        body={`Nobody on this instance goes by @${username}.`}
+      />
     );
   }
 
@@ -101,12 +84,12 @@ export default function PublicProfileScreen() {
         {profile.user.bio ? <Text style={[type.body, text.muted]}>{profile.user.bio}</Text> : null}
       </View>
 
-      <View style={styles.stats}>
+      <Stats>
         <Stat value={profile.stats.titlesTracked} label="Tracked" />
         <Stat value={profile.stats.completed} label="Completed" />
         <Stat value={profile.stats.dayStreak} label="Day streak" />
         <Stat value={profile.friendCount} label="Friends" />
-      </View>
+      </Stats>
 
       {MEDIA_KINDS.map((kind) => {
         const favorites = profile.favorites.filter((entry) => entry.kind === kind);
@@ -256,32 +239,18 @@ function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEnt
   return (
     <View>
       <SectionTitle title={label} />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.shelf}
-      >
+      <Shelf>
         {entries.map((entry) => (
-          <Touchable key={entry.id} href={`/media/${entry.slug}`}>
-            <Cover kind={entry.kind} title={entry.title} coverUrl={entry.coverUrl} width={96} />
-            <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={1}>
-              {entry.title}
-            </Text>
-          </Touchable>
+          <ShelfItem
+            key={entry.id}
+            href={`/media/${entry.slug}`}
+            kind={entry.kind}
+            title={entry.title}
+            coverUrl={entry.coverUrl}
+          />
         ))}
-      </ScrollView>
+      </Shelf>
     </View>
-  );
-}
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <GlassCard style={styles.stat}>
-      <View style={styles.shrink}>
-        <PrismText style={type.stat}>{String(value)}</PrismText>
-      </View>
-      <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
-    </GlassCard>
   );
 }
 
@@ -309,28 +278,6 @@ const styles = StyleSheet.create({
   },
   action: {
     alignSelf: 'flex-start',
-    marginTop: space.sm,
-  },
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.md,
-  },
-  stat: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    padding: space.lg,
-    gap: space.xs,
-  },
-  shrink: {
-    alignSelf: 'flex-start',
-  },
-  shelf: {
-    gap: space.md,
-  },
-  shelfCaption: {
-    color: color.fg,
-    width: 96,
     marginTop: space.sm,
   },
   activityCard: {

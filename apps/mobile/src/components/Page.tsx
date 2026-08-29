@@ -1,7 +1,15 @@
 import { relativeTime } from '@trackt/client';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactElement, ReactNode } from 'react';
@@ -218,6 +226,81 @@ export function OfflineFallback({ children }: { children: ReactNode }) {
     <EmptyState
       title="You're offline"
       body="This loads the moment the instance is reachable again. Anything you check in until then is queued and sent when it is."
+    />
+  );
+}
+
+/**
+ * The three states every query-backed section has, in one place: waiting,
+ * failed, and answered — with the offline rules already applied. A pending
+ * screen offline says so rather than spinning forever (`networkMode: 'online'`
+ * pauses the query, so `isPending` never resolves), and an answered one carries
+ * its own `StaleNotice`.
+ *
+ * Children take the resolved data, so the screen does not restate the
+ * `isError || !data` narrowing that got it there.
+ */
+export function QueryState<T>({
+  query,
+  error,
+  pending,
+  children,
+}: {
+  query: { data: T | undefined; isPending: boolean; isError: boolean; dataUpdatedAt: number };
+  error: { title: string; body: string };
+  /** The waiting state, when a spinner is not the right shape for it. */
+  pending?: ReactNode;
+  children: (data: T) => ReactNode;
+}) {
+  if (query.isPending) return <OfflineFallback>{pending ?? <Loading />}</OfflineFallback>;
+  if (query.isError || query.data === undefined) {
+    return <EmptyState title={error.title} body={error.body} />;
+  }
+  return (
+    <>
+      <StaleNotice updatedAt={query.dataUpdatedAt} />
+      {children(query.data)}
+    </>
+  );
+}
+
+/**
+ * The same three states when they are the whole screen rather than a section of
+ * one — a pushed route whose subject failed to load has nothing else to show.
+ */
+export function ScreenState({
+  isPending,
+  backLabel,
+  title,
+  body,
+}: {
+  isPending: boolean;
+  backLabel?: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <PageScroll>
+      <BackLink {...(backLabel ? { label: backLabel } : {})} />
+      {isPending ? (
+        <OfflineFallback>
+          <Loading />
+        </OfflineFallback>
+      ) : (
+        <EmptyState title={title} body={body} />
+      )}
+    </PageScroll>
+  );
+}
+
+/** The app's pull-to-refresh, which is pink everywhere it appears. */
+export function pullToRefresh(refreshing: boolean, onRefresh: () => void) {
+  return (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor={color.pink}
+      colors={[color.pink]}
     />
   );
 }

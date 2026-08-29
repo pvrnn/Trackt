@@ -16,7 +16,13 @@ import { Cover } from '../../../src/components/Cover';
 import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
-import { BackLink, EmptyState, Loading, PageScroll, PageTitle } from '../../../src/components/Page';
+import {
+  BackLink,
+  EmptyState,
+  PageScroll,
+  PageTitle,
+  ScreenState,
+} from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { PrismText } from '../../../src/components/PrismText';
 import { Touchable } from '../../../src/components/Touchable';
@@ -51,24 +57,14 @@ export default function ListScreen() {
   // out from under the thumb.
   const inFlight = useRef(false);
 
-  if (isPending) {
+  if (isPending || isError || !list) {
     return (
-      <PageScroll>
-        <BackLink label="Lists" />
-        <Loading />
-      </PageScroll>
-    );
-  }
-
-  if (isError || !list) {
-    return (
-      <PageScroll>
-        <BackLink label="Lists" />
-        <EmptyState
-          title="List unavailable"
-          body="It may have been deleted, or it may not be visible to you."
-        />
-      </PageScroll>
+      <ScreenState
+        isPending={isPending}
+        backLabel="Lists"
+        title="List unavailable"
+        body="It may have been deleted, or it may not be visible to you."
+      />
     );
   }
 

@@ -8,28 +8,27 @@ import {
 } from '@trackt/client';
 import { MEDIA_KINDS, type FavoriteEntry } from '@trackt/shared';
 import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../src/components/Avatar';
-import { Cover } from '../../../src/components/Cover';
 import { DeleteAccountSheet } from '../../../src/components/DeleteAccountSheet';
 import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import {
-  EmptyState,
   Loading,
-  OfflineFallback,
   PageFrame,
+  QueryState,
   SectionTitle,
-  StaleNotice,
+  pullToRefresh,
   useTabContentInset,
 } from '../../../src/components/Page';
+import { Shelf, ShelfItem } from '../../../src/components/Shelf';
+import { Stat, Stats } from '../../../src/components/Stat';
 import { ripple } from '../../../src/components/Press';
 import { Touchable } from '../../../src/components/Touchable';
 import { PrismButton } from '../../../src/components/PrismButton';
-import { PrismText } from '../../../src/components/PrismText';
 import { authClient } from '../../../src/lib/auth-client';
 import { useInstance } from '../../../src/lib/instance-provider';
 import { CLIENT_VERSION } from '../../../src/lib/instance';
@@ -75,14 +74,7 @@ export default function ProfileTab() {
           styles.content,
           { paddingTop: insets.top + space.lg, paddingBottom: bottomInset },
         ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => void refetch()}
-            tintColor={color.pink}
-            colors={[color.pink]}
-          />
-        }
+        refreshControl={pullToRefresh(isRefetching, () => void refetch())}
       >
         <View style={styles.header}>
           <Avatar name={data?.user.name ?? user.name} image={data?.user.image} size={68} />
@@ -109,128 +101,128 @@ export default function ProfileTab() {
         </View>
         {data?.user.bio ? <Text style={[type.body, styles.bio]}>{data.user.bio}</Text> : null}
 
-        {isPending ? (
-          <OfflineFallback>
-            <Loading />
-          </OfflineFallback>
-        ) : isError || !data ? (
-          <EmptyState
-            title="Couldn't load"
-            body="The instance didn't answer. Pull down to try again."
-          />
-        ) : (
-          <>
-            <StaleNotice updatedAt={dataUpdatedAt} />
-            <View style={styles.stats}>
-              <Stat value={data.stats.titlesTracked} label="Tracked" />
-              <Stat value={data.stats.completed} label="Completed" />
-              <Stat value={data.stats.episodesThisYear} label="Episodes" />
-              <Stat value={data.stats.chaptersThisYear} label="Chapters" />
-            </View>
+        <QueryState
+          query={{ data, isPending, isError, dataUpdatedAt }}
+          error={{
+            title: "Couldn't load",
+            body: "The instance didn't answer. Pull down to try again.",
+          }}
+        >
+          {(data) => (
+            <>
+              <Stats>
+                <Stat value={data.stats.titlesTracked} label="Tracked" compact />
+                <Stat value={data.stats.completed} label="Completed" compact />
+                <Stat value={data.stats.episodesThisYear} label="Episodes" compact />
+                <Stat value={data.stats.chaptersThisYear} label="Chapters" compact />
+              </Stats>
 
-            {/* The second navigation level the four-tab spine displaces here —
+              {/* The second navigation level the four-tab spine displaces here —
                 one row each, glyph to chevron, the way the design files it. */}
-            <View style={styles.destinations}>
-              <Destination icon="list" href="/lists" label="Lists" meta="YOUR COLLECTIONS" />
-              <Destination
-                icon="clock"
-                href="/history"
-                label="History"
-                meta={`${data.stats.completed} DONE`}
-              />
-              <Destination icon="settings" label="Edit profile" onPress={() => setEditing(true)} />
-            </View>
+              <View style={styles.destinations}>
+                <Destination icon="list" href="/lists" label="Lists" meta="YOUR COLLECTIONS" />
+                <Destination
+                  icon="clock"
+                  href="/history"
+                  label="History"
+                  meta={`${data.stats.completed} DONE`}
+                />
+                <Destination
+                  icon="settings"
+                  label="Edit profile"
+                  onPress={() => setEditing(true)}
+                />
+              </View>
 
-            {/* Friends gets a shelf of its own, the shape Favourites has:
+              {/* Friends gets a shelf of its own, the shape Favourites has:
                 faces are what you actually recognise, and the section title
                 carries the way in to the roster — plus the request badge, which
                 is the one thing on this screen that wants answering. */}
-            <View style={styles.favourites}>
-              <SectionTitle
-                title="Friends"
-                action={
-                  <Touchable
-                    href="/friends"
-                    accessibilityLabel={
-                      data.stats.incomingRequestCount > 0
-                        ? `All friends — ${data.stats.incomingRequestCount} pending requests`
-                        : 'All friends'
-                    }
-                    style={styles.addFriend}
-                  >
-                    {data.stats.incomingRequestCount > 0 ? (
-                      <Text style={[type.eyebrow, styles.badge]}>
-                        {data.stats.incomingRequestCount}
-                      </Text>
-                    ) : null}
-                    <Text style={[type.button, text.pink]}>ALL</Text>
-                    <Icon name="chevron-right" color={color.pink} size={16} />
-                  </Touchable>
-                }
-              />
-              {friends && friends.friends.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.shelf}
-                >
-                  {friends.friends.map((friend) => (
-                    <Touchable
-                      key={friend.id}
-                      href={`/users/${friend.username}`}
-                      style={styles.friend}
-                    >
-                      <Avatar name={friend.username} image={friend.image} size={56} />
-                      <Text style={[type.eyebrow, text.dim]} numberOfLines={1}>
-                        {friend.username}
-                      </Text>
-                    </Touchable>
-                  ))}
-                </ScrollView>
-              ) : (
-                <Text style={[type.bodySm, text.dim]}>
-                  No friends yet — search by name or handle to send a request.
-                </Text>
-              )}
-            </View>
-
-            {data.favorites.length > 0 ? (
               <View style={styles.favourites}>
-                <SectionTitle title="Favourites" />
-                {/* One heading, then a shelf per kind — because the rank is per
+                <SectionTitle
+                  title="Friends"
+                  action={
+                    <Touchable
+                      href="/friends"
+                      accessibilityLabel={
+                        data.stats.incomingRequestCount > 0
+                          ? `All friends — ${data.stats.incomingRequestCount} pending requests`
+                          : 'All friends'
+                      }
+                      style={styles.addFriend}
+                    >
+                      {data.stats.incomingRequestCount > 0 ? (
+                        <Text style={[type.eyebrow, styles.badge]}>
+                          {data.stats.incomingRequestCount}
+                        </Text>
+                      ) : null}
+                      <Text style={[type.button, text.pink]}>ALL</Text>
+                      <Icon name="chevron-right" color={color.pink} size={16} />
+                    </Touchable>
+                  }
+                />
+                {friends && friends.friends.length > 0 ? (
+                  <Shelf>
+                    {friends.friends.map((friend) => (
+                      <Touchable
+                        key={friend.id}
+                        href={`/users/${friend.username}`}
+                        style={styles.friend}
+                      >
+                        <Avatar name={friend.username} image={friend.image} size={56} />
+                        <Text style={[type.eyebrow, text.dim]} numberOfLines={1}>
+                          {friend.username}
+                        </Text>
+                      </Touchable>
+                    ))}
+                  </Shelf>
+                ) : (
+                  <Text style={[type.bodySm, text.dim]}>
+                    No friends yet — search by name or handle to send a request.
+                  </Text>
+                )}
+              </View>
+
+              {data.favorites.length > 0 ? (
+                <View style={styles.favourites}>
+                  <SectionTitle title="Favourites" />
+                  {/* One heading, then a shelf per kind — because the rank is per
                     kind (`favorite.position`), and a single mixed shelf would
                     put two number ones next to each other. */}
-                {MEDIA_KINDS.map((kind) => {
-                  const favorites = data.favorites.filter((entry) => entry.kind === kind);
-                  if (favorites.length === 0) return null;
-                  return <FavoriteBlock key={kind} label={KIND_LABELS[kind]} entries={favorites} />;
-                })}
-              </View>
-            ) : null}
+                  {MEDIA_KINDS.map((kind) => {
+                    const favorites = data.favorites.filter((entry) => entry.kind === kind);
+                    if (favorites.length === 0) return null;
+                    return (
+                      <FavoriteBlock key={kind} label={KIND_LABELS[kind]} entries={favorites} />
+                    );
+                  })}
+                </View>
+              ) : null}
 
-            {data.activity.length > 0 ? (
-              <View>
-                <SectionTitle title="Recent activity" />
-                <GlassCard style={styles.activityCard}>
-                  {data.activity.map((entry, index) => (
-                    <Touchable
-                      key={`${entry.slug}-${entry.at}-${index}`}
-                      href={`/media/${entry.slug}`}
-                      style={[styles.activityRow, index > 0 && styles.divider]}
-                    >
-                      <KindDot kind={entry.kind} />
-                      <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
-                        {activityVerbLabel(entry).toLowerCase()} {entry.title}{' '}
-                        <Text style={text.dim}>{entry.detail}</Text>
-                      </Text>
-                      <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
-                    </Touchable>
-                  ))}
-                </GlassCard>
-              </View>
-            ) : null}
-          </>
-        )}
+              {data.activity.length > 0 ? (
+                <View>
+                  <SectionTitle title="Recent activity" />
+                  <GlassCard style={styles.activityCard}>
+                    {data.activity.map((entry, index) => (
+                      <Touchable
+                        key={`${entry.slug}-${entry.at}-${index}`}
+                        href={`/media/${entry.slug}`}
+                        style={[styles.activityRow, index > 0 && styles.divider]}
+                      >
+                        <KindDot kind={entry.kind} />
+                        <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
+                          {activityVerbLabel(entry).toLowerCase()} {entry.title}{' '}
+                          <Text style={text.dim}>{entry.detail}</Text>
+                        </Text>
+                        <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
+                      </Touchable>
+                    ))}
+                  </GlassCard>
+                </View>
+              ) : null}
+            </>
+          )}
+        </QueryState>
 
         <View style={styles.account}>
           <SectionTitle title="Account" />
@@ -341,46 +333,30 @@ function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEnt
   return (
     <View style={styles.favouriteBlock}>
       <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.shelf}
-      >
+      <Shelf>
         {entries.map((entry) => (
-          <Touchable
+          <ShelfItem
             key={entry.id}
             href={`/media/${entry.slug}`}
+            kind={entry.kind}
+            title={entry.title}
+            coverUrl={entry.coverUrl}
+            width={88}
+            caption={false}
+            coverTitle={false}
             accessibilityLabel={`${entry.title}, number ${entry.rank}`}
-          >
-            <Cover
-              kind={entry.kind}
-              title={entry.title}
-              coverUrl={entry.coverUrl}
-              width={88}
-              showTitle={false}
-            />
-            {/* The rank rides *on* the cover. Under it, it needed a caption to
-                explain itself and the shelf grew a second line of text for a
-                number that is already an ordering. */}
-            <View style={styles.rankBadge}>
-              <Text style={styles.rank}>{String(entry.rank).padStart(2, '0')}</Text>
-            </View>
-          </Touchable>
+            // The rank rides *on* the cover: under it, it needed a caption to
+            // explain itself, and the shelf grew a second line of text for a
+            // number that is already an ordering.
+            overlay={
+              <View style={styles.rankBadge}>
+                <Text style={styles.rank}>{String(entry.rank).padStart(2, '0')}</Text>
+              </View>
+            }
+          />
         ))}
-      </ScrollView>
+      </Shelf>
     </View>
-  );
-}
-
-/** Value and label on one baseline: the design's small card, not a tile. */
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <GlassCard style={styles.stat}>
-      <View style={styles.shrink}>
-        <PrismText style={styles.statValue}>{String(value)}</PrismText>
-      </View>
-      <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
-    </GlassCard>
   );
 }
 
@@ -402,11 +378,6 @@ const styles = StyleSheet.create({
     color: color.muted,
     marginTop: -space.md,
   },
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.md,
-  },
   name: {
     fontFamily: type.title.fontFamily,
     fontSize: 26,
@@ -423,17 +394,6 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
     backgroundColor: color.pink,
-  },
-  statValue: {
-    fontFamily: type.stat.fontFamily,
-    fontSize: 20,
-    lineHeight: 21,
-  },
-  statLabel: {
-    fontFamily: type.eyebrow.fontFamily,
-    fontSize: 9,
-    letterSpacing: 0.72,
-    color: color.dim,
   },
   rowLabel: {
     flex: 1,
@@ -456,19 +416,6 @@ const styles = StyleSheet.create({
   },
   // 2×2 of compact cards: value and label share a baseline, so the block is a
   // reading of the year rather than four tiles competing with the name above.
-  stat: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: space.sm,
-    paddingVertical: space.md - 2,
-    paddingHorizontal: space.md,
-    borderRadius: radius.cardSm - 4,
-  },
-  shrink: {
-    alignSelf: 'flex-start',
-  },
   addFriend: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -504,9 +451,6 @@ const styles = StyleSheet.create({
   },
   destinationText: {
     gap: space.xs,
-  },
-  shelf: {
-    gap: space.md,
   },
   shelfCaption: {
     color: color.fg,

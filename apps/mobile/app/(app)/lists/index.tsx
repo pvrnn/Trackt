@@ -8,11 +8,9 @@ import { ListFormSheet } from '../../../src/components/ListFormSheet';
 import {
   BackLink,
   EmptyState,
-  Loading,
-  OfflineFallback,
   PageScroll,
   PageTitle,
-  StaleNotice,
+  QueryState,
 } from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
@@ -48,25 +46,25 @@ export default function ListsScreen() {
         />
       </View>
 
-      {isPending ? (
-        <OfflineFallback>
-          <Loading />
-        </OfflineFallback>
-      ) : isError || !data ? (
-        <EmptyState title="Couldn't load" body="The instance didn't answer." />
-      ) : data.length === 0 ? (
-        <EmptyState
-          title="No lists yet"
-          body="Lists group titles however you like — a watchlist, a top ten, a seasonal shortlist."
-        />
-      ) : (
-        <View style={styles.cards}>
-          <StaleNotice updatedAt={dataUpdatedAt} />
-          {data.map((list) => (
-            <ListCard key={list.id} list={list} />
-          ))}
-        </View>
-      )}
+      <QueryState
+        query={{ data, isPending, isError, dataUpdatedAt }}
+        error={{ title: "Couldn't load", body: "The instance didn't answer." }}
+      >
+        {(lists) =>
+          lists.length === 0 ? (
+            <EmptyState
+              title="No lists yet"
+              body="Lists group titles however you like — a watchlist, a top ten, a seasonal shortlist."
+            />
+          ) : (
+            <View style={styles.cards}>
+              {lists.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </View>
+          )
+        }
+      </QueryState>
 
       {creating ? (
         <ListFormSheet

@@ -22,30 +22,27 @@ import {
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToListSheet } from '../../../src/components/AddToListSheet';
-import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { LogDatesSheet } from '../../../src/components/LogDatesSheet';
 import { MediaActionRow, RatingCard } from '../../../src/components/MediaActions';
 import { MediaHero } from '../../../src/components/MediaHero';
 import {
   BackLink,
-  EmptyState,
-  Loading,
-  OfflineFallback,
   PageFrame,
+  ScreenState,
   SectionTitle,
   StaleNotice,
 } from '../../../src/components/Page';
 import { PartBlockRow, PartRow } from '../../../src/components/PartRows';
+import { Shelf, ShelfItem } from '../../../src/components/Shelf';
 import { ProgressCard } from '../../../src/components/ProgressCard';
 import { RatingSheet } from '../../../src/components/RatingSheet';
 import { StatusSheet } from '../../../src/components/StatusSheet';
-import { Touchable } from '../../../src/components/Touchable';
 import { EMPTY_VIEWER, patchViewer, trackingPatch } from '../../../src/lib/offline';
 import type { TrackingWrite } from '../../../src/lib/offline';
 import { useViewerMutation } from '../../../src/lib/tracking';
@@ -106,34 +103,17 @@ export default function MediaScreen() {
   // How far the screen has scrolled, for the hero parallax and the header bar.
   const scrollY = useSharedValue(0);
 
-  if (isPending) {
+  if (isPending || isError || !media) {
     return (
-      <PageFrame>
-        <View style={[gutter, { paddingTop: insets.top + space.md, gap: space.lg }]}>
-          <BackLink />
-          <OfflineFallback>
-            <Loading />
-          </OfflineFallback>
-        </View>
-      </PageFrame>
-    );
-  }
-
-  if (isError || !media) {
-    return (
-      <PageFrame>
-        <View style={[gutter, { paddingTop: insets.top + space.md, gap: space.lg }]}>
-          <BackLink />
-          <EmptyState
-            title={media === null ? 'Not found' : "Couldn't load"}
-            body={
-              media === null
-                ? "This instance's catalog has no title at that address."
-                : "The instance didn't answer. Go back and try again."
-            }
-          />
-        </View>
-      </PageFrame>
+      <ScreenState
+        isPending={isPending}
+        title={media === null ? 'Not found' : "Couldn't load"}
+        body={
+          media === null
+            ? "This instance's catalog has no title at that address."
+            : "The instance didn't answer. Go back and try again."
+        }
+      />
     );
   }
 
@@ -525,9 +505,9 @@ function Footer({ media }: { media: MediaDetail }) {
       ) : null}
 
       {media.relations.length > 0 ? (
-        <Shelf title="Related" works={media.relations} />
+        <RelatedShelf title="Related" works={media.relations} />
       ) : media.related.length > 0 ? (
-        <Shelf title="You might also like" works={media.related} />
+        <RelatedShelf title="You might also like" works={media.related} />
       ) : null}
 
       <View style={gutter}>
@@ -544,29 +524,28 @@ function Footer({ media }: { media: MediaDetail }) {
   );
 }
 
-function Shelf({ title, works }: { title: string; works: (RelatedWork | SearchResult)[] }) {
+function RelatedShelf({ title, works }: { title: string; works: (RelatedWork | SearchResult)[] }) {
   return (
     <View>
       <View style={gutter}>
         <SectionTitle title={title} />
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.shelf}
-      >
+      <Shelf padding="gutter">
         {works.map((work) => (
-          <Touchable key={work.id} href={`/media/${work.slug}`}>
-            <Cover kind={work.kind} title={work.title} coverUrl={work.coverUrl} width={96} />
+          <ShelfItem
+            key={work.id}
+            href={`/media/${work.slug}`}
+            kind={work.kind}
+            title={work.title}
+            coverUrl={work.coverUrl}
+            captionLines={2}
+          >
             {'relation' in work ? (
               <Text style={[type.eyebrow, styles.relation]}>{work.relation.toUpperCase()}</Text>
             ) : null}
-            <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={2}>
-              {work.title}
-            </Text>
-          </Touchable>
+          </ShelfItem>
         ))}
-      </ScrollView>
+      </Shelf>
     </View>
   );
 }
@@ -660,15 +639,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     overflow: 'hidden',
-  },
-  shelf: {
-    gap: space.md,
-    paddingHorizontal: layout.gutter,
-  },
-  shelfCaption: {
-    color: color.fg,
-    width: 96,
-    marginTop: space.xs,
   },
   relation: {
     color: color.pink,

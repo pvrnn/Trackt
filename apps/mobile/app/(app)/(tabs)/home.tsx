@@ -13,7 +13,7 @@ import {
   type UpNextEntry,
 } from '@trackt/shared';
 import { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cover } from '../../../src/components/Cover';
@@ -23,18 +23,19 @@ import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
   Loading,
-  OfflineFallback,
   PageFrame,
   PageTitle,
+  QueryState,
   SectionTitle,
-  StaleNotice,
+  pullToRefresh,
   useTabContentInset,
 } from '../../../src/components/Page';
+import { Shelf, ShelfItem } from '../../../src/components/Shelf';
+import { Stat, Stats } from '../../../src/components/Stat';
 import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
 import { SkeletonRows } from '../../../src/components/Skeleton';
 import { SwipeCheckIn } from '../../../src/components/SwipeCheckIn';
 import { Touchable } from '../../../src/components/Touchable';
-import { PrismText } from '../../../src/components/PrismText';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { duration, staggerDelay } from '../../../src/lib/motion';
 import { useIsOnline } from '../../../src/lib/network';
@@ -168,119 +169,102 @@ export default function HomeTab() {
           styles.content,
           { paddingTop: insets.top + space.lg, paddingBottom: bottomInset },
         ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => void refetch()}
-            tintColor={color.pink}
-            colors={[color.pink]}
-          />
-        }
+        refreshControl={pullToRefresh(isRefetching, () => void refetch())}
       >
         <PageTitle
           title="Up next"
           count={data ? `${data.upNext.length} waiting on you` : undefined}
         />
 
-        {isPending ? (
-          <OfflineFallback>
-            <SkeletonRows />
-          </OfflineFallback>
-        ) : isError || !data ? (
-          <EmptyState
-            title="Couldn't load"
-            body="The instance didn't answer. Pull down to try again."
-          />
-        ) : (
-          <>
-            <StaleNotice updatedAt={dataUpdatedAt} />
-            {data.upNext.length === 0 ? (
-              <EmptyState
-                title="Nothing queued"
-                body="Start something from Discover and its next episode shows up here."
-              />
-            ) : (
-              <View style={styles.rows}>
-                {data.upNext.map((entry, index) => (
-                  <UpNextRow
-                    key={upNextPartKey(entry)}
-                    entry={entry}
-                    index={index}
-                    checkedIn={checkedIn.has(upNextPartKey(entry))}
-                    onCheckIn={() => checkIn.mutate(checkInWrite(entry))}
-                  />
-                ))}
-              </View>
-            )}
+        <QueryState
+          query={{ data, isPending, isError, dataUpdatedAt }}
+          pending={<SkeletonRows />}
+          error={{
+            title: "Couldn't load",
+            body: "The instance didn't answer. Pull down to try again.",
+          }}
+        >
+          {(data) => (
+            <>
+              {data.upNext.length === 0 ? (
+                <EmptyState
+                  title="Nothing queued"
+                  body="Start something from Discover and its next episode shows up here."
+                />
+              ) : (
+                <View style={styles.rows}>
+                  {data.upNext.map((entry, index) => (
+                    <UpNextRow
+                      key={upNextPartKey(entry)}
+                      entry={entry}
+                      index={index}
+                      checkedIn={checkedIn.has(upNextPartKey(entry))}
+                      onCheckIn={() => checkIn.mutate(checkInWrite(entry))}
+                    />
+                  ))}
+                </View>
+              )}
 
-            {data.inProgress.length > 0 ? (
-              <View style={styles.section}>
-                <SectionTitle title="In progress" />
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.shelf}
-                >
-                  {data.inProgress.map((entry, index) => (
-                    <Animated.View
-                      key={entry.id}
-                      entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
-                      layout={LinearTransition.duration(duration.commit)}
-                    >
-                      <Touchable href={`/media/${entry.slug}`}>
-                        <Cover
+              {data.inProgress.length > 0 ? (
+                <View style={styles.section}>
+                  <SectionTitle title="In progress" />
+                  <Shelf padding="right">
+                    {data.inProgress.map((entry, index) => (
+                      <Animated.View
+                        key={entry.id}
+                        entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
+                        layout={LinearTransition.duration(duration.commit)}
+                      >
+                        <ShelfItem
+                          href={`/media/${entry.slug}`}
                           kind={entry.kind}
                           title={entry.title}
                           coverUrl={entry.coverUrl}
-                          width={96}
                           progress={entry.total ? entry.watched / entry.total : undefined}
+                          note={
+                            entry.total ? `${entry.watched} / ${entry.total}` : `${entry.watched}`
+                          }
                         />
-                        <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={1}>
-                          {entry.title}
-                        </Text>
-                        <Text style={[type.eyebrow, text.dim]}>
-                          {entry.total ? `${entry.watched} / ${entry.total}` : `${entry.watched}`}
-                        </Text>
-                      </Touchable>
-                    </Animated.View>
-                  ))}
-                </ScrollView>
-                {data.inProgress.length === IN_PROGRESS_LIMIT ? (
-                  <Text style={[type.eyebrow, styles.shelfNote]}>
-                    FIRST {IN_PROGRESS_LIMIT} · SEE HISTORY FOR THE REST
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
+                      </Animated.View>
+                    ))}
+                  </Shelf>
+                  {data.inProgress.length === IN_PROGRESS_LIMIT ? (
+                    <Text style={[type.eyebrow, styles.shelfNote]}>
+                      FIRST {IN_PROGRESS_LIMIT} · SEE HISTORY FOR THE REST
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
 
-            <View style={styles.section}>
-              <SectionTitle title="This year" />
-              <View style={styles.stats}>
-                <Stat value={data.stats.episodesThisYear} label="Episodes" />
-                <Stat value={data.stats.chaptersThisYear} label="Chapters" />
-                <Stat value={data.stats.completedThisYear} label="Completed" />
-                <Stat value={data.stats.dayStreak} label="Day streak" />
-              </View>
-            </View>
-
-            {data.activity.length > 0 ? (
               <View style={styles.section}>
-                <SectionTitle title="Activity" />
-                <GlassCard style={styles.activityCard}>
-                  {data.activity.map((entry, index) => (
-                    <Animated.View
-                      key={`${entry.slug}-${entry.at}-${index}`}
-                      entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
-                      layout={LinearTransition.duration(duration.commit)}
-                    >
-                      <ActivityRow entry={entry} first={index === 0} />
-                    </Animated.View>
-                  ))}
-                </GlassCard>
+                <SectionTitle title="This year" />
+                <Stats>
+                  <Stat value={data.stats.episodesThisYear} label="Episodes" />
+                  <Stat value={data.stats.chaptersThisYear} label="Chapters" />
+                  <Stat value={data.stats.completedThisYear} label="Completed" />
+                  <Stat value={data.stats.dayStreak} label="Day streak" />
+                </Stats>
               </View>
-            ) : null}
-          </>
-        )}
+
+              {data.activity.length > 0 ? (
+                <View style={styles.section}>
+                  <SectionTitle title="Activity" />
+                  <GlassCard style={styles.activityCard}>
+                    {data.activity.map((entry, index) => (
+                      <Animated.View
+                        key={`${entry.slug}-${entry.at}-${index}`}
+                        entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
+                        layout={LinearTransition.duration(duration.commit)}
+                      >
+                        <ActivityRow entry={entry} first={index === 0} />
+                      </Animated.View>
+                    ))}
+                  </GlassCard>
+                </View>
+              ) : null}
+            </>
+          )}
+        </QueryState>
       </ScrollView>
     </PageFrame>
   );
@@ -389,17 +373,6 @@ function ActivityRow({ entry, first }: { entry: ActivityEntry; first: boolean })
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <GlassCard style={styles.stat}>
-      <View style={styles.shrink}>
-        <PrismText style={type.stat}>{String(value)}</PrismText>
-      </View>
-      <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
-    </GlassCard>
-  );
-}
-
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: layout.gutter,
@@ -454,32 +427,9 @@ const styles = StyleSheet.create({
     paddingLeft: space.md,
   },
 
-  shelf: {
-    gap: space.md,
-    paddingRight: layout.gutter,
-  },
-  shelfCaption: {
-    color: color.fg,
-    width: 96,
-    marginTop: space.sm,
-  },
   shelfNote: {
     color: color.faint,
     marginTop: space.md,
-  },
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.md,
-  },
-  stat: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    padding: space.lg,
-    gap: space.xs,
-  },
-  shrink: {
-    alignSelf: 'flex-start',
   },
   activityCard: {
     paddingHorizontal: space.lg,
