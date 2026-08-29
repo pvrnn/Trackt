@@ -2,86 +2,46 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   LOG_STATUS_LABELS,
   dateRangeLabel,
-  firstUnwatched,
   invalidateTracking,
   partBlocks,
-  partWindow,
   progressUpTo,
   todayIso,
   trackingApi,
   useMediaDetail,
 } from '@trackt/client';
-import {
-  trackingVerbLabel,
-  type LogDates,
-  type LogStatus,
-  type MediaDetail,
-  type RelatedWork,
-  type SearchResult,
-} from '@trackt/shared';
-import { BlurView } from 'expo-blur';
+import { trackingVerbLabel, type LogDates, type LogStatus, type MediaDetail } from '@trackt/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
+import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToListSheet } from '../../../src/components/AddToListSheet';
-import { GlassCard } from '../../../src/components/GlassCard';
+import { CollapsingHeader } from '../../../src/components/CollapsingHeader';
 import { LogDatesSheet } from '../../../src/components/LogDatesSheet';
 import { MediaActionRow, RatingCard } from '../../../src/components/MediaActions';
+import { MediaFooter } from '../../../src/components/MediaFooter';
 import { MediaHero } from '../../../src/components/MediaHero';
-import {
-  BackLink,
-  PageFrame,
-  ScreenState,
-  SectionTitle,
-  StaleNotice,
-} from '../../../src/components/Page';
-import { PartBlockRow, PartRow } from '../../../src/components/PartRows';
-import { Shelf, ShelfItem } from '../../../src/components/Shelf';
+import { PageFrame, ScreenState, StaleNotice } from '../../../src/components/Page';
+import { PartsSection, partNoun } from '../../../src/components/PartsSection';
 import { ProgressCard } from '../../../src/components/ProgressCard';
 import { RatingSheet } from '../../../src/components/RatingSheet';
 import { StatusSheet } from '../../../src/components/StatusSheet';
 import { EMPTY_VIEWER, patchViewer, trackingPatch } from '../../../src/lib/offline';
 import type { TrackingWrite } from '../../../src/lib/offline';
 import { useViewerMutation } from '../../../src/lib/tracking';
-import { color, gutter, layout, radius, space, surface, text } from '../../../src/theme/tokens';
+import { gutter, space, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
-
-/** The collapsed bar `Mobile System.dc.html` fixes for both platforms: 44pt. */
-const HEADER_HEIGHT = layout.touchTarget;
-
-/** How far the hero scrolls before the bar is fully opaque. */
-const HEADER_FADE = [120, 220] as const;
 
 /** Which sheet is up, if any. One at a time — they are all modal. */
 type OpenSheet = 'status' | 'rating' | 'list' | null;
 
 /**
- * The media screen, rebuilt on `docs/design/Mobile Media.dc.html`.
+ * The media screen (`docs/design/Mobile Media.dc.html`).
  *
- * The design's argument, and now the screen's: **the counter is the source of
- * truth.** Progress is one integer, not a set of ticked boxes, so one control —
- * the same block, in the same place, on a movie, a season and a 1120-chapter
- * manga — carries it, and everything else is a view onto that integer. Type
- * into the number, drag the slider, tap −/+, or tap a row: all four are the
- * same write (`setProgress`).
- *
- * That is what makes the screen work with the catalog we actually have. Flat
- * numbered parts (ADR-0003) carry no titles, no air dates, no runtimes, and the
- * mockup's own rule is that rows earn their place through *metadata*, not
- * count — "24 untitled chapters still read better as a counter". So the counter
- * always leads here, and the parts below it are:
- *
- * - a work of 40 or fewer: every part, as a row;
- * - anything longer: blocks of 40, each with its own bar, and one opened block
- *   showing a six-row window around where you are.
- *
- * A 1120-chapter manga is 28 rows and a window, never 1120 tiles. That also
- * retires the `FlashList` this screen used to be: with the grid gone nothing
- * here is unbounded, so it is an ordinary scroll view again, and the hero can
- * be a full-bleed panel rather than a list header.
+ * The counter is the source of truth: progress is one integer, not a set of
+ * ticked boxes, so typing the number, dragging the slider, tapping −/+ and
+ * tapping a row are all the same write (`setProgress`). Nothing on the screen
+ * is unbounded, which is why it is an ordinary scroll view rather than a list.
  */
 export default function MediaScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -242,10 +202,10 @@ export default function MediaScreen() {
           />
         ) : null}
 
-        <Footer media={detail} />
+        <MediaFooter media={detail} />
       </Animated.ScrollView>
 
-      <HeaderBar title={detail.title} scrollY={scrollY} />
+      <CollapsingHeader title={detail.title} scrollY={scrollY} />
 
       {sheet === 'status' ? (
         <StatusSheet
@@ -299,359 +259,9 @@ export default function MediaScreen() {
   );
 }
 
-/** 'Episode'/'Chapter', its plural, and the short prefix a button uses. */
-function partNoun(detail: MediaDetail): { singular: string; plural: string; prefix: string } {
-  return detail.kind === 'manga' || detail.kind === 'webtoon'
-    ? { singular: 'Chapter', plural: 'Chapters', prefix: 'CH' }
-    : { singular: 'Episode', plural: 'Episodes', prefix: 'E' };
-}
-
-/**
- * The parts, at whatever scale the work is.
- *
- * Short work: every part, as a row. Long work: blocks of forty, and a six-row
- * window inside the one you open — the design's "never the whole volume, never
- * the whole work". An unknown count (an airing season) has no scale to block
- * up, so it gets the window around the position and nothing else.
- *
- * Every row writes the position: tapping part 140 marks everything to it,
- * tapping a part already done sets the position to one below, which is how an
- * overshoot is corrected without a dialog.
- */
-function PartsSection({
-  detail,
-  noun,
-  total,
-  position,
-  watched,
-  blocks,
-  openBlock,
-  onToggleBlock,
-  onSetPosition,
-}: {
-  detail: MediaDetail;
-  noun: { singular: string; plural: string; prefix: string };
-  total: number | null;
-  position: number;
-  watched: ReadonlySet<number>;
-  blocks: ReturnType<typeof partBlocks>;
-  openBlock: number | null;
-  onToggleBlock: (index: number) => void;
-  onSetPosition: (upTo: number) => void;
-}) {
-  const volumes = detail.kind === 'manga' || detail.kind === 'webtoon';
-  const next = firstUnwatched(watched, total ?? position + 1);
-
-  const row = (number: number) => (
-    <PartRow
-      key={number}
-      label={`${noun.singular} ${number}`}
-      done={watched.has(number)}
-      isNext={number === next}
-      // Tapping what you have done sets the position below it; tapping ahead
-      // brings everything up to it. One write either way.
-      onPress={() => onSetPosition(watched.has(number) ? number - 1 : number)}
-    />
-  );
-
-  if (total === null) {
-    // No count yet: no blocks, no percentage — just where you are and what is
-    // immediately around it.
-    const around = partWindow(1, position + 4, position);
-    return (
-      <View style={[gutter, styles.parts]}>
-        <SectionTitle title={noun.plural} />
-        <Text style={[type.eyebrow, text.dim]}>{position} SO FAR · COUNT NOT PUBLISHED YET</Text>
-        <View style={styles.rows}>{around.map(row)}</View>
-      </View>
-    );
-  }
-
-  if (blocks.length === 0) {
-    return (
-      <View style={[gutter, styles.parts]}>
-        <SectionTitle title={noun.plural} />
-        <View style={styles.rows}>{Array.from({ length: total }, (_, i) => i + 1).map(row)}</View>
-      </View>
-    );
-  }
-
-  // The block you are in is the one that opens, until you say otherwise.
-  const current = Math.min(
-    blocks.length,
-    Math.max(1, Math.ceil(Math.max(position, 1) / blocks[0]!.size)),
-  );
-  const activeIndex = openBlock ?? current;
-  const active = blocks.find((block) => block.index === activeIndex) ?? blocks[0]!;
-  const window = partWindow(active.from, active.to, position);
-  const inside = position >= active.from && position <= active.to;
-
-  return (
-    <View style={[gutter, styles.parts]}>
-      <View style={styles.partsHead}>
-        <SectionTitle title={volumes ? 'Volumes' : noun.plural} />
-        <Text style={[type.eyebrow, text.dim]}>
-          {blocks.length} {volumes ? 'VOLUMES' : 'BLOCKS'} · {total} {noun.plural.toUpperCase()}
-        </Text>
-      </View>
-
-      <View style={styles.rows}>
-        {blocks.map((block) => (
-          <PartBlockRow
-            key={block.index}
-            block={block}
-            label={volumes ? `Volume ${block.index}` : `${noun.plural} ${block.from}–${block.to}`}
-            rangeLabel={
-              volumes
-                ? `${noun.prefix} ${block.from}–${block.to}`
-                : `${block.size} ${noun.plural.toUpperCase()}`
-            }
-            open={block.index === activeIndex}
-            onPress={() => onToggleBlock(block.index)}
-          />
-        ))}
-      </View>
-
-      <View style={styles.windowHead}>
-        <Text style={[type.section, text.fg]}>
-          {(volumes
-            ? `Volume ${active.index}`
-            : `${noun.plural} ${active.from}–${active.to}`
-          ).toUpperCase()}
-          {inside ? ' · AROUND YOU' : ''}
-        </Text>
-        <View style={styles.rule} />
-      </View>
-      <View style={styles.rows}>{window.map(row)}</View>
-      <Text style={[type.eyebrow, text.faint]}>
-        OPEN A {volumes ? 'VOLUME' : 'BLOCK'} TO JUMP THERE · THE SLIDER TRAVELS FURTHER
-      </Text>
-    </View>
-  );
-}
-
-/**
- * The 44pt bar the page header collapses into (`Mobile System.dc.html`,
- * platform table: "collapses to a 44pt glass bar on scroll" on iOS, the small
- * app bar on Android — the same geometry either way).
- *
- * The back chevron does **not** fade: it is the screen's only in-app way out on
- * iOS, and an affordance that appears only once you have scrolled past it is
- * worse than no affordance. Only the glass and the title cross-fade in, and
- * they do it from the *hero* title's position, so what the bar shows is the
- * thing that just left rather than a new label.
- */
-function HeaderBar({ title, scrollY }: { title: string; scrollY: SharedValue<number> }) {
-  const insets = useSafeAreaInsets();
-
-  const glassStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [...HEADER_FADE], [0, 1], 'clamp'),
-  }));
-
-  // Over the hero art the back link needs its own ink to sit on (the mockup's
-  // floating pill); once the bar's own glass has arrived it would be a second
-  // surface on top of a surface, so it fades out as that fades in.
-  const pillStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [...HEADER_FADE], [1, 0], 'clamp'),
-  }));
-
-  return (
-    <View
-      style={[styles.headerBar, { paddingTop: insets.top, height: insets.top + HEADER_HEIGHT }]}
-      pointerEvents="box-none"
-    >
-      <Animated.View
-        style={[StyleSheet.absoluteFill, glassStyle]}
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
-        {/* The blur alone is not enough: §05 forbids content behind fighting
-            the text. Same 82% ink the tab bar puts over its own blur. */}
-        <View style={[StyleSheet.absoluteFill, styles.headerFill]} />
-        <View style={styles.headerRule} />
-      </Animated.View>
-      <View style={styles.headerRow}>
-        <View>
-          <Animated.View
-            style={[StyleSheet.absoluteFill, styles.backPill, pillStyle]}
-            pointerEvents="none"
-          />
-          <BackLink />
-        </View>
-        <Animated.Text numberOfLines={1} style={[type.section, styles.headerTitle, glassStyle]}>
-          {title.toUpperCase()}
-        </Animated.Text>
-      </View>
-    </View>
-  );
-}
-
-function Footer({ media }: { media: MediaDetail }) {
-  return (
-    <View style={styles.footer}>
-      {media.genres.length > 0 ? (
-        <View style={gutter}>
-          <SectionTitle title="Genres" />
-          <View style={styles.genres}>
-            {media.genres.map((genre) => (
-              <Text key={genre} style={[type.eyebrow, styles.genre]}>
-                {genre.toUpperCase()}
-              </Text>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {media.relations.length > 0 ? (
-        <RelatedShelf title="Related" works={media.relations} />
-      ) : media.related.length > 0 ? (
-        <RelatedShelf title="You might also like" works={media.related} />
-      ) : null}
-
-      <View style={gutter}>
-        <SectionTitle title="Details" />
-        <GlassCard style={styles.details}>
-          <Detail label="Released" value={media.releaseDate ?? '—'} />
-          <Detail label="Source" value={media.source.toUpperCase()} />
-          {media.synonyms.length > 0 ? (
-            <Detail label="Also known as" value={media.synonyms.join(' · ')} />
-          ) : null}
-        </GlassCard>
-      </View>
-    </View>
-  );
-}
-
-function RelatedShelf({ title, works }: { title: string; works: (RelatedWork | SearchResult)[] }) {
-  return (
-    <View>
-      <View style={gutter}>
-        <SectionTitle title={title} />
-      </View>
-      <Shelf padding="gutter">
-        {works.map((work) => (
-          <ShelfItem
-            key={work.id}
-            href={`/media/${work.slug}`}
-            kind={work.kind}
-            title={work.title}
-            coverUrl={work.coverUrl}
-            captionLines={2}
-          >
-            {'relation' in work ? (
-              <Text style={[type.eyebrow, styles.relation]}>{work.relation.toUpperCase()}</Text>
-            ) : null}
-          </ShelfItem>
-        ))}
-      </Shelf>
-    </View>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.detailRow}>
-      <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
-      <Text style={[type.bodySm, styles.detailValue]}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   body: {
     gap: space.lg,
     paddingTop: space.lg,
-  },
-  parts: {
-    gap: space.md,
-    marginTop: layout.sectionGap,
-  },
-  partsHead: {
-    gap: space.xs,
-  },
-  rows: {
-    gap: space.sm,
-  },
-  windowHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    marginTop: space.md,
-  },
-  rule: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: surface.glassBorder,
-  },
-  headerBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 2,
-  },
-  headerFill: {
-    backgroundColor: 'rgba(14,12,16,0.82)',
-  },
-  headerRule: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: surface.glassBorder,
-  },
-  headerRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingHorizontal: layout.gutter,
-  },
-  headerTitle: {
-    flex: 1,
-    color: color.fg,
-  },
-  backPill: {
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(14,12,16,0.62)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorderStrong,
-    marginVertical: space.xs,
-    marginHorizontal: -space.sm,
-  },
-  footer: {
-    gap: layout.sectionGap,
-    marginTop: layout.sectionGap,
-  },
-  genres: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.sm,
-  },
-  genre: {
-    color: color.dim,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorder,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    overflow: 'hidden',
-  },
-  relation: {
-    color: color.pink,
-    marginTop: space.sm,
-  },
-  details: {
-    padding: space.lg,
-    gap: space.md,
-  },
-  detailRow: {
-    gap: space.xs,
-  },
-  detailValue: {
-    color: color.fg,
   },
 });

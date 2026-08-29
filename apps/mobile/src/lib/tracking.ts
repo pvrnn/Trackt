@@ -7,38 +7,16 @@ import { TRACKING_MUTATION_KEY, patchViewer, trackingPatch, type TrackingWrite }
 import { useWriteFailedToast } from './toast';
 
 /**
- * The media screen's write path (mobile plan, phase 3, reworked for phase 5).
- *
- * The same optimistic mutation web's `/media/$slug` route runs, kept here
- * rather than in `packages/client` because it is a *screen's* cache policy, not
- * a data-layer one: it patches `['media', slug]`, which only a screen holding
- * that slug can be sure it wants. What the two clients genuinely share —
- * `invalidateTracking`'s fan-out and `stampedDates`' ADR-0007 rules — comes
- * from the package, unchanged.
- *
- * What phase 5 changed is where the request comes from. It used to be a closure
- * the caller handed in (`apply(patch, () => trackingApi.checkIn(…))`), which
- * made the patch and the request independent — and made both unrepeatable. A
- * write that is paused offline is stored as its `mutationKey` and its variables
- * and nothing else, so a closure cannot survive it. Now the caller passes a
- * `TrackingWrite` **value**, the request comes from `runTrackingWrite` via the
- * client's mutation defaults, and the optimistic patch is derived from the same
- * value by `trackingPatch`. All three live in `lib/offline.ts`, which is what
- * is left once the parts that need React are taken out — and is therefore the
- * part that can be tested.
- *
- * React Query serialises and cancels for us, so rapid check-ins can't clobber
- * each other's patches.
- */
-
-/**
  * `apply(write)` — patch the cached viewer, send the write (or queue it), roll
  * back and say so on failure, re-sync on settle.
  *
- * The haptics are the ones §07 allows: a medium impact when a write the user
- * asked for commits, an error notification when one comes back rejected. The
- * failure also surfaces as a toast, because a rolled-back optimistic patch is
- * otherwise indistinguishable from a tap that never registered.
+ * A write is a **value**, never a closure: React Query stores a paused write as
+ * its key and its variables and nothing else, so the request comes from
+ * `runTrackingWrite` via the client's mutation defaults and the optimistic
+ * patch from `trackingPatch` — both in `lib/offline.ts`, both testable.
+ *
+ * The failure surfaces as a toast as well as a haptic: a rolled-back optimistic
+ * patch is otherwise indistinguishable from a tap that never registered.
  */
 export function useViewerMutation(slug: string) {
   const queryClient = useQueryClient();

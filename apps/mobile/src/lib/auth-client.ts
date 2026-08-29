@@ -4,19 +4,12 @@ import { expoClient } from '@better-auth/expo/client';
 import * as SecureStore from 'expo-secure-store';
 
 /**
- * better-auth on React Native (ADR-0008 §3).
+ * better-auth on React Native (ADR-0008 §3). No cookie jar here, so
+ * `expoClient` mirrors the session cookie into SecureStore and replays it.
  *
- * There is no cookie jar here, so `expoClient` mirrors the session cookie into
- * SecureStore and replays it. The server side of this is two lines in
- * `apps/api/src/auth.ts` — the `expo()` plugin and `trackt://` in
- * `trustedOrigins`; sessions themselves are unchanged, which is why every route
- * guard already works for the app.
- *
- * The client is built per instance rather than once at module load: `baseURL`
- * is the origin the user picked, and switching instances has to produce a
- * different client rather than a reconfigured one — the plugin's cookie cache
- * is keyed to the client, and replaying instance A's cookie at instance B is
- * the exact bug the picker exists to make impossible.
+ * One client per instance, never reconfigured: the plugin's cookie cache is
+ * keyed to the client, and replaying instance A's cookie at instance B is the
+ * bug the picker exists to make impossible.
  */
 
 export type InstanceAuthClient = ReturnType<typeof createInstanceAuthClient>;

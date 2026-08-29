@@ -8,13 +8,13 @@ import {
 } from '@trackt/client';
 import { MEDIA_KINDS, type FavoriteEntry } from '@trackt/shared';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../src/components/Avatar';
 import { DeleteAccountSheet } from '../../../src/components/DeleteAccountSheet';
 import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
-import { Icon, type IconName } from '../../../src/components/Icon';
+import { Icon } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import {
   Loading,
@@ -24,9 +24,9 @@ import {
   pullToRefresh,
   useTabContentInset,
 } from '../../../src/components/Page';
+import { Destination } from '../../../src/components/Destination';
 import { Shelf, ShelfItem } from '../../../src/components/Shelf';
 import { Stat, Stats } from '../../../src/components/Stat';
-import { ripple } from '../../../src/components/Press';
 import { Touchable } from '../../../src/components/Touchable';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { authClient } from '../../../src/lib/auth-client';
@@ -280,55 +280,6 @@ export default function ProfileTab() {
   );
 }
 
-/**
- * One navigation row: a pink glyph, the destination, what is behind it, and a
- * chevron (`Mobile App.dc.html`, profile). Not the two-line card it used to be —
- * at 14/600 with the count on the right, four of these fit where two did, which
- * is the point of moving lists and history *into* the profile in the first
- * place.
- */
-function Destination({
-  icon,
-  href,
-  label,
-  meta,
-  onPress,
-}: {
-  icon: IconName;
-  href?: '/history' | '/lists' | '/friends';
-  label: string;
-  meta?: string | undefined;
-  onPress?: () => void;
-}) {
-  const body = (
-    <>
-      <Icon name={icon} color={color.pink} size={17} />
-      <Text style={[type.cardTitle, styles.rowLabel]}>{label}</Text>
-      {meta ? <Text style={[type.eyebrow, text.dim]}>{meta.toUpperCase()}</Text> : null}
-      <Icon name="chevron-right" color={color.faint} size={16} />
-    </>
-  );
-
-  if (href) {
-    return (
-      <Touchable href={href} style={styles.destination}>
-        {body}
-      </Touchable>
-    );
-  }
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      android_ripple={ripple()}
-      style={({ pressed }) => [styles.destination, { opacity: pressed ? 0.7 : 1 }]}
-    >
-      {body}
-    </Pressable>
-  );
-}
-
 function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEntry[] }) {
   return (
     <View style={styles.favouriteBlock}>
@@ -395,10 +346,6 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     backgroundColor: color.pink,
   },
-  rowLabel: {
-    flex: 1,
-    color: color.fg,
-  },
   favourites: {
     gap: space.md,
   },
@@ -437,17 +384,6 @@ const styles = StyleSheet.create({
   },
   destinations: {
     gap: space.sm,
-  },
-  destination: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    minHeight: layout.touchTarget + 6,
-    paddingHorizontal: space.lg,
-    borderRadius: radius.cardSm - 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorder,
-    backgroundColor: surface.glass,
   },
   destinationText: {
     gap: space.xs,

@@ -23,22 +23,12 @@ import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
- * The furniture every phase-2 screen shares.
- *
- * `Screen` (next door) owns the scrolling form layout the auth flow needs. The
- * read screens are lists instead — a `FlashList` has to own the scroll to
- * recycle rows — so `PageFrame` gives them the aura and the safe areas and
- * nothing else, and the list supplies its own header and padding.
+ * The aura and nothing else, for screens whose list owns the scroll.
+ * (`Screen` next door owns the scrolling form layout the auth flow needs.)
  */
 export function PageFrame({
   children,
-  /**
-   * Fade the content in when the screen takes focus — the tab-switch motion
-   * (`Mobile System.dc.html` §07, 140ms micro). Opt-in, and only the tab
-   * screens opt in: a pushed screen already arrives on the platform's own
-   * horizontal transition, and fading its content on top of that would be two
-   * animations for one navigation.
-   */
+  /** The tab-switch fade (§07). Tab screens only: a pushed screen already animates. */
   fadeOnFocus = false,
 }: {
   children: ReactNode;
@@ -46,8 +36,7 @@ export function PageFrame({
 }) {
   return (
     <View style={styles.frame}>
-      {/* The aura never fades: it is identical on all four tabs, so animating
-          it would be motion with nothing to say. */}
+      {/* The aura never fades: it is identical on all four tabs. */}
       <AuraBackground />
       {fadeOnFocus ? <FocusFade>{children}</FocusFade> : children}
     </View>
@@ -55,10 +44,8 @@ export function PageFrame({
 }
 
 /**
- * The tab content's entrance. `useFocusEffect` rather than an `entering`
- * layout animation because the tab screens stay mounted — `TabSlot` keeps a
- * visited tab alive so its scroll position and its queries survive — and a
- * mount animation on a component that mounts once would play exactly once.
+ * `useFocusEffect` rather than an `entering` animation: tab screens stay
+ * mounted, so a mount animation would play exactly once.
  */
 function FocusFade({ children }: { children: ReactNode }) {
   const fade = useSharedValue(0);
@@ -75,14 +62,7 @@ function FocusFade({ children }: { children: ReactNode }) {
   return <Animated.View style={[styles.frame, style]}>{children}</Animated.View>;
 }
 
-/**
- * `PageFrame` plus the scroll container the pushed (non-tab) screens want: safe
- * areas top and bottom, the 20pt gutters, and 28pt between section children.
- *
- * The tab screens do not use it — theirs is a `FlashList` that owns its own
- * scroll so it can recycle rows, and a list inside a `ScrollView` recycles
- * nothing.
- */
+/** `PageFrame` plus the scroll container the pushed (non-tab) screens want. */
 export function PageScroll({
   children,
   refreshControl,
@@ -107,13 +87,8 @@ export function PageScroll({
 }
 
 /**
- * The Anton page title, in the scroll flow (iOS large-title behaviour, and the
- * cross-platform baseline). The collapse into a 44pt glass bar is per-screen
- * rather than built in here: only the media screen scrolls far enough under a
- * hero for it to mean anything, so the bar lives there (`HeaderBar`).
- *
- * `count` is the gradient eyebrow the mockups pair with every title: "12
- * TITLES", "N UPDATES FROM YOUR LIBRARY".
+ * The Anton page title, in the scroll flow. The collapse into a glass bar is
+ * per-screen (`CollapsingHeader`); `count` is the gradient eyebrow beside it.
  */
 export function PageTitle({ title, count }: { title: string; count?: string | undefined }) {
   return (
@@ -162,11 +137,7 @@ export function Loading() {
   );
 }
 
-/**
- * The dashed glass card the mockups use for "nothing here" — one component for
- * every empty and failed state, because the difference between them is the copy
- * and occasionally an action, never the shape.
- */
+/** The dashed glass card for every empty and failed state — copy differs, shape never does. */
 export function EmptyState({
   title,
   body,
@@ -186,16 +157,8 @@ export function EmptyState({
 }
 
 /**
- * "This is what we had last time we could ask" (mobile plan, phase 5).
- *
- * A read screen offline serves its persisted cache, and the whole point of
- * doing that instead of spinning is that the user can still look things up on
- * the tube. What it must not do is let them mistake it for live: the one thing
- * an offline screen owes its reader is the age of what it is showing.
- *
- * Renders nothing while online. Nothing while there is nothing to date either
- * — a screen with no data has a `StaleNotice`'s job done by `OfflineState`
- * below, and a strip saying "updated 0M ago" over an empty screen is a lie.
+ * "This is what we had last time we could ask" — the age of a cache being
+ * served offline. Nothing while online, and nothing with no data to date.
  */
 export function StaleNotice({ updatedAt }: { updatedAt: number }) {
   const isOnline = useIsOnline();
@@ -210,14 +173,9 @@ export function StaleNotice({ updatedAt }: { updatedAt: number }) {
 }
 
 /**
- * The other half: what a screen shows while it is waiting, when the wait is
- * offline with nothing cached for it at all.
- *
- * Wraps the skeleton rather than sitting beside it so the rule lives in one
- * place and no screen has to reach for `useIsOnline` to state it. Without it
- * the screen skeletons forever: `networkMode: 'online'` *pauses* a query it
- * cannot run rather than failing it, so `isPending` never resolves and the
- * loading state is indistinguishable from a hang.
+ * What a screen shows while waiting offline with nothing cached. Without it the
+ * screen skeletons forever: `networkMode: 'online'` *pauses* a query it cannot
+ * run rather than failing it, so `isPending` never resolves.
  */
 export function OfflineFallback({ children }: { children: ReactNode }) {
   const isOnline = useIsOnline();

@@ -1,11 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
-import {
-  KIND_LABELS,
-  LOG_STATUS_LABELS,
-  dateRangeLabel,
-  groupEntries,
-  useHistory,
-} from '@trackt/client';
+import { KIND_LABELS, LOG_STATUS_LABELS, groupEntries, useHistory } from '@trackt/client';
 import {
   HISTORY_SEASONS,
   LOG_STATUSES,
@@ -20,9 +14,7 @@ import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from '
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip, ChipDivider, ChipRow } from '../../src/components/Chip';
-import { Cover } from '../../src/components/Cover';
-import { GlassCard } from '../../src/components/GlassCard';
-import { KindDot } from '../../src/components/KindDot';
+import { EntryCard, Total } from '../../src/components/HistoryCard';
 import {
   BackLink,
   EmptyState,
@@ -32,11 +24,9 @@ import {
   PageTitle,
   StaleNotice,
 } from '../../src/components/Page';
-import { Touchable } from '../../src/components/Touchable';
-import { PrismText } from '../../src/components/PrismText';
 import { duration, staggerDelay } from '../../src/lib/motion';
 import { useAuthedScreen } from '../../src/lib/session';
-import { color, gutter, layout, radius, space, surface, text } from '../../src/theme/tokens';
+import { color, gutter, layout, space } from '../../src/theme/tokens';
 import { type } from '../../src/theme/typography';
 
 /** Statuses a history row can actually have — the server excludes `planned`. */
@@ -48,18 +38,6 @@ const HISTORY_STATUSES = LOG_STATUSES.filter((status) => status !== 'planned');
  * past the tenth at the cap — the same delay, which is no stagger at all.
  */
 const PAGE_STAGGER_SPAN = 8;
-
-/**
- * Per-status colour, from `docs/design/History.dc.html`: in-progress is the live
- * pink, paused the warm gold, completed a settled neutral, dropped recedes.
- */
-const STATUS_COLORS: Record<LogStatus, string> = {
-  planned: color.dim,
-  in_progress: color.pink,
-  completed: color.fg,
-  paused: color.gold,
-  dropped: color.faint,
-};
 
 /**
  * One list row: either a month heading or a pair of poster cards.
@@ -283,63 +261,6 @@ export default function HistoryScreen() {
   );
 }
 
-/**
- * One self-contained poster card. Nothing legibility-critical sits on raw
- * artwork (design brief): the status and score ride opaque chips, and the title
- * plate below the cover is solid `#12101A`, so a white poster and a black one
- * read identically.
- */
-function EntryCard({ entry, width }: { entry: HistoryEntry; width: number }) {
-  const range = dateRangeLabel(entry.startedAt, entry.finishedAt);
-  return (
-    <Touchable href={`/media/${entry.slug}`} style={[{ width }, styles.card]}>
-      <View>
-        <Cover kind={entry.kind} title={entry.title} coverUrl={entry.coverUrl} width={width} />
-        <View style={styles.pills}>
-          <Text style={[type.eyebrow, styles.pill, { color: STATUS_COLORS[entry.status] }]}>
-            {LOG_STATUS_LABELS[entry.status]}
-          </Text>
-          {entry.score !== null ? (
-            <Text style={[type.eyebrow, styles.pill, styles.score]}>{entry.score}</Text>
-          ) : null}
-        </View>
-      </View>
-      <View style={styles.plate}>
-        <Text style={[type.cardTitle, styles.plateTitle]} numberOfLines={2}>
-          {entry.title}
-        </Text>
-        <View style={styles.metaRow}>
-          <KindDot kind={entry.kind} />
-          <Text style={[type.eyebrow, text.dim]} numberOfLines={1}>
-            {range ?? '—'}
-          </Text>
-        </View>
-        {/* `24 / 24` on a finished title is noise, so progress shows only
-              while there is progress left to make. */}
-        {entry.status !== 'completed' && entry.total ? (
-          <Text style={[type.eyebrow, text.dim]}>
-            {entry.watched} / {entry.total}
-          </Text>
-        ) : null}
-      </View>
-    </Touchable>
-  );
-}
-
-function Total({ value, label, scope }: { value: number; label: string; scope: string }) {
-  return (
-    <GlassCard style={styles.total}>
-      <View style={styles.shrink}>
-        <PrismText style={type.stat}>{String(value)}</PrismText>
-      </View>
-      <View>
-        <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
-        <Text style={[type.eyebrow, text.faint]}>{scope}</Text>
-      </View>
-    </GlassCard>
-  );
-}
-
 const styles = StyleSheet.create({
   secondRow: {
     marginTop: space.sm,
@@ -349,17 +270,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: space.md,
     marginTop: space.lg,
-  },
-  total: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    padding: space.md,
-  },
-  shrink: {
-    alignSelf: 'flex-start',
   },
   heading: {
     color: color.fg,
@@ -372,44 +282,6 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingHorizontal: layout.gutter,
     marginBottom: space.md,
-  },
-  card: {
-    borderRadius: radius.cover,
-    overflow: 'hidden',
-    backgroundColor: '#12101a',
-  },
-  pills: {
-    position: 'absolute',
-    top: space.sm,
-    left: space.sm,
-    right: space.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: space.sm,
-  },
-  pill: {
-    backgroundColor: 'rgba(14,12,16,0.82)',
-    borderRadius: radius.pill,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
-    overflow: 'hidden',
-  },
-  score: {
-    color: color.pink,
-  },
-  plate: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: surface.glassBorder,
-    padding: space.md,
-    gap: space.xs,
-  },
-  plateTitle: {
-    color: color.fg,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
   },
   footer: {
     paddingVertical: space.xl,

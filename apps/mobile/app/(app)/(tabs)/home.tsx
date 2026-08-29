@@ -1,25 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
-import {
-  KIND_LABELS_SINGULAR,
-  activityVerbLabel,
-  relativeTime,
-  upNextPartKey,
-  useHomeSummary,
-} from '@trackt/client';
-import {
-  IN_PROGRESS_LIMIT,
-  trackingVerbLabel,
-  type ActivityEntry,
-  type UpNextEntry,
-} from '@trackt/shared';
+import { upNextPartKey, useHomeSummary } from '@trackt/client';
+import { IN_PROGRESS_LIMIT, type UpNextEntry } from '@trackt/shared';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
-import { Icon } from '../../../src/components/Icon';
-import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
   Loading,
@@ -30,27 +16,23 @@ import {
   pullToRefresh,
   useTabContentInset,
 } from '../../../src/components/Page';
+import {
+  ActivityRow,
+  UpNextRow,
+  checkInWrite,
+  partLabel,
+  undoWrite,
+} from '../../../src/components/HomeRows';
 import { Shelf, ShelfItem } from '../../../src/components/Shelf';
 import { Stat, Stats } from '../../../src/components/Stat';
-import { AnimatedPressable, ripple, usePressMotion } from '../../../src/components/Press';
 import { SkeletonRows } from '../../../src/components/Skeleton';
-import { SwipeCheckIn } from '../../../src/components/SwipeCheckIn';
-import { Touchable } from '../../../src/components/Touchable';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { duration, staggerDelay } from '../../../src/lib/motion';
 import { useIsOnline } from '../../../src/lib/network';
 import { TRACKING_MUTATION_KEY, type PartWrite } from '../../../src/lib/offline';
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
-import {
-  color,
-  layout,
-  nativeSurface,
-  radius,
-  space,
-  surface,
-  text,
-} from '../../../src/theme/tokens';
+import { color, layout, space } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -272,107 +254,6 @@ export default function HomeTab() {
 
 /** 'E13' / 'CH204' — the part a row's check-in targets, in the row's own words. */
 /** The two writes an up-next row can produce, as values (`lib/offline.ts`). */
-function checkInWrite(entry: UpNextEntry): PartWrite {
-  return { op: 'checkIn', id: entry.id, part: entry.next };
-}
-
-function undoWrite(entry: UpNextEntry): PartWrite {
-  return { op: 'uncheck', id: entry.id, part: entry.next };
-}
-
-function partLabel(entry: UpNextEntry): string {
-  return `${entry.partKind === 'episode' ? 'E' : 'CH'}${entry.next}`;
-}
-
-/**
- * One 72pt up-next row: 40×56 thumb, title, the part line, and the check-in.
- *
- * The row opens the title; the button inside it checks in; the whole row is
- * also the swipe target. A `Pressable` nested in a `Pressable` resolves to the
- * inner one on native, so the two tap targets do not fight — the invalid-markup
- * problem that forces web's card to keep the whole surface unlinked does not
- * exist here — and gesture-handler cancels the outer press the moment the pan
- * activates, so a swipe never also navigates.
- */
-function UpNextRow({
-  entry,
-  index,
-  checkedIn,
-  onCheckIn,
-}: {
-  entry: UpNextEntry;
-  index: number;
-  checkedIn: boolean;
-  onCheckIn: () => void;
-}) {
-  const verb = trackingVerbLabel(entry.kind).toUpperCase();
-  const action = `${trackingVerbLabel(entry.kind, 'present')} ${partLabel(entry)}`;
-  const press = usePressMotion();
-  return (
-    <Animated.View entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}>
-      <SwipeCheckIn
-        label={action}
-        armedLabel={`Release to ${action}`}
-        committed={checkedIn}
-        onCommit={onCheckIn}
-      >
-        <Touchable href={`/media/${entry.slug}`} style={styles.row}>
-          <Cover
-            kind={entry.kind}
-            title={entry.title}
-            coverUrl={entry.coverUrl}
-            width={40}
-            showTitle={false}
-          />
-          <View style={styles.rowBody}>
-            <Text style={[type.cardTitle, styles.rowTitle]} numberOfLines={1}>
-              {entry.title}
-            </Text>
-            <View style={styles.metaRow}>
-              <KindDot kind={entry.kind} />
-              <Text style={[type.eyebrow, text.dim]}>
-                {KIND_LABELS_SINGULAR[entry.kind]} · {partLabel(entry)}
-                {entry.total ? ` OF ${entry.total}` : ''}
-              </Text>
-            </View>
-          </View>
-          <AnimatedPressable
-            accessibilityRole="button"
-            accessibilityLabel={`Mark ${entry.title} ${partLabel(entry)} ${verb.toLowerCase()}`}
-            accessibilityState={{ disabled: checkedIn }}
-            accessibilityHint="Or swipe the row right"
-            disabled={checkedIn}
-            onPress={onCheckIn}
-            onPressIn={press.onPressIn}
-            onPressOut={press.onPressOut}
-            android_ripple={ripple(true)}
-            hitSlop={space.sm}
-            style={[styles.check, press.animatedStyle]}
-          >
-            <Icon name="check" color={checkedIn ? color.dim : color.pink} />
-            {checkedIn ? <Text style={[type.button, text.dim]}>{verb}</Text> : null}
-          </AnimatedPressable>
-        </Touchable>
-      </SwipeCheckIn>
-    </Animated.View>
-  );
-}
-
-function ActivityRow({ entry, first }: { entry: ActivityEntry; first: boolean }) {
-  return (
-    <Touchable
-      href={`/media/${entry.slug}`}
-      style={[styles.activityRow, !first && styles.activityDivider]}
-    >
-      <KindDot kind={entry.kind} />
-      <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
-        {activityVerbLabel(entry)} {entry.title} <Text style={text.dim}>{entry.detail}</Text>
-      </Text>
-      <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
-    </Touchable>
-  );
-}
-
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: layout.gutter,
@@ -387,29 +268,6 @@ const styles = StyleSheet.create({
     // trailing one so the next section keeps its 28.
     marginBottom: -space.sm,
   },
-  row: {
-    height: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingHorizontal: space.md,
-    borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorder,
-    backgroundColor: nativeSurface.row,
-  },
-  rowBody: {
-    flex: 1,
-    gap: space.xs,
-  },
-  rowTitle: {
-    color: color.fg,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-  },
   // No pill, no fill, no border. `Mobile System.dc.html` §04 ends this row with
   // a `›` in #3d3846 — "a dim chevron is the only affordance" — because the
   // swipe is the action and the row is already a link. A filled 44pt pink disc
@@ -417,15 +275,6 @@ const styles = StyleSheet.create({
   // inverts that. What stays is the 44pt target and the tick, because the glyph
   // has to say *check in* rather than *open* — a chevron here would name the
   // wrong action. The weight comes off; the control does not.
-  check: {
-    minWidth: layout.touchTarget,
-    minHeight: layout.touchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.sm,
-    paddingLeft: space.md,
-  },
 
   shelfNote: {
     color: color.faint,
@@ -433,20 +282,5 @@ const styles = StyleSheet.create({
   },
   activityCard: {
     paddingHorizontal: space.lg,
-  },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.md,
-    minHeight: layout.touchTarget,
-  },
-  activityDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: surface.divider,
-  },
-  activityText: {
-    flex: 1,
-    color: color.fg,
   },
 });
