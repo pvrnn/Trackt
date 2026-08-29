@@ -89,7 +89,7 @@ describe('fetchNewsList', () => {
     let seen: URL | undefined;
     await fetchNewsList('http://catalog.test', {
       ...OPTIONS,
-      kind: 'anime',
+      kinds: 'anime,manga',
       topic: 'adaptation',
       from: '2026-07-01',
       to: '2026-08-01',
@@ -103,7 +103,7 @@ describe('fetchNewsList', () => {
       },
     });
     expect(Object.fromEntries(seen?.searchParams ?? [])).toEqual({
-      kind: 'anime',
+      kinds: 'anime,manga',
       topic: 'adaptation',
       from: '2026-07-01',
       to: '2026-08-01',

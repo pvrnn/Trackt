@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { SlimMediaSchema } from './catalog.js';
-import { MediaKindSchema } from './media.js';
+import { MEDIA_KINDS, MediaKindSchema, type MediaKind } from './media.js';
 
 /**
  * The News contract (ADR-0005). News is central-only: articles live in
@@ -133,8 +133,30 @@ export type NewsArticleDetail = z.infer<typeof NewsArticleDetailSchema>;
  * inclusively — the mockup's date-range control, which composes with the keyset
  * below for free because both order on the same column.
  */
+/**
+ * Media kinds as a CSV. Filtering for "anime and manga" is one query, not two:
+ * the feed is keyset-paginated, and two feeds cannot be merged page by page
+ * without either buffering both to the end or dropping stories at the seam.
+ */
+export const MediaKindListSchema = z
+  .string()
+  .transform((value) =>
+    value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean),
+  )
+  .pipe(z.array(MediaKindSchema).min(1).max(MEDIA_KINDS.length));
+
 export const NewsListQuerySchema = z.object({
+  /**
+   * The single-kind spelling. Kept because instances and the catalog deploy
+   * independently (ADR-0001): a catalog that stopped understanding it would
+   * silently serve an *unfiltered* feed to every instance still on the old
+   * build, which is worse than an error. New clients send `kinds`.
+   */
   kind: MediaKindSchema.optional(),
+  kinds: MediaKindListSchema.optional(),
   topic: NewsTopicSchema.optional(),
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
@@ -156,6 +178,14 @@ export const NewsByMediaQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).default(NEWS_BY_MEDIA_LIMIT),
 });
 export type NewsByMediaQuery = z.infer<typeof NewsByMediaQuerySchema>;
+
+/**
+ * The kinds a feed query filters by, from either spelling. Empty means "every
+ * kind" — the absence of a filter, not a filter that matches nothing.
+ */
+export function newsQueryKinds(query: Pick<NewsListQuery, 'kind' | 'kinds'>): MediaKind[] {
+  return [...new Set([...(query.kinds ?? []), ...(query.kind ? [query.kind] : [])])];
+}
 
 export const NewsListResponseSchema = z.object({
   articles: z.array(NewsArticleSummarySchema),
