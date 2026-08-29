@@ -28,6 +28,21 @@ export const color = {
 } as const;
 
 /**
+ * The ink colours as ready-made text styles, so a screen does not restate
+ * `{ color: color.dim }` in its own StyleSheet to say what the palette already
+ * says. Used as `[type.eyebrow, text.dim]`.
+ */
+export const text = {
+  fg: { color: color.fg },
+  muted: { color: color.muted },
+  dim: { color: color.dim },
+  faint: { color: color.faint },
+  pink: { color: color.pink },
+  gold: { color: color.gold },
+  onPrism: { color: color.onPrism },
+} as const;
+
+/**
  * The translucent surfaces. Kept apart from `color` because they are `rgba()`
  * rather than hex and so sit outside the drift guard — and because on native
  * they are composited over `expo-blur` rather than `backdrop-filter`.
@@ -111,3 +126,6 @@ export const layout = {
   /** Bar only; the home indicator is whatever `useSafeAreaInsets().bottom` says. */
   tabBarHeight: 64,
 } as const;
+
+/** The 20pt page gutter as a style, the way every screen actually spells it. */
+export const gutter = { paddingHorizontal: layout.gutter } as const;

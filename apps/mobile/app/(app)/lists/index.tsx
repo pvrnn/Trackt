@@ -16,7 +16,7 @@ import {
 } from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
-import { color, radius, space, surface } from '../../../src/theme/tokens';
+import { color, radius, space, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -98,11 +98,11 @@ function ListCard({ list }: { list: ListSummary }) {
         </View>
       ) : null}
       <View style={styles.body}>
-        <Text style={[type.section, styles.fg]} numberOfLines={2}>
+        <Text style={[type.section, text.fg]} numberOfLines={2}>
           {list.title.toUpperCase()}
         </Text>
         {list.description ? (
-          <Text style={[type.bodySm, styles.muted]} numberOfLines={2}>
+          <Text style={[type.bodySm, text.muted]} numberOfLines={2}>
             {list.description}
           </Text>
         ) : null}
@@ -110,7 +110,7 @@ function ListCard({ list }: { list: ListSummary }) {
           {list.isRanked ? <Text style={[type.eyebrow, styles.badge]}>RANKED</Text> : null}
           {list.isCollaborative ? <Text style={[type.eyebrow, styles.badge]}>COLLAB</Text> : null}
         </View>
-        <Text style={[type.eyebrow, styles.dim]}>
+        <Text style={[type.eyebrow, text.dim]}>
           {list.itemCount} {list.itemCount === 1 ? 'TITLE' : 'TITLES'} ·{' '}
           {visibilityLabel(list.visibility).toUpperCase()} · {updatedLabel(list.updatedAt)}
         </Text>
@@ -156,14 +156,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.sm,
     paddingVertical: space.xs,
     overflow: 'hidden',
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
   },
 });

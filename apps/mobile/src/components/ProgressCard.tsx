@@ -5,7 +5,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import type { LayoutChangeEvent } from 'react-native';
 import { commitHaptic } from '../lib/haptics';
-import { PRISM, color, radius, space, surface } from '../theme/tokens';
+import { PRISM, color, radius, space, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 
@@ -129,8 +129,8 @@ export function ProgressCard({
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Text style={[type.eyebrow, styles.dim]}>{unitLabel}</Text>
-        <Text style={[type.eyebrow, styles.pink]}>{percent}%</Text>
+        <Text style={[type.eyebrow, text.dim]}>{unitLabel}</Text>
+        <Text style={[type.eyebrow, text.pink]}>{percent}%</Text>
       </View>
 
       <View style={styles.counter}>
@@ -159,10 +159,10 @@ export function ProgressCard({
               }}
               style={styles.field}
             >
-              <Text style={[styles.number, styles.fg]}>{value}</Text>
+              <Text style={[styles.number, text.fg]}>{value}</Text>
             </Pressable>
           )}
-          <Text style={[styles.total, styles.dim]}>/ {total}</Text>
+          <Text style={[styles.total, text.dim]}>/ {total}</Text>
         </View>
 
         <View style={styles.steppers}>
@@ -209,7 +209,7 @@ export function ProgressCard({
       </GestureDetector>
 
       {ahead > 0 ? (
-        <Text style={[type.bodySm, styles.muted]}>
+        <Text style={[type.bodySm, text.muted]}>
           {ahead} further ahead {ahead === 1 ? 'is' : 'are'} ticked — moving this clears anything
           past where you are.
         </Text>
@@ -371,17 +371,5 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
-  },
-  fg: {
-    color: color.fg,
-  },
-  dim: {
-    color: color.dim,
-  },
-  muted: {
-    color: color.muted,
-  },
-  pink: {
-    color: color.pink,
   },
 });

@@ -49,7 +49,7 @@ import { Touchable } from '../../../src/components/Touchable';
 import { EMPTY_VIEWER, patchViewer, trackingPatch } from '../../../src/lib/offline';
 import type { TrackingWrite } from '../../../src/lib/offline';
 import { useViewerMutation } from '../../../src/lib/tracking';
-import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
+import { color, gutter, layout, radius, space, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /** The collapsed bar `Mobile System.dc.html` fixes for both platforms: 44pt. */
@@ -109,7 +109,7 @@ export default function MediaScreen() {
   if (isPending) {
     return (
       <PageFrame>
-        <View style={[styles.gutter, { paddingTop: insets.top + space.md, gap: space.lg }]}>
+        <View style={[gutter, { paddingTop: insets.top + space.md, gap: space.lg }]}>
           <BackLink />
           <OfflineFallback>
             <Loading />
@@ -122,7 +122,7 @@ export default function MediaScreen() {
   if (isError || !media) {
     return (
       <PageFrame>
-        <View style={[styles.gutter, { paddingTop: insets.top + space.md, gap: space.lg }]}>
+        <View style={[gutter, { paddingTop: insets.top + space.md, gap: space.lg }]}>
           <BackLink />
           <EmptyState
             title={media === null ? 'Not found' : "Couldn't load"}
@@ -208,7 +208,7 @@ export default function MediaScreen() {
           onEditDates={() => setEditingDates({ ...viewer })}
         />
 
-        <View style={[styles.gutter, styles.body]}>
+        <View style={[gutter, styles.body]}>
           <StaleNotice updatedAt={dataUpdatedAt} />
 
           <MediaActionRow
@@ -244,7 +244,7 @@ export default function MediaScreen() {
           ) : null}
 
           {detail.description ? (
-            <Text style={[type.body, styles.muted]}>{detail.description}</Text>
+            <Text style={[type.body, text.muted]}>{detail.description}</Text>
           ) : null}
         </View>
 
@@ -379,9 +379,9 @@ function PartsSection({
     // immediately around it.
     const around = partWindow(1, position + 4, position);
     return (
-      <View style={[styles.gutter, styles.parts]}>
+      <View style={[gutter, styles.parts]}>
         <SectionTitle title={noun.plural} />
-        <Text style={[type.eyebrow, styles.dim]}>{position} SO FAR · COUNT NOT PUBLISHED YET</Text>
+        <Text style={[type.eyebrow, text.dim]}>{position} SO FAR · COUNT NOT PUBLISHED YET</Text>
         <View style={styles.rows}>{around.map(row)}</View>
       </View>
     );
@@ -389,7 +389,7 @@ function PartsSection({
 
   if (blocks.length === 0) {
     return (
-      <View style={[styles.gutter, styles.parts]}>
+      <View style={[gutter, styles.parts]}>
         <SectionTitle title={noun.plural} />
         <View style={styles.rows}>{Array.from({ length: total }, (_, i) => i + 1).map(row)}</View>
       </View>
@@ -407,10 +407,10 @@ function PartsSection({
   const inside = position >= active.from && position <= active.to;
 
   return (
-    <View style={[styles.gutter, styles.parts]}>
+    <View style={[gutter, styles.parts]}>
       <View style={styles.partsHead}>
         <SectionTitle title={volumes ? 'Volumes' : noun.plural} />
-        <Text style={[type.eyebrow, styles.dim]}>
+        <Text style={[type.eyebrow, text.dim]}>
           {blocks.length} {volumes ? 'VOLUMES' : 'BLOCKS'} · {total} {noun.plural.toUpperCase()}
         </Text>
       </View>
@@ -433,7 +433,7 @@ function PartsSection({
       </View>
 
       <View style={styles.windowHead}>
-        <Text style={[type.section, styles.fg]}>
+        <Text style={[type.section, text.fg]}>
           {(volumes
             ? `Volume ${active.index}`
             : `${noun.plural} ${active.from}–${active.to}`
@@ -443,7 +443,7 @@ function PartsSection({
         <View style={styles.rule} />
       </View>
       <View style={styles.rows}>{window.map(row)}</View>
-      <Text style={[type.eyebrow, styles.faint]}>
+      <Text style={[type.eyebrow, text.faint]}>
         OPEN A {volumes ? 'VOLUME' : 'BLOCK'} TO JUMP THERE · THE SLIDER TRAVELS FURTHER
       </Text>
     </View>
@@ -512,7 +512,7 @@ function Footer({ media }: { media: MediaDetail }) {
   return (
     <View style={styles.footer}>
       {media.genres.length > 0 ? (
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <SectionTitle title="Genres" />
           <View style={styles.genres}>
             {media.genres.map((genre) => (
@@ -530,7 +530,7 @@ function Footer({ media }: { media: MediaDetail }) {
         <Shelf title="You might also like" works={media.related} />
       ) : null}
 
-      <View style={styles.gutter}>
+      <View style={gutter}>
         <SectionTitle title="Details" />
         <GlassCard style={styles.details}>
           <Detail label="Released" value={media.releaseDate ?? '—'} />
@@ -547,7 +547,7 @@ function Footer({ media }: { media: MediaDetail }) {
 function Shelf({ title, works }: { title: string; works: (RelatedWork | SearchResult)[] }) {
   return (
     <View>
-      <View style={styles.gutter}>
+      <View style={gutter}>
         <SectionTitle title={title} />
       </View>
       <ScrollView
@@ -574,16 +574,13 @@ function Shelf({ title, works }: { title: string; works: (RelatedWork | SearchRe
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailRow}>
-      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
+      <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
       <Text style={[type.bodySm, styles.detailValue]}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gutter: {
-    paddingHorizontal: layout.gutter,
-  },
   body: {
     gap: space.lg,
     paddingTop: space.lg,
@@ -686,17 +683,5 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     color: color.fg,
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
-  },
-  faint: {
-    color: color.faint,
   },
 });

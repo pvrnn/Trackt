@@ -21,7 +21,7 @@ import { Touchable } from '../../src/components/Touchable';
 import { commitHaptic, errorHaptic } from '../../src/lib/haptics';
 import { useInstance } from '../../src/lib/instance-provider';
 import { useAuthedScreen } from '../../src/lib/session';
-import { PRISM, color, layout, radius, space, surface } from '../../src/theme/tokens';
+import { PRISM, color, layout, radius, space, surface, text } from '../../src/theme/tokens';
 import { type } from '../../src/theme/typography';
 
 /** Which slice of the roster is showing; a query overrides all three. */
@@ -221,7 +221,7 @@ export default function FriendsScreen() {
           />
         ) : rows.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={[type.eyebrow, styles.faint]}>
+            <Text style={[type.eyebrow, text.faint]}>
               {searching ? 'NO MATCHES' : 'NOTHING HERE YET'}
             </Text>
           </View>
@@ -298,7 +298,7 @@ function PersonRow({
     >
       <Avatar name={person.username} image={person.image} size={40} />
       <View style={styles.rowText}>
-        <Text style={[type.cardTitle, styles.fg]} numberOfLines={1}>
+        <Text style={[type.cardTitle, text.fg]} numberOfLines={1}>
           {person.name}
         </Text>
         <Text style={styles.rowMeta} numberOfLines={1}>
@@ -340,7 +340,7 @@ function PersonRow({
             end={{ x: 1, y: 0 }}
             style={styles.pillFill}
           >
-            <Text style={[styles.pillLabel, styles.onPrism]}>{action.label}</Text>
+            <Text style={[styles.pillLabel, text.onPrism]}>{action.label}</Text>
           </LinearGradient>
         ) : (
           <View style={styles.pillFill}>
@@ -371,11 +371,11 @@ function Tab({ label, active, onPress }: { label: string; active: boolean; onPre
           end={{ x: 1, y: 1 }}
           style={styles.tabFill}
         >
-          <Text style={[styles.tabLabel, styles.onPrism]}>{label}</Text>
+          <Text style={[styles.tabLabel, text.onPrism]}>{label}</Text>
         </LinearGradient>
       ) : (
         <View style={styles.tabFill}>
-          <Text style={[styles.tabLabel, styles.dim]}>{label}</Text>
+          <Text style={[styles.tabLabel, text.dim]}>{label}</Text>
         </View>
       )}
     </Pressable>
@@ -519,18 +519,6 @@ const styles = StyleSheet.create({
   },
   error: {
     color: color.pink,
-  },
-  fg: {
-    color: color.fg,
-  },
-  dim: {
-    color: color.dim,
-  },
-  faint: {
-    color: color.faint,
-  },
-  onPrism: {
-    color: color.onPrism,
   },
 });
 

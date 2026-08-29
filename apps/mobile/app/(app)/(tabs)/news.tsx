@@ -32,7 +32,16 @@ import {
   useTabContentInset,
 } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
-import { color, layout, nativeSurface, radius, space, surface } from '../../../src/theme/tokens';
+import {
+  color,
+  gutter,
+  layout,
+  nativeSurface,
+  radius,
+  space,
+  surface,
+  text,
+} from '../../../src/theme/tokens';
 import { font, type } from '../../../src/theme/typography';
 
 /** The mockup's date filter, as the four windows it actually offers. */
@@ -159,7 +168,7 @@ export default function NewsTab() {
         }}
         ListHeaderComponent={
           <View style={{ paddingTop: insets.top + space.lg }}>
-            <View style={styles.gutter}>
+            <View style={gutter}>
               {/* No gradient eyebrow: the mockup's is "N UPDATES FROM YOUR
                   LIBRARY", which the feed cannot answer — `NewsArticleSummary`
                   carries no tracking state — and the story count it used to
@@ -186,7 +195,7 @@ export default function NewsTab() {
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.gutter}>
+          <View style={gutter}>
             {isLoading ? (
               <OfflineFallback>
                 <Loading />
@@ -555,7 +564,7 @@ function NewsRow({ article }: { article: NewsArticleSummary }) {
         <View style={styles.metaRow}>
           <Text style={[type.eyebrow, styles.tag]}>{TOPIC_LABELS[article.topic]}</Text>
           {kind ? <KindDot kind={kind} /> : null}
-          <Text style={[type.eyebrow, styles.dim]}>{formatNewsDate(article.publishedAt)}</Text>
+          <Text style={[type.eyebrow, text.dim]}>{formatNewsDate(article.publishedAt)}</Text>
         </View>
         <Text style={[type.cardTitle, styles.title]} numberOfLines={3}>
           {article.title}
@@ -571,9 +580,6 @@ function NewsRow({ article }: { article: NewsArticleSummary }) {
 }
 
 const styles = StyleSheet.create({
-  gutter: {
-    paddingHorizontal: layout.gutter,
-  },
   secondRow: {
     marginTop: space.md,
     marginBottom: space.lg,
@@ -673,9 +679,6 @@ const styles = StyleSheet.create({
   },
   dek: {
     color: color.muted,
-  },
-  dim: {
-    color: color.dim,
   },
   footer: {
     paddingVertical: space.xl,

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { color, layout, radius, space, surface } from '../theme/tokens';
+import { color, layout, radius, space, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { KIND_COLORS } from './KindDot';
 
@@ -103,7 +103,7 @@ export function MediaHero({
       <View style={styles.bottom}>
         <View style={styles.metaRow}>
           <View style={[styles.dot, { backgroundColor: KIND_COLORS[media.kind] }]} />
-          <Text style={[type.eyebrow, styles.muted]} numberOfLines={1}>
+          <Text style={[type.eyebrow, text.muted]} numberOfLines={1}>
             {meta}
           </Text>
         </View>
@@ -124,7 +124,7 @@ export function MediaHero({
             ]}
           >
             {statusLabel ? <View style={styles.chipDot} /> : null}
-            <Text style={[type.eyebrow, statusLabel ? styles.pink : styles.fg]}>
+            <Text style={[type.eyebrow, statusLabel ? text.pink : text.fg]}>
               {statusLabel ?? 'ADD TO LOG'}
             </Text>
           </Pressable>
@@ -138,14 +138,14 @@ export function MediaHero({
               onPress={onEditDates}
               style={({ pressed }) => [styles.dates, { opacity: pressed ? 0.75 : 1 }]}
             >
-              <Text style={[type.eyebrow, styles.muted]}>{dateLabel ?? 'SET DATES'}</Text>
+              <Text style={[type.eyebrow, text.muted]}>{dateLabel ?? 'SET DATES'}</Text>
             </Pressable>
           ) : null}
 
           {media.status ? (
             <>
-              <Text style={[type.eyebrow, styles.dim]}>·</Text>
-              <Text style={[type.eyebrow, styles.muted]}>
+              <Text style={[type.eyebrow, text.dim]}>·</Text>
+              <Text style={[type.eyebrow, text.muted]}>
                 {media.status.toUpperCase()}
                 {media.partCount ? ` · ${media.partCount} ${unit}` : ''}
               </Text>
@@ -217,17 +217,5 @@ const styles = StyleSheet.create({
   dates: {
     height: 30,
     justifyContent: 'center',
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
-  },
-  pink: {
-    color: color.pink,
   },
 });

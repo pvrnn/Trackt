@@ -23,7 +23,7 @@ import { Touchable } from '../../../src/components/Touchable';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { duration } from '../../../src/lib/motion';
 import { useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
+import { color, layout, radius, space, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -97,10 +97,8 @@ export default function ListScreen() {
           title={list.title}
           count={`${list.itemCount} ${list.itemCount === 1 ? 'title' : 'titles'}`}
         />
-        {list.description ? (
-          <Text style={[type.body, styles.muted]}>{list.description}</Text>
-        ) : null}
-        <Text style={[type.eyebrow, styles.dim]}>
+        {list.description ? <Text style={[type.body, text.muted]}>{list.description}</Text> : null}
+        <Text style={[type.eyebrow, text.dim]}>
           {list.isOwner ? 'YOURS' : `@${list.owner.username}`} ·{' '}
           {visibilityLabel(list.visibility).toUpperCase()} · {updatedLabel(list.updatedAt)}
         </Text>
@@ -115,7 +113,7 @@ export default function ListScreen() {
           </View>
         ) : null}
         {reorderable ? (
-          <Text style={[type.eyebrow, styles.dim]}>USE THE ARROWS TO REORDER</Text>
+          <Text style={[type.eyebrow, text.dim]}>USE THE ARROWS TO REORDER</Text>
         ) : null}
       </View>
 
@@ -210,12 +208,12 @@ function Row({
           showTitle={false}
         />
         <View style={styles.body}>
-          <Text style={[type.cardTitle, styles.fg]} numberOfLines={2}>
+          <Text style={[type.cardTitle, text.fg]} numberOfLines={2}>
             {entry.title}
           </Text>
           <View style={styles.metaRow}>
             <KindDot kind={entry.kind} />
-            <Text style={[type.eyebrow, styles.dim]}>
+            <Text style={[type.eyebrow, text.dim]}>
               {KIND_LABELS_SINGULAR[entry.kind]}
               {entry.year ? ` · ${entry.year}` : ''}
             </Text>
@@ -332,15 +330,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
   },
   score: {
     color: color.pink,

@@ -36,7 +36,7 @@ import { Touchable } from '../../src/components/Touchable';
 import { PrismText } from '../../src/components/PrismText';
 import { duration, staggerDelay } from '../../src/lib/motion';
 import { useAuthedScreen } from '../../src/lib/session';
-import { color, layout, radius, space, surface } from '../../src/theme/tokens';
+import { color, gutter, layout, radius, space, surface, text } from '../../src/theme/tokens';
 import { type } from '../../src/theme/typography';
 
 /** Statuses a history row can actually have — the server excludes `planned`. */
@@ -145,7 +145,7 @@ export default function HistoryScreen() {
         }}
         ListHeaderComponent={
           <View style={{ paddingTop: insets.top + space.md }}>
-            <View style={styles.gutter}>
+            <View style={gutter}>
               <BackLink label="Profile" />
               <PageTitle title="History" count={`${totals.titles} titles · ${scope}`} />
               <StaleNotice updatedAt={updatedAt} />
@@ -220,7 +220,7 @@ export default function HistoryScreen() {
             <Animated.View
               key={scope}
               entering={FadeIn.duration(duration.commit)}
-              style={[styles.gutter, styles.totals]}
+              style={[gutter, styles.totals]}
             >
               <Total value={totals.titles} label="Titles" scope={scope} />
               <Total value={totals.completed} label="Completed" scope={scope} />
@@ -230,7 +230,7 @@ export default function HistoryScreen() {
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.gutter}>
+          <View style={gutter}>
             {isLoading ? (
               <OfflineFallback>
                 <Loading />
@@ -310,14 +310,14 @@ function EntryCard({ entry, width }: { entry: HistoryEntry; width: number }) {
         </Text>
         <View style={styles.metaRow}>
           <KindDot kind={entry.kind} />
-          <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
+          <Text style={[type.eyebrow, text.dim]} numberOfLines={1}>
             {range ?? '—'}
           </Text>
         </View>
         {/* `24 / 24` on a finished title is noise, so progress shows only
               while there is progress left to make. */}
         {entry.status !== 'completed' && entry.total ? (
-          <Text style={[type.eyebrow, styles.dim]}>
+          <Text style={[type.eyebrow, text.dim]}>
             {entry.watched} / {entry.total}
           </Text>
         ) : null}
@@ -333,17 +333,14 @@ function Total({ value, label, scope }: { value: number; label: string; scope: s
         <PrismText style={type.stat}>{String(value)}</PrismText>
       </View>
       <View>
-        <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
-        <Text style={[type.eyebrow, styles.faint]}>{scope}</Text>
+        <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
+        <Text style={[type.eyebrow, text.faint]}>{scope}</Text>
       </View>
     </GlassCard>
   );
 }
 
 const styles = StyleSheet.create({
-  gutter: {
-    paddingHorizontal: layout.gutter,
-  },
   secondRow: {
     marginTop: space.sm,
   },
@@ -413,12 +410,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  dim: {
-    color: color.dim,
-  },
-  faint: {
-    color: color.faint,
   },
   footer: {
     paddingVertical: space.xl,

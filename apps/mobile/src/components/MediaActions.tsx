@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PRISM, color, radius, space, surface } from '../theme/tokens';
+import { PRISM, color, radius, space, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon, type IconName } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
@@ -54,7 +54,7 @@ export function MediaActionRow({
         {caughtUp ? (
           <View style={styles.primaryInner}>
             <Icon name="star-filled" color={color.muted} size={15} />
-            <Text style={[type.button, styles.muted]}>{label}</Text>
+            <Text style={[type.button, text.muted]}>{label}</Text>
           </View>
         ) : (
           <LinearGradient
@@ -64,7 +64,7 @@ export function MediaActionRow({
             style={styles.primaryInner}
           >
             <Icon name="check" color={color.onPrism} size={16} />
-            <Text style={[type.button, styles.onPrism]} numberOfLines={1}>
+            <Text style={[type.button, text.onPrism]} numberOfLines={1}>
               {label}
             </Text>
           </LinearGradient>
@@ -109,7 +109,7 @@ function SatelliteButton({
       style={[styles.satellite, active && styles.satelliteActive, press.animatedStyle]}
     >
       <Icon name={icon} color={active ? color.pink : color.muted} size={15} />
-      <Text style={[styles.caption, active ? styles.pink : styles.dim]}>{caption}</Text>
+      <Text style={[styles.caption, active ? text.pink : text.dim]}>{caption}</Text>
     </AnimatedPressable>
   );
 }
@@ -259,20 +259,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.6,
     color: color.dim,
-  },
-  onPrism: {
-    color: color.onPrism,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
-  },
-  faint: {
-    color: color.faint,
-  },
-  pink: {
-    color: color.pink,
   },
 });

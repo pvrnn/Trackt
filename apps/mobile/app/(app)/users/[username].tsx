@@ -34,7 +34,7 @@ import { PrismText } from '../../../src/components/PrismText';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { useOptionalSession } from '../../../src/lib/session';
 import { useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, space, surface } from '../../../src/theme/tokens';
+import { color, layout, space, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /** What the viewer's relationship to this account currently is, in words. */
@@ -88,19 +88,17 @@ export default function PublicProfileScreen() {
         <View style={styles.header}>
           <Avatar name={profile.user.name} image={profile.user.image} size={88} />
           <View style={styles.headerText}>
-            <Text style={[type.title, styles.fg]} numberOfLines={2}>
+            <Text style={[type.title, text.fg]} numberOfLines={2}>
               {profile.user.name.toUpperCase()}
             </Text>
-            <Text style={[type.eyebrow, styles.dim]}>@{profile.user.username}</Text>
+            <Text style={[type.eyebrow, text.dim]}>@{profile.user.username}</Text>
             {relationship ? (
               <Text style={[type.eyebrow, styles.relationship]}>{relationship}</Text>
             ) : null}
             <FriendAction profile={profile} signedIn={viewer !== null} />
           </View>
         </View>
-        {profile.user.bio ? (
-          <Text style={[type.body, styles.muted]}>{profile.user.bio}</Text>
-        ) : null}
+        {profile.user.bio ? <Text style={[type.body, text.muted]}>{profile.user.bio}</Text> : null}
       </View>
 
       <View style={styles.stats}>
@@ -129,9 +127,9 @@ export default function PublicProfileScreen() {
                 <KindDot kind={entry.kind} />
                 <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
                   {activityVerbLabel(entry).toLowerCase()} {entry.title}{' '}
-                  <Text style={styles.dim}>{entry.detail}</Text>
+                  <Text style={text.dim}>{entry.detail}</Text>
                 </Text>
-                <Text style={[type.eyebrow, styles.dim]}>{relativeTime(entry.at)}</Text>
+                <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
               </Touchable>
             ))}
           </GlassCard>
@@ -282,7 +280,7 @@ function Stat({ value, label }: { value: number; label: string }) {
       <View style={styles.shrink}>
         <PrismText style={type.stat}>{String(value)}</PrismText>
       </View>
-      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
+      <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
     </GlassCard>
   );
 }
@@ -352,14 +350,5 @@ const styles = StyleSheet.create({
   activityText: {
     flex: 1,
     color: color.fg,
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
   },
 });

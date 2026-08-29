@@ -41,7 +41,15 @@ import { useIsOnline } from '../../../src/lib/network';
 import { TRACKING_MUTATION_KEY, type PartWrite } from '../../../src/lib/offline';
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, nativeSurface, radius, space, surface } from '../../../src/theme/tokens';
+import {
+  color,
+  layout,
+  nativeSurface,
+  radius,
+  space,
+  surface,
+  text,
+} from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -230,7 +238,7 @@ export default function HomeTab() {
                         <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={1}>
                           {entry.title}
                         </Text>
-                        <Text style={[type.eyebrow, styles.dim]}>
+                        <Text style={[type.eyebrow, text.dim]}>
                           {entry.total ? `${entry.watched} / ${entry.total}` : `${entry.watched}`}
                         </Text>
                       </Touchable>
@@ -338,7 +346,7 @@ function UpNextRow({
             </Text>
             <View style={styles.metaRow}>
               <KindDot kind={entry.kind} />
-              <Text style={[type.eyebrow, styles.dim]}>
+              <Text style={[type.eyebrow, text.dim]}>
                 {KIND_LABELS_SINGULAR[entry.kind]} · {partLabel(entry)}
                 {entry.total ? ` OF ${entry.total}` : ''}
               </Text>
@@ -358,7 +366,7 @@ function UpNextRow({
             style={[styles.check, press.animatedStyle]}
           >
             <Icon name="check" color={checkedIn ? color.dim : color.pink} />
-            {checkedIn ? <Text style={[type.button, styles.dim]}>{verb}</Text> : null}
+            {checkedIn ? <Text style={[type.button, text.dim]}>{verb}</Text> : null}
           </AnimatedPressable>
         </Touchable>
       </SwipeCheckIn>
@@ -374,9 +382,9 @@ function ActivityRow({ entry, first }: { entry: ActivityEntry; first: boolean })
     >
       <KindDot kind={entry.kind} />
       <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
-        {activityVerbLabel(entry)} {entry.title} <Text style={styles.dim}>{entry.detail}</Text>
+        {activityVerbLabel(entry)} {entry.title} <Text style={text.dim}>{entry.detail}</Text>
       </Text>
-      <Text style={[type.eyebrow, styles.dim]}>{relativeTime(entry.at)}</Text>
+      <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
     </Touchable>
   );
 }
@@ -387,7 +395,7 @@ function Stat({ value, label }: { value: number; label: string }) {
       <View style={styles.shrink}>
         <PrismText style={type.stat}>{String(value)}</PrismText>
       </View>
-      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
+      <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
     </GlassCard>
   );
 }
@@ -446,9 +454,6 @@ const styles = StyleSheet.create({
     paddingLeft: space.md,
   },
 
-  pink: {
-    color: color.pink,
-  },
   shelf: {
     gap: space.md,
     paddingRight: layout.gutter,
@@ -493,8 +498,5 @@ const styles = StyleSheet.create({
   activityText: {
     flex: 1,
     color: color.fg,
-  },
-  dim: {
-    color: color.dim,
   },
 });

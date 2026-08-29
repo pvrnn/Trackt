@@ -16,7 +16,7 @@ import {
 } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
 import { useAuthedScreen } from '../../../src/lib/session';
-import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
+import { color, gutter, layout, radius, space, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 const COLUMNS = 3;
@@ -58,7 +58,7 @@ export default function DiscoverTab() {
   return (
     <PageFrame fadeOnFocus>
       <View style={{ paddingTop: insets.top + space.lg }}>
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <PageTitle
             title="Discover"
             count={
@@ -94,20 +94,20 @@ export default function DiscoverTab() {
       </View>
 
       {status === 'idle' ? (
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <EmptyState
             title="Search the catalog"
             body="Type a title to find it. The kind chips narrow the results as you go."
           />
         </View>
       ) : status === 'error' ? (
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <EmptyState title="Search failed" body="The instance didn't answer. Try again." />
         </View>
       ) : status === 'loading' && results.length === 0 ? (
         <Loading />
       ) : results.length === 0 ? (
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <EmptyState
             title="Nothing found"
             body={`No ${kind ? KIND_LABELS[kind].toLowerCase() : 'titles'} match “${debounced}” on this instance.`}
@@ -136,7 +136,7 @@ function ResultTile({ result, width }: { result: SearchResult; width: number }) 
       </Text>
       <View style={styles.metaRow}>
         <KindDot kind={result.kind} />
-        <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
+        <Text style={[type.eyebrow, text.dim]} numberOfLines={1}>
           {result.seasonNumber ? `S${result.seasonNumber}` : (result.year ?? '—')}
         </Text>
       </View>
@@ -145,9 +145,6 @@ function ResultTile({ result, width }: { result: SearchResult; width: number }) 
 }
 
 const styles = StyleSheet.create({
-  gutter: {
-    paddingHorizontal: layout.gutter,
-  },
   chips: {
     // The row scrolls edge to edge, so its own padding supplies the gutter.
     marginVertical: space.md,
@@ -173,8 +170,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  dim: {
-    color: color.dim,
   },
 });

@@ -34,7 +34,7 @@ import { authClient } from '../../../src/lib/auth-client';
 import { useInstance } from '../../../src/lib/instance-provider';
 import { CLIENT_VERSION } from '../../../src/lib/instance';
 import { useAuthedScreen } from '../../../src/lib/session';
-import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
+import { color, layout, radius, space, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -93,7 +93,7 @@ export default function ProfileTab() {
             {/* Handle and reach on one line, the streak on its own in pink —
                 the design's identity block. A streak is the one number here
                 that decays if you stop, which is why it gets the colour. */}
-            <Text style={[type.eyebrow, styles.dim]}>
+            <Text style={[type.eyebrow, text.dim]}>
               @{data?.user.username ?? user.username}
               {data
                 ? ` · ${data.stats.friendCount} ${data.stats.friendCount === 1 ? 'FRIEND' : 'FRIENDS'}`
@@ -102,7 +102,7 @@ export default function ProfileTab() {
             {data && data.stats.dayStreak > 0 ? (
               <View style={styles.streak}>
                 <View style={styles.streakDot} />
-                <Text style={[type.eyebrow, styles.pink]}>{data.stats.dayStreak}-DAY STREAK</Text>
+                <Text style={[type.eyebrow, text.pink]}>{data.stats.dayStreak}-DAY STREAK</Text>
               </View>
             ) : null}
           </View>
@@ -163,7 +163,7 @@ export default function ProfileTab() {
                         {data.stats.incomingRequestCount}
                       </Text>
                     ) : null}
-                    <Text style={[type.button, styles.pink]}>ALL</Text>
+                    <Text style={[type.button, text.pink]}>ALL</Text>
                     <Icon name="chevron-right" color={color.pink} size={16} />
                   </Touchable>
                 }
@@ -181,14 +181,14 @@ export default function ProfileTab() {
                       style={styles.friend}
                     >
                       <Avatar name={friend.username} image={friend.image} size={56} />
-                      <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
+                      <Text style={[type.eyebrow, text.dim]} numberOfLines={1}>
                         {friend.username}
                       </Text>
                     </Touchable>
                   ))}
                 </ScrollView>
               ) : (
-                <Text style={[type.bodySm, styles.dim]}>
+                <Text style={[type.bodySm, text.dim]}>
                   No friends yet — search by name or handle to send a request.
                 </Text>
               )}
@@ -221,9 +221,9 @@ export default function ProfileTab() {
                       <KindDot kind={entry.kind} />
                       <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
                         {activityVerbLabel(entry).toLowerCase()} {entry.title}{' '}
-                        <Text style={styles.dim}>{entry.detail}</Text>
+                        <Text style={text.dim}>{entry.detail}</Text>
                       </Text>
-                      <Text style={[type.eyebrow, styles.dim]}>{relativeTime(entry.at)}</Text>
+                      <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
                     </Touchable>
                   ))}
                 </GlassCard>
@@ -234,7 +234,7 @@ export default function ProfileTab() {
 
         <View style={styles.account}>
           <SectionTitle title="Account" />
-          <Text style={[type.bodySm, styles.dim]}>
+          <Text style={[type.bodySm, text.dim]}>
             {origin} · app {CLIENT_VERSION}
           </Text>
           <PrismButton
@@ -312,7 +312,7 @@ function Destination({
     <>
       <Icon name={icon} color={color.pink} size={17} />
       <Text style={[type.cardTitle, styles.rowLabel]}>{label}</Text>
-      {meta ? <Text style={[type.eyebrow, styles.dim]}>{meta.toUpperCase()}</Text> : null}
+      {meta ? <Text style={[type.eyebrow, text.dim]}>{meta.toUpperCase()}</Text> : null}
       <Icon name="chevron-right" color={color.faint} size={16} />
     </>
   );
@@ -340,7 +340,7 @@ function Destination({
 function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEntry[] }) {
   return (
     <View style={styles.favouriteBlock}>
-      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
+      <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -401,12 +401,6 @@ const styles = StyleSheet.create({
   bio: {
     color: color.muted,
     marginTop: -space.md,
-  },
-  fg: {
-    color: color.fg,
-  },
-  dim: {
-    color: color.dim,
   },
   stats: {
     flexDirection: 'row',
@@ -493,9 +487,6 @@ const styles = StyleSheet.create({
     width: 64,
     alignItems: 'center',
     gap: space.sm,
-  },
-  pink: {
-    color: color.pink,
   },
   destinations: {
     gap: space.sm,
