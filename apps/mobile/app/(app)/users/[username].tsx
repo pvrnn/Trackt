@@ -1,12 +1,4 @@
-import {
-  KIND_LABELS,
-  activityVerbLabel,
-  relativeTime,
-  useAcceptFriendRequest,
-  usePublicProfile,
-  useRemoveFriend,
-  useSendFriendRequest,
-} from '@trackt/client';
+import { KIND_LABELS, activityVerbLabel, relativeTime, usePublicProfile } from '@trackt/client';
 import {
   MEDIA_KINDS,
   type FavoriteEntry,
@@ -25,7 +17,8 @@ import { BackLink, PageScroll, ScreenState, SectionTitle } from '../../../src/co
 import { Stat, Stats } from '../../../src/components/Stat';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
-import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
+import { commitHaptic } from '../../../src/lib/haptics';
+import { useFriendActions } from '../../../src/lib/friends';
 import { useOptionalSession } from '../../../src/lib/session';
 import { useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, space, surface, text } from '../../../src/theme/tokens';
@@ -134,19 +127,9 @@ export default function PublicProfileScreen() {
 function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn: boolean }) {
   const router = useRouter();
   const writeFailed = useWriteFailedToast();
-  const sendRequest = useSendFriendRequest();
-  const accept = useAcceptFriendRequest();
-  const remove = useRemoveFriend();
+  const { send, accept, remove, busy, sendTo, acceptFrom, removeFrom } =
+    useFriendActions(writeFailed);
   const [confirmingUnfriend, setConfirmingUnfriend] = useState(false);
-
-  const busy = sendRequest.isPending || accept.isPending || remove.isPending;
-  const handlers = {
-    onSuccess: () => commitHaptic(),
-    onError: (cause: unknown) => {
-      errorHaptic();
-      writeFailed(cause);
-    },
-  };
 
   if (profile.friendState === 'self') {
     return (
@@ -176,9 +159,9 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
         <PrismButton
           label="Add friend"
           icon="plus"
-          busy={sendRequest.isPending}
+          busy={send.isPending}
           disabled={busy}
-          onPress={() => sendRequest.mutate(profile.user.username, handlers)}
+          onPress={() => sendTo(profile.user.username)}
           style={styles.action}
         />
       ) : null}
@@ -189,7 +172,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
           variant="secondary"
           busy={remove.isPending}
           disabled={busy}
-          onPress={() => remove.mutate(profile.userId, handlers)}
+          onPress={() => removeFrom(profile.userId)}
           style={styles.action}
         />
       ) : null}
@@ -199,14 +182,14 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
             label="Accept"
             busy={accept.isPending}
             disabled={busy}
-            onPress={() => accept.mutate(profile.userId, handlers)}
+            onPress={() => acceptFrom(profile.userId)}
             style={styles.action}
           />
           <PrismButton
             label="Decline"
             variant="secondary"
             disabled={busy}
-            onPress={() => remove.mutate(profile.userId, handlers)}
+            onPress={() => removeFrom(profile.userId)}
             style={styles.action}
           />
         </>

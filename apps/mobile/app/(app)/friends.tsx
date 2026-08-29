@@ -1,11 +1,4 @@
-import {
-  useAcceptFriendRequest,
-  useDebounced,
-  useFriends,
-  useRemoveFriend,
-  useSendFriendRequest,
-  useUserSearch,
-} from '@trackt/client';
+import { useDebounced, useFriends, useUserSearch } from '@trackt/client';
 import type { FriendState, UserSummary } from '@trackt/shared';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -18,7 +11,8 @@ import { Icon } from '../../src/components/Icon';
 import { EmptyState, Loading, PageFrame } from '../../src/components/Page';
 import { AnimatedPressable, ripple, usePressMotion } from '../../src/components/Press';
 import { Touchable } from '../../src/components/Touchable';
-import { commitHaptic, errorHaptic } from '../../src/lib/haptics';
+import { commitHaptic } from '../../src/lib/haptics';
+import { useFriendActions } from '../../src/lib/friends';
 import { useInstance } from '../../src/lib/instance-provider';
 import { useAuthedScreen } from '../../src/lib/session';
 import { PRISM, color, layout, radius, space, surface, text } from '../../src/theme/tokens';
@@ -59,30 +53,22 @@ export default function FriendsScreen() {
   const searching = debounced.length >= 2;
   const { data: results, isFetching, isError: searchFailed } = useUserSearch(debounced);
 
-  const sendRequest = useSendFriendRequest();
-  const accept = useAcceptFriendRequest();
-  const remove = useRemoveFriend();
-  const busy = sendRequest.isPending || accept.isPending || remove.isPending;
-
-  const handlers = {
-    onSuccess: () => commitHaptic(),
-    onError: (cause: unknown) => {
-      errorHaptic();
-      setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
-    },
-  };
+  const friendActions = useFriendActions((cause) =>
+    setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.'),
+  );
+  const { busy } = friendActions;
 
   const act = (state: FriendState, person: UserSummary) => {
     setError(null);
-    if (state === 'none') sendRequest.mutate(person.username, handlers);
-    else if (state === 'incoming') accept.mutate(person.id, handlers);
-    else if (state === 'outgoing') remove.mutate(person.id, handlers);
+    if (state === 'none') friendActions.sendTo(person.username);
+    else if (state === 'incoming') friendActions.acceptFrom(person.id);
+    else if (state === 'outgoing') friendActions.removeFrom(person.id);
     else if (state === 'friends') setUnfriending(person);
   };
 
   const decline = (person: UserSummary) => {
     setError(null);
-    remove.mutate(person.id, handlers);
+    friendActions.removeFrom(person.id);
   };
 
   /** An invite is a link to your own profile — the one URL a friend can act on. */
@@ -245,7 +231,9 @@ export default function FriendsScreen() {
           title="Remove friend?"
           body={`${unfriending.name} goes back to being a stranger, and any list you share with friends only stops being visible to them.`}
           confirmLabel="Remove"
-          onConfirm={() => remove.mutateAsync(unfriending.id).then(() => commitHaptic())}
+          onConfirm={() =>
+            friendActions.remove.mutateAsync(unfriending.id).then(() => commitHaptic())
+          }
           onClose={() => setUnfriending(null)}
         />
       ) : null}
