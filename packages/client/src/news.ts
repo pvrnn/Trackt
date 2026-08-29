@@ -115,6 +115,27 @@ export function useNewsFeed(filters: NewsFilters): NewsFeedState {
   };
 }
 
+/**
+ * Recent articles touching one work — the media detail page's "In the news"
+ * strip. Summaries only; each links out to the article.
+ *
+ * Never paged, so a plain `useQuery` rather than the feed's infinite one, and
+ * the API degrades a dead catalog to an empty list here too: a work with no
+ * news and an instance whose catalog is down look the same, which is what lets
+ * the caller simply omit the section.
+ */
+export function useMediaNews(mediaId: string) {
+  return useQuery({
+    queryKey: ['news', 'by-media', mediaId],
+    queryFn: async ({ signal }): Promise<NewsArticleSummary[]> => {
+      const json = await http()
+        .get('news/by-media', { searchParams: { id: mediaId }, signal })
+        .json();
+      return NewsListResponseSchema.parse(json).articles;
+    },
+  });
+}
+
 export function useNewsArticle(slug: string) {
   return useQuery({
     queryKey: ['news', 'article', slug],

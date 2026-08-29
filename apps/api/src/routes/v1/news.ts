@@ -3,10 +3,11 @@ import { z } from 'zod';
 import {
   ApiErrorSchema,
   NewsArticleDetailSchema,
+  NewsByMediaQuerySchema,
   NewsListQuerySchema,
   NewsListResponseSchema,
 } from '@trackt/shared';
-import { loadNewsArticle, loadNewsList } from '../../lib/news.js';
+import { loadNewsArticle, loadNewsForMedia, loadNewsList } from '../../lib/news.js';
 import { getSessionUser } from '../../lib/session.js';
 
 /**
@@ -34,6 +35,28 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) =>
       loadNewsList(app.deps.env.CATALOG_URL, request.query, {
+        timeoutMs: app.deps.env.CATALOG_NEWS_TIMEOUT_MS,
+        logger: app.log,
+      }),
+  );
+
+  // Registered before '/news/:slug' to read in contract order; find-my-way ranks
+  // the static segment above the parametric one either way, so 'by-media' is
+  // never mistaken for a slug.
+  app.get(
+    '/news/by-media',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['news'],
+        querystring: NewsByMediaQuerySchema,
+        // No 503, for the same reason as the feed: a work's page loses its news
+        // strip when the catalog is down, it does not fail to render.
+        response: { 200: NewsListResponseSchema },
+      },
+    },
+    async (request) =>
+      loadNewsForMedia(app.deps.env.CATALOG_URL, request.query, {
         timeoutMs: app.deps.env.CATALOG_NEWS_TIMEOUT_MS,
         logger: app.log,
       }),

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   ApiErrorSchema,
   NewsArticleSchema,
+  NewsByMediaQuerySchema,
   NewsListQuerySchema,
   NewsListResponseSchema,
   decodeNewsCursor,
@@ -116,10 +117,7 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
       config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: {
         tags: ['news'],
-        querystring: z.object({
-          id: z.uuid(),
-          limit: z.coerce.number().int().min(1).max(20).default(5),
-        }),
+        querystring: NewsByMediaQuerySchema,
         // Same envelope as the feed so one client parser serves both; the cursor
         // is always null because this block never pages.
         response: { 200: NewsListResponseSchema, 503: ApiErrorSchema },

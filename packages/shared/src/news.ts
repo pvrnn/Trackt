@@ -144,6 +144,19 @@ export const NewsListQuerySchema = z.object({
 });
 export type NewsListQuery = z.infer<typeof NewsListQuerySchema>;
 
+/**
+ * The media detail page's "In the news" strip: articles touching one work.
+ * Never paged — the strip is a handful of links, so the shared envelope's
+ * `nextCursor` is always null on this route.
+ */
+export const NEWS_BY_MEDIA_LIMIT = 5;
+
+export const NewsByMediaQuerySchema = z.object({
+  id: z.uuid(),
+  limit: z.coerce.number().int().min(1).max(20).default(NEWS_BY_MEDIA_LIMIT),
+});
+export type NewsByMediaQuery = z.infer<typeof NewsByMediaQuerySchema>;
+
 export const NewsListResponseSchema = z.object({
   articles: z.array(NewsArticleSummarySchema),
   /** null on the last page. Opaque — decode only via {@link decodeNewsCursor}. */

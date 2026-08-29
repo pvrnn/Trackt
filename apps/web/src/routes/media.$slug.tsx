@@ -19,6 +19,7 @@ import { LogDatesDialog } from '../components/media/LogDatesDialog';
 import { PartBlockRow, PartRow } from '../components/media/PartRows';
 import { ProgressCard } from '../components/media/ProgressCard';
 import { RatingPopover } from '../components/media/RatingPopover';
+import { MediaNews } from '../components/news/MediaNews';
 import { Button } from '../components/ui/Button';
 import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
@@ -648,6 +649,11 @@ function MediaPage() {
               ))}
             </div>
           </section>
+
+          {/* Central news touching this work (ADR-0005). Placed above the
+              relation grids because it is about *this* work; the grids point
+              away from it. Renders nothing when there is nothing to show. */}
+          <MediaNews mediaId={detail.id} />
 
           {relationGroups.map(([label, items]) => (
             <section key={label} className="flex flex-col gap-3.5">

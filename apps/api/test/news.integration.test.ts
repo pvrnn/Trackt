@@ -261,6 +261,118 @@ describe.runIf(available)('news proxy (postgres)', () => {
     });
   });
 
+  describe('the by-media strip', () => {
+    async function stripVia(
+      app: App,
+      query = `id=${linkedWorkId}`,
+    ): Promise<{ status: number; body: NewsListResponse }> {
+      const response = await app.inject({ method: 'GET', url: `/api/v1/news/by-media?${query}` });
+      return { status: response.statusCode, body: response.json() };
+    }
+
+    it('reaches the by-media route, not the slug route', async () => {
+      // 'by-media' is a static segment sharing a prefix with '/news/:slug'; if
+      // the router ever preferred the parametric branch this would fetch an
+      // article named "by-media" instead.
+      let path: string | undefined;
+      server = catalogStub(
+        () => ({ body: { articles: [summary], nextCursor: null } }),
+        (pathname) => {
+          path = pathname;
+        },
+      );
+      const app = await appWith(await listen(server));
+      try {
+        const { status, body } = await stripVia(app);
+        expect(status).toBe(200);
+        expect(path).toBe('/v1/news/by-media');
+        expect(body.articles.map((article) => article.slug)).toEqual(['neon-harbor-renewed']);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('forwards the id and the limit to the catalog', async () => {
+      let seen: URLSearchParams | undefined;
+      server = catalogStub((_path, query) => {
+        seen = query;
+        return { body: { articles: [], nextCursor: null } };
+      });
+      const app = await appWith(await listen(server));
+      try {
+        await stripVia(app, `id=${linkedWorkId}&limit=3`);
+        expect(Object.fromEntries(seen ?? [])).toEqual({ id: linkedWorkId, limit: '3' });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('nulls the cursor even if the catalog sends one — the strip never pages', async () => {
+      server = catalogStub(() => ({ body: { articles: [summary], nextCursor: 'next-page' } }));
+      const app = await appWith(await listen(server));
+      try {
+        const { body } = await stripVia(app);
+        expect(body.nextCursor).toBeNull();
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('answers 200 with an empty strip when the catalog is down', async () => {
+      // The media page must still render; it loses one sidebar section.
+      server = catalogStub(() => ({ status: 500, body: { error: 'boom' } }));
+      const app = await appWith(await listen(server));
+      try {
+        const { status, body } = await stripVia(app);
+        expect(status).toBe(200);
+        expect(body).toEqual({ articles: [], nextCursor: null });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('answers 200 with an empty strip when no catalog is configured', async () => {
+      const app = await appWith('');
+      try {
+        const { status, body } = await stripVia(app);
+        expect(status).toBe(200);
+        expect(body).toEqual({ articles: [], nextCursor: null });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('serves a repeat lookup from the memo, keyed per work', async () => {
+      let calls = 0;
+      server = catalogStub(
+        () => ({ body: { articles: [summary], nextCursor: null } }),
+        () => {
+          calls += 1;
+        },
+      );
+      const app = await appWith(await listen(server));
+      try {
+        await stripVia(app);
+        await stripVia(app);
+        expect(calls).toBe(1);
+        await stripVia(app, `id=${collidingWorkId}`);
+        expect(calls).toBe(2);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('rejects an id that is not a uuid', async () => {
+      const app = await appWith('');
+      try {
+        const { status } = await stripVia(app, 'id=nope');
+        expect(status).toBe(400);
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
   describe('the article route', () => {
     function articleBody(overrides: Record<string, unknown> = {}) {
       return {
