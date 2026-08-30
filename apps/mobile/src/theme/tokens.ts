@@ -49,6 +49,15 @@ export const surface = {
   pinkBorder: 'rgba(217,107,176,0.40)',
   /** The stronger pink hairline on a row that is up next: 50%. */
   pinkBorderStrong: 'rgba(217,107,176,0.50)',
+  /**
+   * The tint a floating control puts over hero art so its label survives it.
+   *
+   * Ink, not white, and deliberately weak: at the 0.62 the back pill used to
+   * wear it was a dark plate with a bright rim, and the aura and the artwork
+   * behind it were simply gone. A third is enough to hold a `dim` label over
+   * anything the catalog throws behind it while the colour still reads through.
+   */
+  scrimGlass: 'rgba(14,12,16,0.32)',
 } as const;
 
 /** The opaque surfaces `Mobile System.dc.html` fixes for native only, with no web counterpart. */

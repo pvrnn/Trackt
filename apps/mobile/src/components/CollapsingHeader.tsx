@@ -197,9 +197,19 @@ export function CollapsingHeader({
       <View style={styles.headerRow}>
         <View>
           <Animated.View
-            style={[StyleSheet.absoluteFill, styles.backPill, floatStyle]}
+            style={[StyleSheet.absoluteFill, styles.backPillSlot, floatStyle]}
             pointerEvents="none"
-          />
+          >
+            {/* Glass, the way `GlassCard` builds it: blur, a weak ink tint over
+                it, and the ring on the wrapper. The clipping is deliberately on
+                this inner view and not on the animated one above — a rounded
+                `overflow: 'hidden'` on a node Reanimated is driving drops its
+                child's paint on Android (see `MediaActions`). */}
+            <View style={styles.backPillFace}>
+              <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+              <View style={[StyleSheet.absoluteFill, styles.backPillTint]} />
+            </View>
+          </Animated.View>
           {/* The label only steps aside when there is a title to step aside
               *for*: a screen with no title (a failed one) would otherwise
               scroll to a bare chevron and nothing else. */}
@@ -260,20 +270,24 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
   },
-  backPill: {
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(14,12,16,0.62)',
-    borderWidth: stroke,
-    // The fill is *darker* than the aura behind it, so this rim is the only
-    // thing keeping the shape off bright hero art. At `glassBorderStrong` it
-    // stopped reading as glass and started reading as a white outline drawn
-    // around a dark plate; a hairline of 10% is the edge without the outline.
-    borderColor: surface.glassBorder,
+  backPillSlot: {
     marginVertical: space.xs,
     // The pill is 36 tall, so its caps are 18 — and the two sides are not
     // symmetric. The chevron's glyph box carries its own whitespace, where the
     // label's last letter ends flush and needs the full cap to clear.
     marginLeft: -space.sm,
     marginRight: -space.lg,
+  },
+  backPillFace: {
+    flex: 1,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    borderWidth: stroke,
+    // 10%, not `glassBorderStrong`: at 15% over a tint this weak the rim stops
+    // reading as an edge and starts reading as an outline drawn around a plate.
+    borderColor: surface.glassBorder,
+  },
+  backPillTint: {
+    backgroundColor: surface.scrimGlass,
   },
 });
