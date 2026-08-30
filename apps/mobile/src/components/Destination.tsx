@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { ripple } from './Press';
 import { Touchable } from './Touchable';
-import { color, layout, radius, space, surface, text } from '../theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget + 6,
     paddingHorizontal: space.lg,
     borderRadius: radius.cardSm - 4,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },

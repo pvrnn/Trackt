@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { GlassCard } from './GlassCard';
 import { SectionTitle } from './Page';
 import { Shelf, ShelfItem } from './Shelf';
-import { color, gutter, layout, radius, space, surface, text } from '../theme/tokens';
+import { color, gutter, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /** Everything under the parts: genres, related works, and the details card. */
@@ -90,10 +90,10 @@ const styles = StyleSheet.create({
   },
   genre: {
     color: color.dim,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     borderRadius: radius.pill,
-    paddingHorizontal: space.md,
+    paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     overflow: 'hidden',
   },

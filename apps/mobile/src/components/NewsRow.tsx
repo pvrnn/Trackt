@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from './Cover';
 import { KindDot } from './KindDot';
 import { Touchable } from './Touchable';
-import { layout, radius, space, surface, text } from '../theme/tokens';
+import { layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /** One story in the feed: cover, topic, headline, standfirst. */
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     marginBottom: space.md,
     padding: space.md,
     borderRadius: radius.cardSm,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },

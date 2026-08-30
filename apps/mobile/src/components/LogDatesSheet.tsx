@@ -4,7 +4,7 @@ import { LOG_DATE_FLOOR, type LogDates } from '@trackt/shared';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { dateToIso, isoToDate } from '../lib/dates';
-import { color, layout, radius, space, surface, text } from '../theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },

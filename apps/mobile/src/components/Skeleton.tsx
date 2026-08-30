@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { layout, nativeSurface, radius, space, surface } from '../theme/tokens';
+import { layout, nativeSurface, radius, space, stroke, surface } from '../theme/tokens';
 
 /**
  * The loading shape a query shows before its first paint, in place of the
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   row: {
     height: 72,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: nativeSurface.row,
     minWidth: layout.touchTarget,

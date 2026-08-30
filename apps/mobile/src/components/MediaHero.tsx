@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { color, layout, radius, space, surface, text } from '../theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { KIND_COLORS } from './KindDot';
 
@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.xs,
     height: 30,
-    paddingHorizontal: space.md,
+    paddingHorizontal: space.lg,
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
   },
   chipPink: {
     borderColor: surface.pinkBorderStrong,

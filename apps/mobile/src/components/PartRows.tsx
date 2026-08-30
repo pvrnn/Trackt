@@ -1,7 +1,7 @@
 import { partWindow, type PartBlock } from '@trackt/client';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
-import { PRISM, color, layout, radius, space, surface, text } from '../theme/tokens';
+import { PRISM, color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     paddingHorizontal: space.md,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
     paddingHorizontal: space.md,
     borderRadius: radius.thumb,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },

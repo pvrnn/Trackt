@@ -33,7 +33,7 @@ import { authClient } from '../../../src/lib/auth-client';
 import { useInstance } from '../../../src/lib/instance-provider';
 import { CLIENT_VERSION } from '../../../src/lib/instance';
 import { useAuthedScreen } from '../../../src/lib/session';
-import { color, layout, radius, space, surface, text } from '../../../src/theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
   },
   divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.divider,
   },
   activityText: {

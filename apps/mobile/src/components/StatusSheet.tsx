@@ -1,7 +1,7 @@
 import { LOG_STATUS_LABELS } from '@trackt/client';
 import { LOG_STATUSES, type LogStatus } from '@trackt/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { color, layout, radius, space, surface } from '../theme/tokens';
+import { color, layout, radius, space, stroke, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 import { Sheet, useSheetController } from './Sheet';
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget + 8,
     paddingHorizontal: space.lg,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },

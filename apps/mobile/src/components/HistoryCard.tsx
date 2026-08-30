@@ -6,7 +6,7 @@ import { GlassCard } from './GlassCard';
 import { KindDot } from './KindDot';
 import { PrismText } from './PrismText';
 import { Touchable } from './Touchable';
-import { color, radius, space, surface, text } from '../theme/tokens';
+import { color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   pill: {
     backgroundColor: 'rgba(14,12,16,0.82)',
     borderRadius: radius.pill,
-    paddingHorizontal: space.sm,
+    paddingHorizontal: space.md,
     paddingVertical: space.xs,
     overflow: 'hidden',
   },
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     color: color.pink,
   },
   plate: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.glassBorder,
     padding: space.md,
     gap: space.xs,

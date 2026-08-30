@@ -73,7 +73,18 @@ export const AURA = [
   { color: color.gold, cx: 0.3, cy: 1.15, rx: 0.99, ry: 0.74, opacity: 0.3 },
 ] as const;
 
-/** Radii. Pills are `999`, not a percentage — RN has no `border-radius: 999px` clamp quirk. */
+/**
+ * Radii. Pills are `999`, not a percentage — RN has no `border-radius: 999px`
+ * clamp quirk.
+ *
+ * **A pill's horizontal padding has to clear its own cap.** At `pill` the two
+ * ends are semicircles of half the pill's height, so a label padded by less
+ * than that sits *inside* the curve: metrically it has its 16, optically it is
+ * hard against a border that is arcing in towards it. Pad by at least half the
+ * height. A *leading* icon is the exception and wants less — a chevron or a dot
+ * carries its own whitespace, where a letter ends flush (the toast has always
+ * spelled this out, 16 before its text and 8 after its close button).
+ */
 export const radius = {
   pill: 999,
   card: 16,
@@ -101,6 +112,18 @@ export const layout = {
   /** Bar only; the home indicator is whatever `useSafeAreaInsets().bottom` says. */
   tabBarHeight: 64,
 } as const;
+
+/**
+ * The width of every ring, rule and divider in the app.
+ *
+ * One point, because that is what the mockups draw: each glass edge in
+ * `Mobile App.dc.html` is `inset 0 0 0 1px`, and a CSS pixel on a 402pt frame
+ * is a point. **Not `StyleSheet.hairlineWidth`** — that is the thinnest line
+ * the display can manage (0.33pt at 3x), which is a third of the design's edge
+ * and reads as no edge at all against a 5%-white surface. `ProgressCard`
+ * worked this out for one 46pt disc; it was true of all of them.
+ */
+export const stroke = 1;
 
 /** The 20pt page gutter as a style, the way every screen actually spells it. */
 export const gutter = { paddingHorizontal: layout.gutter } as const;

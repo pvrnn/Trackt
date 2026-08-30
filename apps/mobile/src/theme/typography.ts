@@ -33,6 +33,18 @@ export const font = {
   label: 'SpaceGrotesk_600SemiBold',
 } as const;
 
+/**
+ * What the four label styles add, and the display and body ones do not need.
+ *
+ * Android pads a text box by the font's own ascent and descent *on top of* the
+ * line box, and Space Grotesk's are not symmetric — so an all-caps label
+ * centred by flexbox lands off-centre, half a point low in a 25pt pill. These
+ * four are the styles that live inside something centred (a pill, a chip, a
+ * button); the rest set an explicit `lineHeight`, which fixes the box a
+ * different way. Ignored on iOS, which never added the padding.
+ */
+const flush = { includeFontPadding: false } as const;
+
 /** The type scale at phone sizes; `hero` is the bottom of web's fluid range. */
 export const type = {
   hero: { fontFamily: font.display, fontSize: 44, lineHeight: 44 },
@@ -44,9 +56,9 @@ export const type = {
   /** Anton 26 in the PRISM gradient — the stat numbers, and nothing else. */
   stat: { fontFamily: font.display, fontSize: 26, lineHeight: 28 },
   bodySm: { fontFamily: font.body, fontSize: 13, lineHeight: 20 },
-  label: { fontFamily: font.label, fontSize: 12, letterSpacing: 1.2 },
+  label: { fontFamily: font.label, fontSize: 12, letterSpacing: 1.2, ...flush },
   /** Space Grotesk 600 / 10 / +0.06em — the tab bar only, and the floor of the scale. */
-  tabLabel: { fontFamily: font.label, fontSize: 10, letterSpacing: 0.6 },
-  eyebrow: { fontFamily: font.label, fontSize: 11, letterSpacing: 1.54 },
-  button: { fontFamily: font.label, fontSize: 13, letterSpacing: 0.78 },
+  tabLabel: { fontFamily: font.label, fontSize: 10, letterSpacing: 0.6, ...flush },
+  eyebrow: { fontFamily: font.label, fontSize: 11, letterSpacing: 1.54, ...flush },
+  button: { fontFamily: font.label, fontSize: 13, letterSpacing: 0.78, ...flush },
 } as const;

@@ -10,7 +10,16 @@ import { SwipeCheckIn } from './SwipeCheckIn';
 import { Touchable } from './Touchable';
 import type { PartWrite } from '../lib/offline';
 import { duration, staggerDelay } from '../lib/motion';
-import { color, layout, nativeSurface, radius, space, surface, text } from '../theme/tokens';
+import {
+  color,
+  layout,
+  nativeSurface,
+  radius,
+  space,
+  stroke,
+  surface,
+  text,
+} from '../theme/tokens';
 import { type } from '../theme/typography';
 
 export function checkInWrite(entry: UpNextEntry): PartWrite {
@@ -122,7 +131,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingHorizontal: space.md,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: nativeSurface.row,
   },
@@ -155,7 +164,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
   },
   activityDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.divider,
   },
   activityText: {

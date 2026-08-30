@@ -4,7 +4,7 @@ import type { MediaDetail } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
 import { SectionTitle } from './Page';
 import { PartBlockRow, PartRow } from './PartRows';
-import { gutter, layout, space, surface, text } from '../theme/tokens';
+import { gutter, layout, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /** 'Episode'/'Chapter', its plural, and the short prefix a button uses. */
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   rule: {
     flex: 1,
-    height: StyleSheet.hairlineWidth,
+    height: stroke,
     backgroundColor: surface.glassBorder,
   },
 });

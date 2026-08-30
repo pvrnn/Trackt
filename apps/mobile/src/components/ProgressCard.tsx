@@ -5,7 +5,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import type { LayoutChangeEvent } from 'react-native';
 import { commitHaptic } from '../lib/haptics';
-import { PRISM, color, radius, space, surface, text } from '../theme/tokens';
+import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.pinkBorder,
     backgroundColor: surface.glass,
   },

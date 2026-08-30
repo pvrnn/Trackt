@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { AnimatedPressable, usePressMotion } from './Press';
-import { PRISM, color, radius, space, surface } from '../theme/tokens';
+import { PRISM, color, radius, space, stroke, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   secondary: {
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: surface.glass,
   },
