@@ -50,12 +50,8 @@ export const surface = {
   /** The stronger pink hairline on a row that is up next: 50%. */
   pinkBorderStrong: 'rgba(217,107,176,0.50)',
   /**
-   * The tint a floating control puts over hero art so its label survives it.
-   *
-   * Ink, not white, and deliberately weak: at the 0.62 the back pill used to
-   * wear it was a dark plate with a bright rim, and the aura and the artwork
-   * behind it were simply gone. A third is enough to hold a `dim` label over
-   * anything the catalog throws behind it while the colour still reads through.
+   * The tint a floating control puts over hero art. Ink, not white, and weak
+   * enough that the artwork still reads through it.
    */
   scrimGlass: 'rgba(14,12,16,0.32)',
 } as const;
@@ -86,13 +82,10 @@ export const AURA = [
  * Radii. Pills are `999`, not a percentage — RN has no `border-radius: 999px`
  * clamp quirk.
  *
- * **A pill's horizontal padding has to clear its own cap.** At `pill` the two
- * ends are semicircles of half the pill's height, so a label padded by less
- * than that sits *inside* the curve: metrically it has its 16, optically it is
- * hard against a border that is arcing in towards it. Pad by at least half the
- * height. A *leading* icon is the exception and wants less — a chevron or a dot
- * carries its own whitespace, where a letter ends flush (the toast has always
- * spelled this out, 16 before its text and 8 after its close button).
+ * **A pill's horizontal padding has to clear its own cap:** the ends are
+ * semicircles of half the height, so a label padded by less than that sits
+ * inside the curve. A leading icon is the exception and wants less, carrying
+ * its own whitespace where a letter ends flush.
  */
 export const radius = {
   pill: 999,
@@ -123,14 +116,9 @@ export const layout = {
 } as const;
 
 /**
- * The width of every ring, rule and divider in the app.
- *
- * One point, because that is what the mockups draw: each glass edge in
- * `Mobile App.dc.html` is `inset 0 0 0 1px`, and a CSS pixel on a 402pt frame
- * is a point. **Not `StyleSheet.hairlineWidth`** — that is the thinnest line
- * the display can manage (0.33pt at 3x), which is a third of the design's edge
- * and reads as no edge at all against a 5%-white surface. `ProgressCard`
- * worked this out for one 46pt disc; it was true of all of them.
+ * The width of every ring, rule and divider: one point, what the mockups draw
+ * (`inset 0 0 0 1px`). **Not `StyleSheet.hairlineWidth`**, which is 0.33pt at
+ * 3x and reads as no edge at all against a 5%-white surface.
  */
 export const stroke = 1;
 

@@ -56,9 +56,7 @@ function FocusFade({ children }: { children: ReactNode }) {
 
 /**
  * `PageFrame` plus the scroll container the pushed (non-tab) screens want, under
- * the pinned `CollapsingHeader` all of them share. The header is not optional:
- * every route that uses this is one you can only have arrived at by pushing, so
- * every one of them needs a way back that is still there at the bottom.
+ * the pinned `CollapsingHeader` they all share.
  */
 export function PageScroll({
   children,
@@ -82,8 +80,7 @@ export function PageScroll({
         contentContainerStyle={[
           styles.scroll,
           {
-            // Clears the bar, which is out of the flow and would otherwise sit
-            // on top of the first thing the screen renders.
+            // Clears the bar, which is out of the flow.
             paddingTop: insets.top + HEADER_HEIGHT + space.md,
             paddingBottom: insets.bottom + space.xxl,
           },

@@ -34,14 +34,10 @@ export const font = {
 } as const;
 
 /**
- * What the four label styles add, and the display and body ones do not need.
- *
- * Android pads a text box by the font's own ascent and descent *on top of* the
- * line box, and Space Grotesk's are not symmetric — so an all-caps label
- * centred by flexbox lands off-centre, half a point low in a 25pt pill. These
- * four are the styles that live inside something centred (a pill, a chip, a
- * button); the rest set an explicit `lineHeight`, which fixes the box a
- * different way. Ignored on iOS, which never added the padding.
+ * Android pads a text box by the font's own ascent and descent on top of the
+ * line box, and Space Grotesk's are not symmetric, so an all-caps label centred
+ * by flexbox lands half a point low. The four label styles live inside
+ * something centred; the rest set an explicit `lineHeight` instead.
  */
 const flush = { includeFontPadding: false } as const;
 

@@ -16,40 +16,22 @@ export const HEADER_HEIGHT = layout.touchTarget;
 const GLASS_FADE = [120, 220] as const;
 
 /**
- * The hand-off, in two beats rather than one. The floating state — the pill and
- * the back *label* — leaves first; the title arrives only once it has gone.
- *
- * They share the row, so a single range would cross-fade two pieces of
- * uppercase text through each other at half opacity, and the endpoint
- * (`< PROFILE HISTORY`, on one line) reads as neither one thing nor two.
- * Disjoint ranges make it a hand-off instead: one caption at a time, and the
- * title gets the whole bar to be long in. The label has said what it had to say
- * by then — it names where you came from, which is what you need on arrival,
- * not four screens deep into a list.
+ * Disjoint on purpose: the label and the title share the row, so overlapping
+ * ranges would cross-fade two pieces of uppercase text through each other and
+ * end as `< PROFILE HISTORY` on one line. One caption at a time.
  */
 const LABEL_FADE = [120, 170] as const;
 const TITLE_FADE = [175, 220] as const;
 
 /**
- * Where the collapsed title starts: the gutter, then the chevron, its gap, and
- * a breath. Measured from the bar's edge rather than its padding — an absolute
- * child is laid out against the border box, so the row's own gutter is not
- * applied for us.
+ * Includes the gutter: an absolute child is laid out against the border box, so
+ * the row's own padding is not applied for us.
  */
 const TITLE_INSET = layout.gutter + 16 + space.xs + space.md;
 
 /**
- * What the screen behind this one is called, keyed by route.
- *
- * A back link that says "Back" tells the user nothing they did not already
- * know; the platform convention is to name the place it returns to, and the
- * only way to know that is to read it off the stack rather than let each screen
- * hardcode a guess — `media/[slug]` alone is pushed from five places.
- *
- * Keys are route names with their `(group)` segments stripped. The parameterised
- * routes get the kind of thing they show, not its title: the label is an
- * uppercase eyebrow beside the collapsed title, and a work's name is neither
- * short enough nor knowable from the route.
+ * Keyed by route name with `(group)` segments stripped. Parameterised routes
+ * get the kind of thing they show, not its title, which the route cannot know.
  */
 const BACK_LABELS: Record<string, string> = {
   home: 'Home',
@@ -71,10 +53,8 @@ type StackRoute = {
 };
 
 /**
- * The deepest focused route under `route`, as a `BACK_LABELS` key. The tab
- * shell is one route in the stack, so the tab you were actually on is a level
- * down; `(app)` and `(tabs)` are layout groups and never part of a name a
- * reader would recognise.
+ * The deepest focused route under `route`, as a `BACK_LABELS` key — the tab
+ * shell is one stack route, so the tab you were on is a level down.
  */
 function routeKey(route: StackRoute): string {
   const nested = route.state;
@@ -90,9 +70,9 @@ function routeKey(route: StackRoute): string {
 }
 
 /**
- * The name of the screen `router.back()` would return to, or `Back` when the
- * stack cannot name it — a media page pushed from another media page, where the
- * only honest label is the work's title and the route does not carry it.
+ * The name of the screen `router.back()` returns to, or `Back` when the stack
+ * cannot name it — a media page pushed from another, whose only honest label is
+ * a title the route does not carry.
  */
 export function useBackLabel(): string {
   const navigation = useNavigation();
@@ -103,12 +83,8 @@ export function useBackLabel(): string {
 }
 
 /**
- * A back affordance for pushed screens. iOS wants a chevron; Android's is the
- * system gesture.
- *
- * `labelStyle` is how the header fades the caption out from under the title
- * without the chevron going with it: the label is the part that has said what
- * it had to say, the chevron is the way out and stays.
+ * A back affordance for pushed screens. `labelStyle` lets the header fade the
+ * caption out from under the title without the chevron going with it.
  */
 export function BackLink({
   label,
@@ -200,24 +176,20 @@ export function CollapsingHeader({
             style={[StyleSheet.absoluteFill, styles.backPillSlot, floatStyle]}
             pointerEvents="none"
           >
-            {/* Glass, the way `GlassCard` builds it: blur, a weak ink tint over
-                it, and the ring on the wrapper. The clipping is deliberately on
-                this inner view and not on the animated one above — a rounded
-                `overflow: 'hidden'` on a node Reanimated is driving drops its
-                child's paint on Android (see `MediaActions`). */}
+            {/* The clipping is on this inner view, not the animated one above:
+                a rounded `overflow: 'hidden'` on a node Reanimated drives
+                drops its child's paint on Android (see `MediaActions`). */}
             <View style={styles.backPillFace}>
               <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
               <View style={[StyleSheet.absoluteFill, styles.backPillTint]} />
             </View>
           </Animated.View>
-          {/* The label only steps aside when there is a title to step aside
-              *for*: a screen with no title (a failed one) would otherwise
-              scroll to a bare chevron and nothing else. */}
+          {/* Only steps aside when there is a title to step aside for, or a
+              failed screen would scroll to a bare chevron. */}
           <BackLink {...(title ? { labelStyle: floatStyle } : {})} />
         </View>
-        {/* Out of the flow, and deliberately over the label's own space: the
-            two are never both visible, so the title has the bar from the
-            chevron to the far gutter rather than whatever the label left it. */}
+        {/* Out of the flow, over the label's own space: the two are never both
+            visible, so the title gets the whole bar. */}
         {title ? (
           <Animated.View style={[styles.titleSlot, titleStyle]} pointerEvents="none">
             <Text numberOfLines={1} style={[type.section, text.fg]}>
@@ -272,9 +244,8 @@ const styles = StyleSheet.create({
   },
   backPillSlot: {
     marginVertical: space.xs,
-    // The pill is 36 tall, so its caps are 18 — and the two sides are not
-    // symmetric. The chevron's glyph box carries its own whitespace, where the
-    // label's last letter ends flush and needs the full cap to clear.
+    // Asymmetric: the chevron's glyph box carries its own whitespace, where the
+    // label's last letter ends flush and needs the full 18pt cap to clear.
     marginLeft: -space.sm,
     marginRight: -space.lg,
   },
@@ -283,8 +254,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     overflow: 'hidden',
     borderWidth: stroke,
-    // 10%, not `glassBorderStrong`: at 15% over a tint this weak the rim stops
-    // reading as an edge and starts reading as an outline drawn around a plate.
     borderColor: surface.glassBorder,
   },
   backPillTint: {

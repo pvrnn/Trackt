@@ -175,10 +175,8 @@ const styles = StyleSheet.create({
     borderColor: surface.glassBorderStrong,
   },
   /**
-   * Geometry only. The rounding belongs to the face below, never to a parent
-   * clipping it: `overflow: 'hidden'` against a pill radius chops a corner off
-   * the gradient on Android, and on the `AnimatedPressable` the media screen
-   * uses it drops the child's paint altogether.
+   * Geometry only — the rounding belongs to the face below. `overflow: 'hidden'`
+   * against a pill radius chops a corner off the gradient on Android.
    */
   pill: {
     alignSelf: 'flex-start',
@@ -190,8 +188,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm + 1,
     paddingHorizontal: space.md,
     borderRadius: radius.pill,
-    // The toned faces ring themselves in a point; the gradient has no ring, and
-    // needs a transparent one so both sit at the same height in the row.
+    // The gradient needs a transparent ring so it matches the toned faces' height.
     borderWidth: stroke,
     borderColor: 'transparent',
   },
@@ -211,8 +208,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     paddingHorizontal: space.md + 1,
     borderRadius: radius.pill,
-    // Both faces carry the ring so the selected tab is exactly as tall as the
-    // two beside it — the gradient's is just invisible.
+    // Both faces carry the ring so every tab is the same height.
     borderWidth: stroke,
     borderColor: 'transparent',
   },

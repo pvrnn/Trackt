@@ -49,26 +49,12 @@ export interface Filter {
 }
 
 /**
- * A row of glass controls, each opening a menu of its options, with an optional
- * summary opposite them.
+ * A row of glass controls, each opening a menu of its options.
  *
- * Two layouts, because three axes do not fit one line as pills. **`pills`** is
- * the news feed's shape: content-width, an icon and the value, wrapping when it
- * must. **`columns`** divides the line into equal cells that each name their
- * axis above their value — the caption/value pair web's history filters already
- * use. Three pills wrapped 2 + 1, which reads as a mistake rather than a row;
- * three columns cannot wrap at all, and the caption is what lets the value be
- * short enough to fit: "ALL" under KIND says what "ALL KINDS" had to spell out.
- *
- * This is the shape the news feed's kind filter arrived at and the one every
- * filtered screen now uses. The alternative — a scrolling row of chips, one per
- * option — does not survive 362pt: six kinds plus "all" already overflow, and a
- * row that scrolls hides the options nobody scrolled to. A pill says what is
- * selected in the space of one option and puts the rest a tap away, so a screen
- * can carry four axes (History does) where chips could not carry two.
- *
- * The pills wrap. Four of them do not fit on one line, and a filter that has
- * scrolled out of sight is the thing this component exists to avoid.
+ * `pills` is content-width with an icon, and wraps. `columns` divides the line
+ * into equal cells naming their axis above their value: three pills do not fit
+ * one line, and the caption is what lets three values be short enough that they
+ * do.
  */
 export function FilterBar({
   filters,
@@ -146,20 +132,13 @@ interface Anchor {
 
 /**
  * The open/closed animation the pill and its menu share. `mounted` lags `open`
- * so the exit animation has time to play before `Modal` unmounts the panel.
- *
- * `commit`, not `micro`. §07 files a panel presenting and dismissing under the
- * same 220 as a sheet; `micro`'s 140 is for press states and chip selection,
- * and at that speed picking a kind made the whole menu vanish before the eye
- * had followed the tap to the row it landed on.
+ * so the exit animation plays before `Modal` unmounts the panel. `commit`, not
+ * `micro`: §07 files a panel presenting and dismissing with a sheet.
  */
 function useDisclosure(open: boolean) {
   const progress = useSharedValue(0);
   const [mounted, setMounted] = useState(open);
   const [was, setWas] = useState(open);
-  // Read by the animation's completion, which lands on the JS thread some time
-  // after the worklet finished and must not act on what `open` was back then.
-  // Written in the effect below, which commits well before that callback can.
   const latest = useRef(open);
 
   // Adjusted during render rather than in an effect: the menu has to exist on
@@ -170,14 +149,10 @@ function useDisclosure(open: boolean) {
   }
 
   /**
-   * Unmount the panel, unless it has been reopened in the meantime.
-   *
-   * The check has to happen *here*, when this runs, rather than in the worklet
-   * that scheduled it. A closing animation completes with `finished: true` and
-   * hops to the JS thread to unmount; if the pill was tapped again in that
-   * gap, the callback still closes over `open: false` and takes down the panel
-   * that is now open — a menu whose caret rotates and whose body never
-   * appears. `latest` is what `open` is now, not what it was.
+   * Checked here rather than in the worklet that scheduled it: a closing
+   * animation finishes and hops to the JS thread, and if the pill was reopened
+   * in that gap the worklet's captured `open: false` unmounts a panel that is
+   * now open — a menu whose caret rotates and whose body never appears.
    */
   const settle = useCallback(() => {
     if (!latest.current) setMounted(false);
@@ -227,8 +202,6 @@ function FilterPill({
     return (
       <Pressable
         accessibilityRole="button"
-        // The caption is the axis; without it the row is three values with no
-        // way to tell which "ALL" is which.
         accessibilityLabel={caption ? `${caption}: ${label}` : label}
         accessibilityState={{ expanded: open, disabled }}
         disabled={disabled}
@@ -274,11 +247,8 @@ function FilterPill({
 }
 
 /**
- * A menu's rows, floating under the pill row in a `Modal` — a menu has to be
- * dismissable by tapping *away* from it, and the list header cannot hear a tap
- * that lands on the feed (an absolutely positioned child that extends past its
- * parent gets no touches on Android). The modal also gives the hardware back
- * button something to close.
+ * In a `Modal` because on Android an absolutely positioned child extending past
+ * its parent gets no touches, so tap-away-to-dismiss would never land.
  */
 function FilterMenu({
   open,
@@ -353,12 +323,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: space.sm,
   },
-  /**
-   * An equal share of the line — `flex: 1` rather than a content width, so the
-   * three read as one control divided three ways and the row cannot wrap. The
-   * values are single-line; callers keep them short enough never to reach the
-   * cap, and the menu below carries the full wording either way.
-   */
+  /** An equal share of the line, so the row cannot wrap. */
   filterCell: {
     flex: 1,
     minWidth: 0,
@@ -412,8 +377,8 @@ const styles = StyleSheet.create({
   },
   filterMenu: {
     position: 'absolute',
-    // The sheet fill, not glass: a translucent panel over content is
-    // unreadable (§05's rule for sheets, for the same reason).
+    // The sheet fill, not glass: §05, a translucent panel over content is
+    // unreadable.
     backgroundColor: nativeSurface.sheet,
   },
   filterPanel: {

@@ -33,8 +33,6 @@ export function Chip({
         { opacity: disabled ? 0.25 : pressed ? 0.7 : 1 },
       ]}
     >
-      {/* Resting is `muted`, not `dim`: the mockup's chip label is #b8b1c4, and
-          at 11px on a 5%-white pill the dimmer ink was under-reading. */}
       <Text style={[type.label, { color: selected ? color.pink : color.muted }]}>
         {label.toUpperCase()}
       </Text>
@@ -46,7 +44,7 @@ const styles = StyleSheet.create({
   chip: {
     minHeight: 44,
     justifyContent: 'center',
-    // 44 tall means an 22pt cap; `space.lg` put the label inside the arc.
+    // 44 tall means a 22pt cap; `space.lg` put the label inside the arc.
     paddingHorizontal: space.xl,
     borderRadius: radius.pill,
     borderWidth: stroke,

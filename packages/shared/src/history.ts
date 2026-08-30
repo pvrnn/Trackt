@@ -14,10 +14,8 @@ import { LogStatusSchema, MediaKindSchema } from './media.js';
  * people who "track anime seasons" — think in these, and meteorological winter
  * (Dec–Feb) straddles the year boundary.
  *
- * These survive as a *grouping* only. History used to filter by them too
- * (`?year=2025&season=winter`); that axis is gone, and with it the window
- * helper the SQL used. Breaking a list into quarters is still a useful reading
- * of it — {@link seasonOf} is what `groupEntries` calls.
+ * A grouping only — the filter is gone. {@link seasonOf} is what
+ * `groupEntries` calls.
  */
 export const HISTORY_SEASONS = ['winter', 'spring', 'summer', 'autumn'] as const;
 export type HistorySeason = (typeof HISTORY_SEASONS)[number];

@@ -27,11 +27,7 @@ import { useAuthedScreen } from '../../src/lib/session';
 import { color, gutter, layout, space } from '../../src/theme/tokens';
 import { type } from '../../src/theme/typography';
 
-/**
- * What the status cell shows once something is picked. A third of a phone line
- * does not hold "IN PROGRESS", and the menu it opens still spells every status
- * out in full — this is the collapsed form, not a second vocabulary.
- */
+/** The collapsed form for the filter cell; the menu spells each status out. */
 const SHORT_STATUS: Record<LogStatus, string> = {
   planned: 'Planned',
   in_progress: 'Watching',
@@ -66,9 +62,8 @@ type Row =
  * History (`GET /me/history`, ADR-0007), reached from Profile rather than from
  * the tab bar.
  *
- * Three axes, each a pill over the shared `FilterBar`: year, kind and status.
- * Quarters are still how the list can be *grouped*, but they are no longer
- * something you filter by — one date window is the whole story.
+ * Three axes over the shared `FilterBar`: year, kind and status. Quarters are
+ * still a grouping, but no longer something you filter by.
  */
 export default function HistoryScreen() {
   const { user, isPending: sessionPending } = useAuthedScreen();
@@ -131,8 +126,6 @@ export default function HistoryScreen() {
       key: 'kind',
       icon: 'list',
       caption: 'Kind',
-      // The caption carries the axis, so the value only has to carry the
-      // choice: "ALL" under KIND is unambiguous where a bare "ALL" would not be.
       label: kind ? KIND_LABELS[kind] : 'All',
       rows: [
         { key: 'all', label: 'All kinds', selected: kind === undefined },
@@ -161,7 +154,6 @@ export default function HistoryScreen() {
     },
   ];
 
-  // How far the list has scrolled, for the pinned header's glass and title.
   const scrollY = useSharedValue(0);
 
   if (sessionPending || !user) {

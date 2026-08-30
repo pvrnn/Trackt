@@ -51,11 +51,8 @@ export function MediaActionRow({
         android_ripple={ripple(true)}
         style={[styles.primary, press.animatedStyle]}
       >
-        {/* Both faces are painted by a child, never by the Pressable itself:
-            `android_ripple` swaps the view's own background drawable on
-            Android, which ate this ring and the satellites' — the same bug
-            `ProgressCard`'s stepper hit. The gradient branch was already a
-            child, which is why only the glass ones went missing. */}
+        {/* Painted by a child, never by the Pressable: `android_ripple` swaps
+            the view's own background drawable (as `ProgressCard` found). */}
         {caughtUp ? (
           <View style={[styles.primaryInner, styles.primaryDone]}>
             <Icon name="star-filled" color={color.muted} size={15} />
@@ -205,10 +202,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.sm,
     paddingHorizontal: space.md,
-    // The rounding lives on the face, not on the Pressable above it. Clipping a
-    // child to a rounded `overflow: 'hidden'` parent that Reanimated is also
-    // driving leaves the child laid out (251x52, measured) and painting
-    // nothing — which is how the WATCHED state came to be an invisible button.
+    // The rounding lives here, not on the Pressable: clipping a child to a
+    // rounded `overflow: 'hidden'` parent that Reanimated drives leaves it laid
+    // out and painting nothing — an invisible button.
     borderRadius: radius.pill,
     overflow: 'hidden',
   },

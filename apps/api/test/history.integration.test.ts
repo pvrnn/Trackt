@@ -180,9 +180,8 @@ describe.runIf(available)('me/history (postgres)', () => {
   });
 
   it('ignores a season parameter — the year is the only date filter', async () => {
-    // Quarters used to narrow the window (`?year=2026&season=summer` was the
-    // film alone). The axis is gone: the query schema no longer names `season`,
-    // so an old link keeps working and simply returns the whole year.
+    // The schema no longer names `season`, so an old link keeps working and
+    // returns the whole year rather than erroring.
     expect(titles(await history('?year=2026&season=summer'))).toEqual(
       titles(await history('?year=2026')),
     );
