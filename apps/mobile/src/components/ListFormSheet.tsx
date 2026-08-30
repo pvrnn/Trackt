@@ -9,7 +9,7 @@ import {
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { commitHaptic, errorHaptic } from '../lib/haptics';
-import { color, layout, radius, space, surface } from '../theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Chip } from './Chip';
 import { Field } from './Field';
@@ -123,7 +123,7 @@ export function ListFormSheet({
       </Pressable>
 
       <View style={styles.visibility}>
-        <Text style={[type.eyebrow, styles.dim]}>VISIBILITY</Text>
+        <Text style={[type.eyebrow, text.dim]}>VISIBILITY</Text>
         <View style={styles.chips}>
           {VISIBILITIES.map((value) => (
             <Chip
@@ -134,7 +134,7 @@ export function ListFormSheet({
             />
           ))}
         </View>
-        <Text style={[type.bodySm, styles.faint]}>{VISIBILITY_HELP[visibility]}</Text>
+        <Text style={[type.bodySm, text.faint]}>{VISIBILITY_HELP[visibility]}</Text>
       </View>
 
       {error ? <SheetError message={error} /> : null}
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.thumb,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: surface.glass,
   },
@@ -185,11 +185,5 @@ const styles = StyleSheet.create({
   fg: {
     flex: 1,
     color: color.fg,
-  },
-  dim: {
-    color: color.dim,
-  },
-  faint: {
-    color: color.faint,
   },
 });

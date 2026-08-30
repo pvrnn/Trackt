@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { commitHaptic, errorHaptic } from '../lib/haptics';
-import { color, space, surface } from '../theme/tokens';
+import { space, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Avatar } from './Avatar';
 import { Field } from './Field';
@@ -164,7 +164,7 @@ export function EditProfileSheet({
               onPress={dropPhoto}
             />
           ) : null}
-          <Text style={[type.bodySm, styles.faint]}>PNG, JPEG or WebP — 2MB max.</Text>
+          <Text style={[type.bodySm, text.faint]}>PNG, JPEG or WebP — 2MB max.</Text>
         </View>
       </View>
 
@@ -206,8 +206,5 @@ const styles = StyleSheet.create({
   multiline: {
     minHeight: 88,
     textAlignVertical: 'top',
-  },
-  faint: {
-    color: color.faint,
   },
 });

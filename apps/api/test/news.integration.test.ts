@@ -165,14 +165,33 @@ describe.runIf(available)('news proxy (postgres)', () => {
       });
       const app = await appWith(await listen(server));
       try {
-        await feedVia(app, 'kind=anime&topic=adaptation&from=2026-07-01&to=2026-08-01&limit=5');
+        await feedVia(
+          app,
+          'kinds=anime,manga&topic=adaptation&from=2026-07-01&to=2026-08-01&limit=5',
+        );
         expect(Object.fromEntries(seen ?? [])).toEqual({
-          kind: 'anime',
+          kinds: 'anime,manga',
           topic: 'adaptation',
           from: '2026-07-01',
           to: '2026-08-01',
           limit: '5',
         });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('normalises the legacy single-kind filter to the list spelling', async () => {
+      let seen: URLSearchParams | undefined;
+      server = catalogStub((_path, query) => {
+        seen = query;
+        return { body: { articles: [], nextCursor: null } };
+      });
+      const app = await appWith(await listen(server));
+      try {
+        await feedVia(app, 'kind=anime');
+        expect(seen?.get('kinds')).toBe('anime');
+        expect(seen?.get('kind')).toBeNull();
       } finally {
         await app.close();
       }

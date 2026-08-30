@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TextInputProps } from 'react-native';
-import { color, radius, space, surface } from '../theme/tokens';
+import { color, radius, space, stroke, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: surface.glassWell,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     borderRadius: radius.cover,
     paddingHorizontal: space.lg,

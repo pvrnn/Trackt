@@ -10,7 +10,7 @@ import {
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
-import { color, layout, nativeSurface, radius, space, surface } from '../theme/tokens';
+import { color, layout, nativeSurface, radius, space, stroke, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     paddingRight: space.sm,
     paddingVertical: space.sm,
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: nativeSurface.sheet,
   },

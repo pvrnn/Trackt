@@ -5,7 +5,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import type { LayoutChangeEvent } from 'react-native';
 import { selectionHaptic } from '../lib/haptics';
-import { PRISM, color, layout, radius, space, surface } from '../theme/tokens';
+import { PRISM, color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
@@ -88,7 +88,7 @@ export function RatingSheet({
           onPress={() => commit(null)}
           style={({ pressed }) => [styles.clear, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Text style={[type.eyebrow, styles.dim]}>CLEAR RATING</Text>
+          <Text style={[type.eyebrow, text.dim]}>CLEAR RATING</Text>
         </Pressable>
       ) : null}
     </Sheet>
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: surface.glass,
   },
@@ -244,8 +244,5 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
     justifyContent: 'center',
     paddingHorizontal: space.md,
-  },
-  dim: {
-    color: color.dim,
   },
 });

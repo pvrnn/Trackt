@@ -9,6 +9,7 @@ Trackt is a pnpm/Turborepo monorepo for a self-hostable tracker of movies, serie
 ## Working conventions
 
 - Keep changes small, focused, and consistent with the existing code style.
+- **Comment sparingly.** A comment earns its place by preventing a regression — a platform trap, a contract rule, a constant whose value is not obvious — and costs its place by restating the line below it, narrating what a change replaced, or arguing for a decision the code no longer needs justified. Prefer one line to a paragraph and a paragraph to a block; when a comment wants to explain _why the design is this way_ rather than _what will break_, it belongs in the commit message or an ADR, not the source.
 - Do not edit generated files, build output, or lockfiles unless the change requires it.
 - Tests live in each package's `test/` directory, mirroring `src/`. Use `*.test.ts` for unit tests and `*.integration.test.ts` for database-backed tests.
 - For schema changes, update `packages/db/src/schema/`, generate a migration with `pnpm db:generate`, and review the generated SQL. Do not use `drizzle-kit push` or Studio for migrations.

@@ -115,7 +115,7 @@ export async function loadStreak(db: Db, userId: string): Promise<number> {
  * Check-ins split by part kind, in a date window — since Jan 1 by default,
  * which is what the profile and home strips ask for.
  *
- * A window is the history page's year/season narrowing (ADR-0007), as inclusive
+ * A window is the history page's year narrowing (ADR-0007), as inclusive
  * ISO dates against the check-in's UTC day; `'all'` drops the bound entirely
  * (the page's ALL TIME scope). It counts *check-ins in the window*, not parts of
  * the titles filed there: a show finished in January whose episodes were watched

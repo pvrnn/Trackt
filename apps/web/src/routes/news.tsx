@@ -53,7 +53,7 @@ function NewsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { kind, from, to } = Route.useSearch();
   const { isPending, navUser } = useOptionalSession();
-  const feed = useNewsFeed({ kind, from, to });
+  const feed = useNewsFeed({ kinds: kind ? [kind] : undefined, from, to });
 
   const setSearch = (patch: Partial<NewsSearchParams>) => {
     navigate({ search: (previous) => ({ ...previous, ...patch }) });

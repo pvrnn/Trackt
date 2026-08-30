@@ -6,18 +6,12 @@ import { Archivo_700Bold } from '@expo-google-fonts/archivo/700Bold';
 import { SpaceGrotesk_600SemiBold } from '@expo-google-fonts/space-grotesk/600SemiBold';
 
 /**
- * The three families from `docs/design/README.md`, as ttf.
+ * The three families, as ttf — React Native cannot load web's variable woff2,
+ * so each weight is its own face and `fontWeight` is never used (a no-op on
+ * Android, synthetic bold on iOS).
  *
- * `apps/web` gets these from `@fontsource/*` as variable woff2, which React
- * Native cannot load — hence the parallel `@expo-google-fonts/*` deps. There is
- * no variable-weight story here either, so each Archivo weight the design uses
- * is loaded as its own face and `font.body*` names it explicitly. Setting
- * `fontWeight` on a loaded family is a no-op on Android and a synthetic-bold
- * approximation on iOS, so it is never used.
- *
- * Imported by weight subpath, not from the package root. Each root index
- * `require()`s every face it ships, so `from '@expo-google-fonts/archivo'`
- * bundles all nineteen — 2.3 MB of italics the design never asks for.
+ * **Imported by weight subpath, never from the package root**: each root index
+ * `require()`s every face it ships — 2.3 MB of italics the design never asks for.
  */
 export const fontAssets = {
   Anton_400Regular,
@@ -40,10 +34,14 @@ export const font = {
 } as const;
 
 /**
- * The type scale, already collapsed to phone sizes: web's `clamp()` heroes
- * (52–120px) have no phone equivalent, so `hero` is the bottom of that range
- * rather than a fluid value.
+ * Android pads a text box by the font's own ascent and descent on top of the
+ * line box, and Space Grotesk's are not symmetric, so an all-caps label centred
+ * by flexbox lands half a point low. The four label styles live inside
+ * something centred; the rest set an explicit `lineHeight` instead.
  */
+const flush = { includeFontPadding: false } as const;
+
+/** The type scale at phone sizes; `hero` is the bottom of web's fluid range. */
 export const type = {
   hero: { fontFamily: font.display, fontSize: 44, lineHeight: 44 },
   title: { fontFamily: font.display, fontSize: 32, lineHeight: 33 },
@@ -54,9 +52,9 @@ export const type = {
   /** Anton 26 in the PRISM gradient — the stat numbers, and nothing else. */
   stat: { fontFamily: font.display, fontSize: 26, lineHeight: 28 },
   bodySm: { fontFamily: font.body, fontSize: 13, lineHeight: 20 },
-  label: { fontFamily: font.label, fontSize: 12, letterSpacing: 1.2 },
+  label: { fontFamily: font.label, fontSize: 12, letterSpacing: 1.2, ...flush },
   /** Space Grotesk 600 / 10 / +0.06em — the tab bar only, and the floor of the scale. */
-  tabLabel: { fontFamily: font.label, fontSize: 10, letterSpacing: 0.6 },
-  eyebrow: { fontFamily: font.label, fontSize: 11, letterSpacing: 1.54 },
-  button: { fontFamily: font.label, fontSize: 13, letterSpacing: 0.78 },
+  tabLabel: { fontFamily: font.label, fontSize: 10, letterSpacing: 0.6, ...flush },
+  eyebrow: { fontFamily: font.label, fontSize: 11, letterSpacing: 1.54, ...flush },
+  button: { fontFamily: font.label, fontSize: 13, letterSpacing: 0.78, ...flush },
 } as const;

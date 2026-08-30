@@ -16,14 +16,14 @@ import { Cover } from '../../../src/components/Cover';
 import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
-import { BackLink, EmptyState, Loading, PageScroll, PageTitle } from '../../../src/components/Page';
+import { EmptyState, PageScroll, PageTitle, ScreenState } from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { PrismText } from '../../../src/components/PrismText';
 import { Touchable } from '../../../src/components/Touchable';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { duration } from '../../../src/lib/motion';
 import { useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -51,24 +51,13 @@ export default function ListScreen() {
   // out from under the thumb.
   const inFlight = useRef(false);
 
-  if (isPending) {
+  if (isPending || isError || !list) {
     return (
-      <PageScroll>
-        <BackLink label="Lists" />
-        <Loading />
-      </PageScroll>
-    );
-  }
-
-  if (isError || !list) {
-    return (
-      <PageScroll>
-        <BackLink label="Lists" />
-        <EmptyState
-          title="List unavailable"
-          body="It may have been deleted, or it may not be visible to you."
-        />
-      </PageScroll>
+      <ScreenState
+        isPending={isPending}
+        title="List unavailable"
+        body="It may have been deleted, or it may not be visible to you."
+      />
     );
   }
 
@@ -90,17 +79,14 @@ export default function ListScreen() {
   const reorderable = list.isOwner && list.isRanked && list.entries.length > 1;
 
   return (
-    <PageScroll>
+    <PageScroll title={list.title}>
       <View style={styles.head}>
-        <BackLink label="Lists" />
         <PageTitle
           title={list.title}
           count={`${list.itemCount} ${list.itemCount === 1 ? 'title' : 'titles'}`}
         />
-        {list.description ? (
-          <Text style={[type.body, styles.muted]}>{list.description}</Text>
-        ) : null}
-        <Text style={[type.eyebrow, styles.dim]}>
+        {list.description ? <Text style={[type.body, text.muted]}>{list.description}</Text> : null}
+        <Text style={[type.eyebrow, text.dim]}>
           {list.isOwner ? 'YOURS' : `@${list.owner.username}`} ·{' '}
           {visibilityLabel(list.visibility).toUpperCase()} · {updatedLabel(list.updatedAt)}
         </Text>
@@ -115,7 +101,7 @@ export default function ListScreen() {
           </View>
         ) : null}
         {reorderable ? (
-          <Text style={[type.eyebrow, styles.dim]}>USE THE ARROWS TO REORDER</Text>
+          <Text style={[type.eyebrow, text.dim]}>USE THE ARROWS TO REORDER</Text>
         ) : null}
       </View>
 
@@ -210,12 +196,12 @@ function Row({
           showTitle={false}
         />
         <View style={styles.body}>
-          <Text style={[type.cardTitle, styles.fg]} numberOfLines={2}>
+          <Text style={[type.cardTitle, text.fg]} numberOfLines={2}>
             {entry.title}
           </Text>
           <View style={styles.metaRow}>
             <KindDot kind={entry.kind} />
-            <Text style={[type.eyebrow, styles.dim]}>
+            <Text style={[type.eyebrow, text.dim]}>
               {KIND_LABELS_SINGULAR[entry.kind]}
               {entry.year ? ` · ${entry.year}` : ''}
             </Text>
@@ -295,7 +281,7 @@ const styles = StyleSheet.create({
   },
   rowWrap: {
     borderRadius: radius.cardSm,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
     overflow: 'hidden',
@@ -312,7 +298,7 @@ const styles = StyleSheet.create({
     gap: space.xs,
     paddingHorizontal: space.sm,
     paddingBottom: space.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.divider,
   },
   icon: {
@@ -332,15 +318,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
   },
   score: {
     color: color.pink,

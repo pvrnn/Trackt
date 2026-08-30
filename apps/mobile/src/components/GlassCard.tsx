@@ -2,7 +2,7 @@ import { BlurView } from 'expo-blur';
 import { StyleSheet, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { ReactNode } from 'react';
-import { radius, surface } from '../theme/tokens';
+import { radius, stroke, surface } from '../theme/tokens';
 
 /**
  * The glass surface, ported from web's `GlassCard` (design README: blur 16,
@@ -44,7 +44,7 @@ export function GlassCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     overflow: 'hidden',
   },
   fill: {

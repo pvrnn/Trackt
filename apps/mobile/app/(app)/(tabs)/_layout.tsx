@@ -7,7 +7,7 @@ import type { Ref } from 'react';
 import type { View as RNView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon, type TabName } from '../../../src/components/TabIcon';
-import { color, layout, space, surface } from '../../../src/theme/tokens';
+import { color, layout, space, stroke, surface } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     paddingTop: space.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.glassBorderStrong,
   },
   barFill: {

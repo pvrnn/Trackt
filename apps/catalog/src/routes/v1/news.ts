@@ -9,6 +9,7 @@ import {
   NewsListResponseSchema,
   decodeNewsCursor,
   encodeNewsCursor,
+  newsQueryKinds,
   type ExternalIds,
   type NewsArticle,
   type NewsArticleSummary,
@@ -71,7 +72,8 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
 
-      const { kind, topic, from, to, limit, cursor } = request.query;
+      const { topic, from, to, limit, cursor } = request.query;
+      const kinds = newsQueryKinds(request.query);
       // A malformed cursor restarts the feed rather than 500ing: cursors outlive
       // deploys in bookmarks and shared links, and a broken one is not an error
       // the reader can act on.
@@ -87,7 +89,17 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
         SELECT ${SUMMARY_COLUMNS}
         FROM news_article a
         WHERE ${PUBLISHED}
-          AND (${kind ?? null}::text IS NULL OR a.kinds @> ARRAY[${kind ?? null}]::text[])
+          ${
+            // Overlap, not containment: an article tagged MANGA+ANIME matches a
+            // reader filtering for either, and a reader filtering for both wants
+            // the union of the two, not only the articles tagged with both.
+            kinds.length > 0
+              ? sql`AND a.kinds && ARRAY[${sql.join(
+                  kinds.map((value) => sql`${value}`),
+                  sql`, `,
+                )}]::text[]`
+              : sql``
+          }
           AND (${topic ?? null}::text IS NULL OR a.topic = ${topic ?? null}::text)
           AND (${from ?? null}::date IS NULL OR a.published_at >= ${from ?? null}::date)
           AND (${to ?? null}::date IS NULL

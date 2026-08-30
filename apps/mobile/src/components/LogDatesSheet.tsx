@@ -4,7 +4,7 @@ import { LOG_DATE_FLOOR, type LogDates } from '@trackt/shared';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { dateToIso, isoToDate } from '../lib/dates';
-import { color, layout, radius, space, surface } from '../theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
@@ -140,8 +140,8 @@ function DateRow({
         android_ripple={{ color: 'rgba(217,107,176,0.12)' }}
         style={({ pressed }) => [styles.rowMain, { opacity: pressed ? 0.7 : 1 }]}
       >
-        <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
-        <Text style={[type.button, value ? styles.pink : styles.faint]}>
+        <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
+        <Text style={[type.button, value ? text.pink : text.faint]}>
           {value ? `${shortDate(value)} ${value.slice(0, 4)}` : 'SET DATE'}
         </Text>
       </Pressable>
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -194,14 +194,5 @@ const styles = StyleSheet.create({
   },
   action: {
     flex: 1,
-  },
-  dim: {
-    color: color.dim,
-  },
-  faint: {
-    color: color.faint,
-  },
-  pink: {
-    color: color.pink,
   },
 });

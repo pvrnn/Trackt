@@ -1,6 +1,6 @@
 # ADR-0007: One date pair per log, over dated viewing runs
 
-**Status:** Accepted — 2026-08-15 (see `docs/history-plan.md`)
+**Status:** Accepted — 2026-08-15 (point 6 withdrawn, see below; `docs/history-plan.md`)
 
 ## Context
 
@@ -114,6 +114,17 @@ Downstream, everything that wanted a date reached for a proxy:
    December; and the audience PRD §2 names — people who "track anime seasons" —
    already thinks in these quarters. A season without a year is a 400: it is a
    subdivision of the year filter, not an independent one.
+
+   > **Withdrawn — 2026-08-30.** The quarter *filter* is gone: `season` is no
+   > longer a query parameter, `HistoryQuerySchema` no longer names it (so an
+   > old link degrades to the plain year rather than erroring), and the
+   > `seasonWindow` helper it existed for is deleted. The year is the only date
+   > axis. The quarter definition above survives as a **grouping** — `seasonOf`
+   > is what `groupEntries` calls for the SEASON option — which is why
+   > `HISTORY_SEASONS` and `SEASON_MONTHS` are still here. What did not survive
+   > is the second, subordinate date filter: on a phone it cost a whole pill to
+   > subdivide a filter most viewers never set, and neither client ever built
+   > the UI for it on web.
 
 7. **The backfill guesses, and says so.** Migration `0015` derives dates from the
    check-ins that prove them, then falls back to the row's own `created_at` /

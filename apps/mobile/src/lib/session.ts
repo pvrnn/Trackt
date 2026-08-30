@@ -3,14 +3,9 @@ import { useEffect } from 'react';
 import { authClient } from './auth-client';
 
 /**
- * The mobile analogue of web's `useAuthedPage()` (`apps/web/src/lib/auth-client.ts`).
- *
- * Both hooks here require an instance to be selected — there is no auth client
- * to ask before that, and no session that could mean anything. The *instance*
- * half of the gate is structural instead: `app/_layout.tsx` only registers the
- * routes that use these hooks inside a `<Stack.Protected guard={!!origin}>`, so
- * a deep link that arrives before the picker has run resolves to the picker
- * rather than mounting a screen with nothing to fetch from.
+ * The mobile analogue of web's `useAuthedPage()`. Both hooks need an instance
+ * already selected; `app/_layout.tsx` enforces that structurally, by keeping
+ * their routes inside `<Stack.Protected guard={!!origin}>`.
  */
 
 export interface SessionUser {

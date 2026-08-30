@@ -477,6 +477,26 @@ describe.runIf(available)('news (postgres)', () => {
       expect((await feed('kind=anime')).articles).toHaveLength(1);
     });
 
+    it('filters by several kinds at once', async () => {
+      await publishMany(1, { title: 'Series story', kinds: ['series'] });
+      await publishMany(1, { title: 'Anime story', kinds: ['anime'] });
+      await publishMany(1, { title: 'Manga story', kinds: ['manga'] });
+      const result = await feed('kinds=anime,manga');
+      expect(result.articles.map((a) => a.title).sort()).toEqual(['Anime story', 'Manga story']);
+    });
+
+    it('unions the legacy single-kind spelling with the list', async () => {
+      await publishMany(1, { title: 'Anime story', kinds: ['anime'] });
+      await publishMany(1, { title: 'Manga story', kinds: ['manga'] });
+      const result = await feed('kind=anime&kinds=manga');
+      expect(result.articles.map((a) => a.title).sort()).toEqual(['Anime story', 'Manga story']);
+    });
+
+    it('rejects a kind list this build does not know', async () => {
+      const response = await app.inject({ method: 'GET', url: '/v1/news?kinds=anime,vinyl' });
+      expect(response.statusCode).toBe(400);
+    });
+
     it('filters by topic', async () => {
       await publishMany(1, { topic: 'renewal' });
       await publishMany(1, { title: 'Casting story', topic: 'casting' });

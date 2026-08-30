@@ -5,18 +5,10 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from '../../../src/components/Cover';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
-import {
-  BackLink,
-  EmptyState,
-  Loading,
-  OfflineFallback,
-  PageScroll,
-  PageTitle,
-  StaleNotice,
-} from '../../../src/components/Page';
+import { EmptyState, PageScroll, PageTitle, QueryState } from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
-import { color, radius, space, surface } from '../../../src/theme/tokens';
+import { color, radius, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -36,9 +28,8 @@ export default function ListsScreen() {
   const [creating, setCreating] = useState(false);
 
   return (
-    <PageScroll>
+    <PageScroll title="Lists">
       <View style={styles.head}>
-        <BackLink label="Profile" />
         <PageTitle title="Lists" count={data ? `${data.length} lists` : undefined} />
         <PrismButton
           label="New list"
@@ -48,25 +39,25 @@ export default function ListsScreen() {
         />
       </View>
 
-      {isPending ? (
-        <OfflineFallback>
-          <Loading />
-        </OfflineFallback>
-      ) : isError || !data ? (
-        <EmptyState title="Couldn't load" body="The instance didn't answer." />
-      ) : data.length === 0 ? (
-        <EmptyState
-          title="No lists yet"
-          body="Lists group titles however you like — a watchlist, a top ten, a seasonal shortlist."
-        />
-      ) : (
-        <View style={styles.cards}>
-          <StaleNotice updatedAt={dataUpdatedAt} />
-          {data.map((list) => (
-            <ListCard key={list.id} list={list} />
-          ))}
-        </View>
-      )}
+      <QueryState
+        query={{ data, isPending, isError, dataUpdatedAt }}
+        error={{ title: "Couldn't load", body: "The instance didn't answer." }}
+      >
+        {(lists) =>
+          lists.length === 0 ? (
+            <EmptyState
+              title="No lists yet"
+              body="Lists group titles however you like — a watchlist, a top ten, a seasonal shortlist."
+            />
+          ) : (
+            <View style={styles.cards}>
+              {lists.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </View>
+          )
+        }
+      </QueryState>
 
       {creating ? (
         <ListFormSheet
@@ -98,11 +89,11 @@ function ListCard({ list }: { list: ListSummary }) {
         </View>
       ) : null}
       <View style={styles.body}>
-        <Text style={[type.section, styles.fg]} numberOfLines={2}>
+        <Text style={[type.section, text.fg]} numberOfLines={2}>
           {list.title.toUpperCase()}
         </Text>
         {list.description ? (
-          <Text style={[type.bodySm, styles.muted]} numberOfLines={2}>
+          <Text style={[type.bodySm, text.muted]} numberOfLines={2}>
             {list.description}
           </Text>
         ) : null}
@@ -110,7 +101,7 @@ function ListCard({ list }: { list: ListSummary }) {
           {list.isRanked ? <Text style={[type.eyebrow, styles.badge]}>RANKED</Text> : null}
           {list.isCollaborative ? <Text style={[type.eyebrow, styles.badge]}>COLLAB</Text> : null}
         </View>
-        <Text style={[type.eyebrow, styles.dim]}>
+        <Text style={[type.eyebrow, text.dim]}>
           {list.itemCount} {list.itemCount === 1 ? 'TITLE' : 'TITLES'} ·{' '}
           {visibilityLabel(list.visibility).toUpperCase()} · {updatedLabel(list.updatedAt)}
         </Text>
@@ -133,7 +124,7 @@ const styles = StyleSheet.create({
     padding: space.lg,
     gap: space.md,
     borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -150,20 +141,11 @@ const styles = StyleSheet.create({
   },
   badge: {
     color: color.pink,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: color.pink,
     borderRadius: radius.pill,
     paddingHorizontal: space.sm,
     paddingVertical: space.xs,
     overflow: 'hidden',
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
   },
 });

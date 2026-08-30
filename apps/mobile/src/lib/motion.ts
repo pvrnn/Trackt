@@ -1,16 +1,9 @@
 /**
- * The motion constants and the pure geometry behind them (mobile plan, phase 4).
+ * `Mobile System.dc.html`'s durations (§07) and swipe geometry (§04).
  *
- * `Mobile System.dc.html` §07 fixes four durations and nothing else, so they
- * live here by name rather than as numbers sprinkled through the components —
- * the same reason `haptics.ts` names its three events instead of exposing
- * waveforms. §04 fixes the swipe's thresholds; those are geometry, and the
- * functions that read them are pure so `test/lib/motion.test.ts` can hold them
- * to the spec without a renderer.
- *
- * Nothing here imports Reanimated. The spring configs are plain objects that
- * happen to satisfy `WithSpringConfig`, which keeps this file loadable in the
- * node-environment vitest project the mobile app tests in.
+ * Nothing here imports Reanimated — the spring configs are plain objects that
+ * satisfy `WithSpringConfig` — so `test/lib/motion.test.ts` can hold the
+ * geometry to the spec in the node vitest project.
  */
 
 /** §07's four durations, in milliseconds. */
@@ -25,29 +18,16 @@ export const duration = {
   springBack: 180,
 } as const;
 
-/**
- * A spring that settles in about `duration.springBack` and does not overshoot —
- * an abandoned swipe should look like the row was let go of, not like it
- * bounced back at the user. `withSpring`'s duration/dampingRatio form is used
- * rather than damping/stiffness so the number in the code is the number in the
- * spec.
- */
+/** Settles in `duration.springBack` without overshoot: let go of, not bounced back. */
 export const springBack = { duration: duration.springBack, dampingRatio: 1 } as const;
 
-/**
- * The press spring: fast, and just under critically damped so the release has a
- * little life in it. 0.96 is the smallest scale that still reads as a press at
- * 44pt without making a 56pt tile look like it moved.
- */
+/** 0.96 is the smallest scale that reads as a press at 44pt without moving a 56pt tile. */
 export const springPress = { duration: duration.micro, dampingRatio: 0.9 } as const;
 export const PRESS_SCALE = 0.96;
 
 /** §04's swipe thresholds, in points. */
 export const SWIPE = {
-  /**
-   * Under this the gesture may still resolve as a scroll, so the track only
-   * ghosts in — nothing has been decided yet.
-   */
+  /** Under this the gesture may still resolve as a scroll, so the track only ghosts in. */
   ghost: 32,
   /** Past this the row is armed: the label changes and releasing commits. */
   armed: 96,
@@ -66,11 +46,7 @@ export function swipeStage(dx: number): SwipeStage {
   return dx >= SWIPE.armed ? 'armed' : 'drag';
 }
 
-/**
- * The track's opacity for a given displacement. §04: hidden at rest, 0.35 while
- * the gesture is still ambiguous, full once armed — and a ramp between the two
- * so crossing the threshold is something you can see coming rather than a jump.
- */
+/** Hidden at rest, 0.35 while ambiguous, ramping to full once armed (§04). */
 export function trackOpacity(dx: number): number {
   'worklet';
   if (dx <= 0) return 0;
@@ -80,11 +56,9 @@ export function trackOpacity(dx: number): number {
 }
 
 /**
- * Where the row actually sits for a given finger displacement. Left drags do
- * not move it — the left swipe's secondary actions are not built, and a row
- * that slides to reveal nothing is a broken affordance, not an unfinished one.
- * Past `armed + slack` the row resists, which is what tells a finger that has
- * already won that it can stop pulling.
+ * Where the row sits for a given displacement. Left drags do not move it: the
+ * left swipe's secondary actions are not built, and a row that slides to reveal
+ * nothing is a broken affordance rather than an unfinished one.
  */
 export function swipeTranslation(dx: number): number {
   'worklet';
@@ -93,12 +67,7 @@ export function swipeTranslation(dx: number): number {
   return dx <= free ? dx : free + (dx - free) * SWIPE.resistance;
 }
 
-/**
- * The delay for the `index`th element of a staggered entrance. Capped, because
- * a manga's part grid runs to hundreds of tiles and an uncapped stagger would
- * still be filling in a minute later; past the cap everything remaining lands
- * together, which at that point reads as one sweep rather than a queue.
- */
+/** Staggered entrance delay, capped — hundreds of tiles would otherwise still be arriving a minute later. */
 export function staggerDelay(index: number, step = 24, max = 240): number {
   'worklet';
   if (index <= 0) return 0;

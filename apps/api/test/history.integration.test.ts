@@ -179,19 +179,19 @@ describe.runIf(available)('me/history (postgres)', () => {
     expect([...dates].sort((a, b) => b.localeCompare(a))).toEqual(dates);
   });
 
-  it('narrows to an anime quarter, and rejects a season without a year', async () => {
-    // Summer 2026 holds the film (04 JUL) and nothing else.
-    expect(titles(await history('?year=2026&season=summer'))).toEqual(['The Matrix']);
-    // Winter 2026 holds Bebop's 11 JAN finish.
-    expect(titles(await history('?year=2026&season=winter'))).toEqual(['Cowboy Bebop']);
-    expect(titles(await history('?year=2026&season=autumn'))).toEqual([]);
+  it('ignores a season parameter — the year is the only date filter', async () => {
+    // The schema no longer names `season`, so an old link keeps working and
+    // returns the whole year rather than erroring.
+    expect(titles(await history('?year=2026&season=summer'))).toEqual(
+      titles(await history('?year=2026')),
+    );
 
     const orphan = await app.inject({
       method: 'GET',
       url: '/api/v1/me/history?season=spring',
       headers: { cookie },
     });
-    expect(orphan.statusCode).toBe(400);
+    expect(orphan.statusCode).toBe(200);
   });
 
   it('composes the kind and status filters', async () => {

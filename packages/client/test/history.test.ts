@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HISTORY_SEASONS, seasonOf, seasonWindow, type HistoryEntry } from '@trackt/shared';
+import { seasonOf, type HistoryEntry } from '@trackt/shared';
 import { HISTORY_GROUPINGS, dateRangeLabel, groupEntries, shortDate } from '../src/history.js';
 
 /**
@@ -35,41 +35,6 @@ describe('seasonOf', () => {
     expect(seasonOf('2026-09-30')).toBe('summer');
     expect(seasonOf('2026-10-01')).toBe('autumn');
     expect(seasonOf('2026-12-31')).toBe('autumn');
-  });
-});
-
-describe('seasonWindow', () => {
-  it('bounds each quarter inclusively', () => {
-    expect(seasonWindow(2025, 'winter')).toEqual({ from: '2025-01-01', to: '2025-03-31' });
-    expect(seasonWindow(2025, 'spring')).toEqual({ from: '2025-04-01', to: '2025-06-30' });
-    expect(seasonWindow(2025, 'summer')).toEqual({ from: '2025-07-01', to: '2025-09-30' });
-    expect(seasonWindow(2025, 'autumn')).toEqual({ from: '2025-10-01', to: '2025-12-31' });
-  });
-
-  it('closes February on the leap day when there is one', () => {
-    expect(seasonWindow(2024, 'winter').to).toBe('2024-03-31');
-    // The month-end helper is what a Feb-ending quarter would exercise; assert
-    // it directly against the year the naive `28` would get wrong.
-    expect(seasonWindow(2024, 'winter').from).toBe('2024-01-01');
-  });
-
-  it('covers the whole year across the four quarters, with no gap or overlap', () => {
-    const windows = HISTORY_SEASONS.map((season) => seasonWindow(2025, season));
-    expect(windows[0]!.from).toBe('2025-01-01');
-    expect(windows.at(-1)!.to).toBe('2025-12-31');
-    for (let i = 1; i < windows.length; i++) {
-      const previousEnd = new Date(`${windows[i - 1]!.to}T00:00:00Z`);
-      previousEnd.setUTCDate(previousEnd.getUTCDate() + 1);
-      expect(previousEnd.toISOString().slice(0, 10)).toBe(windows[i]!.from);
-    }
-  });
-
-  it('round-trips: every day in a window reports that window’s season', () => {
-    for (const season of HISTORY_SEASONS) {
-      const { from, to } = seasonWindow(2025, season);
-      expect(seasonOf(from)).toBe(season);
-      expect(seasonOf(to)).toBe(season);
-    }
   });
 });
 

@@ -10,16 +10,17 @@ import { LogStatusSchema, MediaKindSchema } from './media.js';
  */
 
 /**
- * Anime quarters, not meteorological seasons. Meteorological winter (Dec–Feb)
- * straddles the year boundary, which would make `?year=2025&season=winter`
- * ambiguous about its December; and the audience PRD §2 names — people who
- * "track anime seasons" — already think in these quarters.
+ * Anime quarters, not meteorological seasons: the audience PRD §2 names —
+ * people who "track anime seasons" — think in these, and meteorological winter
+ * (Dec–Feb) straddles the year boundary.
+ *
+ * A grouping only — the filter is gone. {@link seasonOf} is what
+ * `groupEntries` calls.
  */
 export const HISTORY_SEASONS = ['winter', 'spring', 'summer', 'autumn'] as const;
-export const HistorySeasonSchema = z.enum(HISTORY_SEASONS);
-export type HistorySeason = z.infer<typeof HistorySeasonSchema>;
+export type HistorySeason = (typeof HISTORY_SEASONS)[number];
 
-/** Inclusive 1-based month bounds. The single source the SQL window and the UI both read. */
+/** Inclusive 1-based month bounds — what {@link seasonOf} reads. */
 export const SEASON_MONTHS: Record<HistorySeason, [number, number]> = {
   winter: [1, 3],
   spring: [4, 6],
@@ -38,45 +39,19 @@ export function seasonOf(isoDate: string): HistorySeason {
   return 'winter';
 }
 
-const pad = (value: number) => String(value).padStart(2, '0');
-
-/** Last day of a month, without constructing a Date in the caller's timezone. */
-function lastDayOfMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
-/** Inclusive ISO bounds of one quarter, for the SQL `logged_on BETWEEN` window. */
-export function seasonWindow(year: number, season: HistorySeason): { from: string; to: string } {
-  const [firstMonth, lastMonth] = SEASON_MONTHS[season];
-  return {
-    from: `${year}-${pad(firstMonth)}-01`,
-    to: `${year}-${pad(lastMonth)}-${pad(lastDayOfMonth(year, lastMonth))}`,
-  };
-}
-
 /** How many entries one history page serves. */
 export const HISTORY_PAGE_LIMIT = 60;
 
-/**
- * `season` is a subdivision of the year filter, not an independent one: a
- * quarter with no year would have to mean "every spring ever", which is not a
- * question this page asks and would break the keyset's single date window.
- */
-export const HistoryQuerySchema = z
-  .object({
-    /** Omitted = all time. */
-    year: z.coerce.number().int().min(1900).max(2999).optional(),
-    season: HistorySeasonSchema.optional(),
-    kind: MediaKindSchema.optional(),
-    status: LogStatusSchema.optional(),
-    limit: z.coerce.number().int().min(1).max(200).default(HISTORY_PAGE_LIMIT),
-    /** Opaque keyset cursor from the previous page's `nextCursor`. */
-    cursor: z.string().max(200).optional(),
-  })
-  .refine((query) => query.season === undefined || query.year !== undefined, {
-    error: 'season requires a year',
-    path: ['season'],
-  });
+/** The year is the only date axis: one window, which the keyset sorts inside. */
+export const HistoryQuerySchema = z.object({
+  /** Omitted = all time. */
+  year: z.coerce.number().int().min(1900).max(2999).optional(),
+  kind: MediaKindSchema.optional(),
+  status: LogStatusSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(HISTORY_PAGE_LIMIT),
+  /** Opaque keyset cursor from the previous page's `nextCursor`. */
+  cursor: z.string().max(200).optional(),
+});
 export type HistoryQuery = z.infer<typeof HistoryQuerySchema>;
 
 /**

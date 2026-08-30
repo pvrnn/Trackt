@@ -4,21 +4,11 @@ import { useSyncExternalStore } from 'react';
 import { isOnlineState } from './offline';
 
 /**
- * Connectivity, as React Query understands it (mobile plan, phase 5).
+ * Point `onlineManager` at the OS, once, above the React tree.
  *
- * React Query's default `onlineManager` listens for the browser's `online` and
- * `offline` events, which React Native does not fire — so without this the
- * manager reports online forever, `networkMode: 'online'` never pauses
- * anything, and every offline check-in fails instead of queueing. Feeding it
- * from `expo-network` is what turns "no signal" into "paused", and reconnecting
- * is what drains the queue: `QueryClient` resumes paused mutations itself the
- * moment the manager flips back.
- */
-
-/**
- * Point `onlineManager` at the OS. Called once, above the React tree, because
- * the manager is a module singleton and a second subscription would just
- * double-report.
+ * React Query's default manager listens for the browser's `online`/`offline`
+ * events, which React Native never fires — so without this it reports online
+ * forever and every offline check-in fails instead of queueing.
  */
 export function startNetworkWatch(): void {
   onlineManager.setEventListener((setOnline) => {
@@ -36,12 +26,9 @@ export function startNetworkWatch(): void {
 }
 
 /**
- * The same reading the query layer is acting on, for the UI that has to explain
- * it (`StaleNotice`, the queued-write copy on the undo toast).
- *
- * Read from `onlineManager` rather than from `expo-network`'s own hook on
- * purpose: a screen that says "offline" while React Query is still happily
- * firing requests — or the reverse — is worse than either state alone.
+ * The same reading the query layer is acting on, for the UI that explains it.
+ * Read from `onlineManager`, not `expo-network`: a screen saying "offline"
+ * while React Query is still firing requests is worse than either state alone.
  */
 export function useIsOnline(): boolean {
   return useSyncExternalStore(

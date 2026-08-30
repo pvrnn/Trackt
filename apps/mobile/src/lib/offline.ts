@@ -9,47 +9,30 @@ import {
 import type { LogStatus, MediaDetail } from '@trackt/shared';
 
 /**
- * Offline, as data (mobile plan, phase 5).
+ * Offline, as data. A check-in has to survive the app being killed while the
+ * connection is still dead — and a resumed mutation is rebuilt from its
+ * persisted key and variables alone, so the closure that made the request is
+ * gone. Hence: writes are serialisable **values**, `runTrackingWrite` is the
+ * one function that turns one back into a request, and the optimistic patch is
+ * derived from the same value rather than passed beside it.
  *
- * The subway case: a check-in is the one thing people do with no signal, so it
- * has to survive not just a dead connection but the app being killed while the
- * connection is still dead. React Query pauses a mutation whose `networkMode`
- * is `'online'` and resumes it when `onlineManager` says so — but a *resumed*
- * mutation is rebuilt from its persisted `mutationKey` and variables alone. The
- * closure that made the request is long gone.
- *
- * That is the whole reason this module exists: the tracking calls are described
- * here as **serialisable values**, and `runTrackingWrite` is the one function
- * that turns a value back into a request. It is registered once, against
- * `TRACKING_MUTATION_KEY`, with `setMutationDefaults` — which is what a
- * rehydrated mutation looks its `mutationFn` up in.
- *
- * The rest of the module is the same idea applied once more: the optimistic
- * patch a write implies (`trackingPatch`) is *derived* from the write rather
- * than passed beside it, so what the screen shows and what the server is
- * eventually told cannot drift apart across an hour of no signal.
- *
- * Kept free of `expo-*` and `react-native` imports so all of it is unit
- * testable in the node vitest project, the same rule `lib/instance.ts` follows.
- * The native half lives in `lib/persist.ts` and `lib/network.ts` next door, and
- * the React hook over this one is `lib/tracking.ts`.
+ * No `expo-*` or `react-native` imports, so all of it is unit testable in the
+ * node vitest project. The native half is `persist.ts` and `network.ts`; the
+ * React hook over it is `tracking.ts`.
  */
 
 /**
  * A tracking write, as a value. Every field has to survive `JSON.stringify` and
- * come back meaning the same thing — that is the constraint the shape is for,
- * not tidiness. `id` is the media id rather than the slug because that is what
- * every endpoint is keyed by, and a slug can be re-pointed between the write
- * being queued and it being sent.
+ * come back meaning the same thing. `id` is the media id, not the slug: a slug
+ * can be re-pointed between a write being queued and being sent.
  */
 export type TrackingWrite =
   | { op: 'checkIn'; id: string; part: number }
   | { op: 'uncheck'; id: string; part: number }
   /**
-   * "I am at part N" — the whole position in one write, which is what the
-   * slider on a 900-chapter work sends. It is not a batch of check-ins: parts
-   * past `upTo` are cleared, so replaying it after an hour offline still means
-   * the same thing it meant when it was queued.
+   * "I am at part N" — the whole position in one write, not a batch of
+   * check-ins: parts past `upTo` are cleared, so replaying it an hour later
+   * still means what it meant when it was queued.
    */
   | { op: 'setProgress'; id: string; upTo: number }
   | { op: 'setStatus'; id: string; status: LogStatus }
@@ -59,17 +42,13 @@ export type TrackingWrite =
   | { op: 'favorite'; id: string }
   | { op: 'unfavorite'; id: string };
 
-/**
- * The two writes that name a part — a check-in and its undo. Home deals only in
- * these, and saying so is narrower than `TrackingWrite` and truer than
- * hand-writing the pair.
- */
+/** The two writes that name a part — a check-in and its undo. All home deals in. */
 export type PartWrite = Extract<TrackingWrite, { part: number }>;
 
 /**
  * The key every queued tracking write shares. One key, not one per operation:
- * `setMutationDefaults` resolves by key prefix, and a rehydrated mutation that
- * matched nothing would sit in the cache forever with no `mutationFn` to run.
+ * a rehydrated mutation matching nothing would sit in the cache forever with no
+ * `mutationFn` to run.
  */
 export const TRACKING_MUTATION_KEY = ['tracking'] as const;
 
@@ -98,27 +77,15 @@ export function runTrackingWrite(write: TrackingWrite): Promise<void> {
 }
 
 /**
- * Where one instance's persisted cache lives.
- *
- * Keyed by origin, and that is load-bearing rather than tidy: the query keys
- * are `['media', slug]`, `['home']` and so on — nothing in them names a server.
- * Restoring one instance's dump into another's session would serve someone
- * else's library under this account's name, which is the exact failure the
- * server picker exists to prevent.
+ * Where one instance's persisted cache lives. Keyed by origin because nothing
+ * in the query keys names a server — restoring one instance's dump into
+ * another's session would serve someone else's library under this account.
  */
 export function cacheKeyForOrigin(origin: string): string {
   return `query-cache:${origin}`;
 }
 
-/**
- * How stale a restored cache may be before it is thrown away instead.
- *
- * A week, because the point is a phone that has been in a drawer, not a phone
- * that has been offline for a minute — and because the alternative to showing
- * week-old data is showing nothing, which is worse. Everything restored is
- * immediately stale (`staleTime` is 30s), so a reachable instance refetches it
- * within a frame of the screen mounting.
- */
+/** How stale a restored cache may be before it is dropped: a phone left in a drawer. */
 export const PERSIST_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
@@ -129,13 +96,9 @@ export const PERSIST_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 export const PERSIST_BUSTER = 'v1';
 
 /**
- * Is this network state one we should treat as online?
- *
- * Both fields are optional — `isInternetReachable` is unset on platforms that
- * cannot answer, and both are unset before the first reading lands — and the
- * default when we do not know has to be **online**. Guessing offline pauses
- * every write and swaps every screen for a stale marker on a phone that is
- * perfectly connected; guessing online costs one failed request and a toast.
+ * Both fields are optional, and the default when we do not know has to be
+ * online: guessing offline pauses every write on a perfectly connected phone,
+ * while guessing online costs one failed request and a toast.
  */
 export function isOnlineState(state: {
   isConnected?: boolean | undefined;
@@ -145,20 +108,10 @@ export function isOnlineState(state: {
 }
 
 /**
- * The app's `QueryClient`: `@trackt/client`'s defaults, plus the one thing only
- * the app needs — a `mutationFn` registered against `TRACKING_MUTATION_KEY`.
- *
- * `setMutationDefaults` is not a convenience here. It is the only way a paused
- * write that was restored from disk finds a function to run: the cache stores
- * the key and the variables, and looks the rest up here. The `onSettled` has to
- * live here for the same reason — a mutation that resumed on reconnect has no
- * screen behind it to invalidate anything, so without this the fan-out that
- * moves home, profile and history would simply not happen for a queued
- * check-in. Screens that add their own `onSettled` override it and re-do it.
- *
- * One client per instance, not per process: the query keys name no server, so
- * two instances sharing a cache would serve one library under the other's
- * session.
+ * The app's `QueryClient`. `setMutationDefaults` is the only way a restored
+ * paused write finds a function to run, and `onSettled` has to live here for
+ * the same reason: a mutation resumed on reconnect has no screen behind it to
+ * invalidate anything. One client per instance, never per process.
  */
 export function makeMobileQueryClient(): QueryClient {
   const client = makeQueryClient();
@@ -191,16 +144,9 @@ export function patchViewer(
 }
 
 /**
- * What a write does to the viewer's row, before the server has said anything.
- *
- * Pure, and derived from the write rather than passed alongside it: the pairing
- * of "check in part 7" with "and 7 is now watched" is not something a call site
- * should be able to get wrong, and from phase 5 the two are separated in time —
- * an offline write is patched now and sent on reconnect.
- *
- * `detail` is the row as currently cached, which is what makes the two sweeping
- * transitions expressible at all: `completed` ticks every part and `planned`
- * clears them (PRD §3.1), and both need to know how many parts there are.
+ * What a write does to the viewer's row before the server has said anything.
+ * Pure, and derived from the write — an offline write is patched now and sent
+ * on reconnect, so the two must not be able to disagree.
  */
 export function trackingPatch(
   write: TrackingWrite,

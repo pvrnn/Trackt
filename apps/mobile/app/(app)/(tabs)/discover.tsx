@@ -4,8 +4,8 @@ import { MEDIA_KINDS, type MediaKind, type SearchResult } from '@trackt/shared';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Chip, ChipRow } from '../../../src/components/Chip';
 import { Cover } from '../../../src/components/Cover';
+import { FilterBar, type MenuRow } from '../../../src/components/FilterBar';
 import { KindDot } from '../../../src/components/KindDot';
 import {
   EmptyState,
@@ -16,7 +16,16 @@ import {
 } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
 import { useAuthedScreen } from '../../../src/lib/session';
-import { color, layout, radius, space, surface } from '../../../src/theme/tokens';
+import {
+  color,
+  gutter,
+  layout,
+  radius,
+  space,
+  stroke,
+  surface,
+  text,
+} from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 const COLUMNS = 3;
@@ -43,6 +52,15 @@ export default function DiscoverTab() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
+  const kindRows: MenuRow[] = [
+    { key: 'all', label: 'All kinds', selected: kind === undefined },
+    ...MEDIA_KINDS.map((value) => ({
+      key: value,
+      label: KIND_LABELS[value],
+      selected: kind === value,
+    })),
+  ];
+
   // The grid is measured, not guessed: the columns share whatever is left of the
   // screen after the gutters and the gaps between them.
   const columnWidth = Math.floor((width - layout.gutter * 2 - space.md * (COLUMNS - 1)) / COLUMNS);
@@ -58,7 +76,7 @@ export default function DiscoverTab() {
   return (
     <PageFrame fadeOnFocus>
       <View style={{ paddingTop: insets.top + space.lg }}>
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <PageTitle
             title="Discover"
             count={
@@ -78,36 +96,36 @@ export default function DiscoverTab() {
             style={[type.body, styles.input]}
           />
         </View>
-        <View style={styles.chips}>
-          <ChipRow>
-            <Chip label="All" selected={kind === undefined} onPress={() => setKind(undefined)} />
-            {MEDIA_KINDS.map((value) => (
-              <Chip
-                key={value}
-                label={KIND_LABELS[value]}
-                selected={kind === value}
-                onPress={() => setKind(kind === value ? undefined : value)}
-              />
-            ))}
-          </ChipRow>
+        <View style={styles.filters}>
+          <FilterBar
+            filters={[
+              {
+                key: 'kind',
+                icon: 'list',
+                label: kind ? KIND_LABELS[kind] : 'All kinds',
+                rows: kindRows,
+                onSelect: (key) => setKind(key === 'all' ? undefined : (key as MediaKind)),
+              },
+            ]}
+          />
         </View>
       </View>
 
       {status === 'idle' ? (
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <EmptyState
             title="Search the catalog"
-            body="Type a title to find it. The kind chips narrow the results as you go."
+            body="Type a title to find it. The kind filter narrows the results as you go."
           />
         </View>
       ) : status === 'error' ? (
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <EmptyState title="Search failed" body="The instance didn't answer. Try again." />
         </View>
       ) : status === 'loading' && results.length === 0 ? (
         <Loading />
       ) : results.length === 0 ? (
-        <View style={styles.gutter}>
+        <View style={gutter}>
           <EmptyState
             title="Nothing found"
             body={`No ${kind ? KIND_LABELS[kind].toLowerCase() : 'titles'} match “${debounced}” on this instance.`}
@@ -136,7 +154,7 @@ function ResultTile({ result, width }: { result: SearchResult; width: number }) 
       </Text>
       <View style={styles.metaRow}>
         <KindDot kind={result.kind} />
-        <Text style={[type.eyebrow, styles.dim]} numberOfLines={1}>
+        <Text style={[type.eyebrow, text.dim]} numberOfLines={1}>
           {result.seasonNumber ? `S${result.seasonNumber}` : (result.year ?? '—')}
         </Text>
       </View>
@@ -145,11 +163,7 @@ function ResultTile({ result, width }: { result: SearchResult; width: number }) 
 }
 
 const styles = StyleSheet.create({
-  gutter: {
-    paddingHorizontal: layout.gutter,
-  },
-  chips: {
-    // The row scrolls edge to edge, so its own padding supplies the gutter.
+  filters: {
     marginVertical: space.md,
   },
   input: {
@@ -157,7 +171,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.xl,
     borderRadius: radius.pill,
     backgroundColor: surface.glassWell,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     color: color.fg,
   },
@@ -173,8 +187,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  dim: {
-    color: color.dim,
   },
 });

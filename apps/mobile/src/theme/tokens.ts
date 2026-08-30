@@ -1,14 +1,8 @@
 /**
- * AURA PRISM tokens, ported for React Native (ADR-0008 §5).
- *
- * This is the second copy of the values in `docs/design/README.md` — the first
- * is `apps/web/src/styles.css`, which cites the same handoff. NativeWind was
- * rejected, so there is no shared class layer to keep them honest; the guard is
- * `test/theme/tokens.test.ts`, which parses the hex values back out of
- * `styles.css` and fails when the two drift.
- *
- * Keys mirror the CSS custom-property names (`--color-on-prism` → `onPrism`)
- * so that guard is a mechanical comparison rather than a hand-maintained map.
+ * AURA PRISM tokens, ported for React Native (ADR-0008 §5). The second copy of
+ * the values in `apps/web/src/styles.css`; `test/theme/tokens.test.ts` parses
+ * that file and fails when the two drift, which is why the keys mirror the CSS
+ * custom-property names (`--color-on-prism` → `onPrism`).
  */
 
 export const color = {
@@ -28,10 +22,21 @@ export const color = {
 } as const;
 
 /**
- * The translucent surfaces. Kept apart from `color` because they are `rgba()`
- * rather than hex and so sit outside the drift guard — and because on native
- * they are composited over `expo-blur` rather than `backdrop-filter`.
+ * The ink colours as ready-made text styles, so a screen does not restate
+ * `{ color: color.dim }` in its own StyleSheet to say what the palette already
+ * says. Used as `[type.eyebrow, text.dim]`.
  */
+export const text = {
+  fg: { color: color.fg },
+  muted: { color: color.muted },
+  dim: { color: color.dim },
+  faint: { color: color.faint },
+  pink: { color: color.pink },
+  gold: { color: color.gold },
+  onPrism: { color: color.onPrism },
+} as const;
+
+/** The translucent surfaces — `rgba()`, so outside the drift guard. */
 export const surface = {
   glass: 'rgba(255,255,255,0.05)',
   glassWell: 'rgba(255,255,255,0.07)',
@@ -44,14 +49,14 @@ export const surface = {
   pinkBorder: 'rgba(217,107,176,0.40)',
   /** The stronger pink hairline on a row that is up next: 50%. */
   pinkBorderStrong: 'rgba(217,107,176,0.50)',
+  /**
+   * The tint a floating control puts over hero art. Ink, not white, and weak
+   * enough that the artwork still reads through it.
+   */
+  scrimGlass: 'rgba(14,12,16,0.32)',
 } as const;
 
-/**
- * The opaque surfaces `Mobile System.dc.html` fixes for native only. They are
- * hex, but they have no `--color-*` counterpart on web — a sheet is a modal
- * dialog there, over a page that is still painted — so they live apart from
- * `color`, whose every key the drift guard requires web to define too.
- */
+/** The opaque surfaces `Mobile System.dc.html` fixes for native only, with no web counterpart. */
 export const nativeSurface = {
   /** §05: sheets are solid, "so content behind never fights the text". */
   sheet: '#191520',
@@ -66,19 +71,22 @@ export const nativeSurface = {
 /** The one signature gradient: primary action, wordmark, hero stats only. */
 export const PRISM = [color.gold, color.pink, color.kindMovie] as const;
 
-/**
- * The three aura radials, as fractions of the layer they are painted into so
- * `<AuraBackground>` can scale them to any screen. `web` is the `radial-gradient`
- * they transcribe; `opacity` is the app variant, and the `auth`/marketing panels
- * multiply it (design README: "up to 0.55 on marketing/login panels").
- */
+/** The three aura radials, as fractions of the layer, so `<AuraBackground>` can scale them. */
 export const AURA = [
   { color: color.kindMovie, cx: 0.1, cy: -0.1, rx: 1.05, ry: 0.68, opacity: 0.35 },
   { color: color.pink, cx: 1, cy: 0.15, rx: 0.93, ry: 0.62, opacity: 0.28 },
   { color: color.gold, cx: 0.3, cy: 1.15, rx: 0.99, ry: 0.74, opacity: 0.3 },
 ] as const;
 
-/** Radii. Pills are `999`, not a percentage — RN has no `border-radius: 999px` clamp quirk. */
+/**
+ * Radii. Pills are `999`, not a percentage — RN has no `border-radius: 999px`
+ * clamp quirk.
+ *
+ * **A pill's horizontal padding has to clear its own cap:** the ends are
+ * semicircles of half the height, so a label padded by less than that sits
+ * inside the curve. A leading icon is the exception and wants less, carrying
+ * its own whitespace where a letter ends flush.
+ */
 export const radius = {
   pill: 999,
   card: 16,
@@ -97,12 +105,7 @@ export const space = {
   xxl: 40,
 } as const;
 
-/**
- * The phone canvas, from `Mobile System.dc.html` §01. These are the numbers the
- * native spec fixes rather than the 4px rhythm above: a 362pt content column
- * inside 402pt of screen, 28 between sections and 12 within, and a touch target
- * that never goes under 44 — "no exceptions".
- */
+/** The phone canvas (`Mobile System.dc.html` §01). 44 is a floor, "no exceptions". */
 export const layout = {
   gutter: 20,
   sectionGap: 28,
@@ -111,3 +114,13 @@ export const layout = {
   /** Bar only; the home indicator is whatever `useSafeAreaInsets().bottom` says. */
   tabBarHeight: 64,
 } as const;
+
+/**
+ * The width of every ring, rule and divider: one point, what the mockups draw
+ * (`inset 0 0 0 1px`). **Not `StyleSheet.hairlineWidth`**, which is 0.33pt at
+ * 3x and reads as no edge at all against a 5%-white surface.
+ */
+export const stroke = 1;
+
+/** The 20pt page gutter as a style, the way every screen actually spells it. */
+export const gutter = { paddingHorizontal: layout.gutter } as const;

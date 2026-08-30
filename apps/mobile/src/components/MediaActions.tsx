@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PRISM, color, radius, space, surface } from '../theme/tokens';
+import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon, type IconName } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
@@ -49,12 +49,14 @@ export function MediaActionRow({
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         android_ripple={ripple(true)}
-        style={[styles.primary, caughtUp && styles.primaryDone, press.animatedStyle]}
+        style={[styles.primary, press.animatedStyle]}
       >
+        {/* Painted by a child, never by the Pressable: `android_ripple` swaps
+            the view's own background drawable (as `ProgressCard` found). */}
         {caughtUp ? (
-          <View style={styles.primaryInner}>
+          <View style={[styles.primaryInner, styles.primaryDone]}>
             <Icon name="star-filled" color={color.muted} size={15} />
-            <Text style={[type.button, styles.muted]}>{label}</Text>
+            <Text style={[type.button, text.muted]}>{label}</Text>
           </View>
         ) : (
           <LinearGradient
@@ -64,7 +66,7 @@ export function MediaActionRow({
             style={styles.primaryInner}
           >
             <Icon name="check" color={color.onPrism} size={16} />
-            <Text style={[type.button, styles.onPrism]} numberOfLines={1}>
+            <Text style={[type.button, text.onPrism]} numberOfLines={1}>
               {label}
             </Text>
           </LinearGradient>
@@ -106,10 +108,12 @@ function SatelliteButton({
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       android_ripple={ripple(true)}
-      style={[styles.satellite, active && styles.satelliteActive, press.animatedStyle]}
+      style={[styles.satellite, press.animatedStyle]}
     >
-      <Icon name={icon} color={active ? color.pink : color.muted} size={15} />
-      <Text style={[styles.caption, active ? styles.pink : styles.dim]}>{caption}</Text>
+      <View style={[styles.satelliteFace, active && styles.satelliteActive]}>
+        <Icon name={icon} color={active ? color.pink : color.muted} size={15} />
+        <Text style={[styles.caption, active ? text.pink : text.dim]}>{caption}</Text>
+      </View>
     </AnimatedPressable>
   );
 }
@@ -185,11 +189,9 @@ const styles = StyleSheet.create({
   primary: {
     flex: 1,
     height: 52,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
   },
   primaryDone: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: surface.glass,
   },
@@ -200,15 +202,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.sm,
     paddingHorizontal: space.md,
+    // The rounding lives here, not on the Pressable: clipping a child to a
+    // rounded `overflow: 'hidden'` parent that Reanimated drives leaves it laid
+    // out and painting nothing — an invisible button.
+    borderRadius: radius.pill,
+    overflow: 'hidden',
   },
   satellite: {
     width: 52,
     height: 52,
     borderRadius: radius.pill,
+  },
+  satelliteFace: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 1,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.pill,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: surface.glass,
   },
@@ -228,7 +239,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     paddingHorizontal: space.lg,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -259,20 +270,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.6,
     color: color.dim,
-  },
-  onPrism: {
-    color: color.onPrism,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
-  },
-  faint: {
-    color: color.faint,
-  },
-  pink: {
-    color: color.pink,
   },
 });

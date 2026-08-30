@@ -1,12 +1,4 @@
-import {
-  KIND_LABELS,
-  activityVerbLabel,
-  relativeTime,
-  useAcceptFriendRequest,
-  usePublicProfile,
-  useRemoveFriend,
-  useSendFriendRequest,
-} from '@trackt/client';
+import { KIND_LABELS, activityVerbLabel, relativeTime, usePublicProfile } from '@trackt/client';
 import {
   MEDIA_KINDS,
   type FavoriteEntry,
@@ -15,26 +7,21 @@ import {
 } from '@trackt/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../../../src/components/Avatar';
 import { ConfirmSheet } from '../../../src/components/ConfirmSheet';
-import { Cover } from '../../../src/components/Cover';
+import { Shelf, ShelfItem } from '../../../src/components/Shelf';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { KindDot } from '../../../src/components/KindDot';
-import {
-  BackLink,
-  EmptyState,
-  Loading,
-  PageScroll,
-  SectionTitle,
-} from '../../../src/components/Page';
+import { PageScroll, ScreenState, SectionTitle } from '../../../src/components/Page';
+import { Stat, Stats } from '../../../src/components/Stat';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
-import { PrismText } from '../../../src/components/PrismText';
-import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
+import { commitHaptic } from '../../../src/lib/haptics';
+import { useFriendActions } from '../../../src/lib/friends';
 import { useOptionalSession } from '../../../src/lib/session';
 import { useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, space, surface } from '../../../src/theme/tokens';
+import { color, layout, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /** What the viewer's relationship to this account currently is, in words. */
@@ -58,57 +45,43 @@ export default function PublicProfileScreen() {
   const { data: profile, isPending, isError } = usePublicProfile(username);
   const { user: viewer } = useOptionalSession();
 
-  if (isPending) {
+  if (isPending || isError || !profile) {
     return (
-      <PageScroll>
-        <BackLink />
-        <Loading />
-      </PageScroll>
-    );
-  }
-
-  if (isError || !profile) {
-    return (
-      <PageScroll>
-        <BackLink />
-        <EmptyState
-          title="No such profile"
-          body={`Nobody on this instance goes by @${username}.`}
-        />
-      </PageScroll>
+      <ScreenState
+        isPending={isPending}
+        title="No such profile"
+        body={`Nobody on this instance goes by @${username}.`}
+      />
     );
   }
 
   const relationship = FRIEND_STATE_LABELS[profile.friendState];
 
   return (
-    <PageScroll>
+    <PageScroll title={profile.user.name}>
       <View style={styles.head}>
-        <BackLink />
         <View style={styles.header}>
           <Avatar name={profile.user.name} image={profile.user.image} size={88} />
           <View style={styles.headerText}>
-            <Text style={[type.title, styles.fg]} numberOfLines={2}>
+            <Text style={[type.title, text.fg]} numberOfLines={2}>
               {profile.user.name.toUpperCase()}
             </Text>
-            <Text style={[type.eyebrow, styles.dim]}>@{profile.user.username}</Text>
+            <Text style={[type.eyebrow, text.dim]}>@{profile.user.username}</Text>
             {relationship ? (
               <Text style={[type.eyebrow, styles.relationship]}>{relationship}</Text>
             ) : null}
             <FriendAction profile={profile} signedIn={viewer !== null} />
           </View>
         </View>
-        {profile.user.bio ? (
-          <Text style={[type.body, styles.muted]}>{profile.user.bio}</Text>
-        ) : null}
+        {profile.user.bio ? <Text style={[type.body, text.muted]}>{profile.user.bio}</Text> : null}
       </View>
 
-      <View style={styles.stats}>
+      <Stats>
         <Stat value={profile.stats.titlesTracked} label="Tracked" />
         <Stat value={profile.stats.completed} label="Completed" />
         <Stat value={profile.stats.dayStreak} label="Day streak" />
         <Stat value={profile.friendCount} label="Friends" />
-      </View>
+      </Stats>
 
       {MEDIA_KINDS.map((kind) => {
         const favorites = profile.favorites.filter((entry) => entry.kind === kind);
@@ -129,9 +102,9 @@ export default function PublicProfileScreen() {
                 <KindDot kind={entry.kind} />
                 <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
                   {activityVerbLabel(entry).toLowerCase()} {entry.title}{' '}
-                  <Text style={styles.dim}>{entry.detail}</Text>
+                  <Text style={text.dim}>{entry.detail}</Text>
                 </Text>
-                <Text style={[type.eyebrow, styles.dim]}>{relativeTime(entry.at)}</Text>
+                <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
               </Touchable>
             ))}
           </GlassCard>
@@ -153,19 +126,9 @@ export default function PublicProfileScreen() {
 function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn: boolean }) {
   const router = useRouter();
   const writeFailed = useWriteFailedToast();
-  const sendRequest = useSendFriendRequest();
-  const accept = useAcceptFriendRequest();
-  const remove = useRemoveFriend();
+  const { send, accept, remove, busy, sendTo, acceptFrom, removeFrom } =
+    useFriendActions(writeFailed);
   const [confirmingUnfriend, setConfirmingUnfriend] = useState(false);
-
-  const busy = sendRequest.isPending || accept.isPending || remove.isPending;
-  const handlers = {
-    onSuccess: () => commitHaptic(),
-    onError: (cause: unknown) => {
-      errorHaptic();
-      writeFailed(cause);
-    },
-  };
 
   if (profile.friendState === 'self') {
     return (
@@ -195,9 +158,9 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
         <PrismButton
           label="Add friend"
           icon="plus"
-          busy={sendRequest.isPending}
+          busy={send.isPending}
           disabled={busy}
-          onPress={() => sendRequest.mutate(profile.user.username, handlers)}
+          onPress={() => sendTo(profile.user.username)}
           style={styles.action}
         />
       ) : null}
@@ -208,7 +171,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
           variant="secondary"
           busy={remove.isPending}
           disabled={busy}
-          onPress={() => remove.mutate(profile.userId, handlers)}
+          onPress={() => removeFrom(profile.userId)}
           style={styles.action}
         />
       ) : null}
@@ -218,14 +181,14 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
             label="Accept"
             busy={accept.isPending}
             disabled={busy}
-            onPress={() => accept.mutate(profile.userId, handlers)}
+            onPress={() => acceptFrom(profile.userId)}
             style={styles.action}
           />
           <PrismButton
             label="Decline"
             variant="secondary"
             disabled={busy}
-            onPress={() => remove.mutate(profile.userId, handlers)}
+            onPress={() => removeFrom(profile.userId)}
             style={styles.action}
           />
         </>
@@ -258,32 +221,18 @@ function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEnt
   return (
     <View>
       <SectionTitle title={label} />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.shelf}
-      >
+      <Shelf>
         {entries.map((entry) => (
-          <Touchable key={entry.id} href={`/media/${entry.slug}`}>
-            <Cover kind={entry.kind} title={entry.title} coverUrl={entry.coverUrl} width={96} />
-            <Text style={[type.bodySm, styles.shelfCaption]} numberOfLines={1}>
-              {entry.title}
-            </Text>
-          </Touchable>
+          <ShelfItem
+            key={entry.id}
+            href={`/media/${entry.slug}`}
+            kind={entry.kind}
+            title={entry.title}
+            coverUrl={entry.coverUrl}
+          />
         ))}
-      </ScrollView>
+      </Shelf>
     </View>
-  );
-}
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <GlassCard style={styles.stat}>
-      <View style={styles.shrink}>
-        <PrismText style={type.stat}>{String(value)}</PrismText>
-      </View>
-      <Text style={[type.eyebrow, styles.dim]}>{label.toUpperCase()}</Text>
-    </GlassCard>
   );
 }
 
@@ -313,28 +262,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: space.sm,
   },
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.md,
-  },
-  stat: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    padding: space.lg,
-    gap: space.xs,
-  },
-  shrink: {
-    alignSelf: 'flex-start',
-  },
-  shelf: {
-    gap: space.md,
-  },
-  shelfCaption: {
-    color: color.fg,
-    width: 96,
-    marginTop: space.sm,
-  },
   activityCard: {
     paddingHorizontal: space.lg,
   },
@@ -346,20 +273,11 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
   },
   divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.divider,
   },
   activityText: {
     flex: 1,
     color: color.fg,
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
   },
 });

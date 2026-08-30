@@ -37,7 +37,8 @@ export function formatNewsDate(iso: string): string {
 }
 
 export interface NewsFilters {
-  kind?: MediaKind | undefined;
+  /** Empty or absent means every kind; the API takes them as one CSV. */
+  kinds?: MediaKind[] | undefined;
   topic?: NewsTopic | undefined;
   /** Inclusive ISO date bounds (YYYY-MM-DD). */
   from?: string | undefined;
@@ -47,7 +48,11 @@ export interface NewsFilters {
 function toSearchParams(filters: NewsFilters): Record<string, string> {
   const params: Record<string, string> = {};
   for (const [key, value] of Object.entries(filters)) {
-    if (value) params[key] = value;
+    if (Array.isArray(value)) {
+      if (value.length > 0) params[key] = value.join(',');
+    } else if (value) {
+      params[key] = value;
+    }
   }
   return params;
 }
@@ -84,7 +89,14 @@ export interface NewsFeedState {
  */
 export function useNewsFeed(filters: NewsFilters): NewsFeedState {
   const query = useInfiniteQuery({
-    queryKey: ['news', filters.kind, filters.topic, filters.from, filters.to],
+    queryKey: [
+      'news',
+      // Sorted so two orderings of the same selection are one cache entry.
+      [...(filters.kinds ?? [])].sort().join(',') || undefined,
+      filters.topic,
+      filters.from,
+      filters.to,
+    ],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam, signal }) => {
       const searchParams = toSearchParams(filters);

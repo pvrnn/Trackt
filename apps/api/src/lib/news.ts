@@ -5,6 +5,7 @@ import {
   fetchNewsArticle,
   fetchNewsForMedia,
   fetchNewsList,
+  newsQueryKinds,
   type NewsArticle,
   type NewsArticleDetail,
   type NewsByMediaQuery,
@@ -95,8 +96,9 @@ export async function loadNewsList(
 ): Promise<NewsListResponse> {
   if (!catalogUrl) return EMPTY_FEED;
 
+  const kinds = newsQueryKinds(query).join(',');
   const key = JSON.stringify([
-    query.kind ?? '',
+    kinds,
     query.topic ?? '',
     query.from ?? '',
     query.to ?? '',
@@ -108,7 +110,7 @@ export async function loadNewsList(
 
   try {
     const response = await fetchNewsList(catalogUrl, {
-      kind: query.kind,
+      kinds: kinds || undefined,
       topic: query.topic,
       from: query.from,
       to: query.to,

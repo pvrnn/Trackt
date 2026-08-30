@@ -3,7 +3,7 @@ import { LIST_TITLE_MAX } from '@trackt/shared';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { commitHaptic, errorHaptic } from '../lib/haptics';
-import { color, layout, radius, space, surface } from '../theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Field } from './Field';
 import { Icon } from './Icon';
@@ -76,7 +76,7 @@ export function AddToListSheet({
       ) : isPending ? (
         <Loading />
       ) : lists.length === 0 ? (
-        <Text style={[type.body, styles.muted]}>
+        <Text style={[type.body, text.muted]}>
           No lists yet — name one below and this title goes straight into it.
         </Text>
       ) : (
@@ -98,10 +98,10 @@ export function AddToListSheet({
                 ]}
               >
                 <View style={styles.rowText}>
-                  <Text style={[type.cardTitle, styles.fg]} numberOfLines={1}>
+                  <Text style={[type.cardTitle, text.fg]} numberOfLines={1}>
                     {entry.title}
                   </Text>
-                  <Text style={[type.eyebrow, styles.dim]}>
+                  <Text style={[type.eyebrow, text.dim]}>
                     {entry.itemCount} {entry.itemCount === 1 ? 'TITLE' : 'TITLES'}
                   </Text>
                 </View>
@@ -113,7 +113,7 @@ export function AddToListSheet({
                       size={16}
                     />
                   )}
-                  <Text style={[type.button, contains ? styles.pink : styles.dim]}>
+                  <Text style={[type.button, contains ? text.pink : text.dim]}>
                     {pending === entry.id ? '…' : contains ? 'ADDED' : 'ADD'}
                   </Text>
                 </View>
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -181,17 +181,5 @@ const styles = StyleSheet.create({
   },
   create: {
     gap: space.md,
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
-  },
-  pink: {
-    color: color.pink,
   },
 });

@@ -1,15 +1,10 @@
 /**
- * The two conversions between an ISO date (`2026-02-11`, what the API stores)
- * and the local `Date` the platform date pickers speak.
+ * ISO date (what the API stores) ↔ the local `Date` the platform pickers speak.
+ * The obvious versions are both wrong by a day: `new Date(iso)` parses as UTC
+ * midnight, and `toISOString().slice(0, 10)` re-encodes a local date as UTC.
  *
- * Both exist because the obvious versions are wrong by a day. `new Date(iso)`
- * parses as UTC midnight, which in any timezone west of UTC is the previous
- * evening — so a log started on the 11th opens the picker on the 10th. And
- * `date.toISOString().slice(0, 10)` re-encodes a local date as UTC, so a date
- * picked in the evening east of UTC saves as the next day.
- *
- * Kept free of `react-native` imports so they are unit-testable in the node
- * vitest project, which is where the off-by-one this guards against belongs.
+ * No `react-native` imports, so the off-by-one stays unit-testable in the node
+ * vitest project.
  */
 
 /** '2026-02-11' → local noon, far enough from either midnight to survive any offset. */

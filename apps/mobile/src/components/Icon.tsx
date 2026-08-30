@@ -29,6 +29,7 @@ export type IconName =
   | 'close'
   | 'chevron-left'
   | 'chevron-right'
+  | 'caret-down'
   | 'arrow-up'
   | 'arrow-down'
   | 'star'
@@ -55,6 +56,10 @@ const PATHS: Record<Exclude<IconName, 'settings'>, string> = {
   close: 'M6 6l12 12M18 6L6 18',
   'chevron-left': 'M14.5 5.5L8 12l6.5 6.5',
   'chevron-right': 'M9.5 5.5L16 12l-6.5 6.5',
+  // The filter pill's caret: a solid triangle, not a chevron — it is 10px of
+  // mark, and a 1.6 stroke at that size reads as a smudge. Pointing down; the
+  // open state turns it over rather than swapping in a second glyph.
+  'caret-down': 'M6 9.5h12L12 16.5z',
   'arrow-up': 'M12 19.5V5M6 11l6-6 6 6',
   'arrow-down': 'M12 4.5V19M6 13l6 6 6-6',
   star: 'M12 3l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.77l-5.8 3.06 1.11-6.45L2.62 9.81l6.48-.94z',
@@ -65,6 +70,9 @@ const PATHS: Record<Exclude<IconName, 'settings'>, string> = {
   'heart-filled':
     'M20.3 5.2a4.9 4.9 0 0 0-6.93 0L12 6.57l-1.37-1.37a4.9 4.9 0 1 0-6.93 6.93L12 20.43l8.3-8.3a4.9 4.9 0 0 0 0-6.93z',
 };
+
+/** The glyphs drawn solid rather than stroked. */
+const FILLED = new Set<IconName>(['star-filled', 'heart-filled', 'caret-down']);
 
 export function Icon({ name, color, size = 20 }: { name: IconName; color: string; size?: number }) {
   return (
@@ -78,7 +86,7 @@ export function Icon({ name, color, size = 20 }: { name: IconName; color: string
           strokeWidth={1.6}
           strokeLinecap="round"
           strokeLinejoin="round"
-          fill={name === 'star-filled' || name === 'heart-filled' ? color : 'none'}
+          fill={FILLED.has(name) ? color : 'none'}
         />
       )}
     </Svg>

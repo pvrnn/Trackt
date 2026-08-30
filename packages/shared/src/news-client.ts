@@ -52,7 +52,8 @@ function parseItems<T>(
 }
 
 export interface FetchNewsListOptions {
-  kind?: string | undefined;
+  /** CSV of media kinds, as {@link MediaKindListSchema} parses it. */
+  kinds?: string | undefined;
   topic?: string | undefined;
   from?: string | undefined;
   to?: string | undefined;
@@ -75,7 +76,7 @@ export async function fetchNewsList(
 ): Promise<FetchNewsListResult> {
   const { timeoutMs, fetchImpl = fetch, ...query } = options;
   const url = new URL('/v1/news', catalogUrl);
-  for (const key of ['kind', 'topic', 'from', 'to', 'cursor'] as const) {
+  for (const key of ['kinds', 'topic', 'from', 'to', 'cursor'] as const) {
     const value = query[key];
     if (value) url.searchParams.set(key, value);
   }

@@ -3,7 +3,6 @@ import {
   HistoryPageSchema,
   seasonOf,
   type HistoryEntry,
-  type HistorySeason,
   type HistoryTotals,
   type LogStatus,
   type MediaKind,
@@ -19,13 +18,12 @@ import { http, useIsAuthed } from './runtime.js';
 export interface HistoryFilters {
   /** Undefined = all time. */
   year?: number | undefined;
-  season?: HistorySeason | undefined;
   kind?: MediaKind | undefined;
   status?: LogStatus | undefined;
 }
 
 export const historyKey = (filters: HistoryFilters) =>
-  ['history', filters.year ?? 'all', filters.season, filters.kind, filters.status] as const;
+  ['history', filters.year ?? 'all', filters.kind, filters.status] as const;
 
 export interface HistoryState {
   entries: HistoryEntry[];
@@ -60,7 +58,6 @@ export function useHistory(filters: HistoryFilters): HistoryState {
     queryFn: async ({ pageParam, signal }) => {
       const searchParams: Record<string, string> = {};
       if (filters.year !== undefined) searchParams.year = String(filters.year);
-      if (filters.season) searchParams.season = filters.season;
       if (filters.kind) searchParams.kind = filters.kind;
       if (filters.status) searchParams.status = filters.status;
       if (pageParam) searchParams.cursor = pageParam;

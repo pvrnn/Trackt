@@ -1,20 +1,13 @@
 import * as Haptics from 'expo-haptics';
 
 /**
- * The three haptics the design allows, and nothing else.
+ * The three haptics `Mobile System.dc.html` §07 allows, and nothing else: a
+ * commit, a threshold crossing, and a failure. Never on scroll or tab change.
  *
- * `Mobile System.dc.html` §07: "Haptics are reserved for state changes the user
- * caused and cannot see confirmed elsewhere: a check-in commit (medium impact),
- * crossing a swipe threshold (selection tick), and a failed sync (error
- * notification). Never on scroll, never on tab change." Naming them by the
- * event rather than by the API's waveform is what keeps that rule enforceable —
- * a call site asks for `commit`, not for `ImpactFeedbackStyle.Medium`.
- *
- * Every call is fire-and-forget and swallows its rejection. A device with the
- * Taptic Engine disabled, an emulator, or a simulator all reject rather than
- * no-op, and a check-in must never fail because the phone would not buzz.
+ * Every call swallows its rejection — an emulator or a phone with the Taptic
+ * Engine off rejects rather than no-ops, and a check-in must never fail
+ * because the phone would not buzz.
  */
-
 function fire(run: () => Promise<void>): void {
   run().catch(() => {});
 }

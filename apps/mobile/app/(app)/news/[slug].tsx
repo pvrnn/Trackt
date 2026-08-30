@@ -7,15 +7,9 @@ import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { KindDot } from '../../../src/components/KindDot';
 import { Markdown } from '../../../src/components/Markdown';
-import {
-  BackLink,
-  EmptyState,
-  Loading,
-  PageScroll,
-  SectionTitle,
-} from '../../../src/components/Page';
+import { EmptyState, Loading, PageScroll, SectionTitle } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
-import { color, layout, space, surface } from '../../../src/theme/tokens';
+import { color, layout, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -33,7 +27,6 @@ export default function NewsArticleScreen() {
   if (isPending) {
     return (
       <PageScroll>
-        <BackLink label="News" />
         <Loading />
       </PageScroll>
     );
@@ -43,7 +36,6 @@ export default function NewsArticleScreen() {
     const missing = errorStatus(error) === 404;
     return (
       <PageScroll>
-        <BackLink label="News" />
         <EmptyState
           title={missing ? 'No such story' : 'Story unavailable'}
           body={
@@ -60,12 +52,11 @@ export default function NewsArticleScreen() {
   const mentioned = article.media.filter((work) => work.role === 'mentioned');
 
   return (
-    <PageScroll>
+    <PageScroll title={article.title}>
       <View style={styles.head}>
-        <BackLink label="News" />
         <View style={styles.metaRow}>
           <Text style={[type.eyebrow, styles.tag]}>{TOPIC_LABELS[article.topic]}</Text>
-          <Text style={[type.eyebrow, styles.dim]}>{formatNewsDate(article.publishedAt)}</Text>
+          <Text style={[type.eyebrow, text.dim]}>{formatNewsDate(article.publishedAt)}</Text>
         </View>
         <Text style={[type.title, styles.title]}>{article.title}</Text>
         {article.dek ? <Text style={[type.body, styles.dek]}>{article.dek}</Text> : null}
@@ -90,7 +81,7 @@ export default function NewsArticleScreen() {
                 <Text style={[type.bodySm, styles.sourceTitle]} numberOfLines={2}>
                   {source.title}
                 </Text>
-                <Text style={[type.eyebrow, styles.dim]}>
+                <Text style={[type.eyebrow, text.dim]}>
                   {source.outlet}
                   {source.publishedAt ? ` · ${formatNewsDate(source.publishedAt)}` : ''}
                 </Text>
@@ -123,7 +114,7 @@ function LinkedWorks({ title, works }: { title: string; works: NewsLinkedWork[] 
               </Text>
               <View style={styles.metaRow}>
                 <KindDot kind={work.kind} />
-                <Text style={[type.eyebrow, styles.dim]}>{work.year ?? '—'}</Text>
+                <Text style={[type.eyebrow, text.dim]}>{work.year ?? '—'}</Text>
               </View>
             </View>
           </Touchable>
@@ -145,9 +136,6 @@ const styles = StyleSheet.create({
   tag: {
     color: color.pink,
   },
-  dim: {
-    color: color.dim,
-  },
   title: {
     color: color.fg,
   },
@@ -163,7 +151,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.md,
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },

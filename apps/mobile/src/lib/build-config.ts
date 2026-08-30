@@ -2,18 +2,12 @@ import Constants from 'expo-constants';
 import { normalizeOrigin } from './instance';
 
 /**
- * What this build was compiled with (`app.config.ts`'s `extra`), as opposed to
- * what the user picked at runtime — which is `instance-provider.tsx`'s job and
- * always wins.
- */
-
-/**
- * The demo instance the picker may offer, or null when this build has none.
+ * The demo instance this build may offer, or null when it has none.
+ * (`app.config.ts`'s `extra` — what the build was compiled with, as opposed to
+ * what the user picked, which is `instance-provider.tsx` and always wins.)
  *
- * Put through `normalizeOrigin` rather than trusted: a misconfigured build
- * should offer nothing, not offer an address that strands whoever taps it on a
- * login screen that can only fail. The app still ships with no default server —
- * the demo is an explicitly labelled choice, and taking it is a tap.
+ * Normalized rather than trusted: a misconfigured build should offer nothing
+ * rather than an address that strands whoever taps it.
  */
 export function demoInstanceOrigin(): string | null {
   const configured = Constants.expoConfig?.extra?.demoInstance;

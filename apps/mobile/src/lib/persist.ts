@@ -5,18 +5,12 @@ import type { MMKV } from 'react-native-mmkv';
 import { cacheKeyForOrigin } from './offline';
 
 /**
- * The React Query cache on disk (mobile plan, phase 5).
+ * The React Query cache on disk. MMKV rather than AsyncStorage: the persister
+ * writes the whole dehydrated cache on a throttle, and MMKV's writes are
+ * synchronous and memory-mapped rather than a few hundred KB across the bridge.
  *
- * MMKV rather than AsyncStorage because the persister writes the **whole**
- * dehydrated cache on a throttle, and the whole cache after a session of
- * browsing is a few hundred KB of JSON. AsyncStorage would move that across the
- * bridge on every write; MMKV's are synchronous memory-mapped writes, so the
- * `createSyncStoragePersister` above is a real sync persister rather than an
- * async one pretending.
- *
- * One MMKV instance for the app, keyed *inside* it by origin — see
- * `cacheKeyForOrigin`. A second instance per origin would leak a file per
- * server the user ever typed in.
+ * One instance for the app, keyed inside it by origin — a second instance per
+ * origin would leak a file per server the user ever typed in.
  */
 
 /** What the persister needs of a backend, and all either backend provides. */
@@ -27,23 +21,10 @@ interface SyncStorage {
 }
 
 /**
- * The cache with nowhere to go — used only when MMKV's native module is
- * missing, which in practice means Expo Go.
- *
- * MMKV 4 is a Nitro module: native code compiled into the client, not
- * JavaScript a bundler can ship. Expo Go is a prebuilt binary with a fixed set
- * of native modules and MMKV is not in it, so `require`ing it there throws at
- * import time and takes the root layout down with it. A dev client (the
- * `development` profile in `eas.json`) has it; Expo Go never will.
- *
- * Falling back keeps the app launchable there, and everything offline does
- * *within* a session — `onlineManager` pausing queries, a check-in queued as a
- * value, the undo toast, `StaleNotice` — works against this backend exactly as
- * it does against MMKV, because all of that lives in the query client in
- * memory. What is lost is the part that spans a launch: nothing is restored on
- * open, and a write still queued when the app is killed is gone. That is a
- * degradation to develop against, never one to ship, which is why it says so
- * out loud below.
+ * The cache with nowhere to go, for Expo Go: MMKV 4 is a Nitro module and Expo
+ * Go is a prebuilt binary that does not carry it. Everything offline does
+ * *within* a session still works against this; what is lost is the part that
+ * spans a launch. To develop against, never to ship — hence the warning.
  */
 function createMemoryStorage(): SyncStorage {
   const entries = new Map<string, string>();
@@ -61,23 +42,17 @@ function createMemoryStorage(): SyncStorage {
 let instance: SyncStorage | null = null;
 
 /**
- * Lazily, because `createMMKV` opens the memory-mapped file on the native side
- * the moment it is called — and this module is imported by the instance
- * provider, which is above the splash. Nothing should touch the filesystem to
- * satisfy an import.
- *
- * The `require` is deliberate and cannot be the static import it used to be:
- * `react-native-mmkv` resolves NitroModules as its module body runs, so a
- * top-level import throws where the native module is absent — before any code
- * here gets the chance to fall back.
+ * Lazy, because `createMMKV` opens the memory-mapped file the moment it is
+ * called and this module is imported above the splash. The `require` cannot be
+ * a static import: `react-native-mmkv` resolves NitroModules as its module body
+ * runs, so a top-level import throws before this can fall back.
  */
 function storage(): SyncStorage {
   if (instance) return instance;
 
   // Asked before requiring, not caught after: MMKV logs the Nitro failure with
-  // `console.error` on its way out, and a caught error still leaves a red
-  // full-screen LogBox over the app on every launch. Expo Go is the one
-  // environment we can name in advance, so name it.
+  // `console.error` on its way out, which leaves a red LogBox over the app on
+  // every launch even when the error is caught.
   if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
     warnMemoryOnly();
     instance = createMemoryStorage();
@@ -91,8 +66,7 @@ function storage(): SyncStorage {
     };
     instance = createMMKV({ id: 'trackt.cache' });
   } catch {
-    // A dev client or a store build missing MMKV is a broken build rather than
-    // a known environment, so it falls back too — but it is not expected, and
+    // A dev or store build missing MMKV is broken rather than expected, and
     // silently serving a cache that evaporates would hide it.
     warnMemoryOnly();
     instance = createMemoryStorage();
@@ -128,9 +102,8 @@ export function createInstancePersister(origin: string): Persister {
 }
 
 /**
- * Drop an instance's cache. Called when the user forgets the instance — the
- * origin is gone from SecureStore at that point, so nothing would ever key back
- * into this entry to expire it, and it would outlive the account it belongs to.
+ * Drop an instance's cache when the user forgets the instance: the origin is
+ * gone from SecureStore by then, so nothing would ever key back in to expire it.
  */
 export function clearPersistedCache(origin: string): void {
   storage().remove(cacheKeyForOrigin(origin));

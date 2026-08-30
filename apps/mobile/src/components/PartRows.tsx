@@ -1,7 +1,7 @@
 import { partWindow, type PartBlock } from '@trackt/client';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
-import { PRISM, color, layout, radius, space, surface } from '../theme/tokens';
+import { PRISM, color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
@@ -53,8 +53,8 @@ export function PartBlockRow({
       <Marker complete={block.complete} partial={block.partial} size={24} />
       <View style={styles.blockBody}>
         <View style={styles.blockTitleRow}>
-          <Text style={[type.cardTitle, block.complete ? styles.muted : styles.fg]}>{label}</Text>
-          <Text style={[type.eyebrow, styles.dim]}>{rangeLabel}</Text>
+          <Text style={[type.cardTitle, block.complete ? text.muted : text.fg]}>{label}</Text>
+          <Text style={[type.eyebrow, text.dim]}>{rangeLabel}</Text>
         </View>
         <View style={styles.mini}>
           {block.done > 0 ? (
@@ -71,7 +71,7 @@ export function PartBlockRow({
           ) : null}
         </View>
       </View>
-      <Text style={[type.eyebrow, block.done > 0 ? styles.pink : styles.dim]}>
+      <Text style={[type.eyebrow, block.done > 0 ? text.pink : text.dim]}>
         {block.done}/{block.size}
       </Text>
     </AnimatedPressable>
@@ -104,11 +104,9 @@ export function PartRow({
       style={[styles.partRow, isNext && styles.partRowNext, press.animatedStyle]}
     >
       <Marker complete={done} partial={false} outlined={isNext} size={20} />
-      <Text style={[type.label, done ? styles.muted : styles.fg, styles.partLabel]}>{label}</Text>
+      <Text style={[type.label, done ? text.muted : text.fg, styles.partLabel]}>{label}</Text>
       {done || isNext ? (
-        <Text style={[type.eyebrow, isNext ? styles.pink : styles.dim]}>
-          {done ? 'DONE' : 'NEXT'}
-        </Text>
+        <Text style={[type.eyebrow, isNext ? text.pink : text.dim]}>{done ? 'DONE' : 'NEXT'}</Text>
       ) : null}
     </AnimatedPressable>
   );
@@ -158,7 +156,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     paddingHorizontal: space.md,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -195,7 +193,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
     paddingHorizontal: space.md,
     borderRadius: radius.thumb,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -216,17 +214,5 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: color.pink,
-  },
-  fg: {
-    color: color.fg,
-  },
-  muted: {
-    color: color.muted,
-  },
-  dim: {
-    color: color.dim,
-  },
-  pink: {
-    color: color.pink,
   },
 });
