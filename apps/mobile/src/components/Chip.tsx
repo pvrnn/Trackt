@@ -1,6 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { ReactNode } from 'react';
-import { color, radius, space, surface } from '../theme/tokens';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { color, radius, space, stroke, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -34,42 +33,23 @@ export function Chip({
         { opacity: disabled ? 0.25 : pressed ? 0.7 : 1 },
       ]}
     >
-      <Text style={[type.label, { color: selected ? color.pink : color.dim }]}>
+      {/* Resting is `muted`, not `dim`: the mockup's chip label is #b8b1c4, and
+          at 11px on a 5%-white pill the dimmer ink was under-reading. */}
+      <Text style={[type.label, { color: selected ? color.pink : color.muted }]}>
         {label.toUpperCase()}
       </Text>
     </Pressable>
   );
 }
 
-/**
- * A horizontally scrolling chip row. Filter rows routinely run wider than
- * 362pt — six kinds plus "all" already do — and wrapping them costs a line of
- * vertical space on the screen where it is scarcest.
- */
-export function ChipRow({ children }: { children: ReactNode }) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-    >
-      {children}
-    </ScrollView>
-  );
-}
-
-/** The vertical hairline History's filter row uses to split year from season. */
-export function ChipDivider() {
-  return <View style={styles.divider} />;
-}
-
 const styles = StyleSheet.create({
   chip: {
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: space.lg,
+    // 44 tall means an 22pt cap; `space.lg` put the label inside the arc.
+    paddingHorizontal: space.xl,
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
   },
   resting: {
     backgroundColor: surface.glass,
@@ -78,17 +58,5 @@ const styles = StyleSheet.create({
   selected: {
     backgroundColor: surface.pinkSelected,
     borderColor: color.pink,
-  },
-  row: {
-    gap: space.sm,
-    paddingHorizontal: space.xl,
-    alignItems: 'center',
-  },
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
-    marginVertical: space.sm,
-    marginHorizontal: space.xs,
-    backgroundColor: surface.divider,
   },
 });
