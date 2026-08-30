@@ -5,7 +5,7 @@ import { Avatar } from './Avatar';
 import { Icon } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
 import { Touchable } from './Touchable';
-import { PRISM, color, radius, space, surface, text } from '../theme/tokens';
+import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /** What the roster says under a name when it is a search result. */
@@ -21,7 +21,7 @@ export function friendStateNote(state: FriendState): string {
 const ACTION: Record<FriendState, { label: string; tone: 'prism' | 'friends' | 'quiet' | 'add' }> =
   {
     incoming: { label: 'ACCEPT', tone: 'prism' },
-    friends: { label: 'FRIENDS ✓', tone: 'friends' },
+    friends: { label: 'FRIENDS', tone: 'friends' },
     outgoing: { label: 'REQUESTED', tone: 'quiet' },
     none: { label: 'ADD', tone: 'add' },
     self: { label: 'YOU', tone: 'quiet' },
@@ -86,19 +86,19 @@ export function PersonRow({
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         android_ripple={ripple()}
-        style={[styles.pill, TONES[action.tone], inert && styles.pillInert, press.animatedStyle]}
+        style={[styles.pill, inert && styles.pillInert, press.animatedStyle]}
       >
         {action.tone === 'prism' ? (
           <LinearGradient
             colors={[...PRISM]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.pillFill}
+            style={[styles.pillFill, styles.pillPrism]}
           >
             <Text style={[styles.pillLabel, text.onPrism]}>{action.label}</Text>
           </LinearGradient>
         ) : (
-          <View style={styles.pillFill}>
+          <View style={[styles.pillFill, TONES[action.tone]]}>
             <Text style={[styles.pillLabel, TONE_TEXT[action.tone]]}>{action.label}</Text>
           </View>
         )}
@@ -121,23 +121,19 @@ export function RosterTab({
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.tab,
-        !active && styles.tabIdle,
-        { opacity: pressed ? 0.8 : 1 },
-      ]}
+      style={({ pressed }) => [styles.tab, { opacity: pressed ? 0.8 : 1 }]}
     >
       {active ? (
         <LinearGradient
           colors={[color.pink, color.kindMovie]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.tabFill}
+          style={[styles.tabFill, styles.tabActive]}
         >
           <Text style={[styles.tabLabel, text.onPrism]}>{label}</Text>
         </LinearGradient>
       ) : (
-        <View style={styles.tabFill}>
+        <View style={[styles.tabFill, styles.tabIdle]}>
           <Text style={[styles.tabLabel, text.dim]}>{label}</Text>
         </View>
       )}
@@ -152,7 +148,7 @@ const styles = StyleSheet.create({
     gap: space.md - 1,
     padding: space.md - 1,
     borderRadius: radius.cardSm - 4,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -175,12 +171,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
   },
+  /**
+   * Geometry only. The rounding belongs to the face below, never to a parent
+   * clipping it: `overflow: 'hidden'` against a pill radius chops a corner off
+   * the gradient on Android, and on the `AnimatedPressable` the media screen
+   * uses it drops the child's paint altogether.
+   */
   pill: {
-    borderRadius: radius.pill,
-    overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
   pillInert: {
     opacity: 0.6,
@@ -188,28 +189,44 @@ const styles = StyleSheet.create({
   pillFill: {
     paddingVertical: space.sm + 1,
     paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    // The toned faces ring themselves in a point; the gradient has no ring, and
+    // needs a transparent one so both sit at the same height in the row.
+    borderWidth: stroke,
+    borderColor: 'transparent',
+  },
+  pillPrism: {
+    borderColor: 'transparent',
   },
   pillLabel: {
     fontFamily: type.eyebrow.fontFamily,
     fontSize: 10,
     letterSpacing: 0.6,
+    includeFontPadding: false,
   },
   tab: {
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  tabIdle: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surface.glassBorderStrong,
+    alignSelf: 'flex-start',
   },
   tabFill: {
     paddingVertical: space.sm,
     paddingHorizontal: space.md + 1,
+    borderRadius: radius.pill,
+    // Both faces carry the ring so the selected tab is exactly as tall as the
+    // two beside it — the gradient's is just invisible.
+    borderWidth: stroke,
+    borderColor: 'transparent',
+  },
+  tabIdle: {
+    borderColor: surface.glassBorderStrong,
+  },
+  tabActive: {
+    borderColor: 'transparent',
   },
   tabLabel: {
     fontFamily: type.eyebrow.fontFamily,
     fontSize: 10,
     letterSpacing: 0.8,
+    includeFontPadding: false,
   },
 });
 
@@ -217,17 +234,17 @@ const styles = StyleSheet.create({
 const TONES = StyleSheet.create({
   prism: {},
   friends: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: 'rgba(139,92,246,0.5)',
     backgroundColor: 'rgba(139,92,246,0.16)',
   },
   quiet: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
   add: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: 'rgba(217,107,176,0.5)',
     backgroundColor: 'rgba(217,107,176,0.14)',
   },

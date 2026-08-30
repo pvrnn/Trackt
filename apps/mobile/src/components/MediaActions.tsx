@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PRISM, color, radius, space, surface, text } from '../theme/tokens';
+import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon, type IconName } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
@@ -49,10 +49,15 @@ export function MediaActionRow({
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         android_ripple={ripple(true)}
-        style={[styles.primary, caughtUp && styles.primaryDone, press.animatedStyle]}
+        style={[styles.primary, press.animatedStyle]}
       >
+        {/* Both faces are painted by a child, never by the Pressable itself:
+            `android_ripple` swaps the view's own background drawable on
+            Android, which ate this ring and the satellites' — the same bug
+            `ProgressCard`'s stepper hit. The gradient branch was already a
+            child, which is why only the glass ones went missing. */}
         {caughtUp ? (
-          <View style={styles.primaryInner}>
+          <View style={[styles.primaryInner, styles.primaryDone]}>
             <Icon name="star-filled" color={color.muted} size={15} />
             <Text style={[type.button, text.muted]}>{label}</Text>
           </View>
@@ -106,10 +111,12 @@ function SatelliteButton({
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       android_ripple={ripple(true)}
-      style={[styles.satellite, active && styles.satelliteActive, press.animatedStyle]}
+      style={[styles.satellite, press.animatedStyle]}
     >
-      <Icon name={icon} color={active ? color.pink : color.muted} size={15} />
-      <Text style={[styles.caption, active ? text.pink : text.dim]}>{caption}</Text>
+      <View style={[styles.satelliteFace, active && styles.satelliteActive]}>
+        <Icon name={icon} color={active ? color.pink : color.muted} size={15} />
+        <Text style={[styles.caption, active ? text.pink : text.dim]}>{caption}</Text>
+      </View>
     </AnimatedPressable>
   );
 }
@@ -185,11 +192,9 @@ const styles = StyleSheet.create({
   primary: {
     flex: 1,
     height: 52,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
   },
   primaryDone: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: surface.glass,
   },
@@ -200,15 +205,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.sm,
     paddingHorizontal: space.md,
+    // The rounding lives on the face, not on the Pressable above it. Clipping a
+    // child to a rounded `overflow: 'hidden'` parent that Reanimated is also
+    // driving leaves the child laid out (251x52, measured) and painting
+    // nothing — which is how the WATCHED state came to be an invisible button.
+    borderRadius: radius.pill,
+    overflow: 'hidden',
   },
   satellite: {
     width: 52,
     height: 52,
     borderRadius: radius.pill,
+  },
+  satelliteFace: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 1,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.pill,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
     backgroundColor: surface.glass,
   },
@@ -228,7 +243,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     paddingHorizontal: space.lg,
     borderRadius: radius.cover,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
