@@ -1,11 +1,9 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
 import {
-  HISTORY_SEASONS,
   LOG_STATUSES,
   MEDIA_KINDS,
   type HistoryEntry,
-  type HistorySeason,
   type LogStatus,
   type MediaKind,
 } from '@trackt/shared';
@@ -38,7 +36,6 @@ import {
 /** The URL's year: a number, or 'all'. Absent means the current year. */
 export interface HistorySearchParams {
   year?: number | 'all';
-  season?: HistorySeason;
   kind?: MediaKind;
   status?: LogStatus;
   /** How the list breaks into headed blocks. Absent means year. */
@@ -107,14 +104,6 @@ export const Route = createFileRoute('/history')({
     const year = asYear(search.year);
     return {
       year,
-      // A season is a subdivision of a year, so it can't outlive one — the same
-      // rule the API enforces with a 400.
-      season:
-        year !== undefined &&
-        year !== ALL_YEARS &&
-        HISTORY_SEASONS.includes(search.season as HistorySeason)
-          ? (search.season as HistorySeason)
-          : undefined,
       kind: MEDIA_KINDS.includes(search.kind as MediaKind) ? (search.kind as MediaKind) : undefined,
       status: HISTORY_STATUSES.includes(search.status as LogStatus)
         ? (search.status as LogStatus)
@@ -134,14 +123,13 @@ function HistoryPage() {
   // Absent means this year — the page opens on what you're watching now, not on
   // a decade of everything.
   const year = search.year ?? new Date().getUTCFullYear();
-  const { season, kind, status } = search;
+  const { kind, status } = search;
   // Year by default: the page's own axis is the year, so the headings match it
   // out of the box. Season and month are the zoom-ins.
   const group = search.group ?? 'year';
 
   const history = useHistory({
     year: year === ALL_YEARS ? undefined : year,
-    season,
     kind,
     status,
   });
@@ -152,8 +140,7 @@ function HistoryPage() {
 
   if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
-  const scope =
-    year === ALL_YEARS ? 'ALL TIME' : season ? `${season.toUpperCase()} ${year}` : String(year);
+  const scope = year === ALL_YEARS ? 'ALL TIME' : String(year);
   const groups = groupEntries(history.entries, group, year === ALL_YEARS);
   // Years come from the facet, so the picker only ever offers years the viewer
   // has something in; the count rides along the way the design's menu shows it.
@@ -227,13 +214,8 @@ function HistoryPage() {
                 items={yearItems}
                 value={year === ALL_YEARS ? ALL_YEARS : String(year)}
                 selected={year !== ALL_YEARS}
-                // Changing year drops the season with it: a quarter of a
-                // different year is not the same filter.
                 onChange={(value) =>
-                  setSearch({
-                    year: value === ALL_YEARS ? ALL_YEARS : Number(value),
-                    season: undefined,
-                  })
+                  setSearch({ year: value === ALL_YEARS ? ALL_YEARS : Number(value) })
                 }
               />
               <Select

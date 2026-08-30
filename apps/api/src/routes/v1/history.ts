@@ -6,7 +6,6 @@ import {
   HistoryQuerySchema,
   decodeHistoryCursor,
   encodeHistoryCursor,
-  seasonWindow,
   type HistoryEntry,
   type HistoryPage,
   type HistoryQuery,
@@ -34,10 +33,9 @@ import { visibleMediaSql } from '../../lib/visibility.js';
  * `planned` and nothing else, which is correct: a watchlist is not a history.
  */
 
-/** The window the year/season filter narrows to, as an inclusive ISO date pair. */
+/** The window the year filter narrows to, as an inclusive ISO date pair. */
 function dateWindow(query: HistoryQuery): { from: string; to: string } | null {
   if (query.year === undefined) return null;
-  if (query.season) return seasonWindow(query.year, query.season);
   return { from: `${query.year}-01-01`, to: `${query.year}-12-31` };
 }
 
