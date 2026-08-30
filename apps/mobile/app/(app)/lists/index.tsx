@@ -5,16 +5,10 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from '../../../src/components/Cover';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
-import {
-  BackLink,
-  EmptyState,
-  PageScroll,
-  PageTitle,
-  QueryState,
-} from '../../../src/components/Page';
+import { EmptyState, PageScroll, PageTitle, QueryState } from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
-import { color, radius, space, surface, text } from '../../../src/theme/tokens';
+import { color, radius, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -34,9 +28,8 @@ export default function ListsScreen() {
   const [creating, setCreating] = useState(false);
 
   return (
-    <PageScroll>
+    <PageScroll title="Lists">
       <View style={styles.head}>
-        <BackLink label="Profile" />
         <PageTitle title="Lists" count={data ? `${data.length} lists` : undefined} />
         <PrismButton
           label="New list"
@@ -131,7 +124,7 @@ const styles = StyleSheet.create({
     padding: space.lg,
     gap: space.md,
     borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
@@ -148,7 +141,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     color: color.pink,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: color.pink,
     borderRadius: radius.pill,
     paddingHorizontal: space.sm,

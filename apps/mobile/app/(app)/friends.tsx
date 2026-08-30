@@ -1,20 +1,19 @@
 import { useDebounced, useFriends, useUserSearch } from '@trackt/client';
 import type { FriendState, UserSummary } from '@trackt/shared';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PersonRow, RosterTab, friendStateNote } from '../../src/components/PersonRow';
 import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { Icon } from '../../src/components/Icon';
-import { EmptyState, Loading, PageFrame } from '../../src/components/Page';
+import { BackLink, EmptyState, Loading, PageFrame } from '../../src/components/Page';
 import { AnimatedPressable, ripple } from '../../src/components/Press';
 import { commitHaptic } from '../../src/lib/haptics';
 import { useFriendActions } from '../../src/lib/friends';
 import { useInstance } from '../../src/lib/instance-provider';
 import { useAuthedScreen } from '../../src/lib/session';
-import { color, layout, radius, space, surface, text } from '../../src/theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../../src/theme/tokens';
 import { type } from '../../src/theme/typography';
 
 /** Which slice of the roster is showing; a query overrides all three. */
@@ -39,7 +38,6 @@ type Tab = 'friends' | 'requests' | 'sent';
 export default function FriendsScreen() {
   const { user } = useAuthedScreen();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { origin } = useInstance();
   const { data: overview, isPending, isError } = useFriends();
 
@@ -106,14 +104,7 @@ export default function FriendsScreen() {
   return (
     <PageFrame>
       <View style={[styles.head, { paddingTop: insets.top + space.md }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Icon name="chevron-left" color={color.dim} size={20} />
-        </Pressable>
+        <BackLink />
         <Text style={styles.title}>FRIENDS</Text>
         <AnimatedPressable
           accessibilityRole="button"
@@ -248,13 +239,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.gutter,
     paddingBottom: space.md,
   },
-  back: {
-    width: layout.touchTarget,
-    height: layout.touchTarget,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    marginLeft: -space.sm,
-  },
   title: {
     flex: 1,
     fontFamily: type.title.fontFamily,
@@ -284,7 +268,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     paddingHorizontal: space.md,
     borderRadius: radius.cardSm - 4,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glassWell,
   },
@@ -307,7 +291,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: space.xxl,
     borderRadius: radius.cardSm - 4,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
   },
   error: {

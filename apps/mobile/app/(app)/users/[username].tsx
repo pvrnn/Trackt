@@ -13,7 +13,7 @@ import { ConfirmSheet } from '../../../src/components/ConfirmSheet';
 import { Shelf, ShelfItem } from '../../../src/components/Shelf';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { KindDot } from '../../../src/components/KindDot';
-import { BackLink, PageScroll, ScreenState, SectionTitle } from '../../../src/components/Page';
+import { PageScroll, ScreenState, SectionTitle } from '../../../src/components/Page';
 import { Stat, Stats } from '../../../src/components/Stat';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
@@ -21,7 +21,7 @@ import { commitHaptic } from '../../../src/lib/haptics';
 import { useFriendActions } from '../../../src/lib/friends';
 import { useOptionalSession } from '../../../src/lib/session';
 import { useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, space, surface, text } from '../../../src/theme/tokens';
+import { color, layout, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /** What the viewer's relationship to this account currently is, in words. */
@@ -58,9 +58,8 @@ export default function PublicProfileScreen() {
   const relationship = FRIEND_STATE_LABELS[profile.friendState];
 
   return (
-    <PageScroll>
+    <PageScroll title={profile.user.name}>
       <View style={styles.head}>
-        <BackLink />
         <View style={styles.header}>
           <Avatar name={profile.user.name} image={profile.user.image} size={88} />
           <View style={styles.headerText}>
@@ -274,7 +273,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
   },
   divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.divider,
   },
   activityText: {

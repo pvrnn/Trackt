@@ -7,15 +7,9 @@ import { Cover } from '../../../src/components/Cover';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { KindDot } from '../../../src/components/KindDot';
 import { Markdown } from '../../../src/components/Markdown';
-import {
-  BackLink,
-  EmptyState,
-  Loading,
-  PageScroll,
-  SectionTitle,
-} from '../../../src/components/Page';
+import { EmptyState, Loading, PageScroll, SectionTitle } from '../../../src/components/Page';
 import { Touchable } from '../../../src/components/Touchable';
-import { color, layout, space, surface, text } from '../../../src/theme/tokens';
+import { color, layout, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -33,7 +27,6 @@ export default function NewsArticleScreen() {
   if (isPending) {
     return (
       <PageScroll>
-        <BackLink label="News" />
         <Loading />
       </PageScroll>
     );
@@ -43,7 +36,6 @@ export default function NewsArticleScreen() {
     const missing = errorStatus(error) === 404;
     return (
       <PageScroll>
-        <BackLink label="News" />
         <EmptyState
           title={missing ? 'No such story' : 'Story unavailable'}
           body={
@@ -60,9 +52,8 @@ export default function NewsArticleScreen() {
   const mentioned = article.media.filter((work) => work.role === 'mentioned');
 
   return (
-    <PageScroll>
+    <PageScroll title={article.title}>
       <View style={styles.head}>
-        <BackLink label="News" />
         <View style={styles.metaRow}>
           <Text style={[type.eyebrow, styles.tag]}>{TOPIC_LABELS[article.topic]}</Text>
           <Text style={[type.eyebrow, text.dim]}>{formatNewsDate(article.publishedAt)}</Text>
@@ -160,7 +151,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.md,
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },

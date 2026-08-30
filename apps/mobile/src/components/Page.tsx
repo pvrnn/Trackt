@@ -1,15 +1,7 @@
 import { relativeTime } from '@trackt/client';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactElement, ReactNode } from 'react';
@@ -17,7 +9,7 @@ import type { RefreshControlProps } from 'react-native';
 import { duration } from '../lib/motion';
 import { useIsOnline } from '../lib/network';
 import { AuraBackground } from './AuraBackground';
-import { Icon } from './Icon';
+import { CollapsingHeader, HEADER_HEIGHT } from './CollapsingHeader';
 import { PrismText } from './PrismText';
 import { color, layout, radius, space, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
@@ -62,26 +54,45 @@ function FocusFade({ children }: { children: ReactNode }) {
   return <Animated.View style={[styles.frame, style]}>{children}</Animated.View>;
 }
 
-/** `PageFrame` plus the scroll container the pushed (non-tab) screens want. */
+/**
+ * `PageFrame` plus the scroll container the pushed (non-tab) screens want, under
+ * the pinned `CollapsingHeader` all of them share. The header is not optional:
+ * every route that uses this is one you can only have arrived at by pushing, so
+ * every one of them needs a way back that is still there at the bottom.
+ */
 export function PageScroll({
   children,
   refreshControl,
+  title,
 }: {
   children: ReactNode;
   refreshControl?: ReactElement<RefreshControlProps>;
+  /** The screen's title, for the bar to fade in once the in-flow one leaves. */
+  title?: string | undefined;
 }) {
   const insets = useSafeAreaInsets();
+  const scrollY = useSharedValue(0);
   return (
     <PageFrame>
-      <ScrollView
+      <Animated.ScrollView
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          scrollY.value = event.nativeEvent.contentOffset.y;
+        }}
         contentContainerStyle={[
           styles.scroll,
-          { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.xxl },
+          {
+            // Clears the bar, which is out of the flow and would otherwise sit
+            // on top of the first thing the screen renders.
+            paddingTop: insets.top + HEADER_HEIGHT + space.md,
+            paddingBottom: insets.bottom + space.xxl,
+          },
         ]}
         {...(refreshControl ? { refreshControl } : {})}
       >
         {children}
-      </ScrollView>
+      </Animated.ScrollView>
+      <CollapsingHeader title={title} scrollY={scrollY} />
     </PageFrame>
   );
 }
@@ -113,20 +124,7 @@ export function SectionTitle({ title, action }: { title: string; action?: ReactN
   );
 }
 
-/** A back affordance for pushed screens. iOS wants a chevron; Android's is the system gesture. */
-export function BackLink({ label = 'Back' }: { label?: string }) {
-  const router = useRouter();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
-      style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-    >
-      <Icon name="chevron-left" color={color.dim} size={16} />
-      <Text style={[type.eyebrow, styles.backText]}>{label.toUpperCase()}</Text>
-    </Pressable>
-  );
-}
+export { BackLink } from './CollapsingHeader';
 
 /** The centred spinner every query shows before its first paint. */
 export function Loading() {
@@ -228,18 +226,15 @@ export function QueryState<T>({
  */
 export function ScreenState({
   isPending,
-  backLabel,
   title,
   body,
 }: {
   isPending: boolean;
-  backLabel?: string;
   title: string;
   body: string;
 }) {
   return (
     <PageScroll>
-      <BackLink {...(backLabel ? { label: backLabel } : {})} />
       {isPending ? (
         <OfflineFallback>
           <Loading />
@@ -295,16 +290,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.md,
     paddingBottom: space.md,
-  },
-  back: {
-    minHeight: layout.touchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
-    alignSelf: 'flex-start',
-  },
-  backText: {
-    color: color.dim,
   },
   center: {
     flex: 1,

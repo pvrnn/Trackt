@@ -16,20 +16,14 @@ import { Cover } from '../../../src/components/Cover';
 import { Icon, type IconName } from '../../../src/components/Icon';
 import { KindDot } from '../../../src/components/KindDot';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
-import {
-  BackLink,
-  EmptyState,
-  PageScroll,
-  PageTitle,
-  ScreenState,
-} from '../../../src/components/Page';
+import { EmptyState, PageScroll, PageTitle, ScreenState } from '../../../src/components/Page';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { PrismText } from '../../../src/components/PrismText';
 import { Touchable } from '../../../src/components/Touchable';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
 import { duration } from '../../../src/lib/motion';
 import { useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, radius, space, surface, text } from '../../../src/theme/tokens';
+import { color, layout, radius, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -61,7 +55,6 @@ export default function ListScreen() {
     return (
       <ScreenState
         isPending={isPending}
-        backLabel="Lists"
         title="List unavailable"
         body="It may have been deleted, or it may not be visible to you."
       />
@@ -86,9 +79,8 @@ export default function ListScreen() {
   const reorderable = list.isOwner && list.isRanked && list.entries.length > 1;
 
   return (
-    <PageScroll>
+    <PageScroll title={list.title}>
       <View style={styles.head}>
-        <BackLink label="Lists" />
         <PageTitle
           title={list.title}
           count={`${list.itemCount} ${list.itemCount === 1 ? 'title' : 'titles'}`}
@@ -289,7 +281,7 @@ const styles = StyleSheet.create({
   },
   rowWrap: {
     borderRadius: radius.cardSm,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
     overflow: 'hidden',
@@ -306,7 +298,7 @@ const styles = StyleSheet.create({
     gap: space.xs,
     paddingHorizontal: space.sm,
     paddingBottom: space.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: stroke,
     borderTopColor: surface.divider,
   },
   icon: {
