@@ -1,4 +1,4 @@
-# Trackt monolith image: API + web SSR + worker in one container (PRD §6.1).
+# Trackt monolith image: API + web SSR + worker (+ optional Discord bot) in one container (PRD §6.1).
 # Migrations run automatically on boot; upgrades are `docker compose pull && up`.
 
 FROM node:22-alpine AS base
@@ -46,6 +46,9 @@ COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/worker/package.json ./apps/worker/
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
 COPY --from=build /app/apps/worker/node_modules ./apps/worker/node_modules
+COPY --from=build /app/apps/discord/package.json ./apps/discord/
+COPY --from=build /app/apps/discord/dist ./apps/discord/dist
+COPY --from=build /app/apps/discord/node_modules ./apps/discord/node_modules
 COPY --from=build /app/apps/web/package.json /app/apps/web/server.mjs ./apps/web/
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/apps/web/node_modules ./apps/web/node_modules

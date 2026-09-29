@@ -26,6 +26,8 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env — generate one with `openssl rand -base64 32`}
       CATALOG_URL: ${CATALOG_URL:-}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-}
       UPLOADS_DIR: /app/data/uploads
     ports:
       - '${APP_PORT:-3000}:3000'

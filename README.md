@@ -54,6 +54,7 @@ apps/
   web/        TanStack Start PWA (SSR for public pages, installable on mobile)
   api/        Fastify public REST API — OpenAPI generated from Zod schemas at /docs
   worker/     BullMQ background jobs: importers, notifications (none built yet)
+  discord/    Optional Discord bot (discord.js): slash commands; starts only with DISCORD_BOT_TOKEN
   catalog/    Central slim catalog service, and the News surface (project-operated, not self-hosted)
 packages/
   shared/     Zod schemas, shared types, env validation — single source of truth

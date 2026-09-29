@@ -52,6 +52,16 @@ still answers. Check it from the Windows side
 the failure, launch against the distro's own address instead —
 `adb shell am start -a android.intent.action.VIEW -d "exp://$(hostname -I | awk '{print $1}'):8081"`.
 
+## Running the Discord bot
+
+`apps/discord` is a plain discord.js bot with no framework on top. Slash commands are the `Command` objects in `src/commands/`, registered by name in `src/commands/index.ts`. The bot stays off until `DISCORD_BOT_TOKEN` is set.
+
+1. Create an application at <https://discord.com/developers/applications>. Copy the bot token (**Bot → Reset Token**) and the **Application ID**.
+2. Export `DISCORD_BOT_TOKEN`, `DISCORD_APPLICATION_ID`, and `DISCORD_GUILD_ID` (a test server's ID: guild commands update instantly, global ones can take up to an hour).
+3. Register the commands: `pnpm --filter @trackt/discord register-commands`. Run it again whenever a command's definition changes.
+4. Invite the bot: `https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=bot+applications.commands`.
+5. `pnpm dev` (or `pnpm --filter @trackt/discord dev`) and try `/ping`.
+
 ## Before you push
 
 ```sh
