@@ -9,6 +9,11 @@ import { z } from 'zod';
 
 export const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
 
+const optionalString = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.string().optional(),
+);
+
 const RawEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   HOST: z.string().default('0.0.0.0'),
@@ -45,6 +50,10 @@ const RawEnvSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   /** Set inside the monolith container: the API proxies non-API routes to the web SSR server. */
   WEB_PROXY_UPSTREAM: z.url().optional(),
+  DISCORD_BOT_TOKEN: optionalString,
+  DISCORD_APPLICATION_ID: optionalString,
+  /** Registers slash commands on one guild (instant) instead of globally; for development. */
+  DISCORD_GUILD_ID: optionalString,
 });
 
 const DEV_DEFAULTS = {
@@ -65,6 +74,10 @@ const HINTS: Record<string, string> = {
   TMDB_API_KEY:
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
+  DISCORD_BOT_TOKEN:
+    'optional — enables the Discord bot; Bot → Token at https://discord.com/developers/applications',
+  DISCORD_APPLICATION_ID:
+    'optional — needed to register slash commands; General Information → Application ID',
 };
 
 export class EnvValidationError extends Error {
@@ -96,6 +109,9 @@ export interface Env {
   S3_ACCESS_KEY_ID?: string | undefined;
   S3_SECRET_ACCESS_KEY?: string | undefined;
   WEB_PROXY_UPSTREAM?: string | undefined;
+  DISCORD_BOT_TOKEN?: string | undefined;
+  DISCORD_APPLICATION_ID?: string | undefined;
+  DISCORD_GUILD_ID?: string | undefined;
 }
 
 function withHint(key: string): string {

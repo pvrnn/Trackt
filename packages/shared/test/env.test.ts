@@ -36,6 +36,17 @@ describe('loadEnv', () => {
     expect(env.PORT).toBe(8080);
   });
 
+  it('treats empty Discord keys as unset', () => {
+    const env = loadEnv({
+      DISCORD_BOT_TOKEN: '',
+      DISCORD_APPLICATION_ID: '',
+      DISCORD_GUILD_ID: '',
+    });
+    expect(env.DISCORD_BOT_TOKEN).toBeUndefined();
+    expect(env.DISCORD_APPLICATION_ID).toBeUndefined();
+    expect(env.DISCORD_GUILD_ID).toBeUndefined();
+  });
+
   it('treats empty TMDB_API_KEY as unset', () => {
     const env = loadEnv({ TMDB_API_KEY: '' });
     expect(env.TMDB_API_KEY).toBeUndefined();
