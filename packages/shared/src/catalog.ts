@@ -35,8 +35,56 @@ export const SlimMediaSchema = z.object({
   externalIds: ExternalIdsSchema,
   description: z.string().nullable(),
   coverUrl: z.string().nullable(),
+  /**
+   * A movie's runtime, or a season's typical episode runtime; null for print
+   * and when unknown. Defaulted so a catalog or publisher that predates the
+   * field still parses (ADR-0009).
+   */
+  runtimeMinutes: z.number().int().positive().nullable().default(null),
 });
 export type SlimMedia = z.infer<typeof SlimMediaSchema>;
+
+/**
+ * One episode or chapter of a work, as the catalog publishes it (ADR-0009).
+ * Parts stay flat and numbered per ADR-0003; this only adds what the catalog
+ * knows about each number.
+ */
+export const CatalogPartSchema = z.object({
+  /** Numeric to support chapter 10.5. */
+  number: z.number().positive(),
+  title: z.string().min(1).max(300).nullable(),
+  runtimeMinutes: z.number().int().positive().nullable(),
+  airDate: z.iso.date().nullable(),
+});
+export type CatalogPart = z.infer<typeof CatalogPartSchema>;
+
+/** Most parts one work may publish — long-running manga reach the low thousands. */
+export const CATALOG_PARTS_MAX = 5000;
+
+/** Body for `PUT /v1/admin/media/:id/parts`: the complete list, replacing what was there. */
+export const CatalogPublishPartsSchema = z.object({
+  parts: z
+    .array(CatalogPartSchema)
+    .max(CATALOG_PARTS_MAX)
+    .refine((parts) => new Set(parts.map((part) => part.number)).size === parts.length, {
+      message: 'part numbers must be unique',
+    }),
+});
+export type CatalogPublishParts = z.infer<typeof CatalogPublishPartsSchema>;
+
+export const CatalogPublishPartsResponseSchema = z.object({
+  count: z.number().int().nonnegative(),
+});
+export type CatalogPublishPartsResponse = z.infer<typeof CatalogPublishPartsResponseSchema>;
+
+export const CatalogMediaParamsSchema = z.object({ id: z.uuid() });
+
+/** `GET /v1/catalog/media/:id/parts`, ordered by number. */
+export const CatalogPartsResponseSchema = z.object({
+  mediaId: z.uuid(),
+  parts: z.array(CatalogPartSchema),
+});
+export type CatalogPartsResponse = z.infer<typeof CatalogPartsResponseSchema>;
 
 export const CatalogVersionSchema = z.object({
   /** Monotonic change cursor (max seq); 0 for an empty catalog. */

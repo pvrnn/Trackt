@@ -10,9 +10,11 @@ export { seedMedia, seedMediaRelations } from './seed.js';
 export { SEED_MEDIA, SEED_MEDIA_RELATIONS } from './seed-data.js';
 export {
   buildProviderMediaRow,
+  ensureWatchMetadata,
   findSoftDeletedMediaIds,
   insertNewProviderMedia,
   type PersistedMediaRow,
+  type WatchMetadataOptions,
 } from './catalog-media.js';
 
 export interface CreateDbOptions {

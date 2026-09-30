@@ -70,7 +70,9 @@ export const media = pgTable(
     status: mediaStatusEnum('status'),
     /** {"tmdb": 123, "anilist": 456, ...} — dedup, cross-import, provider switching. */
     externalIds: jsonb('external_ids').$type<ExternalIds>().notNull().default({}),
-    /** Type-specific fields: runtime, studios, demographics... */
+    /** Movie runtime, or a season's typical episode runtime (ADR-0009). */
+    runtimeMinutes: integer('runtime_minutes'),
+    /** Type-specific fields: studios, demographics... */
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
     source: mediaSourceEnum('source').notNull().default('provider'),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
@@ -122,6 +124,7 @@ export const mediaPart = pgTable(
     number: numeric('number', { precision: 8, scale: 2 }),
     title: text('title'),
     airDate: date('air_date'),
+    runtimeMinutes: integer('runtime_minutes'),
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
   },
   (t) => [

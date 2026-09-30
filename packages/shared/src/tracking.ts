@@ -50,6 +50,8 @@ export const MediaDetailSchema = z.object({
   seasonNumber: z.number().int().nullable(),
   description: z.string().nullable(),
   coverUrl: z.string().nullable(),
+  /** Movie runtime, or a season's typical episode runtime; null when unknown. */
+  runtimeMinutes: z.number().int().nullable(),
   releaseDate: z.string().nullable(),
   status: MediaStatusSchema.nullable(),
   externalIds: ExternalIdsSchema,

@@ -150,6 +150,7 @@ async function loadAdminArticle(db: CatalogDb, id: string): Promise<NewsAdminArt
     externalIds: work.externalIds as ExternalIds,
     description: work.description,
     coverUrl: work.coverUrl,
+    runtimeMinutes: work.runtimeMinutes,
     role,
   }));
 

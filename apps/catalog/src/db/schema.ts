@@ -3,9 +3,11 @@ import {
   bigint,
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -47,6 +49,8 @@ export const catalogMedia = pgTable(
     externalIds: jsonb('external_ids').$type<ExternalIds>().notNull().default({}),
     description: text('description'),
     coverUrl: text('cover_url'),
+    /** Movie runtime, or a season's typical episode runtime (ADR-0009). */
+    runtimeMinutes: integer('runtime_minutes'),
     /**
      * Monotonic change cursor, bumped by trigger on every insert/update (see the
      * custom migration). Catalog version = max(seq). Requires a single-writer
@@ -73,6 +77,25 @@ export const catalogMedia = pgTable(
     // migration, ADR-0002) — mirrors the instance-side media_title_trgm_idx.
     index('catalog_media_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
   ],
+);
+
+/**
+ * Per-part facts for a work (ADR-0009): episode titles, runtimes and air dates.
+ * Replaced wholesale by `PUT /v1/admin/media/:id/parts`; a work with no rows
+ * here simply has no published part metadata.
+ */
+export const catalogMediaPart = pgTable(
+  'catalog_media_part',
+  {
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => catalogMedia.id, { onDelete: 'cascade' }),
+    number: numeric('number', { precision: 8, scale: 2, mode: 'number' }).notNull(),
+    title: text('title'),
+    runtimeMinutes: integer('runtime_minutes'),
+    airDate: date('air_date', { mode: 'string' }),
+  },
+  (t) => [primaryKey({ columns: [t.mediaId, t.number] })],
 );
 
 /**

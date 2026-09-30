@@ -1,9 +1,13 @@
 import { z } from 'zod';
 import {
+  CatalogPartsResponseSchema,
   CatalogRelationEdgeSchema,
   CatalogSearchHitSchema,
+  SlimMediaSchema,
+  type CatalogPart,
   type CatalogRelationEdge,
   type CatalogSearchHit,
+  type SlimMedia,
 } from './catalog.js';
 
 /**
@@ -122,4 +126,44 @@ export async function fetchCatalogRelations(
   const envelope = RelationsEnvelopeSchema.parse(await response.json());
   const { items, skipped } = parseItems(envelope.relations, CatalogRelationEdgeSchema, '(edge)');
   return { relations: items, skipped };
+}
+
+export interface FetchCatalogItemOptions {
+  timeoutMs: number;
+  fetchImpl?: typeof fetch;
+}
+
+/** One work by canonical id (ADR-0009), or null when the catalog has no such work. */
+export async function fetchCatalogMedia(
+  catalogUrl: string,
+  id: string,
+  options: FetchCatalogItemOptions,
+): Promise<SlimMedia | null> {
+  const { timeoutMs, fetchImpl = fetch } = options;
+  const url = new URL(`/v1/catalog/media/${encodeURIComponent(id)}`, catalogUrl);
+  const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`catalog media failed: ${response.status} ${response.statusText}`);
+  }
+  return SlimMediaSchema.parse(await response.json());
+}
+
+/**
+ * A work's published parts (ADR-0009), or null when the catalog has no such
+ * work. An empty list means the work exists but nothing is published per part.
+ */
+export async function fetchCatalogParts(
+  catalogUrl: string,
+  id: string,
+  options: FetchCatalogItemOptions,
+): Promise<CatalogPart[] | null> {
+  const { timeoutMs, fetchImpl = fetch } = options;
+  const url = new URL(`/v1/catalog/media/${encodeURIComponent(id)}/parts`, catalogUrl);
+  const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`catalog parts failed: ${response.status} ${response.statusText}`);
+  }
+  return CatalogPartsResponseSchema.parse(await response.json()).parts;
 }

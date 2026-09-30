@@ -201,7 +201,7 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
         db.execute(sql`
           SELECT t.id, t.kind, t.title, t.synonyms, t.year, t.status, t.genres,
                  t.part_count, t.season_number, t.external_ids, t.description, t.cover_url,
-                 m.role
+                 t.runtime_minutes, m.role
           FROM news_article_media m
           JOIN catalog_media t ON t.id = m.media_id AND t.deleted_at IS NULL
           WHERE m.article_id = ${articleId}
@@ -229,6 +229,7 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
         externalIds: row.external_ids as ExternalIds,
         description: row.description as string | null,
         coverUrl: row.cover_url as string | null,
+        runtimeMinutes: row.runtime_minutes as number | null,
         role: row.role as NewsMediaRef['role'],
       }));
 

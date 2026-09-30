@@ -1,13 +1,17 @@
-import { and, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import {
   ApiErrorSchema,
+  CatalogMediaParamsSchema,
   CatalogPublishMediaResponseSchema,
+  CatalogPublishPartsResponseSchema,
+  CatalogPublishPartsSchema,
   CatalogPublishRelationResponseSchema,
   CatalogPublishRelationSchema,
+  PART_KIND_BY_MEDIA,
   SlimMediaSchema,
 } from '@trackt/shared';
-import { catalogMedia, catalogMediaRelation } from '../../db/index.js';
+import { catalogMedia, catalogMediaPart, catalogMediaRelation } from '../../db/index.js';
 import { requireAdmin } from '../../lib/admin-auth.js';
 import { checkCanonicalId } from '../../lib/canonical-id.js';
 
@@ -70,6 +74,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
             externalIds: media.externalIds,
             description: media.description,
             coverUrl: media.coverUrl,
+            runtimeMinutes: media.runtimeMinutes,
           })
           .onConflictDoUpdate({
             target: catalogMedia.id,
@@ -85,6 +90,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
               externalIds: media.externalIds,
               description: media.description,
               coverUrl: media.coverUrl,
+              runtimeMinutes: media.runtimeMinutes,
               // Republishing resurrects a tombstoned work: the id is derived from
               // the external id, so this is provably the same work coming back,
               // and leaving the tombstone would silently drop the publish.
@@ -160,6 +166,53 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         .returning({ fromId: catalogMediaRelation.fromId });
 
       return { created: inserted.length > 0 };
+    },
+  );
+
+  app.put(
+    '/admin/media/:id/parts',
+    {
+      // A season is tens of parts; a long manga, thousands.
+      bodyLimit: 4 * 1024 * 1024,
+      schema: {
+        tags: ['admin'],
+        params: CatalogMediaParamsSchema,
+        body: CatalogPublishPartsSchema,
+        response: {
+          200: CatalogPublishPartsResponseSchema,
+          400: ApiErrorSchema,
+          401: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+      preHandler: requireAdmin,
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+
+      const { id } = request.params;
+      const [work] = await db
+        .select({ kind: catalogMedia.kind })
+        .from(catalogMedia)
+        .where(and(eq(catalogMedia.id, id), isNull(catalogMedia.deletedAt)));
+      if (!work) return reply.status(404).send({ error: `unknown or deleted media: ${id}` });
+      if (!PART_KIND_BY_MEDIA[work.kind]) {
+        return reply.status(400).send({ error: `a ${work.kind} has no parts` });
+      }
+
+      const { parts } = request.body;
+      await db.transaction(async (tx) => {
+        await tx.delete(catalogMediaPart).where(eq(catalogMediaPart.mediaId, id));
+        // Postgres caps a statement at 65535 bind parameters: 5 per row.
+        for (let i = 0; i < parts.length; i += 1000) {
+          await tx
+            .insert(catalogMediaPart)
+            .values(parts.slice(i, i + 1000).map((part) => ({ mediaId: id, ...part })));
+        }
+      });
+      return { count: parts.length };
     },
   );
 };

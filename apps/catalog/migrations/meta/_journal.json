@@ -43,6 +43,13 @@
       "when": 1786050836956,
       "tag": "0005_news",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790780326444,
+      "tag": "0006_runtime_and_parts",
+      "breakpoints": true
     }
   ]
 }

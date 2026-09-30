@@ -27,7 +27,7 @@ Decision doc behind the shipped **catalog service deployment** (ROADMAP → Done
 - One tiny Fastify container (Node 22), self-migrates on boot, `/healthz` + `/readyz`.
 - One small dedicated Postgres. Seven tables: `catalog_media`, `catalog_media_relation` (ADR-0004) and the five `news_*` tables (ADR-0005). Populated catalog likely **0.5–2 GB**, essentially all of it `catalog_media` (anime-offline-database + TVmaze + Wikidata movies + manga ≈ a few hundred thousand slim rows); relations and news are rounding errors beside it.
 - **Read path is live, not polled** — the three endpoints in the callout above, each timeout-bounded and each degrading rather than failing.
-- Write path is a single-writer admin path (`POST /v1/admin/media`, `/v1/admin/relations`, `/v1/admin/news`), hit occasionally by the operator or an importer.
+- Write path is a single-writer admin path (`POST /v1/admin/media`, `PUT /v1/admin/media/:id/parts`, `/v1/admin/relations`, `/v1/admin/news`), hit occasionally by the operator or an importer. An importer should send `runtimeMinutes` with each work and publish episode lists through the parts route: Discord watch parties read both (ADR-0009).
 - No PII in the catalog, but EU hosting is a nice-to-have (project operator is in France).
 
 ## TL;DR comparison
@@ -171,8 +171,9 @@ section), skip this step entirely — Railway builds straight from
    - `NODE_ENV=production`
    - `DATABASE_URL=<Neon pooled connection string>`
    - `CATALOG_ADMIN_TOKEN=<openssl rand -base64 32>` — keep secret; gates every
-     write route: `POST /v1/admin/media`, `POST /v1/admin/relations` and the
-     `/v1/admin/news` surface, all behind one `requireAdmin` preHandler.
+     write route: `POST /v1/admin/media`, `PUT /v1/admin/media/:id/parts`,
+     `POST /v1/admin/relations` and the `/v1/admin/news` surface, all behind
+     one `requireAdmin` preHandler.
    - `LOG_LEVEL=info` (optional)
 5. Health check path: `/healthz`.
 6. Deploy, then confirm:

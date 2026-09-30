@@ -8,6 +8,7 @@ import {
 } from '@trackt/shared';
 import {
   catalogMedia,
+  catalogMediaPart,
   catalogMediaRelation,
   createCatalogDb,
   runCatalogMigrations,
@@ -69,6 +70,7 @@ function movie(overrides: Partial<SlimMedia> = {}): SlimMedia {
     externalIds: { tmdb: 603 },
     description: null,
     coverUrl: null,
+    runtimeMinutes: 136,
     ...overrides,
   };
 }
@@ -87,6 +89,7 @@ function manga(overrides: Partial<SlimMedia> = {}): SlimMedia {
     externalIds: { anilist: 30025 },
     description: null,
     coverUrl: null,
+    runtimeMinutes: null,
     ...overrides,
   };
 }
@@ -112,6 +115,7 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
     // Per-suite databases are never dropped, so rows leak into later runs unless
     // each test cleans up after itself.
     await db.delete(catalogMediaRelation);
+    await db.delete(catalogMediaPart);
     await db.delete(catalogMedia);
   });
 
@@ -343,6 +347,132 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
       expect(read.json().relations).toMatchObject([
         { id: mangaId, type: 'adaptation', direction: 'reverse' },
       ]);
+    });
+  });
+
+  describe('runtime (ADR-0009)', () => {
+    it('stores the runtime and serves it back', async () => {
+      await publishMedia(movie());
+      const read = await app.inject({
+        method: 'GET',
+        url: `/v1/catalog/media/${canonicalMediaId('movie', 603)}`,
+      });
+      expect(read.statusCode).toBe(200);
+      expect(read.json()).toMatchObject({ title: 'The Matrix', runtimeMinutes: 136 });
+    });
+
+    it('accepts a publisher that predates the field, as unknown', async () => {
+      const { runtimeMinutes: _omitted, ...legacy } = movie();
+      expect((await publishMedia(legacy)).statusCode).toBe(200);
+      const [row] = await db.select().from(catalogMedia);
+      expect(row?.runtimeMinutes).toBeNull();
+    });
+
+    it('carries the runtime through search', async () => {
+      await publishMedia(movie());
+      const read = await app.inject({ method: 'GET', url: '/v1/catalog/search?q=matrix' });
+      expect(read.json().results[0]).toMatchObject({ runtimeMinutes: 136 });
+    });
+
+    it('404s an unknown or tombstoned work', async () => {
+      await publishMedia(movie());
+      await db.update(catalogMedia).set({ deletedAt: new Date() });
+      const read = await app.inject({
+        method: 'GET',
+        url: `/v1/catalog/media/${canonicalMediaId('movie', 603)}`,
+      });
+      expect(read.statusCode).toBe(404);
+    });
+  });
+
+  describe('PUT /v1/admin/media/:id/parts', () => {
+    const seasonId = canonicalSeriesSeasonId(1396, 1);
+
+    function season(): SlimMedia {
+      return {
+        id: seasonId,
+        kind: 'series',
+        title: 'Breaking Bad',
+        synonyms: [],
+        year: 2008,
+        status: 'ended',
+        genres: ['drama'],
+        partCount: 7,
+        seasonNumber: 1,
+        externalIds: { tmdb: 1396 },
+        description: null,
+        coverUrl: null,
+        runtimeMinutes: 47,
+      };
+    }
+
+    function publishParts(id: string, parts: unknown[], token: string | null = ADMIN_TOKEN) {
+      return app.inject({
+        method: 'PUT',
+        url: `/v1/admin/media/${id}/parts`,
+        payload: { parts },
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+      });
+    }
+
+    function readParts(id: string) {
+      return app.inject({ method: 'GET', url: `/v1/catalog/media/${id}/parts` });
+    }
+
+    const pilot = { number: 1, title: 'Pilot', runtimeMinutes: 58, airDate: '2008-01-20' };
+    const catsInTheBag = {
+      number: 2,
+      title: "Cat's in the Bag...",
+      runtimeMinutes: 48,
+      airDate: '2008-01-27',
+    };
+
+    it('requires the admin token', async () => {
+      await publishMedia(season());
+      expect((await publishParts(seasonId, [pilot], null)).statusCode).toBe(401);
+    });
+
+    it('publishes the list and serves it back in order', async () => {
+      await publishMedia(season());
+      const response = await publishParts(seasonId, [catsInTheBag, pilot]);
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ count: 2 });
+
+      const read = await readParts(seasonId);
+      expect(read.statusCode).toBe(200);
+      expect(read.json()).toEqual({ mediaId: seasonId, parts: [pilot, catsInTheBag] });
+    });
+
+    it('replaces the whole list on a re-send', async () => {
+      await publishMedia(season());
+      await publishParts(seasonId, [pilot, catsInTheBag]);
+      await publishParts(seasonId, [{ ...pilot, title: 'Pilot (Extended)' }]);
+      expect((await readParts(seasonId)).json().parts).toEqual([
+        { ...pilot, title: 'Pilot (Extended)' },
+      ]);
+    });
+
+    it('keeps fractional numbers', async () => {
+      await publishMedia(manga());
+      const extra = { number: 10.5, title: null, runtimeMinutes: null, airDate: null };
+      await publishParts(canonicalMediaId('manga', 30025), [extra]);
+      expect((await readParts(canonicalMediaId('manga', 30025))).json().parts).toEqual([extra]);
+    });
+
+    it('rejects duplicate numbers', async () => {
+      await publishMedia(season());
+      expect((await publishParts(seasonId, [pilot, pilot])).statusCode).toBe(400);
+    });
+
+    it('rejects parts for a movie', async () => {
+      await publishMedia(movie());
+      const response = await publishParts(canonicalMediaId('movie', 603), [pilot]);
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('404s an unknown work', async () => {
+      expect((await publishParts(seasonId, [pilot])).statusCode).toBe(404);
+      expect((await readParts(seasonId)).statusCode).toBe(404);
     });
   });
 });

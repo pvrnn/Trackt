@@ -34,7 +34,7 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
       const rows = await db.execute(sql`
         SELECT id, kind, title, synonyms, year, status, genres,
                part_count, season_number,
-               external_ids, description, cover_url,
+               external_ids, description, cover_url, runtime_minutes,
                GREATEST(similarity(title, ${q}),
                         similarity(immutable_array_to_string(synonyms, ' '), ${q})) AS rank
         FROM catalog_media
@@ -60,6 +60,7 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
         externalIds: row.external_ids as ExternalIds,
         description: row.description as string | null,
         coverUrl: row.cover_url as string | null,
+        runtimeMinutes: row.runtime_minutes as number | null,
         rank: row.rank as number,
       }));
       return { results };

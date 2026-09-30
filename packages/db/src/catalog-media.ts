@@ -1,7 +1,13 @@
-import { and, inArray, isNotNull } from 'drizzle-orm';
-import { mediaSlug, type SlimMedia } from '@trackt/shared';
+import { and, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
+import {
+  fetchCatalogMedia,
+  fetchCatalogParts,
+  mediaSlug,
+  PART_KIND_BY_MEDIA,
+  type SlimMedia,
+} from '@trackt/shared';
 import { isUniqueViolation } from './errors.js';
-import { media } from './schema/media.js';
+import { media, mediaPart } from './schema/media.js';
 import type { Db } from './index.js';
 
 /**
@@ -32,6 +38,7 @@ export function buildProviderMediaRow(hit: SlimMedia): ProviderMediaRow {
     externalIds: hit.externalIds,
     description: hit.description,
     coverUrl: hit.coverUrl,
+    runtimeMinutes: hit.runtimeMinutes,
     source: 'provider',
     moderation: 'verified',
   };
@@ -93,4 +100,77 @@ export async function insertNewProviderMedia(
         rows.map((row) => row.id),
       ),
     );
+}
+
+export interface WatchMetadataOptions {
+  timeoutMs: number;
+  fetchImpl?: typeof fetch;
+}
+
+/**
+ * Backfill what a one-time snapshot (ADR-0002) may predate: the work's runtime
+ * and its per-part titles, runtimes and air dates (ADR-0009). Each is fetched
+ * only while still missing locally, so a work the catalog knows nothing more
+ * about costs one cheap request per call. Throws when the catalog does.
+ */
+export async function ensureWatchMetadata(
+  db: Db,
+  catalogUrl: string,
+  mediaId: string,
+  options: WatchMetadataOptions,
+): Promise<void> {
+  const [row] = await db
+    .select({ kind: media.kind, runtimeMinutes: media.runtimeMinutes })
+    .from(media)
+    .where(eq(media.id, mediaId));
+  if (!row) return;
+
+  if (row.runtimeMinutes === null) {
+    const work = await fetchCatalogMedia(catalogUrl, mediaId, options);
+    if (work?.runtimeMinutes) {
+      await db
+        .update(media)
+        .set({ runtimeMinutes: work.runtimeMinutes })
+        .where(eq(media.id, mediaId));
+    }
+  }
+
+  const partKind = PART_KIND_BY_MEDIA[row.kind];
+  if (!partKind) return;
+  const [described] = await db
+    .select({ id: mediaPart.id })
+    .from(mediaPart)
+    .where(
+      and(
+        eq(mediaPart.mediaId, mediaId),
+        or(isNotNull(mediaPart.title), isNotNull(mediaPart.runtimeMinutes)),
+      ),
+    )
+    .limit(1);
+  if (described) return;
+
+  const parts = await fetchCatalogParts(catalogUrl, mediaId, options);
+  // Parts are created lazily by check-ins, so these upsert onto any that exist.
+  for (let i = 0; i < (parts?.length ?? 0); i += 1000) {
+    await db
+      .insert(mediaPart)
+      .values(
+        parts!.slice(i, i + 1000).map((part) => ({
+          mediaId,
+          kind: partKind,
+          number: String(part.number),
+          title: part.title,
+          airDate: part.airDate,
+          runtimeMinutes: part.runtimeMinutes,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [mediaPart.mediaId, mediaPart.kind, mediaPart.number],
+        set: {
+          title: sql`excluded.title`,
+          airDate: sql`excluded.air_date`,
+          runtimeMinutes: sql`excluded.runtime_minutes`,
+        },
+      });
+  }
 }
