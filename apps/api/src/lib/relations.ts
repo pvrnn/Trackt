@@ -2,8 +2,10 @@ import { inArray, sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import {
   buildProviderMediaRow,
+  canViewMedia,
   insertNewProviderMedia,
   media,
+  visibleMediaSql,
   type Db,
   type PersistedMediaRow,
 } from '@trackt/db';
@@ -15,7 +17,6 @@ import {
   type MediaRelationLabel,
   type RelatedWork,
 } from '@trackt/shared';
-import { canViewMedia, visibleMediaSql } from './visibility.js';
 
 /**
  * Typed relations for the media detail page (ADR-0004), merged from three

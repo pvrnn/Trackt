@@ -1,7 +1,15 @@
 import { and, count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
+import {
+  canViewMedia,
+  favorite,
+  media,
+  rating,
+  userMedia,
+  visibleMediaSql,
+  type Db,
+} from '@trackt/db';
 import {
   ApiErrorSchema,
   MediaDetailSchema,
@@ -14,7 +22,6 @@ import {
 } from '@trackt/shared';
 import { loadRelations } from '../../lib/relations.js';
 import { getSessionUser } from '../../lib/session.js';
-import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

@@ -36,3 +36,11 @@ export {
   redeemLinkCode,
   type DiscordIdentity,
 } from './discord-link.js';
+export { canViewMedia, visibleMediaSql } from './visibility.js';
+export {
+  checkInPart,
+  setAllProgress,
+  setLogStatus,
+  setProgressUpTo,
+  startLog,
+} from './tracking.js';

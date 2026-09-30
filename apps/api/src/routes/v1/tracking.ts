@@ -1,8 +1,21 @@
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { favorite, media, mediaPart, progress, rating, userMedia, type Db } from '@trackt/db';
+import {
+  canViewMedia,
+  checkInPart,
+  favorite,
+  media,
+  mediaPart,
+  progress,
+  rating,
+  setLogStatus,
+  setProgressUpTo,
+  startLog,
+  userMedia,
+  type Db,
+} from '@trackt/db';
 import {
   ApiErrorSchema,
   LogDatesBodySchema,
@@ -14,10 +27,8 @@ import {
   RatingScoreSchema,
   SetProgressBodySchema,
   UpdateLogBodySchema,
-  type LogStatus,
 } from '@trackt/shared';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
-import { canViewMedia } from '../../lib/visibility.js';
 
 /**
  * Tracking core (PRD §3.1–3.2): the viewer's log status, rating, and per-part
@@ -34,155 +45,6 @@ type MediaRow = typeof media.$inferSelect;
 async function loadMedia(db: Db, id: string): Promise<MediaRow | undefined> {
   const [row] = await db.select().from(media).where(eq(media.id, id)).limit(1);
   return row && canViewMedia(row) ? row : undefined;
-}
-
-/** Postgres caps a statement at 65535 bind parameters; long manga run to thousands of parts. */
-const BULK_CHUNK = 1000;
-
-function chunked<T>(items: T[], size = BULK_CHUNK): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
-}
-
-/**
- * Set the viewer's position in a work: every part up to `upTo` is checked in,
- * and everything past it is cleared. The bulk primitive behind both the
- * `completed`/`planned` sweeps (PRD §3.1) and `PUT …/progress` — done
- * server-side so it stays one request and one consistent state, where per-part
- * calls would be N round trips (a 900-chapter manga is not a UI's problem).
- *
- * Clearing above the mark is the point rather than a side effect: "I am at
- * chapter 120" is a statement about the whole work, so a stray check-in at 400
- * cannot survive it. That makes the call destructive of sparse progress, and
- * the only control that issues it is one whose meaning is a *position*.
- */
-async function setProgressUpTo(db: Db, userId: string, row: MediaRow, upTo: number): Promise<void> {
-  const partKind = PART_KIND_BY_MEDIA[row.kind];
-  if (!partKind) return; // movies have no parts
-
-  const partsOfMedia = db
-    .select({ id: mediaPart.id })
-    .from(mediaPart)
-    .where(and(eq(mediaPart.mediaId, row.id), eq(mediaPart.kind, partKind)));
-
-  if (upTo <= 0) {
-    await db
-      .delete(progress)
-      .where(and(eq(progress.userId, userId), inArray(progress.partId, partsOfMedia)));
-    return;
-  }
-
-  const numbers = Array.from({ length: upTo }, (_, i) => i + 1);
-  for (const chunk of chunked(numbers)) {
-    await db
-      .insert(mediaPart)
-      .values(chunk.map((number) => ({ mediaId: row.id, kind: partKind, number: String(number) })))
-      .onConflictDoNothing();
-  }
-
-  const parts = await db
-    .select({ id: mediaPart.id, number: mediaPart.number })
-    .from(mediaPart)
-    .where(and(eq(mediaPart.mediaId, row.id), eq(mediaPart.kind, partKind)));
-  const within = parts.filter((part) => Number(part.number) <= upTo);
-  const beyond = parts.filter((part) => Number(part.number) > upTo);
-
-  for (const chunk of chunked(within)) {
-    await db
-      .insert(progress)
-      .values(chunk.map((part) => ({ userId, partId: part.id })))
-      .onConflictDoNothing();
-  }
-  for (const chunk of chunked(beyond)) {
-    await db.delete(progress).where(
-      and(
-        eq(progress.userId, userId),
-        inArray(
-          progress.partId,
-          chunk.map((part) => part.id),
-        ),
-      ),
-    );
-  }
-}
-
-/**
- * Check in, or clear, every part of a work at once — what `completed` and
- * `planned` mean for progress (PRD §3.1).
- *
- * Clearing is destructive and has no undo: `planned` discards existing check-ins.
- */
-async function setAllProgress(
-  db: Db,
-  userId: string,
-  row: MediaRow,
-  watched: boolean,
-): Promise<void> {
-  if (!watched) return setProgressUpTo(db, userId, row, 0);
-  // Nothing to complete against until the catalog knows how many parts exist.
-  const total = row.partCount;
-  if (total === null || total <= 0) return;
-  await setProgressUpTo(db, userId, row, total);
-}
-
-/**
- * First interaction starts the log; never overrides an existing status.
- *
- * Status is untouched on purpose: checking in an episode of a `paused` show
- * must not silently re-open it (the original `DO NOTHING` contract). Only a
- * missing start date is filled in — `setWhere` keeps the statement a no-op for
- * the overwhelmingly common case, so a check-in stays one cheap upsert.
- */
-async function startLog(db: Db, userId: string, mediaId: string): Promise<void> {
-  await db
-    .insert(userMedia)
-    .values({ userId, mediaId, status: 'in_progress', startedAt: sql`CURRENT_DATE` })
-    .onConflictDoUpdate({
-      target: [userMedia.userId, userMedia.mediaId],
-      set: { startedAt: sql`CURRENT_DATE` },
-      setWhere: sql`${userMedia.startedAt} IS NULL`,
-    });
-}
-
-/**
- * What a status change does to the log's dates (ADR-0007). `CURRENT_DATE` is
- * evaluated *in the statement*, never as a JS `new Date()`, so the API and the
- * database can never disagree about which day it is.
- *
- * Three rules the table encodes deliberately:
- *
- * - **COALESCE, never overwrite.** Marking a series completed, then paused,
- *   then completed again must not replace the real start date with today's.
- * - **`planned` clears both**, because it already means "none of this has
- *   happened" — the route sweeps every check-in for it, and the dates leaving
- *   with the check-ins is the consistent behaviour.
- * - **`in_progress` clears `finished_at`.** Re-opening a completed log is
- *   either a correction or a rewatch; under both readings "finished on" is no
- *   longer true. The lost date is recoverable through `PATCH …/log`. This is
- *   the rule that changes when dated rewatch runs land.
- * - **`dropped` does not stamp `finished_at`.** Dropped works still appear in
- *   the history, filed under their start date, but `finished_at` keeps meaning
- *   *completed on* — what the column is called and what the UI labels it.
- */
-function insertDates(status: LogStatus): { startedAt: SQL | null; finishedAt: SQL | null } {
-  if (status === 'planned') return { startedAt: null, finishedAt: null };
-  return {
-    startedAt: sql`CURRENT_DATE`,
-    finishedAt: status === 'completed' ? sql`CURRENT_DATE` : null,
-  };
-}
-
-/** Same rules against a row that already exists — hence the COALESCEs. */
-function updateDates(status: LogStatus): { startedAt: SQL | null; finishedAt: SQL | null } {
-  if (status === 'planned') return { startedAt: null, finishedAt: null };
-  const startedAt = sql`COALESCE(${userMedia.startedAt}, CURRENT_DATE)`;
-  if (status === 'completed') {
-    return { startedAt, finishedAt: sql`COALESCE(${userMedia.finishedAt}, CURRENT_DATE)` };
-  }
-  if (status === 'in_progress') return { startedAt, finishedAt: null };
-  // paused / dropped: neither finishes the work, so `finished_at` is left as-is.
-  return { startedAt, finishedAt: sql`${userMedia.finishedAt}` };
 }
 
 export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -229,16 +91,7 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
       const ctx = await requireUserAndMedia(request, reply, request.params.id);
       if (!ctx) return;
       const { status } = request.body;
-      await ctx.db
-        .insert(userMedia)
-        .values({ userId: ctx.user.id, mediaId: ctx.row.id, status, ...insertDates(status) })
-        .onConflictDoUpdate({
-          target: [userMedia.userId, userMedia.mediaId],
-          set: { status, ...updateDates(status), updatedAt: new Date() },
-        });
-      // `completed` means every part is seen; `planned` means none is yet.
-      if (status === 'completed') await setAllProgress(ctx.db, ctx.user.id, ctx.row, true);
-      else if (status === 'planned') await setAllProgress(ctx.db, ctx.user.id, ctx.row, false);
+      await setLogStatus(ctx.db, ctx.user.id, ctx.row, status);
       return { status };
     },
   );
@@ -536,28 +389,7 @@ export const trackingRoutes: FastifyPluginAsyncZod = async (app) => {
         return reply.status(400).send({ error: `number exceeds the ${total} known parts` });
       }
 
-      // Lazy flat parts: create the numbered row on first check-in (any user).
-      await ctx.db
-        .insert(mediaPart)
-        .values({ mediaId: ctx.row.id, kind: partKind, number: String(number) })
-        .onConflictDoNothing();
-      const [part] = await ctx.db
-        .select({ id: mediaPart.id })
-        .from(mediaPart)
-        .where(
-          and(
-            eq(mediaPart.mediaId, ctx.row.id),
-            eq(mediaPart.kind, partKind),
-            eq(mediaPart.number, String(number)),
-          ),
-        );
-
-      await ctx.db
-        .insert(progress)
-        .values({ userId: ctx.user.id, partId: part!.id })
-        .onConflictDoNothing();
-      await startLog(ctx.db, ctx.user.id, ctx.row.id);
-
+      await checkInPart(ctx.db, ctx.user.id, ctx.row, number);
       return { number, watched: true as const };
     },
   );

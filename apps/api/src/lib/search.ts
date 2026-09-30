@@ -1,7 +1,7 @@
+import { visibleMediaSql } from '@trackt/db';
 import { sql } from 'drizzle-orm';
 import type { Db } from '@trackt/db';
 import type { SearchQuery, SearchResult } from '@trackt/shared';
-import { visibleMediaSql } from './visibility.js';
 
 /** A local search hit, with `rank` exposed so callers can merge-sort against central hits. */
 export type LocalSearchResult = SearchResult & { rank: number };

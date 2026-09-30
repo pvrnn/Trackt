@@ -8,6 +8,7 @@ import type { BotContext } from './context.js';
 import { handleInteraction } from './interactions.js';
 import { every } from './lib/every.js';
 import { NEWS_POLL_INTERVAL_MS, pollNews } from './news/poller.js';
+import { tickWatchParties, WATCH_PARTY_TICK_MS } from './watch-party/controller.js';
 
 let env;
 try {
@@ -36,13 +37,19 @@ const LINK_CODE_SWEEP_MS = 60 * 60 * 1000;
 
 const db = createDb(env.DATABASE_URL, { max: 3 });
 const ctx: BotContext = { db, env, logger };
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// Voice states tell a watch party who is in its voice channel; the intent is not privileged.
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
+});
 const stops: (() => void)[] = [];
 
 client.once(Events.ClientReady, (ready) => {
   logger.info({ user: ready.user.tag, guilds: ready.guilds.cache.size }, 'discord bot ready');
   if (!env.CATALOG_URL) logger.info('CATALOG_URL is not set — news feeds will not post');
   stops.push(every(NEWS_POLL_INTERVAL_MS, 'news poll', () => pollNews(client, ctx), logger));
+  stops.push(
+    every(WATCH_PARTY_TICK_MS, 'watch party tick', () => tickWatchParties(client, ctx), logger),
+  );
   stops.push(
     every(LINK_CODE_SWEEP_MS, 'link code sweep', () => deleteExpiredLinkCodes(db), logger),
   );

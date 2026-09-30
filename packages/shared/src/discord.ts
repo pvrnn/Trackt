@@ -28,3 +28,12 @@ export type DiscordLinkCodePreview = z.infer<typeof DiscordLinkCodePreviewSchema
 
 export const LinkDiscordBodySchema = z.object({ code: DiscordLinkCodeSchema });
 export type LinkDiscordBody = z.infer<typeof LinkDiscordBodySchema>;
+
+/** Watch parties: a scheduled group viewing of a movie or an episode, run by the Discord bot. */
+export const WATCH_PARTY_STATUSES = ['scheduled', 'live', 'ended', 'cancelled'] as const;
+export const WatchPartyStatusSchema = z.enum(WATCH_PARTY_STATUSES);
+export type WatchPartyStatus = z.infer<typeof WatchPartyStatusSchema>;
+
+export const RSVP_RESPONSES = ['going', 'maybe', 'declined'] as const;
+export const RsvpResponseSchema = z.enum(RSVP_RESPONSES);
+export type RsvpResponse = z.infer<typeof RsvpResponseSchema>;

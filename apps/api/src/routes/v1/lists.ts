@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { list, listItem, media, users, type Db } from '@trackt/db';
+import { canViewMedia, list, listItem, media, users, visibleMediaSql, type Db } from '@trackt/db';
 import {
   AddListItemBodySchema,
   ApiErrorSchema,
@@ -19,7 +19,6 @@ import {
 import { areFriends } from '../../lib/friends.js';
 import { canEditList, canViewList } from '../../lib/list-visibility.js';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
-import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
 
 /**
  * Custom lists (PRD §3.4). Two visibility rules compose on every read: the list

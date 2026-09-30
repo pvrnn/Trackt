@@ -59,10 +59,11 @@ the failure, launch against the distro's own address instead —
 1. Create an application at <https://discord.com/developers/applications>. Copy the bot token (**Bot → Reset Token**) and the **Application ID**.
 2. Export `DISCORD_BOT_TOKEN`, `DISCORD_APPLICATION_ID`, and `DISCORD_GUILD_ID` (a test server's ID: guild commands update instantly, global ones can take up to an hour).
 3. Register the commands: `pnpm --filter @trackt/discord register-commands`. Run it again whenever a command's definition changes.
-4. Invite the bot with View Channels, Send Messages and Embed Links: `https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=bot+applications.commands&permissions=19456`.
+4. Invite the bot with View Channels, Send Messages, Embed Links and Manage Channels (watch parties open a voice channel): `https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=bot+applications.commands&permissions=19472`. It also uses the Guild Voice States intent, which is not privileged, so nothing needs switching on in the developer portal.
 5. `pnpm dev` (or `pnpm --filter @trackt/discord dev`) and try `/ping`.
 6. `/newsfeed set` (needs Manage Server) picks a channel and the media types it gets. The bot polls the catalog's news feed every two minutes and posts what is new since the feed was created, so publish an article through the catalog admin API to see one arrive.
 7. `/link` replies privately with a one-time link to `APP_URL/link/discord`; open it signed in to Trackt and confirm. `/profile` (or right-click a member → Apps → **Trackt profile**) then shows that account's public profile. In development `APP_URL` defaults to the API's port, so start the bot with `APP_URL=http://localhost:3000` for the link to land on the web app.
+8. `/watchparty create` schedules a movie or a season's episode (`start` takes `now`, `in 45m`, `20:30` or `2026-10-02 20:30`, read in the zone `/watchparty timezone` sets; UTC until then). Members answer Join/Maybe/Decline; fifteen minutes before the start the bot opens a voice channel next to the announcement and pings them. The host (or anyone with Manage Events) presses Start, Pause, Next episode and End, and the announcement shows `elapsed / runtime` for whoever is not in voice. When an item finishes, linked members in the voice channel get it marked watched. The runtime comes from the catalog (ADR-0009); until it publishes one, pass `duration`, or the party waits for End. Try it quickly with `/watchparty create start:now duration:2`.
 
 ## Before you push
 

@@ -9,8 +9,10 @@ import {
   MODERATION_STATUSES,
   PART_KINDS,
   RATING_TARGETS,
+  RSVP_RESPONSES,
   USER_ROLES,
   VISIBILITIES,
+  WATCH_PARTY_STATUSES,
 } from '@trackt/shared';
 
 export const mediaKindEnum = pgEnum('media_kind', MEDIA_KINDS);
@@ -25,3 +27,5 @@ export const visibilityEnum = pgEnum('visibility', VISIBILITIES);
 export const userRoleEnum = pgEnum('user_role', USER_ROLES);
 export const reportStatusEnum = pgEnum('report_status', ['open', 'resolved', 'dismissed']);
 export const friendshipStatusEnum = pgEnum('friendship_status', FRIENDSHIP_STATUSES);
+export const watchPartyStatusEnum = pgEnum('watch_party_status', WATCH_PARTY_STATUSES);
+export const rsvpResponseEnum = pgEnum('rsvp_response', RSVP_RESPONSES);

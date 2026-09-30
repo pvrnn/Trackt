@@ -12,6 +12,7 @@ import { link, linkComponents, unlink } from './link.js';
 import { newsfeed, newsfeedComponents } from './newsfeed.js';
 import { ping } from './ping.js';
 import { profile, profileContextMenu } from './profile.js';
+import { watchparty, watchpartyComponents } from './watchparty.js';
 
 export interface Command {
   data: RESTPostAPIChatInputApplicationCommandsJSONBody;
@@ -44,7 +45,10 @@ export interface ComponentHandler {
 export type ComponentRegistry = ReadonlyMap<string, ComponentHandler>;
 
 export const commands: CommandRegistry = new Map(
-  [ping, newsfeed, link, unlink, profile].map((command) => [command.data.name, command]),
+  [ping, newsfeed, link, unlink, profile, watchparty].map((command) => [
+    command.data.name,
+    command,
+  ]),
 );
 
 export const userCommands: UserCommandRegistry = new Map(
@@ -52,5 +56,8 @@ export const userCommands: UserCommandRegistry = new Map(
 );
 
 export const components: ComponentRegistry = new Map(
-  [newsfeedComponents, linkComponents].map((handler) => [handler.prefix, handler]),
+  [newsfeedComponents, linkComponents, watchpartyComponents].map((handler) => [
+    handler.prefix,
+    handler,
+  ]),
 );

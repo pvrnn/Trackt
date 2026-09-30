@@ -1,3 +1,4 @@
+import { visibleMediaSql } from '@trackt/db';
 import { sql, type SQL } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import {
@@ -13,7 +14,6 @@ import {
 } from '@trackt/shared';
 import { loadYearCheckinCounts } from '../../lib/me.js';
 import { getSessionUser } from '../../lib/session.js';
-import { visibleMediaSql } from '../../lib/visibility.js';
 
 /**
  * `GET /v1/me/history` (ADR-0007) — the viewer's own year view.

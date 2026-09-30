@@ -1,12 +1,11 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
-import { favorite, media, type Db } from '@trackt/db';
+import { favorite, media, visibleMediaSql, type Db } from '@trackt/db';
 import {
   MEDIA_KINDS,
   type ActivityEntry,
   type FavoriteEntry,
   type MediaKind,
 } from '@trackt/shared';
-import { visibleMediaSql } from './visibility.js';
 
 /** Subject-scoped tracking aggregates shared by the home and profile summaries. */
 

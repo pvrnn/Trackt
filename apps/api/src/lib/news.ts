@@ -1,6 +1,12 @@
 import { inArray } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
-import { buildProviderMediaRow, insertNewProviderMedia, media, type Db } from '@trackt/db';
+import {
+  buildProviderMediaRow,
+  canViewMedia,
+  insertNewProviderMedia,
+  media,
+  type Db,
+} from '@trackt/db';
 import {
   fetchNewsArticle,
   fetchNewsForMedia,
@@ -15,7 +21,6 @@ import {
   type NewsMediaRef,
 } from '@trackt/shared';
 import type { SessionUser } from './session.js';
-import { canViewMedia } from './visibility.js';
 
 /**
  * The instance's view of central news (ADR-0005). News lives only in the
