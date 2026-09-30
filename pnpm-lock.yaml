@@ -159,12 +159,18 @@ importers:
 
   apps/discord:
     dependencies:
+      '@trackt/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@trackt/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       discord.js:
         specifier: ^14.27.0
         version: 14.27.0
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(kysely@0.29.3)(postgres@3.4.9)
       pino:
         specifier: ^10.3.1
         version: 10.3.1
@@ -175,6 +181,9 @@ importers:
       pino-pretty:
         specifier: ^13.1.3
         version: 13.1.3
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
       tsx:
         specifier: ^4.23.0
         version: 4.23.0

@@ -1,8 +1,13 @@
+import { eq } from 'drizzle-orm';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import pino from 'pino';
+import { createDb, discordNewsFeed } from '@trackt/db';
 import { EnvValidationError, loadEnv } from '@trackt/shared';
-import { commands } from './commands/index.js';
+import { commands, components } from './commands/index.js';
+import type { BotContext } from './context.js';
 import { handleInteraction } from './interactions.js';
+import { every } from './lib/every.js';
+import { NEWS_POLL_INTERVAL_MS, pollNews } from './news/poller.js';
 
 let env;
 try {
@@ -27,15 +32,32 @@ if (!env.DISCORD_BOT_TOKEN) {
   process.exit(0);
 }
 
+const db = createDb(env.DATABASE_URL, { max: 3 });
+const ctx: BotContext = { db, env, logger };
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const stops: (() => void)[] = [];
 
 client.once(Events.ClientReady, (ready) => {
   logger.info({ user: ready.user.tag, guilds: ready.guilds.cache.size }, 'discord bot ready');
+  if (!env.CATALOG_URL) logger.info('CATALOG_URL is not set — news feeds will not post');
+  stops.push(every(NEWS_POLL_INTERVAL_MS, 'news poll', () => pollNews(client, ctx), logger));
 });
 client.on(Events.InteractionCreate, (interaction) => {
-  handleInteraction(interaction, commands, logger).catch((error: unknown) => {
+  handleInteraction(interaction, { commands, components }, ctx).catch((error: unknown) => {
     logger.error({ err: error }, 'failed to answer interaction');
   });
+});
+client.on(Events.ChannelDelete, (channel) => {
+  db.delete(discordNewsFeed)
+    .where(eq(discordNewsFeed.channelId, channel.id))
+    .catch((error: unknown) =>
+      logger.warn({ err: error }, 'could not drop feeds of a deleted channel'),
+    );
+});
+client.on(Events.GuildDelete, (guild) => {
+  db.delete(discordNewsFeed)
+    .where(eq(discordNewsFeed.guildId, guild.id))
+    .catch((error: unknown) => logger.warn({ err: error }, 'could not drop feeds of a left guild'));
 });
 // Without a listener an 'error' event crashes the process; discord.js reconnects on its own.
 client.on(Events.Error, (error) => {
@@ -44,7 +66,9 @@ client.on(Events.Error, (error) => {
 
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'discord bot shutting down');
+  for (const stop of stops) stop();
   await client.destroy();
+  await db.$client.end();
   process.exit(0);
 }
 process.once('SIGTERM', () => void shutdown('SIGTERM'));
