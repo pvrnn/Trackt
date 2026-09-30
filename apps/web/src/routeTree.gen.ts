@@ -22,6 +22,7 @@ import { Route as UsersUsernameRouteImport } from './routes/users.$username'
 import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
 import { Route as ListsIdRouteImport } from './routes/lists_.$id'
+import { Route as LinkDiscordRouteImport } from './routes/link.discord'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -88,6 +89,11 @@ const ListsIdRoute = ListsIdRouteImport.update({
   path: '/lists/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LinkDiscordRoute = LinkDiscordRouteImport.update({
+  id: '/link/discord',
+  path: '/link/discord',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/link/discord': typeof LinkDiscordRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/link/discord': typeof LinkDiscordRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/link/discord': typeof LinkDiscordRoute
   '/lists_/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/search'
+    | '/link/discord'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/search'
+    | '/link/discord'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/search'
+    | '/link/discord'
     | '/lists_/$id'
     | '/media/$slug'
     | '/news_/$slug'
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
+  LinkDiscordRoute: typeof LinkDiscordRoute
   ListsIdRoute: typeof ListsIdRoute
   MediaSlugRoute: typeof MediaSlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/link/discord': {
+      id: '/link/discord'
+      path: '/link/discord'
+      fullPath: '/link/discord'
+      preLoaderRoute: typeof LinkDiscordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -305,6 +325,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
+  LinkDiscordRoute: LinkDiscordRoute,
   ListsIdRoute: ListsIdRoute,
   MediaSlugRoute: MediaSlugRoute,
   NewsSlugRoute: NewsSlugRoute,

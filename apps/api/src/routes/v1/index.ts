@@ -1,4 +1,5 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { discordRoutes } from './discord.js';
 import { friendRoutes } from './friends.js';
 import { historyRoutes } from './history.js';
 import { homeRoutes } from './home.js';
@@ -21,4 +22,5 @@ export const v1Routes: FastifyPluginAsyncZod = async (app) => {
   await app.register(newsRoutes);
   await app.register(friendRoutes);
   await app.register(userRoutes);
+  await app.register(discordRoutes);
 };

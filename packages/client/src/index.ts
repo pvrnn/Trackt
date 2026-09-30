@@ -13,6 +13,7 @@
  * Configure it once at startup with `configureClient()`; see `runtime.ts`.
  */
 export * from './cover.js';
+export * from './discord.js';
 export * from './friends.js';
 export * from './history.js';
 export * from './home.js';

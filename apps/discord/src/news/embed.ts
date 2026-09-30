@@ -1,18 +1,9 @@
 import { EmbedBuilder } from 'discord.js';
 import type { NewsArticleSummary } from '@trackt/shared';
 import { KIND_LABELS, TOPIC_LABELS } from '../lib/labels.js';
+import { embeddableUrl } from '../lib/urls.js';
 
 export const TRACKT_COLOR = 0xe8a33d;
-
-/** Discord only renders images it can fetch itself, so relative or non-https covers are dropped. */
-export function isEmbeddableImage(url: string | null): url is string {
-  if (!url) return false;
-  try {
-    return new URL(url).protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 export function newsEmbed(article: NewsArticleSummary, appUrl: string): EmbedBuilder {
   const embed = new EmbedBuilder()
@@ -26,6 +17,7 @@ export function newsEmbed(article: NewsArticleSummary, appUrl: string): EmbedBui
       ),
     });
   if (article.dek) embed.setDescription(article.dek);
-  if (isEmbeddableImage(article.coverUrl)) embed.setImage(article.coverUrl);
+  const cover = embeddableUrl(article.coverUrl, appUrl);
+  if (cover) embed.setImage(cover);
   return embed;
 }

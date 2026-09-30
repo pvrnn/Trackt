@@ -1,6 +1,6 @@
 import type { NewsArticleSummary } from '@trackt/shared';
 import { describe, expect, it } from 'vitest';
-import { isEmbeddableImage, newsEmbed } from '../../src/news/embed.js';
+import { newsEmbed } from '../../src/news/embed.js';
 
 const article: NewsArticleSummary = {
   id: '00000000-0000-4000-8000-00000000000a',
@@ -30,14 +30,5 @@ describe('newsEmbed', () => {
     const json = newsEmbed({ ...article, dek: null, coverUrl: null }, 'https://t.example').toJSON();
     expect(json.description).toBeUndefined();
     expect(json.image).toBeUndefined();
-  });
-});
-
-describe('isEmbeddableImage', () => {
-  it('accepts only absolute https URLs', () => {
-    expect(isEmbeddableImage('https://image.tmdb.org/t/p/w500/x.jpg')).toBe(true);
-    expect(isEmbeddableImage('http://insecure.example/x.jpg')).toBe(false);
-    expect(isEmbeddableImage('/uploads/covers/x.jpg')).toBe(false);
-    expect(isEmbeddableImage(null)).toBe(false);
   });
 });

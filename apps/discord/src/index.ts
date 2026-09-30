@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import pino from 'pino';
-import { createDb, discordNewsFeed } from '@trackt/db';
+import { createDb, deleteExpiredLinkCodes, discordNewsFeed } from '@trackt/db';
 import { EnvValidationError, loadEnv } from '@trackt/shared';
-import { commands, components } from './commands/index.js';
+import { commands, components, userCommands } from './commands/index.js';
 import type { BotContext } from './context.js';
 import { handleInteraction } from './interactions.js';
 import { every } from './lib/every.js';
@@ -32,6 +32,8 @@ if (!env.DISCORD_BOT_TOKEN) {
   process.exit(0);
 }
 
+const LINK_CODE_SWEEP_MS = 60 * 60 * 1000;
+
 const db = createDb(env.DATABASE_URL, { max: 3 });
 const ctx: BotContext = { db, env, logger };
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -41,11 +43,16 @@ client.once(Events.ClientReady, (ready) => {
   logger.info({ user: ready.user.tag, guilds: ready.guilds.cache.size }, 'discord bot ready');
   if (!env.CATALOG_URL) logger.info('CATALOG_URL is not set — news feeds will not post');
   stops.push(every(NEWS_POLL_INTERVAL_MS, 'news poll', () => pollNews(client, ctx), logger));
+  stops.push(
+    every(LINK_CODE_SWEEP_MS, 'link code sweep', () => deleteExpiredLinkCodes(db), logger),
+  );
 });
 client.on(Events.InteractionCreate, (interaction) => {
-  handleInteraction(interaction, { commands, components }, ctx).catch((error: unknown) => {
-    logger.error({ err: error }, 'failed to answer interaction');
-  });
+  handleInteraction(interaction, { commands, userCommands, components }, ctx).catch(
+    (error: unknown) => {
+      logger.error({ err: error }, 'failed to answer interaction');
+    },
+  );
 });
 client.on(Events.ChannelDelete, (channel) => {
   db.delete(discordNewsFeed)

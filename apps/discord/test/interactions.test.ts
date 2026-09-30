@@ -1,7 +1,7 @@
 import { MessageFlags, type Interaction } from 'discord.js';
 import pino from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import type { Command, ComponentHandler } from '../src/commands/index.js';
+import type { Command, ComponentHandler, UserCommand } from '../src/commands/index.js';
 import type { BotContext } from '../src/context.js';
 import { handleInteraction, type Registries } from '../src/interactions.js';
 
@@ -13,6 +13,7 @@ function fakeInteraction(overrides: Record<string, unknown> = {}) {
     isChatInputCommand: () => true,
     isMessageComponent: () => false,
     isModalSubmit: () => false,
+    isUserContextMenuCommand: () => false,
     commandName: 'ping',
     customId: '',
     replied: false,
@@ -37,11 +38,17 @@ function fakeComponent(customId: string, overrides: Record<string, unknown> = {}
 function registriesWith(
   command: Partial<Command> = {},
   component?: ComponentHandler['handle'],
+  userCommand?: UserCommand['execute'],
 ): Registries {
   return {
     commands: new Map([
       ['ping', { data: { name: 'ping', description: 'ping' }, execute: vi.fn(), ...command }],
     ]),
+    userCommands: new Map(
+      userCommand
+        ? [['Trackt profile', { data: { name: 'Trackt profile', type: 2 }, execute: userCommand }]]
+        : [],
+    ),
     components: new Map(component ? [['feed', { prefix: 'feed', handle: component }]] : []),
   };
 }
@@ -146,6 +153,23 @@ describe('handleInteraction', () => {
       expect(interaction.reply).toHaveBeenCalledWith(
         expect.objectContaining({ flags: MessageFlags.Ephemeral }),
       );
+    });
+  });
+
+  describe('user context menu commands', () => {
+    it('routes by command name', async () => {
+      const execute = vi.fn(async () => {});
+      const interaction = fakeInteraction({
+        isChatInputCommand: () => false,
+        isUserContextMenuCommand: () => true,
+        commandName: 'Trackt profile',
+      });
+      await handleInteraction(
+        interaction as unknown as Interaction,
+        registriesWith({}, undefined, execute),
+        ctx,
+      );
+      expect(execute).toHaveBeenCalledWith(interaction, ctx);
     });
   });
 });

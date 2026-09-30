@@ -26,3 +26,11 @@ export function createDb(databaseUrl: string, options: CreateDbOptions = {}) {
 }
 
 export type Db = ReturnType<typeof createDb>;
+export {
+  deleteExpiredLinkCodes,
+  findLinkCode,
+  hashLinkCode,
+  issueLinkCode,
+  redeemLinkCode,
+  type DiscordIdentity,
+} from './discord-link.js';

@@ -1,45 +1,14 @@
 import { eq } from 'drizzle-orm';
 import { DiscordAPIError, RESTJSONErrorCodes, type Client } from 'discord.js';
 import pino from 'pino';
-import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDb, discordNewsFeed, runMigrations, type Db } from '@trackt/db';
 import { loadEnv, type NewsArticleSummary } from '@trackt/shared';
 import type { BotContext } from '../../src/context.js';
 import { pollNews } from '../../src/news/poller.js';
+import { available, TEST_DATABASE_URL } from '../support/database.js';
 
-/**
- * The news poller against the dev compose database, with the catalog and the
- * Discord client faked. Creates and migrates its own `trackt_discord_test`
- * database and self-skips when Postgres is down.
- */
-
-const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL_DISCORD ??
-  'postgres://trackt:trackt@localhost:5432/trackt_discord_test';
-
-async function ensureTestDatabase(): Promise<boolean> {
-  const adminUrl = new URL(TEST_DATABASE_URL);
-  const testDbName = adminUrl.pathname.slice(1);
-  adminUrl.pathname = '/trackt';
-  const admin = postgres(adminUrl.href, { max: 1, connect_timeout: 3 });
-  try {
-    const exists = await admin`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;
-    if (exists.length === 0) await admin.unsafe(`CREATE DATABASE "${testDbName}"`);
-    return true;
-  } catch (error) {
-    if (process.env.CI_REQUIRE_DB) {
-      throw new Error(`Postgres is unavailable but CI_REQUIRE_DB is set: ${String(error)}`, {
-        cause: error,
-      });
-    }
-    return false;
-  } finally {
-    await admin.end();
-  }
-}
-
-const available = await ensureTestDatabase();
+/** The news poller against the dev compose database, with the catalog and the Discord client faked. */
 
 const GUILD = '100000000000000001';
 const CHANNEL = '200000000000000002';

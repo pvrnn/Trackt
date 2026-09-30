@@ -1,9 +1,10 @@
 import { MessageFlags, type Interaction, type RepliableInteraction } from 'discord.js';
-import type { CommandRegistry, ComponentRegistry } from './commands/index.js';
+import type { CommandRegistry, ComponentRegistry, UserCommandRegistry } from './commands/index.js';
 import type { BotContext } from './context.js';
 
 export interface Registries {
   commands: CommandRegistry;
+  userCommands: UserCommandRegistry;
   components: ComponentRegistry;
 }
 
@@ -36,6 +37,21 @@ export async function handleInteraction(
       await command.execute(interaction, ctx);
     } catch (error) {
       logger.error({ err: error, command: interaction.commandName }, 'slash command failed');
+      await replyWithError(interaction);
+    }
+    return;
+  }
+
+  if (interaction.isUserContextMenuCommand()) {
+    const command = registries.userCommands.get(interaction.commandName);
+    if (!command) {
+      logger.warn({ command: interaction.commandName }, 'unknown user command');
+      return;
+    }
+    try {
+      await command.execute(interaction, ctx);
+    } catch (error) {
+      logger.error({ err: error, command: interaction.commandName }, 'user command failed');
       await replyWithError(interaction);
     }
     return;

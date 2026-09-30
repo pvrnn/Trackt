@@ -62,6 +62,7 @@ the failure, launch against the distro's own address instead —
 4. Invite the bot with View Channels, Send Messages and Embed Links: `https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=bot+applications.commands&permissions=19456`.
 5. `pnpm dev` (or `pnpm --filter @trackt/discord dev`) and try `/ping`.
 6. `/newsfeed set` (needs Manage Server) picks a channel and the media types it gets. The bot polls the catalog's news feed every two minutes and posts what is new since the feed was created, so publish an article through the catalog admin API to see one arrive.
+7. `/link` replies privately with a one-time link to `APP_URL/link/discord`; open it signed in to Trackt and confirm. `/profile` (or right-click a member → Apps → **Trackt profile**) then shows that account's public profile. In development `APP_URL` defaults to the API's port, so start the bot with `APP_URL=http://localhost:3000` for the link to land on the web app.
 
 ## Before you push
 

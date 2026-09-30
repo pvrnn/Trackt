@@ -25,7 +25,9 @@ import { Modal, ModalTitle } from '../components/ui/Modal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
 import {
+  useDiscordLink,
   useFriends,
+  useUnlinkDiscord,
   activityVerbLabel,
   relativeTime,
   removeAvatar,
@@ -189,6 +191,7 @@ function ProfilePage() {
                         </span>
                       </Tooltip>
                     </GlassCard>
+                    <DiscordLinkRow />
                   </section>
                 </div>
               </div>
@@ -205,6 +208,24 @@ function ProfilePage() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Shown only once linked: linking starts from `/link` in Discord, never from here. */
+function DiscordLinkRow() {
+  const { data } = useDiscordLink();
+  const unlink = useUnlinkDiscord();
+  if (!data?.linked) return null;
+  return (
+    <GlassCard className="flex items-center justify-between gap-3 rounded-card-sm px-5 py-4">
+      <span className="font-label text-xs tracking-label text-dim">DISCORD</span>
+      <span className="flex-1 truncate text-right text-sm text-fg">
+        @{data.linked.discordUsername}
+      </span>
+      <Button variant="ghost" onClick={() => unlink.mutate()} disabled={unlink.isPending}>
+        UNLINK
+      </Button>
+    </GlassCard>
   );
 }
 

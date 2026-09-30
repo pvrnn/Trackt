@@ -1,6 +1,6 @@
 import { REST, Routes } from 'discord.js';
 import { loadEnv } from '@trackt/shared';
-import { commands } from './commands/index.js';
+import { commands, userCommands } from './commands/index.js';
 
 const env = loadEnv();
 if (!env.DISCORD_BOT_TOKEN || !env.DISCORD_APPLICATION_ID) {
@@ -8,7 +8,10 @@ if (!env.DISCORD_BOT_TOKEN || !env.DISCORD_APPLICATION_ID) {
   process.exit(1);
 }
 
-const body = [...commands.values()].map((command) => command.data);
+const body = [
+  ...[...commands.values()].map((command) => command.data),
+  ...[...userCommands.values()].map((command) => command.data),
+];
 const rest = new REST().setToken(env.DISCORD_BOT_TOKEN);
 // Guild commands update instantly; global ones can take up to an hour to propagate.
 const route = env.DISCORD_GUILD_ID
