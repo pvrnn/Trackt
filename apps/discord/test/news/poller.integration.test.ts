@@ -6,7 +6,9 @@ import { createDb, discordNewsFeed, runMigrations, type Db } from '@trackt/db';
 import { loadEnv, type NewsArticleSummary } from '@trackt/shared';
 import type { BotContext } from '../../src/context.js';
 import { pollNews } from '../../src/news/poller.js';
-import { available, TEST_DATABASE_URL } from '../support/database.js';
+import { testDatabase } from '../support/database.js';
+
+const TEST_DATABASE_URL = await testDatabase('trackt_discord_news_test');
 
 /** The news poller against the dev compose database, with the catalog and the Discord client faked. */
 
@@ -51,13 +53,13 @@ function postedTitles(send: ReturnType<typeof vi.fn>): string[] {
   );
 }
 
-describe.runIf(available)('pollNews (postgres)', () => {
+describe.runIf(TEST_DATABASE_URL)('pollNews (postgres)', () => {
   let db: Db;
   let ctx: BotContext;
 
   beforeAll(async () => {
-    await runMigrations(TEST_DATABASE_URL);
-    db = createDb(TEST_DATABASE_URL, { max: 1 });
+    await runMigrations(TEST_DATABASE_URL!);
+    db = createDb(TEST_DATABASE_URL!, { max: 1 });
     const env = loadEnv({ NODE_ENV: 'test', APP_URL: 'https://trackt.example' });
     ctx = { db, env, logger: pino({ level: 'silent' }) };
   });

@@ -7,7 +7,9 @@ import { loadEnv } from '@trackt/shared';
 import { link, unlink } from '../../src/commands/link.js';
 import type { BotContext } from '../../src/context.js';
 import { findLinkedUser } from '../../src/linking.js';
-import { available, TEST_DATABASE_URL } from '../support/database.js';
+import { testDatabase } from '../support/database.js';
+
+const TEST_DATABASE_URL = await testDatabase('trackt_discord_link_test');
 
 function fakeCommand(discordUserId: string) {
   return {
@@ -22,13 +24,13 @@ function lastReply(interaction: ReturnType<typeof fakeCommand>): Reply {
   return (interaction.reply.mock.calls.at(-1) as unknown as [Reply])[0];
 }
 
-describe.runIf(available)('/link and /unlink (postgres)', () => {
+describe.runIf(TEST_DATABASE_URL)('/link and /unlink (postgres)', () => {
   let db: Db;
   let ctx: BotContext;
 
   beforeAll(async () => {
-    await runMigrations(TEST_DATABASE_URL);
-    db = createDb(TEST_DATABASE_URL, { max: 1 });
+    await runMigrations(TEST_DATABASE_URL!);
+    db = createDb(TEST_DATABASE_URL!, { max: 1 });
     const env = loadEnv({ NODE_ENV: 'test', APP_URL: 'https://trackt.example' });
     ctx = { db, env, logger: pino({ level: 'silent' }) };
   });
