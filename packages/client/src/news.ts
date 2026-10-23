@@ -29,11 +29,18 @@ export const TOPIC_LABELS: Record<NewsTopic, string> = {
   general: 'NEWS',
 };
 
-/** The card's date stamp: `02 JUL`, in UTC so every reader sees the same day. */
-export function formatNewsDate(iso: string): string {
-  return new Date(iso)
-    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-    .toUpperCase();
+/**
+ * The card's date stamp: `02 JUL`, in UTC so every reader sees the same day.
+ * `locale` is trailing and defaults to `en-GB`, so mobile keeps its copy.
+ */
+export function formatNewsDate(iso: string, locale = 'en-GB'): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+    .format(new Date(iso))
+    .toLocaleUpperCase(locale);
 }
 
 export interface NewsFilters {

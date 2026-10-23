@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { FriendState } from '@trackt/shared';
 import {
   useAcceptFriendRequest,
@@ -15,21 +16,21 @@ import { Input } from '../ui/Input';
 import { Modal, ModalTitle } from '../ui/Modal';
 
 /** Search-result action label per viewer-relative `friendState`. */
-const ACTION_LABEL: Record<FriendState, string> = {
-  none: '＋ ADD',
-  outgoing: 'PENDING',
-  incoming: 'RESPOND BELOW',
-  friends: '✓ FRIENDS',
-  self: '',
-};
+const ACTION_KEY = {
+  none: 'social.action.add',
+  outgoing: 'social.action.pending',
+  incoming: 'social.action.respondBelow',
+  friends: 'social.friends',
+} as const satisfies Record<Exclude<FriendState, 'self'>, string>;
 
 /**
  * Send/accept/decline friend requests (ADR-0006). Modelled on
  * `media/AddToListDialog.tsx`: rows with a per-row action, inline error,
  * ghost DONE footer. Incoming requests surface at the top so the dialog
- * doubles as the accept/decline inbox — there's no other page for that yet.
+ * doubles as the accept/decline inbox; there's no other page for that yet.
  */
 export function AddFriendDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const { data: overview, isError } = useFriends();
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +47,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
   const isSending = (username: string) =>
     sendRequest.isPending && sendRequest.variables === username;
 
-  const onError = (cause: unknown) =>
-    setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
+  const onError = () => setError(t('social.errors.save'));
 
   const send = (username: string) => {
     setError(null);
@@ -57,16 +57,16 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div className="flex flex-col gap-5">
-        <ModalTitle>Friends</ModalTitle>
+        <ModalTitle>{t('social.title')}</ModalTitle>
 
         {isError ? (
           <p role="alert" className="text-[15px] text-red-400">
-            Couldn’t load your friends — try again in a moment.
+            {t('social.errors.load')}
           </p>
         ) : overview && overview.incoming.length > 0 ? (
           <div className="flex flex-col gap-2">
             <h3 className="font-label text-xs tracking-label text-dim">
-              REQUESTS ({overview.incoming.length})
+              {t('social.requests', { count: overview.incoming.length })}
             </h3>
             <ul className="flex flex-col gap-2">
               {overview.incoming.map((request) => (
@@ -89,7 +89,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                       accept.mutate(request.id, { onError });
                     }}
                   >
-                    ACCEPT
+                    {t('social.accept')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -100,7 +100,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                       remove.mutate(request.id, { onError });
                     }}
                   >
-                    DECLINE
+                    {t('social.decline')}
                   </Button>
                 </GlassCard>
               ))}
@@ -109,11 +109,11 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
         ) : null}
 
         <Input
-          label="Find people"
+          label={t('social.findPeople')}
           name="userSearch"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name or @handle"
+          placeholder={t('social.searchPlaceholder')}
           autoComplete="off"
         />
 
@@ -126,10 +126,12 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
               // nothing (or "no one matches") would state a negative we don't
               // have. Same posture as NavSearch's `failed` branch.
               <li role="alert" className="text-[15px] text-red-400">
-                People search is unavailable right now — try again in a moment.
+                {t('social.errors.searchUnavailable')}
               </li>
             ) : results && results.length === 0 ? (
-              <li className="text-[15px] text-muted">No one matches “{debounced}”.</li>
+              <li className="text-[15px] text-muted">
+                {t('social.noMatches', { query: debounced })}
+              </li>
             ) : (
               results?.map((result) => (
                 <GlassCard
@@ -153,7 +155,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                           accept.mutate(result.id, { onError });
                         }}
                       >
-                        ACCEPT
+                        {t('social.accept')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -164,7 +166,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                           remove.mutate(result.id, { onError });
                         }}
                       >
-                        DECLINE
+                        {t('social.decline')}
                       </Button>
                     </>
                   ) : result.friendState === 'outgoing' ? (
@@ -175,13 +177,13 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                       variant="secondary"
                       disabled={anyPending}
                       aria-busy={isRemoving(result.id)}
-                      aria-label={`Cancel friend request to @${result.username}`}
+                      aria-label={t('social.cancelRequest', { username: result.username })}
                       onClick={() => {
                         setError(null);
                         remove.mutate(result.id, { onError });
                       }}
                     >
-                      PENDING ✕
+                      {t('social.pendingCancel')}
                     </Button>
                   ) : (
                     <Button
@@ -190,7 +192,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
                       aria-busy={isSending(result.username)}
                       onClick={() => send(result.username)}
                     >
-                      {ACTION_LABEL[result.friendState]}
+                      {result.friendState === 'self' ? '' : t(ACTION_KEY[result.friendState])}
                     </Button>
                   )}
                 </GlassCard>
@@ -207,7 +209,7 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
 
         <div className="flex justify-end">
           <Button variant="ghost" onClick={onClose}>
-            DONE
+            {t('social.done')}
           </Button>
         </div>
       </div>

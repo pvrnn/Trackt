@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Wordmark } from './Wordmark';
 
 /**
@@ -7,6 +8,7 @@ import { Wordmark } from './Wordmark';
  * aura manifesto panel on the left, form column on the right.
  */
 export function AuthLayout({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div className="grid min-h-screen bg-ink text-fg lg:grid-cols-2">
       <div className="relative hidden overflow-hidden border-r border-divider lg:flex lg:flex-col">
@@ -14,20 +16,17 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className="grain absolute inset-0 opacity-55" aria-hidden />
         <div className="relative flex flex-1 flex-col justify-end p-14">
           <h2 className="font-heading text-[64px] leading-[0.95] uppercase">
-            Every episode.
+            {t('auth.manifesto.line1')}
             <br />
-            Every chapter.
+            {t('auth.manifesto.line2')}
             <br />
-            <span className="text-prism">Yours forever.</span>
+            <span className="text-prism">{t('auth.manifesto.line3')}</span>
           </h2>
-          <p className="mt-4 max-w-[400px] text-[15px] text-muted">
-            Open source, self-hostable, full export any time. Built by people who lost their history
-            once.
-          </p>
+          <p className="mt-4 max-w-[400px] text-[15px] text-muted">{t('auth.manifesto.body')}</p>
         </div>
       </div>
       <div className="flex flex-col justify-center gap-7 p-10 lg:max-w-[560px] lg:p-20">
-        <Link to="/" aria-label="Trackt home">
+        <Link to="/" aria-label={t('auth.homeAria')}>
           <Wordmark className="text-[30px]" />
         </Link>
         {children}

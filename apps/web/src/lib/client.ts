@@ -6,7 +6,7 @@ import { authClient } from './auth-client';
  * Web's half of the `@trackt/client` seam (ADR-0008 §4).
  *
  * Same-origin in both dev (Vite proxies /api → :3001) and prod (monolith
- * proxy), so the prefix is a bare path and there is no base URL to resolve —
+ * proxy), so the prefix is a bare path and there is no base URL to resolve;
  * the mobile client is the one that has to absolutize against a picked
  * instance.
  *

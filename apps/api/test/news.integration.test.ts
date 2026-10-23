@@ -135,6 +135,25 @@ describe.runIf(available)('news proxy (postgres)', () => {
     return buildApp({ env, db, auth: createAuth(db, env) });
   }
 
+  /**
+   * The "no catalog configured" case. It only exists in production: `loadEnv`
+   * falls back to `http://localhost:3002` in development and test, so an empty
+   * CATALOG_URL here silently talks to whatever dev catalog is running and the
+   * degradation assertions pass or fail depending on the developer's machine.
+   */
+  async function appWithoutCatalog(): Promise<App> {
+    const env = loadEnv({
+      NODE_ENV: 'production',
+      LOG_LEVEL: 'error',
+      DATABASE_URL: TEST_DATABASE_URL,
+      REDIS_URL: 'redis://localhost:6379',
+      AUTH_SECRET: 'test-secret-at-least-16-chars',
+      APP_URL: 'http://localhost:3000',
+      CATALOG_NEWS_TIMEOUT_MS: '300',
+    });
+    return buildApp({ env, db, auth: createAuth(db, env) });
+  }
+
   async function feedVia(
     app: App,
     query = '',
@@ -222,7 +241,7 @@ describe.runIf(available)('news proxy (postgres)', () => {
     });
 
     it('answers 200 with an empty feed when no catalog is configured', async () => {
-      const app = await appWith('');
+      const app = await appWithoutCatalog();
       try {
         const { status, body } = await feedVia(app);
         expect(status).toBe(200);
@@ -270,7 +289,7 @@ describe.runIf(available)('news proxy (postgres)', () => {
     });
 
     it('rejects a filter value the contract does not allow', async () => {
-      const app = await appWith('');
+      const app = await appWithoutCatalog();
       try {
         const response = await app.inject({ method: 'GET', url: '/api/v1/news?topic=nope' });
         expect(response.statusCode).toBe(400);
@@ -351,7 +370,7 @@ describe.runIf(available)('news proxy (postgres)', () => {
     });
 
     it('answers 200 with an empty strip when no catalog is configured', async () => {
-      const app = await appWith('');
+      const app = await appWithoutCatalog();
       try {
         const { status, body } = await stripVia(app);
         expect(status).toBe(200);
@@ -382,7 +401,7 @@ describe.runIf(available)('news proxy (postgres)', () => {
     });
 
     it('rejects an id that is not a uuid', async () => {
-      const app = await appWith('');
+      const app = await appWithoutCatalog();
       try {
         const { status } = await stripVia(app, 'id=nope');
         expect(status).toBe(400);
@@ -563,7 +582,7 @@ describe.runIf(available)('news proxy (postgres)', () => {
     });
 
     it('503s when no catalog is configured', async () => {
-      const app = await appWith('');
+      const app = await appWithoutCatalog();
       try {
         const { status } = await articleVia(app);
         expect(status).toBe(503);

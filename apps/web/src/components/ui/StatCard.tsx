@@ -5,7 +5,7 @@ import { GlassCard } from './GlassCard';
 export interface StatCardProps {
   value: string;
   label: string;
-  /** Makes the whole card a link — a stat that has somewhere to drill into. */
+  /** Makes the whole card a link: a stat that has somewhere to drill into. */
   link?: Pick<LinkProps, 'to' | 'search'>;
 }
 

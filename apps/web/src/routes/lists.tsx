@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { VISIBILITIES, type ListSummary, type Visibility } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
@@ -10,39 +11,36 @@ import { Input } from '../components/ui/Input';
 import { Modal, ModalTitle } from '../components/ui/Modal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
-import {
-  coverGradient,
-  updatedLabel,
-  useCreateList,
-  useLists,
-  visibilityLabel,
-} from '@trackt/client';
+import { useFormat } from '../lib/format';
+import { useLabels } from '../lib/labels';
+import { coverGradient, useCreateList, useLists } from '@trackt/client';
 
 export const Route = createFileRoute('/lists')({
-  head: () => ({ meta: [{ title: 'Lists — Trackt' }] }),
+  head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.lists') }] }),
   component: ListsPage,
 });
 
 /**
  * The mockup's three scopes. Only MY LISTS has a backing feature: FRIENDS
- * needs a friends-scoped lists endpoint (out of scope for ADR-0006 phase 2 —
+ * needs a friends-scoped lists endpoint (out of scope for ADR-0006 phase 2;
  * see `docs/friends-plan.md`) and COLLABORATIVE needs a membership table, so
  * both render visibly inert rather than as controls that quietly do nothing.
  */
 const SCOPES = [
-  { key: 'mine', label: 'MY LISTS', ready: true },
-  { key: 'following', label: 'FRIENDS', ready: false },
-  { key: 'collaborative', label: 'COLLABORATIVE', ready: false },
+  { key: 'mine', label: 'lists.scopes.mine', ready: true },
+  { key: 'following', label: 'lists.scopes.friends', ready: false },
+  { key: 'collaborative', label: 'lists.scopes.collaborative', ready: false },
 ] as const;
 
 /** Human copy for each visibility. */
-const VISIBILITY_HELP: Record<Visibility, string> = {
-  public: 'Anyone with the link can see this list.',
-  followers: 'Friends only — visible to accepted friends.',
-  private: 'Only you can see this list.',
-};
+const VISIBILITY_HELP_KEYS = {
+  public: 'lists.visibilityHelp.public',
+  followers: 'lists.visibilityHelp.followers',
+  private: 'lists.visibilityHelp.private',
+} as const satisfies Record<Visibility, string>;
 
 function ListsPage() {
+  const { t } = useTranslation();
   const { isPending, navUser } = useAuthedPage();
   const { data: lists, isError } = useLists();
   const [creating, setCreating] = useState(false);
@@ -56,23 +54,23 @@ function ListsPage() {
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h1 className="font-heading text-[64px] leading-none uppercase">Lists</h1>
-            <Button onClick={() => setCreating(true)}>＋ NEW LIST</Button>
+            <h1 className="font-heading text-[64px] leading-none uppercase">{t('lists.title')}</h1>
+            <Button onClick={() => setCreating(true)}>{t('lists.newList')}</Button>
           </div>
 
           <div className="flex flex-wrap gap-2.5">
             {SCOPES.map((scope) =>
               scope.ready ? (
                 <Chip key={scope.key} selected>
-                  {scope.label}
+                  {t(scope.label)}
                 </Chip>
               ) : (
-                <Tooltip key={scope.key} label="Coming soon">
+                <Tooltip key={scope.key} label={t('common.comingSoon')}>
                   <span
                     tabIndex={0}
                     className="cursor-not-allowed rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-xs font-semibold tracking-label text-dim/60"
                   >
-                    {scope.label}
+                    {t(scope.label)}
                   </span>
                 </Tooltip>
               ),
@@ -81,15 +79,12 @@ function ListsPage() {
 
           {isError ? (
             <p role="alert" className="text-[15px] text-red-400">
-              Couldn’t load your lists — is the instance API reachable? Try again in a moment.
+              {t('lists.error')}
             </p>
           ) : lists === undefined ? (
             <div className="h-40" aria-busy />
           ) : lists.length === 0 ? (
-            <GlassCard className="px-6 py-5 text-[15px] text-muted">
-              No lists yet — hit ＋ NEW LIST and start with the handful of titles you’d defend in an
-              argument.
-            </GlassCard>
+            <GlassCard className="px-6 py-5 text-[15px] text-muted">{t('lists.empty')}</GlassCard>
           ) : (
             <ul className="grid grid-cols-1 gap-5 md:grid-cols-2">
               {lists.map((entry) => (
@@ -109,15 +104,20 @@ function ListsPage() {
 /**
  * A list card: a fan of up to four covers over the title, badges and meta row.
  * The fan uses `coverGradient` directly rather than `CoverCard`, which is locked
- * to a 2/3 aspect with a title overlay — wrong for bare slabs.
+ * to a 2/3 aspect with a title overlay, which is wrong for bare slabs.
  */
 function ListCard({ list }: { list: ListSummary }) {
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const format = useFormat();
   return (
     <Link to="/lists/$id" params={{ id: list.id }} className="block">
       <GlassCard className="overflow-hidden transition hover:border-pink">
         <div className="flex h-[170px]" aria-hidden>
           {list.covers.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-faint">Empty</div>
+            <div className="flex flex-1 items-center justify-center text-sm text-faint">
+              {t('lists.card.emptyCover')}
+            </div>
           ) : (
             list.covers.map((cover, index) => (
               <div
@@ -133,18 +133,16 @@ function ListCard({ list }: { list: ListSummary }) {
             <h2 className="flex-1 font-heading text-[22px] leading-tight uppercase">
               {list.title}
             </h2>
-            {list.isRanked && <Badge tone="pink">RANKED</Badge>}
-            {list.isCollaborative && <Badge tone="muted">COLLAB</Badge>}
+            {list.isRanked && <Badge tone="pink">{t('lists.card.ranked')}</Badge>}
+            {list.isCollaborative && <Badge tone="muted">{t('lists.card.collab')}</Badge>}
           </div>
           {list.description && (
             <p className="text-sm leading-relaxed text-muted">{list.description}</p>
           )}
           <div className="mt-1 flex flex-wrap gap-3.5 font-label text-xs tracking-label text-dim">
-            <span>
-              {list.itemCount} {list.itemCount === 1 ? 'TITLE' : 'TITLES'}
-            </span>
-            <span>{visibilityLabel(list.visibility)}</span>
-            <span>UPDATED {updatedLabel(list.updatedAt)}</span>
+            <span>{t('lists.titles', { count: list.itemCount })}</span>
+            <span>{labels.visibility(list.visibility)}</span>
+            <span>{t('lists.updated', { date: format.updated(list.updatedAt) })}</span>
           </div>
         </div>
       </GlassCard>
@@ -167,6 +165,8 @@ function Badge({ tone, children }: { tone: 'pink' | 'muted'; children: string })
 }
 
 function NewListDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const labels = useLabels();
   const createList = useCreateList();
   const navigate = Route.useNavigate();
   const [title, setTitle] = useState('');
@@ -187,7 +187,7 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
       },
       {
         onSuccess: (created) => navigate({ to: '/lists/$id', params: { id: created.id } }),
-        onError: (cause) => setError(cause.message || 'That didn’t save — try again.'),
+        onError: (cause) => setError(cause.message || t('lists.dialog.saveError')),
       },
     );
   };
@@ -195,16 +195,16 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-5">
-        <ModalTitle>New list</ModalTitle>
+        <ModalTitle>{t('lists.dialog.title')}</ModalTitle>
 
         <Input
-          label="Title"
+          label={t('lists.dialog.titleLabel')}
           name="title"
           value={title}
           maxLength={120}
           required
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Best webtoons, ranked"
+          placeholder={t('lists.dialog.titlePlaceholder')}
         />
 
         <div className="flex flex-col gap-1.5">
@@ -212,7 +212,7 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
             htmlFor="list-description"
             className="font-label text-xs font-semibold tracking-label text-dim uppercase"
           >
-            Description
+            {t('lists.dialog.descriptionLabel')}
           </label>
           <textarea
             id="list-description"
@@ -221,7 +221,7 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
             rows={3}
             onChange={(event) => setDescription(event.target.value)}
             className="rounded-card-sm border border-glass-border-strong bg-glass-well px-4 py-3 text-[15px] outline-none placeholder:text-dim focus:border-pink"
-            placeholder="What ties these together?"
+            placeholder={t('lists.dialog.descriptionPlaceholder')}
           />
           <p className="text-right text-xs text-faint">{description.length}/500</p>
         </div>
@@ -233,12 +233,12 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
             onChange={(event) => setIsRanked(event.target.checked)}
             className="size-4 accent-pink"
           />
-          Ranked — order matters, and I can reorder it
+          {t('lists.dialog.ranked')}
         </label>
 
         <div className="flex flex-col gap-1.5">
           <span className="font-label text-xs font-semibold tracking-label text-dim uppercase">
-            Visibility
+            {t('lists.dialog.visibility')}
           </span>
           <div className="flex flex-wrap gap-2.5">
             {VISIBILITIES.map((value) => (
@@ -248,11 +248,11 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
                 selected={visibility === value}
                 onClick={() => setVisibility(value)}
               >
-                {value.toUpperCase()}
+                {labels.visibility(value)}
               </Chip>
             ))}
           </div>
-          <p className="text-xs text-faint">{VISIBILITY_HELP[visibility]}</p>
+          <p className="text-xs text-faint">{t(VISIBILITY_HELP_KEYS[visibility])}</p>
         </div>
 
         {error && (
@@ -263,10 +263,10 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onClose} disabled={createList.isPending}>
-            CANCEL
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={createList.isPending || title.trim().length === 0}>
-            {createList.isPending ? 'CREATING…' : 'CREATE'}
+            {createList.isPending ? t('lists.dialog.creating') : t('lists.dialog.create')}
           </Button>
         </div>
       </form>

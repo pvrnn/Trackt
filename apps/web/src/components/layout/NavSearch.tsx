@@ -12,12 +12,13 @@ import {
 } from 'react';
 import type { SearchResult, UserSearchResult } from '@trackt/shared';
 import { coverGradient, useUserSearch, useMediaSearch, useDebounced } from '@trackt/client';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '../ui/Avatar';
 import { KindDot } from '../ui/KindDot';
 
 /**
  * Both endpoints sit behind a 60 req/min per-IP limit, and a settled keystroke
- * costs one request each — hence 250 ms rather than the 200 ms used elsewhere,
+ * costs one request each, hence 250 ms rather than the 200 ms used elsewhere,
  * and a two-character gate. `users/search` already refuses shorter queries;
  * matching it here keeps the two sections appearing together.
  */
@@ -28,7 +29,7 @@ const MIN_QUERY = 2;
 const MEDIA_LIMIT = 6;
 const PEOPLE_LIMIT = 4;
 
-/** A navigable panel row, in render order — the unit ↑/↓ and Enter operate on. */
+/** A navigable panel row, in render order: the unit ↑/↓ and Enter operate on. */
 type Row =
   | { kind: 'media'; result: SearchResult }
   | { kind: 'user'; result: UserSearchResult }
@@ -43,10 +44,11 @@ type Row =
  * the Discover page's (`['search', q, undefined]`), so pressing Enter renders
  * /search straight from this cache. The slicing is client-side instead.
  *
- * Renders on /search too — it owns the one global ⌘K listener in the app.
+ * Renders on /search too: it owns the one global ⌘K listener in the app.
  */
 export function NavSearch() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const listboxId = useId();
@@ -64,7 +66,7 @@ export function NavSearch() {
 
   const mediaResults = media.status === 'error' ? [] : media.results.slice(0, MEDIA_LIMIT);
   const userResults = users.isError ? [] : (users.data ?? []).slice(0, PEOPLE_LIMIT);
-  // The skeleton is for an empty panel only — once either side has landed it
+  // The skeleton is for an empty panel only: once either side has landed it
   // renders, rather than being hidden behind the slower of the two.
   const hasResults = mediaResults.length > 0 || userResults.length > 0;
   const loading = !hasResults && (media.status === 'loading' || users.isFetching);
@@ -97,18 +99,18 @@ export function NavSearch() {
   }, []);
 
   // The two queries settle independently, so the row list grows *after* the
-  // media half lands — keying this on `debounced` alone would leave an index
+  // media half lands; keying this on `debounced` alone would leave an index
   // taken against the short list pointing at a different row once people
   // arrive, and Enter would open something the user never highlighted.
   const rowsKey = rows.map((row) => (row.kind === 'all' ? 'all' : row.result.id)).join('|');
   useEffect(() => setHighlighted(-1), [rowsKey]);
 
-  // The panel scrolls at 70vh, and ↑/↓ only move `aria-activedescendant` —
+  // The panel scrolls at 70vh, and ↑/↓ only move `aria-activedescendant`;
   // nothing scrolls the way a focused element would, so on a short viewport the
   // highlight walked out of sight. `block: 'nearest'` scrolls only when needed,
   // and only the panel moves (the page isn't a scroll container here).
   // Rows are nested inside their TITLES/PEOPLE groups, so this goes by id
-  // rather than child index — the same ids `aria-activedescendant` points at.
+  // rather than child index: the same ids `aria-activedescendant` points at.
   useEffect(() => {
     if (highlighted < 0) return;
     document
@@ -125,7 +127,7 @@ export function NavSearch() {
     if (row.kind === 'media') navigate({ to: '/media/$slug', params: { slug: row.result.slug } });
     else if (row.kind === 'user')
       navigate({ to: '/users/$username', params: { username: row.result.username } });
-    // The row's own label reads “See all results for <debounced>” — going
+    // The row's own label reads “See all results for <debounced>”. Going
     // anywhere else would betray it, and `debounced` is the key already warm
     // in the cache that /search is about to render from.
     else seeAll(debounced);
@@ -203,8 +205,8 @@ export function NavSearch() {
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             onKeyDown={onKeyDown}
-            placeholder="Search titles or people…"
-            aria-label="search titles and people"
+            placeholder={t('shell.searchPlaceholder')}
+            aria-label={t('shell.searchAria')}
             aria-expanded={open}
             aria-controls={listboxId}
             aria-autocomplete="list"
@@ -228,7 +230,7 @@ export function NavSearch() {
           onCloseAutoFocus={(event) => event.preventDefault()}
           onMouseDown={(event) => event.preventDefault()}
           // Radix exempts only `Popover.Trigger` from outside-dismissal, and
-          // there is no trigger here — the anchor is the form. Without this,
+          // there is no trigger here (the anchor is the form). Without this,
           // clicking into the input to reposition the caret counts as an
           // interaction outside and closes the panel.
           onInteractOutside={(event) => {
@@ -242,14 +244,18 @@ export function NavSearch() {
           {loading && <LoadingRows />}
           {failed && (
             <p role="alert" className="px-4 py-3 text-sm text-red-400">
-              Search is unavailable right now.
+              {t('shell.searchUnavailable')}
             </p>
           )}
-          {empty && <p className="px-4 py-3 text-sm text-muted">Nothing matches “{debounced}”.</p>}
+          {empty && (
+            <p className="px-4 py-3 text-sm text-muted">
+              {t('shell.nothingMatches', { query: debounced })}
+            </p>
+          )}
 
-          <div id={listboxId} role="listbox" aria-label="search results">
+          <div id={listboxId} role="listbox" aria-label={t('shell.searchResults')}>
             {mediaResults.length > 0 && (
-              <Section label="TITLES">
+              <Section label={t('shell.titles')}>
                 {mediaResults.map((result, index) => (
                   <MediaRow
                     key={result.id}
@@ -264,7 +270,7 @@ export function NavSearch() {
             )}
 
             {userResults.length > 0 && (
-              <Section label="PEOPLE">
+              <Section label={t('shell.people')}>
                 {userResults.map((result, index) => {
                   const rowIndex = mediaResults.length + index;
                   return (
@@ -294,7 +300,7 @@ export function NavSearch() {
                 highlighted === rows.length - 1 && 'text-pink',
               )}
             >
-              See all results for “{debounced}”
+              {t('shell.seeAll', { query: debounced })}
             </Link>
           </div>
         </Popover.Content>

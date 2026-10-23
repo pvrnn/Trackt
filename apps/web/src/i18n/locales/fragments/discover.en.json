@@ -1,0 +1,13 @@
+{
+  "title": "Discover",
+  "searchPlaceholder": "Search titles…",
+  "searchAria": "search titles",
+  "filterAria": "filter by kind",
+  "results": "Results",
+  "resultCount_one": "{{count}} TITLE",
+  "resultCount_other": "{{count}} TITLES",
+  "empty": "Nothing on this instance matches “{{query}}”.",
+  "emptyInKind": "Nothing on this instance matches “{{query}}” in {{kind}}.",
+  "missingTitle": "Can’t find it?",
+  "missingBody": "The catalog fills in over time: titles are added to the central catalog and reach every instance from there. Write a request to ask for one to be added."
+}

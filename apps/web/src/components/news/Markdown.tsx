@@ -5,7 +5,7 @@ import { parseMarkdown, type InlineToken, type MarkdownBlock } from '@trackt/cli
  * The web half of the article renderer (ADR-0005).
  *
  * The tokenizer moved to `@trackt/client` when the mobile client needed the same
- * prose — what stays here is only the mapping from token to element. The
+ * prose; what stays here is only the mapping from token to element. The
  * guarantee it exists for is unchanged and structural: this builds **React
  * elements, never HTML strings**, so there is no `dangerouslySetInnerHTML` on
  * the path and raw HTML in a model-authored body can only come out as text.

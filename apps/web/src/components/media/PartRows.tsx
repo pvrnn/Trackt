@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 import type { PartBlock } from '@trackt/client';
 
 /**
@@ -7,7 +8,7 @@ import type { PartBlock } from '@trackt/client';
  * Every row writes the *position*, which is what keeps it a view onto one
  * integer rather than a second source of truth: clicking part 140 marks
  * everything up to it, and clicking a part already done sets the position to
- * one below — how an overshoot is corrected without a dialog.
+ * one below, which is how an overshoot is corrected without a dialog.
  *
  * The mockup's row carries a title, an air date and a runtime. Flat numbered
  * parts (ADR-0003) have none of those, so the label is the part itself and the
@@ -26,6 +27,7 @@ export function PartRow({
   isNext: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -56,14 +58,14 @@ export function PartRow({
             isNext ? 'text-pink' : 'text-dim',
           )}
         >
-          {done ? 'DONE' : 'NEXT'}
+          {done ? t('media.part.done') : t('media.part.next')}
         </span>
       )}
     </button>
   );
 }
 
-/** One block of forty, with its own bar — a long work's map. */
+/** One block of forty, with its own bar: a long work's map. */
 export function PartBlockRow({
   block,
   label,

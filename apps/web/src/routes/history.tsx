@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 import {
   LOG_STATUSES,
   MEDIA_KINDS,
@@ -13,14 +14,13 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
+import { useFormat } from '../lib/format';
+import { useLabels } from '../lib/labels';
 import {
   coverGradient,
   HISTORY_GROUPINGS,
-  dateRangeLabel,
   groupEntries,
   useHistory,
-  KIND_LABELS,
-  LOG_STATUS_LABELS,
   type HistoryGrouping,
 } from '@trackt/client';
 
@@ -28,8 +28,8 @@ import {
  * The viewer's year view (ADR-0007). Absorbs the ROADMAP's Library page: ALL
  * TIME with no kind or status filter is "everything I've ever tracked".
  *
- * `planned` rows never reach this page — the server excludes anything with
- * neither date, and a watchlist is not a history — so the status filter offers
+ * `planned` rows never reach this page: the server excludes anything with
+ * neither date, and a watchlist is not a history, so the status filter offers
  * the other four only.
  */
 
@@ -55,8 +55,8 @@ const HISTORY_STATUSES: LogStatus[] = LOG_STATUSES.filter((status) => status !==
  * recedes into the faint grey. Static class strings so Tailwind's scanner sees
  * every one of them (same reason `KindDot` spells its colours out).
  *
- * `planned` never reaches this page — the server excludes anything with no
- * dates — but the map is total so a status can't fall through to no colour.
+ * `planned` never reaches this page: the server excludes anything with no
+ * dates, but the map is total so a status can't fall through to no colour.
  */
 const STATUS_STYLES: Record<LogStatus, { text: string; border: string; dot: string }> = {
   planned: { text: 'text-dim', border: 'border-white/10', dot: 'bg-dim' },
@@ -66,31 +66,11 @@ const STATUS_STYLES: Record<LogStatus, { text: string; border: string; dot: stri
   dropped: { text: 'text-faint', border: 'border-white/10', dot: 'bg-faint' },
 };
 
-const STATUS_ITEMS: SelectItem[] = [
-  {
-    value: ALL_STATUSES,
-    label: (
-      <span className="flex items-center gap-2">
-        <span aria-hidden className="size-1.5 rounded-full bg-faint" />
-        ALL STATUSES
-      </span>
-    ),
-  },
-  ...HISTORY_STATUSES.map((status) => ({
-    value: status,
-    label: (
-      <span className="flex items-center gap-2">
-        <span aria-hidden className={clsx('size-1.5 rounded-full', STATUS_STYLES[status].dot)} />
-        {LOG_STATUS_LABELS[status]}
-      </span>
-    ),
-  })),
-];
-
-const GROUP_ITEMS: SelectItem[] = HISTORY_GROUPINGS.map((value) => ({
-  value,
-  label: value.toUpperCase(),
-}));
+const GROUPING_KEYS = {
+  year: 'history.grouping.year',
+  season: 'history.grouping.season',
+  month: 'history.grouping.month',
+} as const satisfies Record<HistoryGrouping, string>;
 
 function asYear(value: unknown): number | 'all' | undefined {
   if (value === ALL_YEARS) return ALL_YEARS;
@@ -99,7 +79,7 @@ function asYear(value: unknown): number | 'all' | undefined {
 }
 
 export const Route = createFileRoute('/history')({
-  head: () => ({ meta: [{ title: 'History — Trackt' }] }),
+  head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.history') }] }),
   validateSearch: (search: Record<string, unknown>): HistorySearchParams => {
     const year = asYear(search.year);
     return {
@@ -117,10 +97,13 @@ export const Route = createFileRoute('/history')({
 });
 
 function HistoryPage() {
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const format = useFormat();
   const navigate = useNavigate({ from: Route.fullPath });
   const { isPending, navUser } = useAuthedPage();
   const search = Route.useSearch();
-  // Absent means this year — the page opens on what you're watching now, not on
+  // Absent means this year: the page opens on what you're watching now, not on
   // a decade of everything.
   const year = search.year ?? new Date().getUTCFullYear();
   const { kind, status } = search;
@@ -140,12 +123,41 @@ function HistoryPage() {
 
   if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
-  const scope = year === ALL_YEARS ? 'ALL TIME' : String(year);
-  const groups = groupEntries(history.entries, group, year === ALL_YEARS);
+  const scope = year === ALL_YEARS ? t('history.allTime') : String(year);
+  const groups = groupEntries(history.entries, group, year === ALL_YEARS, format.locale, {
+    winter: t('history.season.winter'),
+    spring: t('history.season.spring'),
+    summer: t('history.season.summer'),
+    autumn: t('history.season.autumn'),
+  });
+  const statusItems: SelectItem[] = [
+    {
+      value: ALL_STATUSES,
+      label: (
+        <span className="flex items-center gap-2">
+          <span aria-hidden className="size-1.5 rounded-full bg-faint" />
+          {t('history.filters.allStatuses')}
+        </span>
+      ),
+    },
+    ...HISTORY_STATUSES.map((status) => ({
+      value: status,
+      label: (
+        <span className="flex items-center gap-2">
+          <span aria-hidden className={clsx('size-1.5 rounded-full', STATUS_STYLES[status].dot)} />
+          {labels.status(status)}
+        </span>
+      ),
+    })),
+  ];
+  const groupItems: SelectItem[] = HISTORY_GROUPINGS.map((value) => ({
+    value,
+    label: t(GROUPING_KEYS[value]),
+  }));
   // Years come from the facet, so the picker only ever offers years the viewer
   // has something in; the count rides along the way the design's menu shows it.
   const yearItems: SelectItem[] = [
-    { value: ALL_YEARS, label: 'ALL TIME' },
+    { value: ALL_YEARS, label: t('history.allTime') },
     ...history.years.map((entry) => ({
       value: String(entry.year),
       label: (
@@ -158,7 +170,7 @@ function HistoryPage() {
   ];
   const filtered = Boolean(kind || status);
   // The picker's own years are unfiltered by year, so an empty list means the
-  // account has nothing at all — not just nothing in the selected window.
+  // account has nothing at all, not just nothing in the selected window.
   const nothingTracked = !history.isLoading && history.years.length === 0 && !filtered;
 
   return (
@@ -168,11 +180,16 @@ function HistoryPage() {
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-6 pt-12 pb-20 sm:px-10">
           <div className="flex flex-wrap items-baseline gap-4">
-            <h1 className="font-heading text-[64px] leading-none uppercase">History</h1>
+            <h1 className="font-heading text-[64px] leading-none uppercase">
+              {t('history.title')}
+            </h1>
             <span className="text-prism font-label text-sm font-bold tracking-label">
               {nothingTracked
-                ? 'NOTHING TRACKED YET'
-                : `${scope} · ${history.totals.titles} ${history.totals.titles === 1 ? 'TITLE' : 'TITLES'}`}
+                ? t('history.nothingTracked')
+                : t('history.scope', {
+                    scope,
+                    titles: t('history.titles', { count: history.totals.titles }),
+                  })}
             </span>
           </div>
 
@@ -199,7 +216,7 @@ function HistoryPage() {
                         : 'border-transparent text-dim hover:text-pink',
                     )}
                   >
-                    {value === ALL_KINDS ? 'ALL' : KIND_LABELS[value as MediaKind]}
+                    {value === ALL_KINDS ? t('common.all') : labels.kind(value as MediaKind)}
                   </button>
                 );
               })}
@@ -208,8 +225,8 @@ function HistoryPage() {
             <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
               <Select
                 variant="pill"
-                caption="YEAR"
-                aria-label="filter by year"
+                caption={t('history.filters.year')}
+                aria-label={t('history.filters.yearAria')}
                 className="py-2 pr-3 pl-3.5"
                 items={yearItems}
                 value={year === ALL_YEARS ? ALL_YEARS : String(year)}
@@ -220,10 +237,10 @@ function HistoryPage() {
               />
               <Select
                 variant="pill"
-                caption="STATUS"
-                aria-label="filter by status"
+                caption={t('history.filters.status')}
+                aria-label={t('history.filters.statusAria')}
                 className="py-2 pr-3 pl-3.5"
-                items={STATUS_ITEMS}
+                items={statusItems}
                 value={status ?? ALL_STATUSES}
                 selected={status !== undefined}
                 onChange={(value) =>
@@ -232,10 +249,10 @@ function HistoryPage() {
               />
               <Select
                 variant="pill"
-                caption="GROUP"
-                aria-label="group entries by"
+                caption={t('history.filters.group')}
+                aria-label={t('history.filters.groupAria')}
                 className="py-2 pr-3 pl-3.5"
-                items={GROUP_ITEMS}
+                items={groupItems}
                 value={group}
                 onChange={(value) => setSearch({ group: value as HistoryGrouping })}
               />
@@ -245,33 +262,33 @@ function HistoryPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <HistoryStat
               value={history.totals.completed}
-              label="Titles completed"
-              note={`FINISHED · ${scope}`}
+              label={t('history.stats.completed')}
+              note={t('history.stats.completedNote', { scope })}
             />
             <HistoryStat
               value={history.totals.titles}
-              label="Titles in view"
-              note={`FILED · ${scope}`}
+              label={t('history.stats.inView')}
+              note={t('history.stats.inViewNote', { scope })}
             />
             <HistoryStat
               value={history.totals.episodes}
-              label="Episodes"
-              note={`CHECK-INS · ${scope}`}
+              label={t('history.stats.episodes')}
+              note={t('history.stats.checkInsNote', { scope })}
             />
             <HistoryStat
               value={history.totals.chapters}
-              label="Chapters"
-              note={`CHECK-INS · ${scope}`}
+              label={t('history.stats.chapters')}
+              note={t('history.stats.checkInsNote', { scope })}
             />
           </div>
 
           {history.isError ? (
             <p role="alert" className="text-[15px] text-red-400">
-              Your history failed to load — is this instance&apos;s API reachable?
+              {t('history.error')}
             </p>
           ) : history.isLoading ? (
             <p aria-busy className="text-[15px] text-muted">
-              Loading {scope.toLowerCase()}…
+              {t('history.loading', { scope: scope.toLowerCase() })}
             </p>
           ) : history.entries.length === 0 ? (
             <EmptyHistory
@@ -287,7 +304,7 @@ function HistoryPage() {
                   <div className="flex items-center gap-3.5">
                     <h2 className="font-heading text-[26px] uppercase">{group.label}</h2>
                     <span className="font-label text-[11px] font-semibold tracking-label text-faint">
-                      {group.entries.length} {group.entries.length === 1 ? 'TITLE' : 'TITLES'}
+                      {t('history.titles', { count: group.entries.length })}
                     </span>
                     <span aria-hidden className="h-px flex-1 bg-divider" />
                   </div>
@@ -307,7 +324,7 @@ function HistoryPage() {
                     disabled={history.isLoadingMore}
                     className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-6 py-3 font-label text-xs font-semibold tracking-label text-muted transition hover:border-pink hover:text-pink disabled:cursor-wait disabled:opacity-60"
                   >
-                    {history.isLoadingMore ? 'LOADING…' : 'LOAD MORE'}
+                    {history.isLoadingMore ? t('history.loadingMore') : t('history.loadMore')}
                   </button>
                 </div>
               )}
@@ -334,13 +351,15 @@ function HistoryStat({ value, label, note }: { value: number; label: string; not
 }
 
 /**
- * A cover with the record on it: status and score at rest, the full log — date
- * range and progress — on hover and focus. Focus matters as much as hover here:
+ * A cover with the record on it: status and score at rest, the full log (date
+ * range and progress) on hover and focus. Focus matters as much as hover here:
  * the range is the only place the two dates are readable, so a keyboard user
  * must be able to reach it.
  */
 function HistoryCard({ entry }: { entry: HistoryEntry }) {
-  const range = dateRangeLabel(entry.startedAt, entry.finishedAt);
+  const labels = useLabels();
+  const format = useFormat();
+  const range = format.dateRange(entry.startedAt, entry.finishedAt);
   const progress =
     entry.total !== null && entry.status !== 'completed' ? `${entry.watched}/${entry.total}` : null;
   return (
@@ -355,7 +374,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
       }
     >
       {/* Nothing at rest but the artwork: the overlay below carries the whole
-          record — title, kind, date range, progress — on hover and focus. */}
+          record (title, kind, date range, progress) on hover and focus. */}
       <span className="absolute inset-0 flex flex-col justify-end gap-2 bg-ink/95 p-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
         <span className="font-heading text-lg leading-tight uppercase">{entry.title}</span>
         {range && <span className="font-label text-[13px] font-semibold">{range}</span>}
@@ -377,11 +396,11 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
             STATUS_STYLES[entry.status].border,
           )}
         >
-          {LOG_STATUS_LABELS[entry.status]}
+          {labels.status(entry.status)}
         </span>
         {entry.score !== null && (
           <span className="rounded-full bg-ink/80 px-2 py-0.5 font-display text-[15px] text-pink">
-            {entry.score.toFixed(1)}
+            {format.score(entry.score)}
           </span>
         )}
       </span>
@@ -405,17 +424,22 @@ function EmptyHistory({
   scope: string;
   onClearFilters: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-white/20 bg-glass px-8 py-11 text-center backdrop-blur-[16px]">
       <p className="font-heading text-[32px] text-faint uppercase">
-        {nothingTracked ? 'Nothing yet' : filtered ? 'No matches' : `Nothing in ${scope}`}
+        {nothingTracked
+          ? t('history.empty.nothingTitle')
+          : filtered
+            ? t('history.empty.filteredTitle')
+            : t('history.empty.windowTitle', { scope })}
       </p>
       <p className="max-w-[460px] text-sm leading-relaxed text-muted">
         {nothingTracked
-          ? 'Check in to something and it lands here — every episode and chapter, with the dates you watched them.'
+          ? t('history.empty.nothingBody')
           : filtered
-            ? `Nothing in ${scope} matches this kind and status. Clear one of them to widen the search.`
-            : 'You have history, just not in this window. Pick another year above, or ALL TIME.'}
+            ? t('history.empty.filteredBody', { scope })
+            : t('history.empty.windowBody')}
       </p>
       {filtered && !nothingTracked && (
         <button
@@ -423,7 +447,7 @@ function EmptyHistory({
           onClick={onClearFilters}
           className="mt-2 cursor-pointer font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
         >
-          CLEAR KIND &amp; STATUS
+          {t('history.empty.clear')}
         </button>
       )}
       {nothingTracked && (
@@ -431,7 +455,7 @@ function EmptyHistory({
           to="/search"
           className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
         >
-          BROWSE DISCOVER →
+          {t('history.empty.browse')}
         </Link>
       )}
     </div>

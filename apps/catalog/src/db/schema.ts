@@ -13,6 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import {
+  FEEDBACK_CATEGORIES,
   MEDIA_KINDS,
   MEDIA_RELATION_TYPES,
   MEDIA_STATUSES,
@@ -259,4 +260,30 @@ export const newsArticleMedia = pgTable(
     // Serves /v1/news/by-media — the media detail page's "In the news" block.
     index('news_article_media_media_idx').on(t.mediaId),
   ],
+);
+
+/* ------------------------------------------------------------------ *
+ * Feedback. One row per report filed from any instance's profile page.
+ *
+ * No `seq` and no `deleted_at`, for the same reason the news tables have
+ * none: catalog version is max(catalog_media.seq), and a feedback report
+ * is not catalog content — bumping the cursor for one would make every
+ * instance resync its media because someone typed a bug report.
+ * ------------------------------------------------------------------ */
+
+export const feedback = pgTable(
+  'feedback',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    category: text('category', { enum: FEEDBACK_CATEGORIES }).notNull(),
+    message: text('message').notNull(),
+    /** The page the report was filed from, as the client saw it. */
+    route: text('route'),
+    /** Which deployment it came from — added by the instance API, not the browser. */
+    instanceUrl: text('instance_url'),
+    appVersion: text('app_version'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  // The only read this table has: newest first, for the operator's admin list.
+  (t) => [index('feedback_created_at_idx').on(t.createdAt.desc())],
 );

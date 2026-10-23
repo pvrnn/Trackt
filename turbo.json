@@ -18,6 +18,7 @@
         "CATALOG_SEARCH_TIMEOUT_MS",
         "CATALOG_RELATIONS_TIMEOUT_MS",
         "CATALOG_NEWS_TIMEOUT_MS",
+        "CATALOG_FEEDBACK_TIMEOUT_MS",
         "APP_URL",
         "PORT",
         "LOG_LEVEL",

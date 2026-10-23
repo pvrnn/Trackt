@@ -1,12 +1,14 @@
 import { createFileRoute, Link, Navigate, useNavigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AuthDivider, AuthLayout } from '../components/layout/AuthLayout';
 import { Button, buttonClassName } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { authClient } from '../lib/auth-client';
+import { authErrorKey } from '../lib/auth-errors';
 
 export const Route = createFileRoute('/register')({
-  head: () => ({ meta: [{ title: 'Create account — Trackt' }] }),
+  head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.register') }] }),
   component: RegisterPage,
 });
 
@@ -22,20 +24,26 @@ interface Fields {
   confirm: string;
 }
 
-function validate(f: Fields): Partial<Record<keyof Fields, string>> {
-  const errors: Partial<Record<keyof Fields, string>> = {};
-  if (!f.name.trim()) errors.name = 'Name is required';
-  if (!USERNAME_RE.test(f.username))
-    errors.username = '3–30 characters: letters, numbers, dots, underscores';
-  if (!f.email.trim()) errors.email = 'Email is required';
-  if (f.password.length < MIN_PASSWORD_LENGTH)
-    errors.password = `At least ${MIN_PASSWORD_LENGTH} characters`;
-  if (f.confirm !== f.password) errors.confirm = 'Passwords do not match';
+type ValidationKey =
+  | 'auth.validation.nameRequired'
+  | 'auth.validation.usernameFormat'
+  | 'auth.validation.emailRequired'
+  | 'auth.validation.passwordLength'
+  | 'auth.validation.passwordMismatch';
+
+function validate(f: Fields): Partial<Record<keyof Fields, ValidationKey>> {
+  const errors: Partial<Record<keyof Fields, ValidationKey>> = {};
+  if (!f.name.trim()) errors.name = 'auth.validation.nameRequired';
+  if (!USERNAME_RE.test(f.username)) errors.username = 'auth.validation.usernameFormat';
+  if (!f.email.trim()) errors.email = 'auth.validation.emailRequired';
+  if (f.password.length < MIN_PASSWORD_LENGTH) errors.password = 'auth.validation.passwordLength';
+  if (f.confirm !== f.password) errors.confirm = 'auth.validation.passwordMismatch';
   return errors;
 }
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data: session } = authClient.useSession();
   const [fields, setFields] = useState<Fields>({
     name: '',
@@ -44,7 +52,7 @@ function RegisterPage() {
     password: '',
     confirm: '',
   });
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof Fields, string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof Fields, ValidationKey>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -69,7 +77,7 @@ function RegisterPage() {
     });
     setSubmitting(false);
     if (error) {
-      setFormError(error.message ?? 'Sign up failed');
+      setFormError(t(authErrorKey(error, 'errors.signUpFailed')));
       return;
     }
     navigate({ to: '/home' });
@@ -78,63 +86,63 @@ function RegisterPage() {
   return (
     <AuthLayout>
       <div className="flex flex-col gap-2">
-        <h1 className="font-heading text-[44px] leading-none uppercase">Create account</h1>
-        <p className="text-[15px] text-muted">
-          Your history, ratings, and lists — exportable any time.
-        </p>
+        <h1 className="font-heading text-[44px] leading-none uppercase">
+          {t('auth.register.title')}
+        </h1>
+        <p className="text-[15px] text-muted">{t('auth.register.subtitle')}</p>
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5" noValidate>
         <Input
-          label="Name"
+          label={t('auth.fields.name')}
           name="name"
           autoComplete="name"
           placeholder="Paul"
           value={fields.name}
           onChange={set('name')}
-          error={fieldErrors.name}
+          error={fieldErrors.name && t(fieldErrors.name, { min: MIN_PASSWORD_LENGTH })}
           required
         />
         <Input
-          label="Username"
+          label={t('auth.fields.username')}
           name="username"
           autoComplete="username"
           placeholder="paulv"
           value={fields.username}
           onChange={set('username')}
-          error={fieldErrors.username}
+          error={fieldErrors.username && t(fieldErrors.username, { min: MIN_PASSWORD_LENGTH })}
           required
         />
         <Input
-          label="Email"
+          label={t('auth.fields.email')}
           name="email"
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
           value={fields.email}
           onChange={set('email')}
-          error={fieldErrors.email}
+          error={fieldErrors.email && t(fieldErrors.email, { min: MIN_PASSWORD_LENGTH })}
           required
         />
         <Input
-          label="Password"
+          label={t('auth.fields.password')}
           name="password"
           type="password"
           autoComplete="new-password"
           placeholder="••••••••••"
           value={fields.password}
           onChange={set('password')}
-          error={fieldErrors.password}
+          error={fieldErrors.password && t(fieldErrors.password, { min: MIN_PASSWORD_LENGTH })}
           required
         />
         <Input
-          label="Confirm password"
+          label={t('auth.fields.confirmPassword')}
           name="confirm"
           type="password"
           autoComplete="new-password"
           placeholder="••••••••••"
           value={fields.confirm}
           onChange={set('confirm')}
-          error={fieldErrors.confirm}
+          error={fieldErrors.confirm && t(fieldErrors.confirm, { min: MIN_PASSWORD_LENGTH })}
           required
         />
         {formError && (
@@ -143,12 +151,12 @@ function RegisterPage() {
           </p>
         )}
         <Button type="submit" className="w-full text-sm" disabled={submitting}>
-          {submitting ? 'CREATING ACCOUNT…' : 'CREATE ACCOUNT'}
+          {submitting ? t('auth.creatingAccount') : t('auth.createAccount')}
         </Button>
       </form>
-      <AuthDivider label="Already a member" />
+      <AuthDivider label={t('auth.alreadyMember')} />
       <Link to="/login" className={buttonClassName({ variant: 'secondary', className: 'w-full' })}>
-        SIGN IN
+        {t('auth.submit')}
       </Link>
     </AuthLayout>
   );

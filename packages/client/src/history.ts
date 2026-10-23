@@ -90,44 +90,25 @@ export function useHistory(filters: HistoryFilters): HistoryState {
  * off-by-one bugs live.
  * ------------------------------------------------------------------ */
 
-const MONTHS = [
-  'JANUARY',
-  'FEBRUARY',
-  'MARCH',
-  'APRIL',
-  'MAY',
-  'JUNE',
-  'JULY',
-  'AUGUST',
-  'SEPTEMBER',
-  'OCTOBER',
-  'NOVEMBER',
-  'DECEMBER',
-] as const;
-
-const SHORT_MONTHS = [
-  'JAN',
-  'FEB',
-  'MAR',
-  'APR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AUG',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DEC',
-] as const;
-
 /** Today in UTC — the same day the server stamps with `CURRENT_DATE`. */
 export function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** '2026-02-11' → '11 FEB'. Sliced, not parsed — a `Date` would re-timezone it. */
-export function shortDate(isoDate: string): string {
-  return `${isoDate.slice(8, 10)} ${SHORT_MONTHS[Number(isoDate.slice(5, 7)) - 1]}`;
+/** UTC midnight for an ISO date, so formatting cannot shift the day. */
+function utcDate(isoDate: string): Date {
+  return new Date(`${isoDate}T00:00:00Z`);
+}
+
+/** '2026-02-11' → '11 FEB' (or '11 FÉVR.' with `fr`). */
+export function shortDate(isoDate: string, locale = 'en-GB'): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+    .format(utcDate(isoDate))
+    .toLocaleUpperCase(locale);
 }
 
 /**
@@ -135,6 +116,9 @@ export function shortDate(isoDate: string): string {
  * it: '04 JAN → 11 FEB' when both dates exist, the bare day when they're equal
  * (a film watched in one sitting), 'FROM 04 JAN' while it's still open, and
  * 'UNTIL 11 FEB' in the odd case where only a finish date was typed in.
+ *
+ * The words are English: web composes its own from translated keys and
+ * `shortDate`, because "FROM"/"UNTIL" are copy, not formatting.
  */
 export function dateRangeLabel(startedAt: string | null, finishedAt: string | null): string | null {
   if (startedAt === null && finishedAt === null) return null;
@@ -156,19 +140,30 @@ export interface HistoryGroup {
   entries: HistoryEntry[];
 }
 
+/** Translated season names, when the caller has a catalog. */
+export type HistorySeasonLabels = Record<string, string>;
+
 /** The block one entry belongs to, under a given grouping. */
 function blockOf(
   loggedOn: string,
   grouping: HistoryGrouping,
   withYear: boolean,
+  locale: string,
+  seasonLabels: HistorySeasonLabels,
 ): { key: string; label: string } {
   const year = loggedOn.slice(0, 4);
   if (grouping === 'year') return { key: year, label: year };
   if (grouping === 'season') {
-    const season = seasonOf(loggedOn).toUpperCase();
-    return { key: `${year}-${season}`, label: withYear ? `${season} ${year}` : season };
+    const season = seasonOf(loggedOn);
+    const label = seasonLabels[season] ?? season.toLocaleUpperCase(locale);
+    return { key: `${year}-${season.toUpperCase()}`, label: withYear ? `${label} ${year}` : label };
   }
-  const month = MONTHS[Number(loggedOn.slice(5, 7)) - 1]!;
+  const month = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    timeZone: 'UTC',
+  })
+    .format(utcDate(loggedOn))
+    .toLocaleUpperCase(locale);
   return { key: loggedOn.slice(0, 7), label: withYear ? `${month} ${year}` : month };
 }
 
@@ -188,10 +183,12 @@ export function groupEntries(
   entries: HistoryEntry[],
   grouping: HistoryGrouping,
   withYear: boolean,
+  locale = 'en-GB',
+  seasonLabels: HistorySeasonLabels = {},
 ): HistoryGroup[] {
   const groups: HistoryGroup[] = [];
   for (const entry of entries) {
-    const block = blockOf(entry.loggedOn, grouping, withYear);
+    const block = blockOf(entry.loggedOn, grouping, withYear, locale, seasonLabels);
     let group = groups.at(-1);
     if (!group || group.key !== block.key) {
       group = { ...block, entries: [] };

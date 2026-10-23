@@ -1,0 +1,116 @@
+{
+  "untitled": "Media",
+  "loadFailed": {
+    "title": "Couldn’t load",
+    "body": "Something went wrong fetching this title: the instance API may be unreachable, or its response wasn’t what we expected."
+  },
+  "retry": "RETRY",
+  "backToDiscover": "← BACK TO DISCOVER",
+  "notFound": {
+    "title": "Not found",
+    "body": "Nothing lives at “{{slug}}” on this instance. It may have been removed from the catalog."
+  },
+  "statusLabel": "Status",
+  "log": "＋ LOG",
+  "dates": {
+    "title": "Dates",
+    "add": "＋ ADD DATES",
+    "edit": "Edit the dates you started and finished this",
+    "started": "STARTED",
+    "finished": "FINISHED",
+    "help": "Leave a field empty to clear it. A finish date is what files a title under a year on your history; an unfinished one files under its start.",
+    "clear": "CLEAR",
+    "future": "Dates can’t be in the future.",
+    "floor": "Dates start at {{date}}. Check the year.",
+    "order": "The finish date is before the start date."
+  },
+  "upToDate": "UP TO DATE",
+  "checkIn": "{{verb}} {{part}}",
+  "checkInCompact": "CHECK IN",
+  "mark": "MARK {{verb}}",
+  "markAll": "MARK ALL {{verb}}",
+  "clearProgress": "CLEAR PROGRESS",
+  "favourite": "FAVOURITE",
+  "list": "LIST",
+  "saveFailed": "That didn’t save. Try again.",
+  "part": {
+    "episode": "Episode",
+    "episodes": "Episodes",
+    "chapter": "Chapter",
+    "chapters": "Chapters",
+    "generic": "Part",
+    "label": "{{unit}} {{number}}",
+    "done": "DONE",
+    "next": "NEXT"
+  },
+  "partCount_one": "{{count}} {{unit}}",
+  "partCount_other": "{{count}} {{unit}}S",
+  "season": "SEASON {{number}}",
+  "volume": "Volume {{number}}",
+  "partsRange": "{{unit}} {{from}}–{{to}}",
+  "aroundYou": "around you",
+  "tracking": "Tracking",
+  "browseNote": {
+    "volume": "OPEN A VOLUME TO JUMP THERE · THE SLIDER TRAVELS FURTHER",
+    "block": "OPEN A BLOCK TO JUMP THERE · THE SLIDER TRAVELS FURTHER"
+  },
+  "empty": {
+    "movie": "Movies track in one step: the button above is the whole log.",
+    "noParts": "This entry has no episode or chapter count yet, so there’s nothing granular to tick off. Set a status above to track it."
+  },
+  "progress": {
+    "position": "Where you are",
+    "valueText": "{{value}} of {{total}}",
+    "fewer": "One fewer",
+    "more": "One more",
+    "ahead_one": "{{count}} further ahead is ticked. Moving this clears anything past where you are.",
+    "ahead_other": "{{count}} further ahead are ticked. Moving this clears anything past where you are."
+  },
+  "progressUnit": {
+    "episodes": "EPISODES WATCHED",
+    "chapters": "CHAPTERS READ"
+  },
+  "rating": {
+    "yours": "YOUR RATING",
+    "rate": "RATE THIS",
+    "rateTrigger": "RATE",
+    "community": "{{score}} FROM {{count}} HERE",
+    "none": "NO RATINGS HERE YET",
+    "label": "Your rating",
+    "group": "score",
+    "rateValue": "Rate {{value}}",
+    "clear": "CLEAR RATING"
+  },
+  "details": {
+    "title": "Details",
+    "status": "STATUS",
+    "released": "RELEASED",
+    "genres": "GENRES",
+    "alsoKnownAs": "ALSO KNOWN AS",
+    "external": "EXTERNAL"
+  },
+  "youMightLike": "You might also like",
+  "relation": {
+    "prequel": "PREQUEL",
+    "sequel": "SEQUEL",
+    "source": "SOURCE MATERIAL",
+    "adaptation": "ADAPTATIONS",
+    "spinoff": "SPIN-OFFS",
+    "parent": "PARENT WORK",
+    "related": "RELATED"
+  },
+  "addToList": {
+    "title": "Add to list",
+    "loadFailed": "Couldn’t load your lists. Try again in a moment.",
+    "empty": "No lists yet. Name one below and this title goes straight into it.",
+    "itemCount_one": "{{count}} TITLE",
+    "itemCount_other": "{{count}} TITLES",
+    "added": "✓ ADDED",
+    "add": "＋ ADD",
+    "newList": "New list",
+    "namePlaceholder": "Name a new list",
+    "creating": "CREATING…",
+    "createAndAdd": "CREATE & ADD",
+    "done": "DONE"
+  }
+}

@@ -28,10 +28,12 @@
     "@trackt/shared": "workspace:*",
     "better-auth": "^1.6.23",
     "clsx": "^2.1.1",
+    "i18next": "^26.5.5",
     "ky": "^2.0.2",
     "motion": "^12.42.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-i18next": "^17.1.2",
     "srvx": "^0.11.21"
   },
   "devDependencies": {

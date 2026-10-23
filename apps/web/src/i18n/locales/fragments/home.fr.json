@@ -1,0 +1,45 @@
+{
+  "title": "À suivre",
+  "empty": {
+    "title": "Rien à suivre",
+    "body": "Suivez votre premier titre et cette page devient votre tableau de bord : quoi regarder ou lire ensuite, votre progression sur tout, et votre année en chiffres.",
+    "cta": "⌕ TROUVER UN TITRE DANS DÉCOUVRIR"
+  },
+  "pending": {
+    "episodes_one": "{{count}} ÉPISODE",
+    "episodes_other": "{{count}} ÉPISODES",
+    "chapters_one": "{{count}} CHAPITRE",
+    "chapters_other": "{{count}} CHAPITRES"
+  },
+  "progress": {
+    "episodeOf": "Épisode {{next}} sur {{total}}",
+    "episode": "Épisode {{next}}",
+    "chapterOf": "Chapitre {{next}} sur {{total}}",
+    "chapter": "Chapitre {{next}}"
+  },
+  "inProgress": {
+    "title": "En cours",
+    "caption": "{{kind}} · {{progress}}",
+    "episode": "Ép. {{watched}} sur {{total}}",
+    "chapter": "Ch. {{watched}} sur {{total}}",
+    "viewAll_one": "LE {{count}} PLUS RÉCENT · TOUT VOIR →",
+    "viewAll_other": "LES {{count}} PLUS RÉCENTS · TOUT VOIR →"
+  },
+  "caughtUp": "Tout est à jour : vous avez regardé ou lu chaque épisode et chapitre connu.",
+  "activity": {
+    "title": "Activité récente",
+    "line": "{{verb}} <work>{{title}}</work> <detail>{{detail}}</detail>",
+    "empty": "Ce que vous regardez et lisez, vos notes et vos changements de statut apparaissent ici."
+  },
+  "stats": {
+    "title": "Cette année",
+    "episodes": "Épisodes",
+    "chapters": "Chapitres",
+    "dayStreak": "Jours d’affilée",
+    "completed": "Terminés"
+  },
+  "errors": {
+    "save": "Impossible d’enregistrer votre progression. Réessayez.",
+    "load": "Impossible de charger votre tableau de bord. L’API de l’instance est-elle joignable ?"
+  }
+}

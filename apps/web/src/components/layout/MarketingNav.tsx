@@ -1,12 +1,14 @@
 import { Link } from '@tanstack/react-router';
 import { m } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { buttonClassName } from '../ui/Button';
+import { LocaleMenu } from './LocaleMenu';
 import { Wordmark } from './Wordmark';
 
 const MotionLink = m.create(Link);
 
 /**
- * `routed` links go through the router; the rest are real page loads — `/docs`
+ * `routed` links go through the router; the rest are real page loads: `/docs`
  * is the API's own Scalar page (proxied in dev, see vite.config.ts), and GitHub
  * is off-site.
  *
@@ -16,14 +18,15 @@ const MotionLink = m.create(Link);
  */
 const links = [
   // News is public (ADR-0005), so signed-out visitors get a real link, not a teaser.
-  { label: 'NEWS', href: '/news', routed: true },
-  { label: 'SELF-HOST', href: '/#pillars', routed: false },
-  { label: 'API', href: '/docs', routed: false },
-  { label: 'GITHUB', href: 'https://github.com/pvrnn/Trackt', routed: false },
+  { key: 'nav.news', href: '/news', routed: true },
+  { key: 'nav.selfHost', href: '/#pillars', routed: false },
+  { key: 'nav.api', href: '/docs', routed: false },
+  { key: 'nav.github', href: 'https://github.com/pvrnn/Trackt', routed: false },
 ] as const;
 
 /** Landing navigation: wordmark, dim links, gradient SIGN IN pill. */
 export function MarketingNav() {
+  const { t } = useTranslation();
   return (
     <nav className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-divider px-6 py-5 sm:px-10">
       <Link to="/">
@@ -34,21 +37,22 @@ export function MarketingNav() {
         {links.map((link) => {
           const className = 'whitespace-nowrap text-dim transition hover:text-pink';
           return link.routed ? (
-            <Link key={link.label} to={link.href} className={className}>
-              {link.label}
+            <Link key={link.key} to={link.href} className={className}>
+              {t(link.key)}
             </Link>
           ) : (
-            <a key={link.label} href={link.href} className={className}>
-              {link.label}
+            <a key={link.key} href={link.href} className={className}>
+              {t(link.key)}
             </a>
           );
         })}
+        <LocaleMenu />
         <MotionLink
           to="/login"
           whileTap={{ scale: 0.97 }}
           className={buttonClassName({ className: 'px-5.5 py-2.5 whitespace-nowrap' })}
         >
-          SIGN IN
+          {t('nav.signIn')}
         </MotionLink>
       </div>
     </nav>

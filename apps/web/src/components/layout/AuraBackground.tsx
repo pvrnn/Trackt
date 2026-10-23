@@ -8,7 +8,7 @@ export interface AuraBackgroundProps {
 /**
  * The AURA PRISM background recipe: a fixed aura layer (violet/pink/gold radials)
  * under a fixed grain film. Render once, before the page's `relative` content
- * wrapper — layering is by DOM order, no z-index.
+ * wrapper: layering is by DOM order, no z-index.
  */
 export function AuraBackground({ variant = 'app' }: AuraBackgroundProps) {
   return (

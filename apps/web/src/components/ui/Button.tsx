@@ -7,7 +7,8 @@ export type ButtonSize = 'md' | 'lg';
 
 const base =
   'inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-sans font-bold tracking-btn transition ' +
-  'disabled:cursor-default disabled:border disabled:border-white/8 disabled:bg-white/3 disabled:text-faint';
+  // `disabled:bg-none` cancels primary's gradient, which background-color can't.
+  'disabled:cursor-default disabled:border disabled:border-white/8 disabled:bg-white/3 disabled:bg-none disabled:text-faint';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-prism text-on-prism hover:brightness-115',

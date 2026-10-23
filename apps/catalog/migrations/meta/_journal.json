@@ -43,6 +43,13 @@
       "when": 1786050836956,
       "tag": "0005_news",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792778608138,
+      "tag": "0006_moaning_rocket_raccoon",
+      "breakpoints": true
     }
   ]
 }

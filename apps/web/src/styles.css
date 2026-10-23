@@ -5,7 +5,7 @@
 
 /*
  * AURA PRISM design tokens (docs/design/README.md).
- * Values are final per the design handoff — change them there first.
+ * Values are final per the design handoff; change them there first.
  */
 @theme {
   /* color */
@@ -36,7 +36,7 @@
   --font-sans: 'Archivo Variable', system-ui, sans-serif;
   --font-display: 'Anton', 'Archivo Variable', sans-serif;
   --font-label: 'Space Grotesk Variable', 'Archivo Variable', sans-serif;
-  /* Section/page titles (Up next, In progress, Recent activity, …) — one knob for all of them. */
+  /* Section/page titles (Up next, In progress, Recent activity, …): one knob for all of them. */
   --font-heading: 'Anton', 'Archivo Variable', sans-serif;
   --text-hero: clamp(3.25rem, 8.8vw, 7.5rem);
   --text-hero--line-height: 0.92;
@@ -87,7 +87,7 @@
 
 /*
  * Background recipe (every page): fixed aura radials + grain film.
- * Kept as plain CSS — multi-stop radial stacks are unreadable as utilities.
+ * Kept as plain CSS: multi-stop radial stacks are unreadable as utilities.
  */
 @layer components {
   .aura-fixed {
@@ -124,7 +124,7 @@
    * Separates dark artwork from the dark background without touching the
    * artwork itself: an ambient prism-tinted glow (so it reads as sitting on
    * something) and a tight dark shadow (so it doesn't float). `.cover--sm` is
-   * a modifier — combine with `.cover` and it only scales the shadow down for
+   * a modifier: combine with `.cover` and it only scales the shadow down for
    * grid/thumbnail sizes; radius and overflow stay whatever the element
    * already declares.
    */
@@ -140,45 +140,64 @@
       0 12px 32px -8px rgb(217 107 176 / 0.42),
       0 4px 18px -6px rgb(0 0 0 / 0.85);
   }
-
   /*
-   * The landing band: one row of covers rolling left forever.
-   *
-   * The track holds its contents twice and slides exactly -50%, so the moment
-   * the animation restarts, copy two sits precisely where copy one began —
-   * hence the seam is invisible and there is no JS in the loop at all. The
-   * duplicate is `aria-hidden`; the whole band is decorative anyway.
-   *
-   * `--marquee-duration` is set per-instance from the item count, so a short
-   * catalog and a full one scroll at the same *speed* rather than the same
-   * period. Kept as plain CSS because a Tailwind arbitrary keyframe can't hold
-   * the reduced-motion branch below.
+   * Dialog presence. Radix keeps the content mounted until its exit animation
+   * ends, which is what lets a dialog fade out rather than vanish on unmount.
+   * `scale` rather than `transform`: Tailwind centres the card with `translate`,
+   * and the two individual properties compose where `transform` would replace.
    */
-  .marquee {
-    display: flex;
-    width: max-content;
-    animation: marquee-roll var(--marquee-duration, 60s) linear infinite;
+  .dialog-overlay[data-state='open'] {
+    animation: dialog-fade-in 160ms ease-out;
   }
-  /* Pausing on hover is the one nod to control: it lets someone actually read a
-     title they recognised, without turning decoration into a carousel widget. */
-  .marquee:hover {
-    animation-play-state: paused;
+  .dialog-overlay[data-state='closed'] {
+    animation: dialog-fade-out 160ms ease-in forwards;
   }
-  @keyframes marquee-roll {
+  .dialog-content[data-state='open'] {
+    animation: dialog-pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .dialog-content[data-state='closed'] {
+    animation: dialog-pop-out 160ms ease-in forwards;
+  }
+  @keyframes dialog-fade-in {
     from {
-      transform: translate3d(0, 0, 0);
+      opacity: 0;
     }
     to {
-      transform: translate3d(-50%, 0, 0);
+      opacity: 1;
     }
   }
-  /*
-   * Reduced motion stops it dead rather than slowing it: continuous
-   * edge-to-edge movement is exactly what the preference is asking us not to
-   * do. The band stays, showing its first screenful as a static row.
-   */
+  @keyframes dialog-fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes dialog-pop-in {
+    from {
+      opacity: 0;
+      scale: 0.97;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+  @keyframes dialog-pop-out {
+    from {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 0.97;
+    }
+  }
+  /* Reduced motion closes instantly: the delay above is motion, not a beat of silence. */
   @media (prefers-reduced-motion: reduce) {
-    .marquee {
+    .dialog-overlay[data-state],
+    .dialog-content[data-state] {
       animation: none;
     }
   }

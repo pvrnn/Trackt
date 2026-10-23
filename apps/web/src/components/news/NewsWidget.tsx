@@ -1,35 +1,41 @@
 import { Link } from '@tanstack/react-router';
-import { TOPIC_LABELS, coverGradient, formatNewsDate, useNewsFeed } from '@trackt/client';
+import { useTranslation } from 'react-i18next';
+import { coverGradient, useNewsFeed } from '@trackt/client';
+import { useFormat } from '../../lib/format';
+import { useLabels } from '../../lib/labels';
 import { GlassCard } from '../ui/GlassCard';
 
 const WIDGET_LIMIT = 4;
 
-/** Compact "latest news" sidebar block — a slice of the /news feed, not the full card. */
+/** Compact "latest news" sidebar block, a slice of the /news feed, not the full card. */
 export function NewsWidget() {
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const format = useFormat();
   const { articles, isLoading, isError } = useNewsFeed({});
   const latest = articles.slice(0, WIDGET_LIMIT);
 
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-heading text-[32px] uppercase">Latest news</h2>
+        <h2 className="font-heading text-[32px] uppercase">{t('news.widget.heading')}</h2>
         <Link
           to="/news"
           className="text-prism font-label text-xs font-bold tracking-btn hover:text-pink"
         >
-          VIEW ALL →
+          {t('news.widget.viewAll')}
         </Link>
       </div>
 
       {isError ? (
         <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-          Couldn’t load news right now.
+          {t('news.widget.error')}
         </GlassCard>
       ) : isLoading ? (
         <div className="h-24" aria-busy />
       ) : latest.length === 0 ? (
         <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-          Nothing to report yet — check back soon.
+          {t('news.widget.empty')}
         </GlassCard>
       ) : (
         <ul className="flex flex-col gap-2.5">
@@ -61,7 +67,7 @@ export function NewsWidget() {
                     {article.title}
                   </Link>
                   <span className="font-label text-[11px] tracking-label text-dim">
-                    {TOPIC_LABELS[article.topic]} · {formatNewsDate(article.publishedAt)}
+                    {labels.topic(article.topic)} · {format.newsDate(article.publishedAt)}
                   </span>
                 </div>
               </GlassCard>

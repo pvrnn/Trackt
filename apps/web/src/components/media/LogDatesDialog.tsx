@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LOG_DATE_FLOOR, type LogDates } from '@trackt/shared';
 import { todayIso, validateLogDates } from '@trackt/client';
 import { Button } from '../ui/Button';
@@ -24,17 +25,32 @@ export interface LogDatesDialogProps {
 }
 
 export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesDialogProps) {
+  const { t } = useTranslation();
   const [startedAt, setStartedAt] = useState(dates.startedAt ?? '');
   const [finishedAt, setFinishedAt] = useState(dates.finishedAt ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  /**
+   * `validateLogDates` answers in display copy because mobile renders it as-is;
+   * web owns its words, so the three problems map back onto catalog keys. A
+   * fourth problem would rather show its English than the wrong translation.
+   */
+  const problemText = (problem: string) => {
+    if (problem.startsWith('Dates start at')) {
+      return t('media.dates.floor', { date: LOG_DATE_FLOOR });
+    }
+    if (problem === 'Dates can’t be in the future.') return t('media.dates.future');
+    if (problem === 'The finish date is before the start date.') return t('media.dates.order');
+    return problem;
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const next: LogDates = { startedAt: startedAt || null, finishedAt: finishedAt || null };
     const problem = validateLogDates(next, todayIso());
     if (problem) {
-      setError(problem);
+      setError(problemText(problem));
       return;
     }
     setSaving(true);
@@ -42,8 +58,8 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
     try {
       await onSave(next);
       onClose();
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'That didn’t save — try again.');
+    } catch {
+      setError(t('media.saveFailed'));
       setSaving(false);
     }
   };
@@ -52,18 +68,19 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
     <Modal onClose={onClose}>
       <form onSubmit={submit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <ModalTitle>Dates</ModalTitle>
+          <ModalTitle>{t('media.dates.title')}</ModalTitle>
           <p className="text-sm text-muted">{mediaTitle}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <DateField label="STARTED" value={startedAt} onChange={setStartedAt} />
-          <DateField label="FINISHED" value={finishedAt} onChange={setFinishedAt} />
+          <DateField label={t('media.dates.started')} value={startedAt} onChange={setStartedAt} />
+          <DateField
+            label={t('media.dates.finished')}
+            value={finishedAt}
+            onChange={setFinishedAt}
+          />
         </div>
-        <p className="text-[13px] text-dim">
-          Leave a field empty to clear it. A finish date is what files a title under a year on your
-          history; an unfinished one files under its start.
-        </p>
+        <p className="text-[13px] text-dim">{t('media.dates.help')}</p>
 
         {error && (
           <p role="alert" className="text-sm text-red-400">
@@ -81,10 +98,10 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
               setError(null);
             }}
           >
-            CLEAR
+            {t('media.dates.clear')}
           </Button>
           <Button type="submit" disabled={saving}>
-            {saving ? 'SAVING…' : 'SAVE'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </form>

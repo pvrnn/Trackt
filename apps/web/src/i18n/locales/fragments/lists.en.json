@@ -1,0 +1,70 @@
+{
+  "title": "Lists",
+  "detailTitle": "List · Trackt",
+  "newList": "＋ NEW LIST",
+  "scopes": {
+    "mine": "MY LISTS",
+    "friends": "FRIENDS",
+    "collaborative": "COLLABORATIVE"
+  },
+  "error": "Couldn’t load your lists. Is the instance API reachable? Try again in a moment.",
+  "empty": "No lists yet. Hit ＋ NEW LIST and start with the handful of titles you’d defend in an argument.",
+  "titles_one": "{{count}} TITLE",
+  "titles_other": "{{count}} TITLES",
+  "updated": "UPDATED {{date}}",
+  "card": {
+    "emptyCover": "Empty",
+    "ranked": "RANKED",
+    "collab": "COLLAB"
+  },
+  "visibilityHelp": {
+    "public": "Anyone with the link can see this list.",
+    "followers": "Friends only: visible to accepted friends.",
+    "private": "Only you can see this list."
+  },
+  "dialog": {
+    "title": "New list",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Best webtoons, ranked",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What ties these together?",
+    "ranked": "Ranked: order matters, and I can reorder it",
+    "visibility": "Visibility",
+    "create": "CREATE",
+    "creating": "CREATING…",
+    "saveError": "That didn’t save. Try again."
+  },
+  "detail": {
+    "loadFailedTitle": "Couldn’t load",
+    "loadFailedBody": "Something went wrong fetching this list: the instance API may be unreachable.",
+    "retry": "RETRY",
+    "allLists": "← ALL LISTS",
+    "notFoundTitle": "Not found",
+    "notFoundBody": "This list doesn’t exist, or it’s private to someone else.",
+    "deleteList": "DELETE LIST",
+    "titles": "Titles",
+    "ranked": "Ranked",
+    "reorderHint": "USE ↑ ↓ TO REORDER",
+    "empty": "Nothing here yet. Open any title and hit ＋ LIST to add it.",
+    "by": "BY <user>@{{username}}</user>",
+    "season": "SEASON {{number}}",
+    "mediaStatus": {
+      "announced": "ANNOUNCED",
+      "airing": "AIRING",
+      "publishing": "PUBLISHING",
+      "ended": "ENDED",
+      "cancelled": "CANCELLED"
+    },
+    "moveUp": "Move {{title}} up",
+    "moveDown": "Move {{title}} down",
+    "remove": "Remove {{title}} from this list",
+    "saveError": "That didn’t save. Try again."
+  },
+  "delete": {
+    "title": "Delete this list?",
+    "confirm": "DELETE",
+    "confirming": "DELETING…",
+    "body_one": "“{{title}}” and its {{count}} title go away. Your logs, ratings and progress are untouched.",
+    "body_other": "“{{title}}” and its {{count}} titles go away. Your logs, ratings and progress are untouched."
+  }
+}

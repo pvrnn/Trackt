@@ -1,17 +1,18 @@
 import { Link } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { MEDIA_KINDS, type FavoriteEntry, type MediaKind } from '@trackt/shared';
 import { CoverCard } from '../media/CoverCard';
 import { GlassCard } from '../ui/GlassCard';
 import { KindDot } from '../ui/KindDot';
 import { Tooltip } from '../ui/Tooltip';
 
-const KIND_BLOCK_TITLES: Record<MediaKind, string> = {
-  movie: 'Favourite movies',
-  series: 'Favourite series',
-  anime: 'Favourite anime',
-  manga: 'Favourite manga',
-  webtoon: 'Favourite webtoons',
-};
+const KIND_BLOCK_KEYS = {
+  movie: 'profile.favourites.movie',
+  series: 'profile.favourites.series',
+  anime: 'profile.favourites.anime',
+  manga: 'profile.favourites.manga',
+  webtoon: 'profile.favourites.webtoon',
+} as const satisfies Record<MediaKind, string>;
 
 /**
  * Ranked per-kind favourite shelves, shared by `/profile` and
@@ -28,6 +29,7 @@ export function FavouriteShelves({
   own: boolean;
   emptyMessage: string;
 }) {
+  const { t } = useTranslation();
   const blocks = MEDIA_KINDS.map((kind) => ({
     kind,
     items: favorites.filter((entry) => entry.kind === kind),
@@ -36,7 +38,7 @@ export function FavouriteShelves({
   if (blocks.length === 0) {
     return (
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-[32px] uppercase">Favourites</h2>
+        <h2 className="font-heading text-[32px] uppercase">{t('profile.favourites.title')}</h2>
         <GlassCard className="px-6 py-5 text-[15px] text-muted">{emptyMessage}</GlassCard>
       </section>
     );
@@ -47,7 +49,7 @@ export function FavouriteShelves({
       {blocks.map((block) => (
         <section key={block.kind} className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <h2 className="font-heading text-[32px] uppercase">{KIND_BLOCK_TITLES[block.kind]}</h2>
+            <h2 className="font-heading text-[32px] uppercase">{t(KIND_BLOCK_KEYS[block.kind])}</h2>
             <KindDot kind={block.kind} />
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -66,7 +68,7 @@ export function FavouriteShelves({
               </Link>
             ))}
             {own && (
-              <Tooltip label="Find more to favourite">
+              <Tooltip label={t('profile.favourites.findMore')}>
                 <Link
                   to="/search"
                   search={{ kind: block.kind }}

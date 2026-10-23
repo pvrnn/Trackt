@@ -1,0 +1,19 @@
+{
+  "title": "Envoyer un retour",
+  "intro": "Un bug, une fonctionnalité manquante, ou quelque chose qui vous a simplement semblé de travers : tout arrive au projet Trackt.",
+  "kind": "Quel type ?",
+  "category": {
+    "bug": "BUG",
+    "feature": "IDÉE",
+    "other": "AUTRE CHOSE"
+  },
+  "message": "Message",
+  "placeholder": "Que s’est-il passé, et qu’attendiez-vous à la place ?",
+  "minLength": "Encore un peu : 10 caractères minimum.",
+  "count": "{{used}}/{{max}}",
+  "context": "Envoyé avec l’adresse de cette instance et la page où vous êtes, pour pouvoir reproduire un bug. Les informations de votre compte restent ici.",
+  "sent": "Retour envoyé. Merci.",
+  "error": "Impossible d’envoyer le retour. Réessayez.",
+  "sending": "ENVOI…",
+  "send": "ENVOYER"
+}

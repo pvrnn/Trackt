@@ -40,6 +40,12 @@ const RawEnvSchema = z.object({
    * requests pay it.
    */
   CATALOG_NEWS_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
+  /**
+   * Timeout for forwarding a feedback report to the catalog. Generous like news,
+   * for the opposite reason: this is a write the reporter is watching, so a slow
+   * success beats a fast failure they have to retype.
+   */
+  CATALOG_FEEDBACK_TIMEOUT_MS: z.coerce.number().int().positive().default(4000),
   TMDB_API_KEY: z.string().optional(),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   UPLOADS_DIR: z.string().default('./data/uploads'),
@@ -100,6 +106,7 @@ export interface Env {
   CATALOG_SEARCH_TIMEOUT_MS: number;
   CATALOG_RELATIONS_TIMEOUT_MS: number;
   CATALOG_NEWS_TIMEOUT_MS: number;
+  CATALOG_FEEDBACK_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
   LOG_LEVEL: (typeof LOG_LEVELS)[number];
   UPLOADS_DIR: string;

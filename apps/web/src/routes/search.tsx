@@ -1,6 +1,7 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
@@ -8,7 +9,8 @@ import { CoverCard } from '../components/media/CoverCard';
 import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
 import { useAuthedPage } from '../lib/auth-client';
-import { KIND_LABELS, useMediaSearch } from '@trackt/client';
+import { useLabels } from '../lib/labels';
+import { useMediaSearch } from '@trackt/client';
 
 export interface SearchParams {
   q?: string;
@@ -16,7 +18,7 @@ export interface SearchParams {
 }
 
 export const Route = createFileRoute('/search')({
-  head: () => ({ meta: [{ title: 'Discover — Trackt' }] }),
+  head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.discover') }] }),
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     kind: MEDIA_KINDS.includes(search.kind as MediaKind) ? (search.kind as MediaKind) : undefined,
@@ -28,6 +30,8 @@ export const Route = createFileRoute('/search')({
 const ALL_KINDS = 'all';
 
 function SearchPage() {
+  const { t } = useTranslation();
+  const labels = useLabels();
   const navigate = useNavigate({ from: Route.fullPath });
   const { isPending, navUser } = useAuthedPage();
   const { q = '', kind } = Route.useSearch();
@@ -37,7 +41,7 @@ function SearchPage() {
   // `?q=` also changes without this field: the nav search submits to this page
   // while it is already mounted (no remount on a search-param change), and
   // Back/Forward rewrites it too. Adopt those, but ignore the echo of our own
-  // push below — otherwise a value still in flight overwrites whatever has
+  // push below; otherwise a value still in flight overwrites whatever has
   // been typed since, and the two effects push each other back and forth.
   const pushed = useRef(q);
   useEffect(() => {
@@ -72,7 +76,7 @@ function SearchPage() {
       <div className="relative">
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
-          <h1 className="font-heading text-[64px] leading-none uppercase">Discover</h1>
+          <h1 className="font-heading text-[64px] leading-none uppercase">{t('discover.title')}</h1>
 
           <div className="flex flex-col gap-3.5">
             <label className="flex items-center gap-3.5 rounded-full border border-glass-border-strong bg-glass-well px-6 py-4 backdrop-blur-[16px]">
@@ -83,11 +87,11 @@ function SearchPage() {
                 type="search"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                placeholder="Search titles…"
+                placeholder={t('discover.searchPlaceholder')}
                 // The wrapping label's only content is the aria-hidden ⌕, so
-                // without this the name falls back to the placeholder — the
+                // without this the name falls back to the placeholder, the
                 // weakest source in the accname spec, and gone once you type.
-                aria-label="search titles"
+                aria-label={t('discover.searchAria')}
                 autoFocus
                 className="flex-1 bg-transparent text-[17px] outline-none placeholder:text-dim"
               />
@@ -96,7 +100,7 @@ function SearchPage() {
             </label>
             <ToggleGroup.Root
               type="single"
-              aria-label="filter by kind"
+              aria-label={t('discover.filterAria')}
               value={kind ?? ALL_KINDS}
               onValueChange={(value) => {
                 // Radix emits '' when the active item is pressed again; a filter
@@ -116,13 +120,13 @@ function SearchPage() {
                   radio that is also aria-pressed is invalid ARIA. */}
               <ToggleGroup.Item value={ALL_KINDS} asChild>
                 <Chip selected={kind === undefined} aria-pressed={undefined}>
-                  ALL
+                  {t('common.all')}
                 </Chip>
               </ToggleGroup.Item>
               {MEDIA_KINDS.map((value) => (
                 <ToggleGroup.Item key={value} value={value} asChild>
                   <Chip selected={kind === value} aria-pressed={undefined}>
-                    {KIND_LABELS[value]}
+                    {labels.kind(value)}
                   </Chip>
                 </ToggleGroup.Item>
               ))}
@@ -130,22 +134,26 @@ function SearchPage() {
           </div>
 
           <div className="flex items-baseline justify-between">
-            <h2 className="font-heading text-[32px] uppercase">Results</h2>
+            <h2 className="font-heading text-[32px] uppercase">{t('discover.results')}</h2>
             {q && status !== 'loading' && (
               <span className="font-label text-[13px] tracking-label text-dim">
-                {results.length} {results.length === 1 ? 'TITLE' : 'TITLES'}
+                {t('discover.resultCount', { count: results.length })}
               </span>
             )}
           </div>
 
           {!q ? null : status === 'error' ? (
             <p role="alert" className="text-[15px] text-red-400">
-              Search failed — is the instance API reachable? Try again in a moment.
+              {t('errors.searchFailed')}
             </p>
           ) : results.length === 0 && status === 'success' ? (
             <p className="text-[15px] text-muted">
-              Nothing on this instance matches “{q}”
-              {kind ? ` in ${KIND_LABELS[kind].toLowerCase()}` : ''}.
+              {kind
+                ? t('discover.emptyInKind', {
+                    query: q,
+                    kind: labels.kind(kind).toLowerCase(),
+                  })
+                : t('discover.empty', { query: q })}
             </p>
           ) : (
             <ul
@@ -173,11 +181,8 @@ function SearchPage() {
           )}
 
           <aside className="mt-3 rounded-card border border-dashed border-white/20 bg-glass px-8 py-7 backdrop-blur-[16px]">
-            <p className="text-base font-bold">Can&apos;t find it?</p>
-            <p className="mt-0.5 text-sm text-muted">
-              The catalog fills in over time — titles are added to the central catalog and reach
-              every instance from there. Write a request to ask for one to be added.
-            </p>
+            <p className="text-base font-bold">{t('discover.missingTitle')}</p>
+            <p className="mt-0.5 text-sm text-muted">{t('discover.missingBody')}</p>
           </aside>
         </main>
       </div>

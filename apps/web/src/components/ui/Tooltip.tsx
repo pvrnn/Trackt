@@ -5,7 +5,7 @@ import type { ReactElement, ReactNode } from 'react';
  * Hover/focus tooltip, replacing the native `title` attribute. Two things `title`
  * doesn't do: reach keyboard users, and appear in under a second.
  *
- * Note the trigger must be focusable for the keyboard half to work — inert
+ * Note the trigger must be focusable for the keyboard half to work: inert
  * placeholders (`<span>`s that explain why a control isn't live yet) need
  * `tabIndex={0}`, otherwise the copy stays mouse-only.
  *
