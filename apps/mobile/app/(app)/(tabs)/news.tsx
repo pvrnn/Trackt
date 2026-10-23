@@ -2,6 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useNewsFeed } from '@trackt/client';
 import type { MediaKind } from '@trackt/shared';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NewsFilterBar } from '../../../src/components/NewsFilterBar';
@@ -36,6 +37,7 @@ export default function NewsTab() {
   /** Empty is ALL KINDS: its own row in the menu, not every other row ticked. */
   const [kinds, setKinds] = useState<MediaKind[]>([]);
   const [window, setWindow] = useState<WindowKey>('all');
+  const { t } = useTranslation();
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
 
@@ -70,7 +72,7 @@ export default function NewsTab() {
         ListHeaderComponent={
           <View style={{ paddingTop: insets.top + space.lg }}>
             <View style={gutter}>
-              <PageTitle title="News" />
+              <PageTitle title={t('news.title')} />
               <StaleNotice updatedAt={updatedAt} />
             </View>
             <View style={styles.secondRow}>
@@ -91,17 +93,14 @@ export default function NewsTab() {
                 <Loading />
               </OfflineFallback>
             ) : isError ? (
-              <EmptyState
-                title="News is offline"
-                body="This instance couldn't reach the catalog's news feed."
-              />
+              <EmptyState title={t('news.offlineTitle')} body={t('news.offlineBody')} />
             ) : (
               <EmptyState
-                title="Nothing yet"
+                title={t('news.empty.title')}
                 body={
                   kinds.length > 0 || window !== 'all'
-                    ? 'No stories in this filter. Widen the kinds or the date range.'
-                    : 'No stories have been published to this instance yet.'
+                    ? t('news.empty.filtered')
+                    : t('news.empty.unfiltered')
                 }
               />
             )}

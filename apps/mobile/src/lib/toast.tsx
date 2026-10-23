@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import { color, layout, nativeSurface, radius, space, stroke, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
+import { i18n } from '../i18n';
 
 /**
  * The undo toast (`Mobile System.dc.html` §04).
@@ -131,7 +132,7 @@ export function useWriteFailedToast() {
   const show = useToast();
   return useMemo(
     () =>
-      (cause: unknown, fallback = 'That didn’t save — try again.') =>
+      (cause: unknown, fallback = i18n.t('media.saveFailed')) =>
         show({
           message: cause instanceof Error && cause.message ? cause.message : fallback,
           tone: 'error',

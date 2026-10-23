@@ -8,8 +8,9 @@ import { PrismText } from '../../src/components/PrismText';
 import { Screen } from '../../src/components/Screen';
 import { demoInstanceOrigin } from '../../src/lib/build-config';
 import { useInstance } from '../../src/lib/instance-provider';
-import { describeProbeFailure, normalizeOrigin, probeInstance } from '../../src/lib/instance';
+import { normalizeOrigin, probeInstance } from '../../src/lib/instance';
 import { color, space } from '../../src/theme/tokens';
+import { useTranslation } from 'react-i18next';
 import { type } from '../../src/theme/typography';
 
 /**
@@ -29,6 +30,7 @@ import { type } from '../../src/theme/typography';
  */
 export default function InstancePicker() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { origin, selectInstance } = useInstance();
   const [value, setValue] = useState(origin ?? '');
   // Read once: it is compiled into the build and cannot change while it runs.
@@ -43,7 +45,7 @@ export default function InstancePicker() {
     async (input: string) => {
       const normalized = normalizeOrigin(input);
       if (!normalized) {
-        setError("That doesn't look like a server address. Try something like trackt.example.com.");
+        setError(t('errors.invalidInstanceAddress'));
         return;
       }
 
@@ -58,29 +60,28 @@ export default function InstancePicker() {
       setChecking(false);
 
       if (!result.ok) {
-        setError(describeProbeFailure(result));
+        if (result.reason === 'unreachable') setError(t('errors.instanceUnreachableDetailed'));
+        else if (result.reason === 'not-trackt') setError(t('errors.notTracktInstance'));
+        else setError(t('errors.instanceTooOld', { version: result.version, min: '0.1.0' }));
         return;
       }
       await selectInstance(result.origin);
       router.replace('/login');
     },
-    [selectInstance, router],
+    [selectInstance, router, t],
   );
 
   return (
     <Screen center auraIntensity={1.6}>
       <View style={styles.header}>
-        <Text style={[type.eyebrow, styles.eyebrow]}>SELF-HOSTED TRACKING</Text>
+        <Text style={[type.eyebrow, styles.eyebrow]}>{t('nav.selfHost')}</Text>
         <PrismText style={type.hero}>TRACKT</PrismText>
-        <Text style={[type.body, styles.lede]}>
-          Trackt has no central server. Point the app at the instance you use — your own, or one a
-          friend runs.
-        </Text>
+        <Text style={[type.body, styles.lede]}>{t('instance.lede')}</Text>
       </View>
 
       <GlassCard strongBorder style={styles.card}>
         <Field
-          label="Instance address"
+          label={t('instance.addressLabel')}
           placeholder="trackt.example.com"
           value={value}
           onChangeText={(next) => {
@@ -97,20 +98,18 @@ export default function InstancePicker() {
           error={error ?? undefined}
         />
         <PrismButton
-          label={checking ? 'Connecting…' : 'Connect'}
+          label={checking ? t('instance.connecting') : t('instance.connect')}
           onPress={() => void connect(value)}
           busy={checking}
         />
-        <Text style={[type.bodySm, styles.hint]}>
-          https:// is assumed. A LAN address needs the scheme and port — http://192.168.1.10:3000.
-        </Text>
+        <Text style={[type.bodySm, styles.hint]}>{t('instance.hint')}</Text>
         {/* Only when this build was given one (`app.config.ts`). The picker
             still never guesses: this is a labelled address, taken on purpose,
             and it exists so someone with no instance of their own — an App
             Review reviewer, most of all — has something to sign into. */}
         {demo ? (
           <PrismButton
-            label="Use the demo instance"
+            label={t('instance.useDemo')}
             variant="secondary"
             disabled={checking}
             onPress={() => void connect(demo)}

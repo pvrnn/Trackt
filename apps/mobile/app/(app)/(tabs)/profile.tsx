@@ -1,11 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  KIND_LABELS,
-  activityVerbLabel,
-  relativeTime,
-  useFriends,
-  useProfileSummary,
-} from '@trackt/client';
+import { relativeTime, useFriends, useProfileSummary } from '@trackt/client';
+import { useLabels } from '../../../src/lib/labels';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LOCALES } from '../../../src/i18n';
+import { storeLocale } from '../../../src/lib/storage';
+import { i18n } from '../../../src/i18n';
 import { MEDIA_KINDS, type FavoriteEntry } from '@trackt/shared';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -50,6 +49,8 @@ import { type } from '../../../src/theme/typography';
  */
 export default function ProfileTab() {
   const { user, isPending: sessionPending, refetch: refetchSession } = useAuthedScreen();
+  const { t } = useTranslation();
+  const labels = useLabels();
   const { origin, forgetInstance } = useInstance();
   const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useProfileSummary();
   const { data: friends } = useFriends();
@@ -87,14 +88,14 @@ export default function ProfileTab() {
                 that decays if you stop, which is why it gets the colour. */}
             <Text style={[type.eyebrow, text.dim]}>
               @{data?.user.username ?? user.username}
-              {data
-                ? ` · ${data.stats.friendCount} ${data.stats.friendCount === 1 ? 'FRIEND' : 'FRIENDS'}`
-                : ''}
+              {data ? ` · ${t('social.friendLabel', { count: data.stats.friendCount })}` : ''}
             </Text>
             {data && data.stats.dayStreak > 0 ? (
               <View style={styles.streak}>
                 <View style={styles.streakDot} />
-                <Text style={[type.eyebrow, text.pink]}>{data.stats.dayStreak}-DAY STREAK</Text>
+                <Text style={[type.eyebrow, text.pink]}>
+                  {t('profile.header.streak', { count: data.stats.dayStreak })}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -104,32 +105,45 @@ export default function ProfileTab() {
         <QueryState
           query={{ data, isPending, isError, dataUpdatedAt }}
           error={{
-            title: "Couldn't load",
-            body: "The instance didn't answer. Pull down to try again.",
+            title: t('media.loadFailed.title'),
+            body: t('home.loadError'),
           }}
         >
           {(data) => (
             <>
               <Stats>
-                <Stat value={data.stats.titlesTracked} label="Tracked" compact />
-                <Stat value={data.stats.completed} label="Completed" compact />
-                <Stat value={data.stats.episodesThisYear} label="Episodes" compact />
-                <Stat value={data.stats.chaptersThisYear} label="Chapters" compact />
+                <Stat value={data.stats.titlesTracked} label={t('profile.stats.titles')} compact />
+                <Stat value={data.stats.completed} label={t('profile.stats.completed')} compact />
+                <Stat
+                  value={data.stats.episodesThisYear}
+                  label={t('profile.stats.episodesThisYear')}
+                  compact
+                />
+                <Stat
+                  value={data.stats.chaptersThisYear}
+                  label={t('profile.stats.chaptersThisYear')}
+                  compact
+                />
               </Stats>
 
               {/* The second navigation level the four-tab spine displaces here —
                 one row each, glyph to chevron, the way the design files it. */}
               <View style={styles.destinations}>
-                <Destination icon="list" href="/lists" label="Lists" meta="YOUR COLLECTIONS" />
+                <Destination
+                  icon="list"
+                  href="/lists"
+                  label={t('lists.title')}
+                  meta={t('profile.yourCollections')}
+                />
                 <Destination
                   icon="clock"
                   href="/history"
-                  label="History"
+                  label={t('history.title')}
                   meta={`${data.stats.completed} DONE`}
                 />
                 <Destination
                   icon="settings"
-                  label="Edit profile"
+                  label={t('profile.edit.title')}
                   onPress={() => setEditing(true)}
                 />
               </View>
@@ -140,14 +154,16 @@ export default function ProfileTab() {
                 is the one thing on this screen that wants answering. */}
               <View style={styles.favourites}>
                 <SectionTitle
-                  title="Friends"
+                  title={t('social.title')}
                   action={
                     <Touchable
                       href="/friends"
                       accessibilityLabel={
                         data.stats.incomingRequestCount > 0
-                          ? `All friends — ${data.stats.incomingRequestCount} pending requests`
-                          : 'All friends'
+                          ? t('profile.allFriendsPending', {
+                              count: data.stats.incomingRequestCount,
+                            })
+                          : t('profile.allFriends')
                       }
                       style={styles.addFriend}
                     >
@@ -185,7 +201,7 @@ export default function ProfileTab() {
 
               {data.favorites.length > 0 ? (
                 <View style={styles.favourites}>
-                  <SectionTitle title="Favourites" />
+                  <SectionTitle title={t('profile.favourites.title')} />
                   {/* One heading, then a shelf per kind — because the rank is per
                     kind (`favorite.position`), and a single mixed shelf would
                     put two number ones next to each other. */}
@@ -193,7 +209,7 @@ export default function ProfileTab() {
                     const favorites = data.favorites.filter((entry) => entry.kind === kind);
                     if (favorites.length === 0) return null;
                     return (
-                      <FavoriteBlock key={kind} label={KIND_LABELS[kind]} entries={favorites} />
+                      <FavoriteBlock key={kind} label={labels.kind(kind)} entries={favorites} />
                     );
                   })}
                 </View>
@@ -201,7 +217,7 @@ export default function ProfileTab() {
 
               {data.activity.length > 0 ? (
                 <View>
-                  <SectionTitle title="Recent activity" />
+                  <SectionTitle title={t('home.activity.title')} />
                   <GlassCard style={styles.activityCard}>
                     {data.activity.map((entry, index) => (
                       <Touchable
@@ -211,7 +227,7 @@ export default function ProfileTab() {
                       >
                         <KindDot kind={entry.kind} />
                         <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
-                          {activityVerbLabel(entry).toLowerCase()} {entry.title}{' '}
+                          {labels.activity(entry).toLowerCase()} {entry.title}{' '}
                           <Text style={text.dim}>{entry.detail}</Text>
                         </Text>
                         <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
@@ -225,17 +241,30 @@ export default function ProfileTab() {
         </QueryState>
 
         <View style={styles.account}>
-          <SectionTitle title="Account" />
+          <SectionTitle title={t('profile.account')} />
           <Text style={[type.bodySm, text.dim]}>
             {origin} · app {CLIENT_VERSION}
           </Text>
+          <View style={{ flexDirection: 'row', gap: space.sm }}>
+            {SUPPORTED_LOCALES.map((loc) => (
+              <PrismButton
+                key={loc}
+                label={t(`locale.${loc}`)}
+                variant={i18n.language === loc ? 'primary' : 'secondary'}
+                onPress={() => {
+                  void storeLocale(loc);
+                  void i18n.changeLanguage(loc);
+                }}
+              />
+            ))}
+          </View>
           <PrismButton
-            label="Sign out"
+            label={t('shell.signOut')}
             variant="secondary"
             onPress={() => void authClient().signOut()}
           />
           <PrismButton
-            label="Change server"
+            label={t('profile.changeServer')}
             variant="secondary"
             onPress={() => void forgetInstance()}
           />
@@ -243,7 +272,7 @@ export default function ProfileTab() {
               half of the portability principle, but nothing anyone is looking
               for on this screen. The sheet behind it does the asking. */}
           <PrismButton
-            label="Delete account"
+            label={t('profile.deleteAccount')}
             variant="secondary"
             onPress={() => setDeleting(true)}
           />

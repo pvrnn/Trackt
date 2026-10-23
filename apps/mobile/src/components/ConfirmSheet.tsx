@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { color, space } from '../theme/tokens';
 import { type } from '../theme/typography';
@@ -29,6 +30,7 @@ export function ConfirmSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +41,7 @@ export function ConfirmSheet({
       await onConfirm();
       sheet.dismiss();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That didn’t work — try again.');
+      setError(cause instanceof Error ? cause.message : t('common.failed'));
       setBusy(false);
     }
   };
@@ -50,7 +52,7 @@ export function ConfirmSheet({
       {error ? <SheetError message={error} /> : null}
       <View style={styles.actions}>
         <PrismButton
-          label="Cancel"
+          label={t('common.cancel')}
           variant="secondary"
           disabled={busy}
           onPress={sheet.dismiss}

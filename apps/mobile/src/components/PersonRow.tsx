@@ -1,4 +1,5 @@
 import type { FriendState, UserSummary } from '@trackt/shared';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from './Avatar';
@@ -8,24 +9,39 @@ import { Touchable } from './Touchable';
 import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
+import { i18n } from '../i18n';
+
 /** What the roster says under a name when it is a search result. */
 export function friendStateNote(state: FriendState): string {
-  if (state === 'friends') return 'FRIENDS';
-  if (state === 'incoming') return 'WANTS TO BE FRIENDS';
-  if (state === 'outgoing') return 'REQUEST SENT';
-  if (state === 'self') return 'THIS IS YOU';
-  return '';
+  const key =
+    state === 'friends'
+      ? 'social.stateNote.friends'
+      : state === 'incoming'
+        ? 'social.stateNote.incoming'
+        : state === 'outgoing'
+          ? 'social.stateNote.outgoing'
+          : state === 'self'
+            ? 'social.stateNote.self'
+            : 'social.stateNote.none';
+  return i18n.t(key as never);
 }
 
 /** The pill each state wears, and what pressing it does (`fCard` in the mockup). */
-const ACTION: Record<FriendState, { label: string; tone: 'prism' | 'friends' | 'quiet' | 'add' }> =
-  {
-    incoming: { label: 'ACCEPT', tone: 'prism' },
-    friends: { label: 'FRIENDS', tone: 'friends' },
-    outgoing: { label: 'REQUESTED', tone: 'quiet' },
-    none: { label: 'ADD', tone: 'add' },
-    self: { label: 'YOU', tone: 'quiet' },
-  };
+const ACTION_KEY: Record<FriendState, string> = {
+  incoming: 'social.action.accept',
+  friends: 'social.action.friends',
+  outgoing: 'social.action.requested',
+  none: 'social.action.add',
+  self: 'social.action.you',
+};
+
+const ACTION_TONE: Record<FriendState, 'prism' | 'friends' | 'quiet' | 'add'> = {
+  incoming: 'prism',
+  friends: 'friends',
+  outgoing: 'quiet',
+  none: 'add',
+  self: 'quiet',
+};
 
 export function PersonRow({
   person,
@@ -42,8 +58,9 @@ export function PersonRow({
   onAct: () => void;
   onDecline: () => void;
 }) {
-  const action = ACTION[state];
   const press = usePressMotion();
+  const { t } = useTranslation();
+  const action = { label: t(ACTION_KEY[state] as never), tone: ACTION_TONE[state] };
   const inert = disabled || state === 'self';
 
   return (
@@ -67,7 +84,7 @@ export function PersonRow({
       {state === 'incoming' ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Decline ${person.name}`}
+          accessibilityLabel={t('social.declineName', { name: person.name })}
           disabled={disabled}
           onPress={onDecline}
           hitSlop={space.sm}
@@ -79,7 +96,10 @@ export function PersonRow({
 
       <AnimatedPressable
         accessibilityRole="button"
-        accessibilityLabel={`${action.label.toLowerCase()} ${person.name}`}
+        accessibilityLabel={t('social.actionAria', {
+          action: String(action.label).toLowerCase(),
+          name: person.name,
+        })}
         accessibilityState={{ disabled: inert }}
         disabled={inert}
         onPress={onAct}

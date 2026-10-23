@@ -2,6 +2,7 @@ import { relativeTime } from '@trackt/client';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { ActivityIndicator, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactElement, ReactNode } from 'react';
@@ -173,14 +174,10 @@ export function StaleNotice({ updatedAt }: { updatedAt: number }) {
  * run rather than failing it, so `isPending` never resolves.
  */
 export function OfflineFallback({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const isOnline = useIsOnline();
   if (isOnline) return <>{children}</>;
-  return (
-    <EmptyState
-      title="You're offline"
-      body="This loads the moment the instance is reachable again. Anything you check in until then is queued and sent when it is."
-    />
-  );
+  return <EmptyState title={t('common.offlineTitle')} body={t('common.offlineBody')} />;
 }
 
 /**

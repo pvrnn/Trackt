@@ -5,6 +5,7 @@ import Animated, { interpolate, useAnimatedStyle } from 'react-native-reanimated
 import type { AnimatedStyle, SharedValue } from 'react-native-reanimated';
 import type { StyleProp, TextStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
@@ -34,16 +35,16 @@ const TITLE_INSET = layout.gutter + 16 + space.xs + space.md;
  * get the kind of thing they show, not its title, which the route cannot know.
  */
 const BACK_LABELS: Record<string, string> = {
-  home: 'Home',
-  discover: 'Discover',
-  news: 'News',
-  profile: 'Profile',
-  history: 'History',
-  friends: 'Friends',
-  'lists/index': 'Lists',
-  'lists/[id]': 'List',
-  'news/[slug]': 'Article',
-  'users/[username]': 'Profile',
+  home: 'common.backLabels.home',
+  discover: 'common.backLabels.discover',
+  news: 'common.backLabels.news',
+  profile: 'common.backLabels.profile',
+  history: 'common.backLabels.history',
+  friends: 'common.backLabels.friends',
+  'lists/index': 'common.backLabels.lists',
+  'lists/[id]': 'common.backLabels.list',
+  'news/[slug]': 'common.backLabels.article',
+  'users/[username]': 'common.backLabels.profile',
 };
 
 /** A route as the navigator holds it — the shape we read, not the full type. */
@@ -75,11 +76,13 @@ function routeKey(route: StackRoute): string {
  * a title the route does not carry.
  */
 export function useBackLabel(): string {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const state = navigation.getState() as { index: number; routes: StackRoute[] } | undefined;
-  if (!state || state.index < 1) return 'Back';
+  if (!state || state.index < 1) return t('common.back');
   const previous = state.routes[state.index - 1];
-  return (previous && BACK_LABELS[routeKey(previous)]) ?? 'Back';
+  const key = previous && BACK_LABELS[routeKey(previous)];
+  return key ? t(key as never) : t('common.back');
 }
 
 /**

@@ -1,6 +1,7 @@
 import { listsApi, useCreateList, useLists, useListsInvalidator } from '@trackt/client';
 import { LIST_TITLE_MAX } from '@trackt/shared';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { commitHaptic, errorHaptic } from '../lib/haptics';
 import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
@@ -30,6 +31,7 @@ export function AddToListSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
+  const { t } = useTranslation();
   const { data: lists, isPending, isError } = useLists(mediaId);
   const createList = useCreateList();
   const invalidate = useListsInvalidator();
@@ -47,7 +49,7 @@ export function AddToListSheet({
       invalidate(listId);
     } catch (cause) {
       errorHaptic();
-      setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
+      setError(cause instanceof Error ? cause.message : t('media.saveFailed'));
     } finally {
       setPending(null);
     }
@@ -64,21 +66,19 @@ export function AddToListSheet({
           setNewTitle('');
           await toggle(created.id, false);
         },
-        onError: (cause) => setError(cause.message || 'That didn’t save — try again.'),
+        onError: (cause) => setError(cause.message || t('media.saveFailed')),
       },
     );
   };
 
   return (
-    <Sheet title="Add to list" subtitle={mediaTitle} controller={sheet} tall>
+    <Sheet title={t('media.addToList.title')} subtitle={mediaTitle} controller={sheet} tall>
       {isError ? (
-        <SheetError message="Couldn’t load your lists — try again in a moment." />
+        <SheetError message={t('media.addToList.loadFailed')} />
       ) : isPending ? (
         <Loading />
       ) : lists.length === 0 ? (
-        <Text style={[type.body, text.muted]}>
-          No lists yet — name one below and this title goes straight into it.
-        </Text>
+        <Text style={[type.body, text.muted]}>{t('media.addToList.empty')}</Text>
       ) : (
         <View style={styles.rows}>
           {lists.map((entry) => {
@@ -102,7 +102,7 @@ export function AddToListSheet({
                     {entry.title}
                   </Text>
                   <Text style={[type.eyebrow, text.dim]}>
-                    {entry.itemCount} {entry.itemCount === 1 ? 'TITLE' : 'TITLES'}
+                    {t('media.addToList.itemCount', { count: entry.itemCount })}
                   </Text>
                 </View>
                 <View style={styles.action}>
@@ -114,7 +114,11 @@ export function AddToListSheet({
                     />
                   )}
                   <Text style={[type.button, contains ? text.pink : text.dim]}>
-                    {pending === entry.id ? '…' : contains ? 'ADDED' : 'ADD'}
+                    {pending === entry.id
+                      ? '…'
+                      : contains
+                        ? t('media.addToList.added')
+                        : t('media.addToList.add')}
                   </Text>
                 </View>
               </Pressable>
@@ -125,16 +129,16 @@ export function AddToListSheet({
 
       <View style={styles.create}>
         <Field
-          label="New list"
+          label={t('media.addToList.newList')}
           value={newTitle}
           maxLength={LIST_TITLE_MAX}
-          placeholder="Name a new list"
+          placeholder={t('media.addToList.namePlaceholder')}
           returnKeyType="done"
           onChangeText={setNewTitle}
           onSubmitEditing={createAndAdd}
         />
         <PrismButton
-          label="Create & add"
+          label={t('media.addToList.createAndAdd')}
           variant="secondary"
           busy={createList.isPending}
           disabled={newTitle.trim().length === 0}
@@ -144,7 +148,7 @@ export function AddToListSheet({
 
       {error ? <SheetError message={error} /> : null}
 
-      <PrismButton label="Done" onPress={sheet.dismiss} />
+      <PrismButton label={t('media.addToList.done')} onPress={sheet.dismiss} />
     </Sheet>
   );
 }

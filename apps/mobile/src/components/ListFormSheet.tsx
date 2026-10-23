@@ -7,6 +7,7 @@ import {
   type Visibility,
 } from '@trackt/shared';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { commitHaptic, errorHaptic } from '../lib/haptics';
 import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
@@ -16,13 +17,6 @@ import { Field } from './Field';
 import { Icon } from './Icon';
 import { PrismButton } from './PrismButton';
 import { Sheet, SheetError, useSheetController } from './Sheet';
-
-/** Human copy for each visibility, as web's new-list dialog words it. */
-const VISIBILITY_HELP: Record<Visibility, string> = {
-  public: 'Anyone with the link can see this list.',
-  followers: 'Friends only — visible to accepted friends.',
-  private: 'Only you can see this list.',
-};
 
 /**
  * Create a list, or edit the one you are looking at (`POST /lists`,
@@ -51,6 +45,7 @@ export function ListFormSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
+  const { t } = useTranslation();
   const createList = useCreateList();
   const invalidate = useListsInvalidator();
   const [title, setTitle] = useState(list?.title ?? '');
@@ -63,7 +58,7 @@ export function ListFormSheet({
   const submit = async () => {
     const trimmed = title.trim();
     if (!trimmed) {
-      setError('A list needs a name.');
+      setError(t('lists.dialog.nameRequired'));
       return;
     }
     const body = {
@@ -84,25 +79,29 @@ export function ListFormSheet({
       sheet.dismiss();
     } catch (cause) {
       errorHaptic();
-      setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
+      setError(cause instanceof Error ? cause.message : t('lists.dialog.saveError'));
       setSaving(false);
     }
   };
 
   return (
-    <Sheet title={list ? 'Edit list' : 'New list'} controller={sheet} tall>
+    <Sheet
+      title={list ? t('lists.dialog.editTitle') : t('lists.dialog.title')}
+      controller={sheet}
+      tall
+    >
       <Field
-        label="Title"
+        label={t('lists.dialog.titleLabel')}
         value={title}
         maxLength={LIST_TITLE_MAX}
-        placeholder="Best webtoons, ranked"
+        placeholder={t('lists.dialog.titlePlaceholder')}
         onChangeText={setTitle}
       />
       <Field
-        label="Description"
+        label={t('lists.dialog.descriptionLabel')}
         value={description}
         maxLength={LIST_DESCRIPTION_MAX}
-        placeholder="What ties these together?"
+        placeholder={t('lists.dialog.descriptionPlaceholder')}
         multiline
         numberOfLines={3}
         style={styles.multiline}
@@ -112,7 +111,7 @@ export function ListFormSheet({
       <Pressable
         accessibilityRole="switch"
         accessibilityState={{ checked: isRanked }}
-        accessibilityLabel="Ranked — order matters, and I can reorder it"
+        accessibilityLabel={t('lists.dialog.ranked')}
         onPress={() => setIsRanked((current) => !current)}
         style={({ pressed }) => [styles.toggle, { opacity: pressed ? 0.7 : 1 }]}
       >
@@ -134,13 +133,13 @@ export function ListFormSheet({
             />
           ))}
         </View>
-        <Text style={[type.bodySm, text.faint]}>{VISIBILITY_HELP[visibility]}</Text>
+        <Text style={[type.bodySm, text.faint]}>{t(`lists.visibilityHelp.${visibility}`)}</Text>
       </View>
 
       {error ? <SheetError message={error} /> : null}
 
       <PrismButton
-        label={list ? 'Save changes' : 'Create list'}
+        label={list ? t('lists.dialog.saveChanges') : t('lists.dialog.create')}
         busy={saving}
         disabled={title.trim().length === 0}
         onPress={() => void submit()}

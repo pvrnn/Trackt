@@ -1,0 +1,53 @@
+{
+  "title": "Up next",
+  "empty": {
+    "title": "Nothing up next",
+    "body": "Track your first title and this page becomes your dashboard: what to watch or read next, progress across everything, and your year in stats.",
+    "cta": "⌕ FIND SOMETHING ON DISCOVER"
+  },
+  "pending": {
+    "episodes_one": "{{count}} EPISODE",
+    "episodes_other": "{{count}} EPISODES",
+    "chapters_one": "{{count}} CHAPTER",
+    "chapters_other": "{{count}} CHAPTERS"
+  },
+  "progress": {
+    "episodeOf": "Episode {{next}} of {{total}}",
+    "episode": "Episode {{next}}",
+    "chapterOf": "Chapter {{next}} of {{total}}",
+    "chapter": "Chapter {{next}}"
+  },
+  "inProgress": {
+    "title": "In progress",
+    "caption": "{{kind}} · {{progress}}",
+    "episode": "Ep {{watched}} of {{total}}",
+    "chapter": "Ch {{watched}} of {{total}}",
+    "viewAll_one": "NEWEST {{count}} · VIEW ALL →",
+    "viewAll_other": "NEWEST {{count}} · VIEW ALL →",
+    "rest": "FIRST {{count}} · SEE HISTORY FOR THE REST"
+  },
+  "caughtUp": "All caught up: you’ve watched or read every known episode and chapter.",
+  "activity": {
+    "title": "Recent activity",
+    "line": "{{verb}} <work>{{title}}</work> <detail>{{detail}}</detail>",
+    "empty": "What you watch and read, ratings, and status changes show up here."
+  },
+  "stats": {
+    "title": "This year",
+    "episodes": "Episodes",
+    "chapters": "Chapters",
+    "dayStreak": "Day streak",
+    "completed": "Completed"
+  },
+  "errors": {
+    "save": "Couldn’t save your progress. Try again.",
+    "load": "Couldn’t load your dashboard. Is the instance API reachable?"
+  },
+  "undo": "Undo",
+  "undoFailed": "Couldn’t undo that — it’s still checked in.",
+  "loadError": "The instance didn’t answer. Pull down to try again.",
+  "nothingQueued": "Nothing queued",
+  "nothingQueuedBody": "Start something from Discover and its next episode shows up here.",
+  "swipeHint": "Or swipe the row right",
+  "of": "OF"
+}

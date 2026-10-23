@@ -2,6 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { shortDate, todayIso, validateLogDates } from '@trackt/client';
 import { LOG_DATE_FLOOR, type LogDates } from '@trackt/shared';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { dateToIso, isoToDate } from '../lib/dates';
 import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
@@ -37,6 +38,7 @@ export function LogDatesSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<LogDates>(dates);
   const [picking, setPicking] = useState<'startedAt' | 'finishedAt' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,22 +56,22 @@ export function LogDatesSheet({
       await onSave(draft);
       sheet.dismiss();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
+      setError(cause instanceof Error ? cause.message : t('media.saveFailed'));
       setSaving(false);
     }
   };
 
   return (
-    <Sheet title="Dates" subtitle={mediaTitle} controller={sheet}>
+    <Sheet title={t('media.dates.title')} subtitle={mediaTitle} controller={sheet}>
       <View style={styles.rows}>
         <DateRow
-          label="Started"
+          label={t('media.dates.started')}
           value={draft.startedAt}
           onPress={() => setPicking('startedAt')}
           onClear={() => setDraft((current) => ({ ...current, startedAt: null }))}
         />
         <DateRow
-          label="Finished"
+          label={t('media.dates.finished')}
           value={draft.finishedAt}
           onPress={() => setPicking('finishedAt')}
           onClear={() => setDraft((current) => ({ ...current, finishedAt: null }))}
@@ -85,13 +87,18 @@ export function LogDatesSheet({
 
       <View style={styles.actions}>
         <PrismButton
-          label="Clear both"
+          label={t('media.dates.clear')}
           variant="secondary"
           disabled={saving || (draft.startedAt === null && draft.finishedAt === null)}
           onPress={() => setDraft({ startedAt: null, finishedAt: null })}
           style={styles.action}
         />
-        <PrismButton label="Save" busy={saving} onPress={() => void save()} style={styles.action} />
+        <PrismButton
+          label={t('common.save')}
+          busy={saving}
+          onPress={() => void save()}
+          style={styles.action}
+        />
       </View>
 
       {picking ? (
@@ -131,6 +138,7 @@ function DateRow({
   onPress: () => void;
   onClear: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.row}>
       <Pressable
@@ -142,7 +150,7 @@ function DateRow({
       >
         <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
         <Text style={[type.button, value ? text.pink : text.faint]}>
-          {value ? `${shortDate(value)} ${value.slice(0, 4)}` : 'SET DATE'}
+          {value ? `${shortDate(value)} ${value.slice(0, 4)}` : t('media.dates.setDate')}
         </Text>
       </Pressable>
       {value ? (

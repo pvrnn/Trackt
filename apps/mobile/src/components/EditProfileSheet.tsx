@@ -3,6 +3,7 @@ import { AVATAR_MAX_BYTES, AVATAR_MIME_TYPES, type ProfileUser } from '@trackt/s
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { commitHaptic, errorHaptic } from '../lib/haptics';
 import { space, surface, text } from '../theme/tokens';
@@ -50,6 +51,7 @@ export function EditProfileSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
+  const { t } = useTranslation();
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio ?? '');
   const [avatar, setAvatar] = useState<AvatarChange>({ kind: 'keep' });
@@ -71,12 +73,12 @@ export function EditProfileSheet({
     // The server enforces both of these too; catching them here saves a 2MB
     // upload over a phone connection to be told no at the end of it.
     if (asset.fileSize !== undefined && asset.fileSize > AVATAR_MAX_BYTES) {
-      setError('That image is over 2MB — pick a smaller one.');
+      setError(t('profile.edit.errors.photoTooBig'));
       return;
     }
     const mime = asset.mimeType ?? 'image/jpeg';
     if (!(AVATAR_MIME_TYPES as readonly string[]).includes(mime)) {
-      setError('PNG, JPEG or WebP only.');
+      setError(t('profile.edit.errors.photoType'));
       return;
     }
     setError(null);
@@ -97,7 +99,7 @@ export function EditProfileSheet({
 
   const save = async () => {
     if (!name.trim()) {
-      setError('Name can’t be empty.');
+      setError(t('profile.edit.errors.nameRequired'));
       return;
     }
     setError(null);
@@ -114,7 +116,7 @@ export function EditProfileSheet({
           throw new Error(
             cause instanceof Error
               ? `Your details saved, but the photo didn’t: ${cause.message}`
-              : 'Your details saved, but the photo didn’t upload.',
+              : t('profile.edit.errors.photoFailed'),
           );
         }
       } else if (avatar.kind === 'remove' && user.image) {
@@ -125,13 +127,13 @@ export function EditProfileSheet({
       sheet.dismiss();
     } catch (cause) {
       errorHaptic();
-      setError(cause instanceof Error ? cause.message : 'Saving failed — try again.');
+      setError(cause instanceof Error ? cause.message : t('profile.edit.errors.saveFailed'));
       setSaving(false);
     }
   };
 
   return (
-    <Sheet title="Edit profile" subtitle={`@${user.username}`} controller={sheet} tall>
+    <Sheet title={t('profile.edit.title')} subtitle={`@${user.username}`} controller={sheet} tall>
       <View style={styles.photoRow}>
         {avatar.kind === 'replace' ? (
           // The picked file is a local `file://` uri, which is not an instance
@@ -140,7 +142,7 @@ export function EditProfileSheet({
             source={{ uri: avatar.file.uri }}
             style={styles.preview}
             contentFit="cover"
-            accessibilityLabel="Selected profile photo"
+            accessibilityLabel={t('profile.edit.selectedPhoto')}
           />
         ) : (
           <Avatar
@@ -151,14 +153,18 @@ export function EditProfileSheet({
         )}
         <View style={styles.photoActions}>
           <PrismButton
-            label={hasPhoto ? 'Change photo' : 'Upload photo'}
+            label={hasPhoto ? t('profile.edit.changePhoto') : t('profile.edit.uploadPhoto')}
             variant="secondary"
             disabled={saving}
             onPress={() => void pick()}
           />
           {hasPhoto ? (
             <PrismButton
-              label={avatar.kind === 'replace' ? 'Discard new photo' : 'Remove photo'}
+              label={
+                avatar.kind === 'replace'
+                  ? t('profile.edit.discardPhoto')
+                  : t('profile.edit.removePhoto')
+              }
               variant="secondary"
               disabled={saving}
               onPress={dropPhoto}
@@ -168,21 +174,26 @@ export function EditProfileSheet({
         </View>
       </View>
 
-      <Field label="Display name" value={name} maxLength={80} onChangeText={setName} />
       <Field
-        label="Bio"
+        label={t('profile.edit.displayName')}
+        value={name}
+        maxLength={80}
+        onChangeText={setName}
+      />
+      <Field
+        label={t('profile.edit.bio')}
         value={bio}
         maxLength={280}
         multiline
         numberOfLines={3}
         style={styles.multiline}
-        placeholder="Watches too much neo-noir. Reads webtoons on the tram."
+        placeholder={t('profile.edit.bioPlaceholder')}
         onChangeText={setBio}
       />
 
       {error ? <SheetError message={error} /> : null}
 
-      <PrismButton label="Save" busy={saving} onPress={() => void save()} />
+      <PrismButton label={t('common.save')} busy={saving} onPress={() => void save()} />
     </Sheet>
   );
 }

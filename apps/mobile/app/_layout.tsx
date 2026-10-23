@@ -1,14 +1,17 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
+import { I18nextProvider } from 'react-i18next';
+import { useEffect, useMemo, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { InstanceProvider, useInstance } from '../src/lib/instance-provider';
+import { i18n } from '../src/i18n';
+import { loadStoredLocale } from '../src/lib/storage';
 import { startNetworkWatch } from '../src/lib/network';
 import { PERSIST_BUSTER, PERSIST_MAX_AGE_MS, makeMobileQueryClient } from '../src/lib/offline';
 import { createInstancePersister } from '../src/lib/persist';
@@ -59,8 +62,23 @@ export default function RootLayout() {
 function App() {
   const { ready, origin } = useInstance();
   const [fontsLoaded] = useFonts(fontAssets);
+  const [localeReady, setLocaleReady] = useState(false);
 
-  if (!ready || !fontsLoaded) return <Splash />;
+  useEffect(() => {
+    let cancelled = false;
+    loadStoredLocale().then((stored) => {
+      if (cancelled) return;
+      if (stored && (stored === 'en' || stored === 'fr')) {
+        void i18n.changeLanguage(stored);
+      }
+      setLocaleReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!ready || !fontsLoaded || !localeReady) return <Splash />;
 
   return (
     // Keyed on the origin, which remounts everything below on an instance
@@ -68,38 +86,40 @@ function App() {
     // every screen's state all belong to one server (phase 5 made that literal
     // — a cache keyed by query name alone would serve one instance's rows to
     // another).
-    <CacheProvider key={origin ?? 'no-instance'} origin={origin}>
-      <StatusBar style="light" />
-      {/* Above the navigator, because the undo toast has to outlive the screen
+    <I18nextProvider i18n={i18n}>
+      <CacheProvider key={origin ?? 'no-instance'} origin={origin}>
+        <StatusBar style="light" />
+        {/* Above the navigator, because the undo toast has to outlive the screen
           that raised it: a check-in from the home tab is undoable while the
           user is already reading the title it belongs to (phase 3). */}
-      <ToastProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: color.ink },
-            animation: 'fade',
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(setup)/instance" />
-          <Stack.Protected guard={!!origin}>
-            <Stack.Screen name="(auth)/login" />
-            <Stack.Screen name="(auth)/register" />
-            {/* The four-tab shell, and the screens that push over it. The tabs
+        <ToastProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: color.ink },
+              animation: 'fade',
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(setup)/instance" />
+            <Stack.Protected guard={!!origin}>
+              <Stack.Screen name="(auth)/login" />
+              <Stack.Screen name="(auth)/register" />
+              {/* The four-tab shell, and the screens that push over it. The tabs
                 animate as a fade; a push should read as a push, so the pushed
                 routes take the platform's native stack animation. */}
-            <Stack.Screen name="(app)/(tabs)" />
-            <Stack.Screen name="(app)/media/[slug]" options={PUSHED} />
-            <Stack.Screen name="(app)/news/[slug]" options={PUSHED} />
-            <Stack.Screen name="(app)/lists/index" options={PUSHED} />
-            <Stack.Screen name="(app)/lists/[id]" options={PUSHED} />
-            <Stack.Screen name="(app)/history" options={PUSHED} />
-            <Stack.Screen name="(app)/users/[username]" options={PUSHED} />
-          </Stack.Protected>
-        </Stack>
-      </ToastProvider>
-    </CacheProvider>
+              <Stack.Screen name="(app)/(tabs)" />
+              <Stack.Screen name="(app)/media/[slug]" options={PUSHED} />
+              <Stack.Screen name="(app)/news/[slug]" options={PUSHED} />
+              <Stack.Screen name="(app)/lists/index" options={PUSHED} />
+              <Stack.Screen name="(app)/lists/[id]" options={PUSHED} />
+              <Stack.Screen name="(app)/history" options={PUSHED} />
+              <Stack.Screen name="(app)/users/[username]" options={PUSHED} />
+            </Stack.Protected>
+          </Stack>
+        </ToastProvider>
+      </CacheProvider>
+    </I18nextProvider>
   );
 }
 

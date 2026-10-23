@@ -1,0 +1,95 @@
+{
+  "action": {
+    "editProfile": "MODIFIER LE PROFIL",
+    "feedback": "ENVOYER UN AVIS"
+  },
+  "loadError": "Impossible de charger votre profil. L’API de l’instance est-elle joignable ?",
+  "public": {
+    "loadError": "Impossible de charger ce profil. L’API de l’instance est-elle joignable ?",
+    "notFoundTitle": "Aucun utilisateur",
+    "notFoundBody": "Personne sur cette instance ne porte le nom @{{username}}.",
+    "backToSearch": "RETOUR À LA RECHERCHE →"
+  },
+  "header": {
+    "memberSince": "@{{username}} · membre depuis {{date}}",
+    "titlesTracked": "TITRES SUIVIS",
+    "streak_one": "SÉRIE DE {{count}} JOUR",
+    "streak_other": "SÉRIE DE {{count}} JOURS"
+  },
+  "stats": {
+    "episodesThisYear": "Épisodes cette année",
+    "chaptersThisYear": "Chapitres cette année",
+    "completed": "Terminés",
+    "titles": "Titres suivis",
+    "meanRating": "Note moyenne"
+  },
+  "favourites": {
+    "title": "Favoris",
+    "emptyOwn": "Rien dans vos favoris pour l’instant. Appuyez sur ♡ FAVORI sur la page d’un titre et il apparaîtra ici, classé par étagère.",
+    "emptyOther": "{{name}} n’a encore rien ajouté à ses favoris.",
+    "findMore": "Trouver d’autres titres à mettre en favori",
+    "movie": "Films favoris",
+    "series": "Séries favorites",
+    "anime": "Animés favoris",
+    "manga": "Mangas favoris",
+    "webtoon": "Webtoons favoris"
+  },
+  "recent": {
+    "title": "Récents",
+    "emptyOwn": "Ce que vous regardez et lisez, vos notes et vos changements de statut apparaissent ici.",
+    "emptyPublic": "Aucun suivi public pour l’instant.",
+    "rated": "Noté",
+    "marked": "Marqué"
+  },
+  "badges": {
+    "title": "Badges",
+    "body": "Les badges arrivent avec la couche sociale v1.x : séries de jours, exploits d’import, crédits de catalogue."
+  },
+  "visibility": {
+    "title": "VISIBILITÉ DU PROFIL",
+    "tooltip": "Toute personne disposant du lien de votre profil peut le consulter ; aucun réglage de visibilité par utilisateur pour l’instant (ADR-0006)"
+  },
+  "edit": {
+    "title": "Modifier le profil",
+    "photoInput": "Photo de profil",
+    "changePhoto": "Changer la photo",
+    "uploadPhoto": "Téléverser une photo",
+    "discardPhoto": "Abandonner la nouvelle photo",
+    "removePhoto": "Supprimer la photo",
+    "photoHint": "PNG, JPEG ou WebP : 2 Mo max. Appliqué à l’enregistrement.",
+    "displayName": "Nom affiché",
+    "bio": "Bio",
+    "bioPlaceholder": "Regarde trop de néo-noir. Lit des webtoons dans le tram.",
+    "socialLinks": "Réseaux sociaux",
+    "handlePlaceholder": "@pseudo ou URL",
+    "unlinkHint": "Laissez un champ vide pour le dissocier.",
+    "errors": {
+      "photoTooBig": "Cette image dépasse 2 Mo — choisissez-en une plus petite.",
+      "nameRequired": "Le nom ne peut pas être vide.",
+      "socialUrl": "{{platform}} nécessite une URL https:// complète.",
+      "photoFailed": "Vos infos sont enregistrées, mais la photo n'a pas pu être téléversée.",
+      "saveFailed": "L’enregistrement a échoué — réessayez.",
+      "photoType": "PNG, JPEG ou WebP uniquement."
+    },
+    "photoTooBig": "Cette image dépasse 2 Mo — choisissez-en une plus petite.",
+    "photoType": "PNG, JPEG ou WebP uniquement.",
+    "photoFailed": "Vos infos sont enregistrées, mais la photo n'a pas pu être téléversée.",
+    "saveFailed": "L’enregistrement a échoué — réessayez.",
+    "selectedPhoto": "Photo de profil sélectionnée"
+  },
+  "yourCollections": "VOS COLLECTIONS",
+  "completedCount": "{{count}} TERMINÉS",
+  "allFriendsPending": "Tous les amis — {{count}} demandes en attente",
+  "allFriends": "Tous les amis",
+  "account": "Compte",
+  "changeServer": "Changer de serveur",
+  "deleteAccount": "Supprimer le compte",
+  "deleteAccountSheet": {
+    "title": "Supprimer le compte",
+    "body": "Cela supprime votre compte sur cette instance et tout ce qu'il contient — journaux, check-ins, notes, favoris, listes et amitiés. Irréversible, rien n'est conservé.",
+    "password": "Mot de passe",
+    "passwordRequired": "Saisissez votre mot de passe pour confirmer.",
+    "failed": "Ça n'a pas fonctionné — réessayez.",
+    "confirm": "Supprimer le compte"
+  }
+}

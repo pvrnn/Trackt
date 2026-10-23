@@ -1,4 +1,7 @@
-import { TOPIC_LABELS, errorStatus, formatNewsDate, useNewsArticle } from '@trackt/client';
+import { errorStatus, formatNewsDate, useNewsArticle } from '@trackt/client';
+import { useLabels } from '../../../src/lib/labels';
+import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../../../src/i18n';
 import type { NewsLinkedWork } from '@trackt/shared';
 import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -22,6 +25,9 @@ import { type } from '../../../src/theme/typography';
  */
 export default function NewsArticleScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { t, i18n } = useTranslation();
+  const labels = useLabels();
+  const loc = intlLocale(i18n.language);
   const { data: article, isPending, isError, error } = useNewsArticle(slug);
 
   if (isPending) {
@@ -37,12 +43,8 @@ export default function NewsArticleScreen() {
     return (
       <PageScroll>
         <EmptyState
-          title={missing ? 'No such story' : 'Story unavailable'}
-          body={
-            missing
-              ? 'This article has been withdrawn, or the link is wrong.'
-              : "This instance couldn't reach the catalog's news feed."
-          }
+          title={missing ? t('news.article.missingTitle') : t('news.article.error')}
+          body={missing ? t('news.article.missingBody') : t('news.article.error')}
         />
       </PageScroll>
     );
@@ -55,8 +57,8 @@ export default function NewsArticleScreen() {
     <PageScroll title={article.title}>
       <View style={styles.head}>
         <View style={styles.metaRow}>
-          <Text style={[type.eyebrow, styles.tag]}>{TOPIC_LABELS[article.topic]}</Text>
-          <Text style={[type.eyebrow, text.dim]}>{formatNewsDate(article.publishedAt)}</Text>
+          <Text style={[type.eyebrow, styles.tag]}>{labels.topic(article.topic)}</Text>
+          <Text style={[type.eyebrow, text.dim]}>{formatNewsDate(article.publishedAt, loc)}</Text>
         </View>
         <Text style={[type.title, styles.title]}>{article.title}</Text>
         {article.dek ? <Text style={[type.body, styles.dek]}>{article.dek}</Text> : null}
@@ -64,12 +66,16 @@ export default function NewsArticleScreen() {
 
       <Markdown body={article.body} />
 
-      {subjects.length > 0 ? <LinkedWorks title="About" works={subjects} /> : null}
-      {mentioned.length > 0 ? <LinkedWorks title="Also mentioned" works={mentioned} /> : null}
+      {subjects.length > 0 ? (
+        <LinkedWorks title={t('news.article.subjects')} works={subjects} />
+      ) : null}
+      {mentioned.length > 0 ? (
+        <LinkedWorks title={t('news.article.mentioned')} works={mentioned} />
+      ) : null}
 
       {article.sources.length > 0 ? (
         <View>
-          <SectionTitle title="Sources" />
+          <SectionTitle title={t('news.article.sources')} />
           <GlassCard style={styles.sources}>
             {article.sources.map((source, index) => (
               <Pressable
@@ -83,7 +89,7 @@ export default function NewsArticleScreen() {
                 </Text>
                 <Text style={[type.eyebrow, text.dim]}>
                   {source.outlet}
-                  {source.publishedAt ? ` · ${formatNewsDate(source.publishedAt)}` : ''}
+                  {source.publishedAt ? ` · ${formatNewsDate(source.publishedAt, loc)}` : ''}
                 </Text>
               </Pressable>
             ))}

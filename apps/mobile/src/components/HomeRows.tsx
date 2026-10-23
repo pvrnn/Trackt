@@ -1,5 +1,7 @@
-import { KIND_LABELS_SINGULAR, activityVerbLabel, relativeTime } from '@trackt/client';
-import { trackingVerbLabel, type ActivityEntry, type UpNextEntry } from '@trackt/shared';
+import { relativeTime } from '@trackt/client';
+import { useLabels } from '../lib/labels';
+import { useTranslation } from 'react-i18next';
+import { type ActivityEntry, type UpNextEntry } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Cover } from './Cover';
@@ -55,8 +57,10 @@ export function UpNextRow({
   checkedIn: boolean;
   onCheckIn: () => void;
 }) {
-  const verb = trackingVerbLabel(entry.kind).toUpperCase();
-  const action = `${trackingVerbLabel(entry.kind, 'present')} ${partLabel(entry)}`;
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const verb = labels.trackingVerb(entry.kind, 'past').toUpperCase();
+  const action = `${labels.trackingVerb(entry.kind, 'present')} ${partLabel(entry)}`;
   const press = usePressMotion();
   return (
     <Animated.View entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}>
@@ -81,8 +85,8 @@ export function UpNextRow({
             <View style={styles.metaRow}>
               <KindDot kind={entry.kind} />
               <Text style={[type.eyebrow, text.dim]}>
-                {KIND_LABELS_SINGULAR[entry.kind]} · {partLabel(entry)}
-                {entry.total ? ` OF ${entry.total}` : ''}
+                {labels.kindSingular(entry.kind)} · {partLabel(entry)}
+                {entry.total ? ` ${t('home.of')} ${entry.total}` : ''}
               </Text>
             </View>
           </View>
@@ -90,7 +94,7 @@ export function UpNextRow({
             accessibilityRole="button"
             accessibilityLabel={`Mark ${entry.title} ${partLabel(entry)} ${verb.toLowerCase()}`}
             accessibilityState={{ disabled: checkedIn }}
-            accessibilityHint="Or swipe the row right"
+            accessibilityHint={t('home.swipeHint')}
             disabled={checkedIn}
             onPress={onCheckIn}
             onPressIn={press.onPressIn}
@@ -109,6 +113,7 @@ export function UpNextRow({
 }
 
 export function ActivityRow({ entry, first }: { entry: ActivityEntry; first: boolean }) {
+  const labels = useLabels();
   return (
     <Touchable
       href={`/media/${entry.slug}`}
@@ -116,7 +121,7 @@ export function ActivityRow({ entry, first }: { entry: ActivityEntry; first: boo
     >
       <KindDot kind={entry.kind} />
       <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
-        {activityVerbLabel(entry)} {entry.title} <Text style={text.dim}>{entry.detail}</Text>
+        {labels.activity(entry)} {entry.title} <Text style={text.dim}>{entry.detail}</Text>
       </Text>
       <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
     </Touchable>

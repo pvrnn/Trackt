@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon, type IconName } from './Icon';
@@ -39,6 +40,7 @@ export function MediaActionRow({
   onAddToList: () => void;
 }) {
   const press = usePressMotion();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.row}>
@@ -75,12 +77,19 @@ export function MediaActionRow({
 
       <SatelliteButton
         icon={favorited ? 'heart-filled' : 'heart'}
-        caption="FAV"
+        caption={t('media.actions.fav')}
         active={favorited}
-        label={favorited ? 'Remove from favourites' : 'Add to favourites'}
+        label={
+          favorited ? t('media.actions.removeFromFavourites') : t('media.actions.addToFavourites')
+        }
         onPress={onToggleFavorite}
       />
-      <SatelliteButton icon="plus" caption="LIST" label="Add to a list" onPress={onAddToList} />
+      <SatelliteButton
+        icon="plus"
+        caption={t('media.list')}
+        label={t('media.actions.addToList')}
+        onPress={onAddToList}
+      />
     </View>
   );
 }
@@ -137,16 +146,19 @@ export function RatingCard({
   ratingCount: number;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const community =
     communityScore !== null
-      ? `${communityScore.toFixed(1)} FROM ${ratingCount} HERE`
-      : 'NO RATINGS HERE YET';
+      ? t('media.rating.community', { score: communityScore.toFixed(1), count: ratingCount })
+      : t('media.rating.none');
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={
-        score !== null ? `Your rating: ${score.toFixed(1)}. Change it` : 'Rate this'
+        score !== null
+          ? t('media.rating.yourRatingChange', { score: score.toFixed(1) })
+          : t('media.rating.rateThis')
       }
       onPress={onPress}
       android_ripple={{ color: surface.pinkRow }}
@@ -167,7 +179,9 @@ export function RatingCard({
       <View style={styles.ratingText}>
         {/* "YOUR RATING" over nothing is a label for a value that does not
             exist; unrated, the card says what it is for instead. */}
-        <Text style={styles.ratingLabel}>{score !== null ? 'YOUR RATING' : 'RATE THIS'}</Text>
+        <Text style={styles.ratingLabel}>
+          {score !== null ? t('media.rating.yours') : t('media.rating.rate')}
+        </Text>
         <Text style={styles.ratingMeta} numberOfLines={1}>
           {community}
         </Text>

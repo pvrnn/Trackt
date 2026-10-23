@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
@@ -53,6 +54,7 @@ export function ProgressCard({
   // a value that moves under it — a queued write landing, a rolled-back patch —
   // remounts with fresh drafts. That is the reset React documents for this, and
   // it is why there is no effect here mirroring a prop into state.
+  const { t } = useTranslation();
   const [value, setValue] = useState(position);
   const [field, setField] = useState(String(position));
   const [editing, setEditing] = useState(false);
@@ -146,13 +148,13 @@ export function ProgressCard({
               autoFocus
               selectTextOnFocus
               maxLength={5}
-              accessibilityLabel="Where you are"
+              accessibilityLabel={t('media.progress.position')}
               style={[styles.number, styles.field, styles.editing]}
             />
           ) : (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Where you are: ${value} of ${total}. Tap to edit`}
+              accessibilityLabel={t('media.progress.positionEdit', { value, total })}
               onPress={() => {
                 setField(String(value));
                 setEditing(true);
@@ -169,13 +171,13 @@ export function ProgressCard({
           <Stepper
             direction="down"
             disabled={value <= 0}
-            label="One fewer"
+            label={t('media.progress.fewer')}
             onPress={() => commit(value - 1)}
           />
           <Stepper
             direction="up"
             disabled={value >= total}
-            label="One more"
+            label={t('media.progress.more')}
             onPress={() => commit(value + 1)}
           />
         </View>

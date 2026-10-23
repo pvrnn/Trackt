@@ -1,4 +1,7 @@
-import { LOG_STATUS_LABELS, dateRangeLabel } from '@trackt/client';
+import { shortDate } from '@trackt/client';
+import { useLabels } from '../lib/labels';
+import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../i18n';
 import type { HistoryEntry, LogStatus } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from './Cover';
@@ -28,14 +31,25 @@ const STATUS_COLORS: Record<LogStatus, string> = {
  * read identically.
  */
 export function EntryCard({ entry, width }: { entry: HistoryEntry; width: number }) {
-  const range = dateRangeLabel(entry.startedAt, entry.finishedAt);
+  const { t, i18n } = useTranslation();
+  const labels = useLabels();
+  const loc = intlLocale(i18n.language);
+  const range = (() => {
+    const s = entry.startedAt;
+    const f = entry.finishedAt;
+    if (s === null && f === null) return null;
+    if (s === null) return t('date.until', { date: shortDate(f!, loc) });
+    if (f === null) return t('date.from', { date: shortDate(s, loc) });
+    if (s === f) return shortDate(s, loc);
+    return `${shortDate(s, loc)} → ${shortDate(f, loc)}`;
+  })();
   return (
     <Touchable href={`/media/${entry.slug}`} style={[{ width }, styles.card]}>
       <View>
         <Cover kind={entry.kind} title={entry.title} coverUrl={entry.coverUrl} width={width} />
         <View style={styles.pills}>
           <Text style={[type.eyebrow, styles.pill, { color: STATUS_COLORS[entry.status] }]}>
-            {LOG_STATUS_LABELS[entry.status]}
+            {labels.status(entry.status)}
           </Text>
           {entry.score !== null ? (
             <Text style={[type.eyebrow, styles.pill, styles.score]}>{entry.score}</Text>

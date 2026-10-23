@@ -1,5 +1,7 @@
 import { FlashList } from '@shopify/flash-list';
-import { KIND_LABELS, useDebounced, useMediaSearch } from '@trackt/client';
+import { useDebounced, useMediaSearch } from '@trackt/client';
+import { useLabels } from '../../../src/lib/labels';
+import { useTranslation } from 'react-i18next';
 import { MEDIA_KINDS, type MediaKind, type SearchResult } from '@trackt/shared';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -44,6 +46,8 @@ const COLUMNS = 3;
  */
 export default function DiscoverTab() {
   const { user, isPending } = useAuthedScreen();
+  const { t } = useTranslation();
+  const labels = useLabels();
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<MediaKind | undefined>(undefined);
   const debounced = useDebounced(query, 250);
@@ -53,10 +57,10 @@ export default function DiscoverTab() {
   const { width } = useWindowDimensions();
 
   const kindRows: MenuRow[] = [
-    { key: 'all', label: 'All kinds', selected: kind === undefined },
+    { key: 'all', label: t('news.allKinds'), selected: kind === undefined },
     ...MEDIA_KINDS.map((value) => ({
       key: value,
-      label: KIND_LABELS[value],
+      label: labels.kind(value),
       selected: kind === value,
     })),
   ];
@@ -78,21 +82,26 @@ export default function DiscoverTab() {
       <View style={{ paddingTop: insets.top + space.lg }}>
         <View style={gutter}>
           <PageTitle
-            title="Discover"
+            title={t('discover.title')}
             count={
               status === 'success'
-                ? `${results.length} ${results.length === 1 ? 'result' : 'results'}`
+                ? t(
+                    results.length === 1
+                      ? 'discover.resultCount_one'
+                      : 'discover.resultCount_other',
+                    { count: results.length },
+                  )
                 : undefined
             }
           />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search this instance…"
+            placeholder={t('discover.searchPlaceholder')}
             placeholderTextColor={color.faint}
             autoCorrect={false}
             returnKeyType="search"
-            accessibilityLabel="Search titles"
+            accessibilityLabel={t('discover.searchAria')}
             style={[type.body, styles.input]}
           />
         </View>
@@ -102,7 +111,7 @@ export default function DiscoverTab() {
               {
                 key: 'kind',
                 icon: 'list',
-                label: kind ? KIND_LABELS[kind] : 'All kinds',
+                label: kind ? labels.kind(kind) : t('news.allKinds'),
                 rows: kindRows,
                 onSelect: (key) => setKind(key === 'all' ? undefined : (key as MediaKind)),
               },
@@ -113,22 +122,26 @@ export default function DiscoverTab() {
 
       {status === 'idle' ? (
         <View style={gutter}>
-          <EmptyState
-            title="Search the catalog"
-            body="Type a title to find it. The kind filter narrows the results as you go."
-          />
+          <EmptyState title={t('discover.title')} body={t('discover.emptyInitial')} />
         </View>
       ) : status === 'error' ? (
         <View style={gutter}>
-          <EmptyState title="Search failed" body="The instance didn't answer. Try again." />
+          <EmptyState title={t('errors.searchFailed')} body={t('errors.searchFailed')} />
         </View>
       ) : status === 'loading' && results.length === 0 ? (
         <Loading />
       ) : results.length === 0 ? (
         <View style={gutter}>
           <EmptyState
-            title="Nothing found"
-            body={`No ${kind ? KIND_LABELS[kind].toLowerCase() : 'titles'} match “${debounced}” on this instance.`}
+            title={t('common.unknown')}
+            body={
+              kind
+                ? t('discover.emptyInKind', {
+                    query: debounced,
+                    kind: labels.kind(kind).toLowerCase(),
+                  })
+                : t('discover.empty', { query: debounced })
+            }
           />
         </View>
       ) : (

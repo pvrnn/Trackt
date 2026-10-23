@@ -1,7 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  LOG_STATUS_LABELS,
-  dateRangeLabel,
   invalidateTracking,
   partBlocks,
   progressUpTo,
@@ -9,7 +7,11 @@ import {
   trackingApi,
   useMediaDetail,
 } from '@trackt/client';
-import { trackingVerbLabel, type LogDates, type LogStatus, type MediaDetail } from '@trackt/shared';
+import { useLabels } from '../../../src/lib/labels';
+import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../../../src/i18n';
+import { shortDate } from '@trackt/client';
+import { type LogDates, type LogStatus, type MediaDetail } from '@trackt/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -45,6 +47,9 @@ type OpenSheet = 'status' | 'rating' | 'list' | null;
  */
 export default function MediaScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { t, i18n } = useTranslation();
+  const labels = useLabels();
+  const loc = intlLocale(i18n.language);
   const { data: media, dataUpdatedAt, isPending, isError } = useMediaDetail(slug);
   const queryClient = useQueryClient();
   const { apply } = useViewerMutation(slug);
@@ -67,12 +72,8 @@ export default function MediaScreen() {
     return (
       <ScreenState
         isPending={isPending}
-        title={media === null ? 'Not found' : "Couldn't load"}
-        body={
-          media === null
-            ? "This instance's catalog has no title at that address."
-            : "The instance didn't answer. Go back and try again."
-        }
+        title={media === null ? t('media.notFound.title') : t('media.loadFailed.title')}
+        body={media === null ? t('media.notFound.body', { slug }) : t('media.loadFailed.body')}
       />
     );
   }
@@ -116,16 +117,20 @@ export default function MediaScreen() {
    */
   const primary = hasParts
     ? doneWithAll
-      ? { label: 'CAUGHT UP', caughtUp: true, onPress: () => setSheet('status') }
+      ? { label: t('media.caughtUp'), caughtUp: true, onPress: () => setSheet('status') }
       : {
-          label: `${trackingVerbLabel(detail.kind, 'present').toUpperCase()} ${noun.prefix}${position + 1}`,
+          label: `${labels.trackingVerb(detail.kind, 'present').toUpperCase()} ${noun.prefix}${position + 1}`,
           caughtUp: false,
           onPress: () => setPosition(position + 1),
         }
     : viewer.status === 'completed'
-      ? { label: 'WATCHED', caughtUp: true, onPress: () => setSheet('status') }
+      ? {
+          label: t('verb.watched').toUpperCase(),
+          caughtUp: true,
+          onPress: () => setSheet('status'),
+        }
       : {
-          label: 'MARK WATCHED',
+          label: t('media.mark', { verb: labels.trackingVerb(detail.kind, 'past').toUpperCase() }),
           caughtUp: false,
           onPress: () => setStatus('completed'),
         };
@@ -142,8 +147,16 @@ export default function MediaScreen() {
         <MediaHero
           media={detail}
           scrollY={scrollY}
-          statusLabel={viewer.status ? LOG_STATUS_LABELS[viewer.status].toUpperCase() : null}
-          dateLabel={dateRangeLabel(viewer.startedAt, viewer.finishedAt)}
+          statusLabel={viewer.status ? labels.status(viewer.status).toUpperCase() : null}
+          dateLabel={(() => {
+            const st = viewer.startedAt;
+            const fi = viewer.finishedAt;
+            if (st === null && fi === null) return null;
+            if (st === null) return t('date.until', { date: shortDate(fi!, loc) });
+            if (fi === null) return t('date.from', { date: shortDate(st, loc) });
+            if (st === fi) return shortDate(st, loc);
+            return `${shortDate(st, loc)} → ${shortDate(fi, loc)}`;
+          })()}
           onEditStatus={() => setSheet('status')}
           onEditDates={() => setEditingDates({ ...viewer })}
         />
@@ -175,7 +188,7 @@ export default function MediaScreen() {
               // a queued write landing, a rolled-back patch — resets its drafts
               // instead of being mirrored by an effect.
               key={position}
-              unitLabel={`${noun.plural.toUpperCase()} ${trackingVerbLabel(detail.kind).toUpperCase()}`}
+              unitLabel={`${noun.plural.toUpperCase()} ${labels.trackingVerb(detail.kind, 'past').toUpperCase()}`}
               total={total}
               position={position}
               watchedCount={watched.size}

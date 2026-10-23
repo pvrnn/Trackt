@@ -25,3 +25,17 @@ export async function storeOrigin(origin: string): Promise<void> {
 export async function clearStoredOrigin(): Promise<void> {
   await SecureStore.deleteItemAsync(ORIGIN_KEY);
 }
+
+const LOCALE_KEY = 'trackt.locale';
+
+export async function loadStoredLocale(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(LOCALE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function storeLocale(locale: string): Promise<void> {
+  await SecureStore.setItemAsync(LOCALE_KEY, locale);
+}

@@ -2,6 +2,7 @@ import { createAuthClient } from 'better-auth/react';
 import { inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
 import { expoClient } from '@better-auth/expo/client';
 import * as SecureStore from 'expo-secure-store';
+import { i18n } from '../i18n';
 
 /**
  * better-auth on React Native (ADR-0008 §3). No cookie jar here, so
@@ -54,7 +55,7 @@ export function resetAuth(): void {
  */
 export function authClient(): InstanceAuthClient {
   if (!current) {
-    throw new Error('No instance selected — auth is unavailable until the picker has run.');
+    throw new Error(i18n.t('errors.noInstanceSelected'));
   }
   return current.client;
 }

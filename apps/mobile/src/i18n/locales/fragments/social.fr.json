@@ -1,0 +1,62 @@
+{
+  "title": "Amis",
+  "addFriend": "Ajouter un ami",
+  "signInToAdd": "Se connecter pour ajouter",
+  "friendLabel_one": "AMI",
+  "friendLabel_other": "AMIS",
+  "friendsEmpty": "Pas encore d’amis. Cherchez par nom ou par pseudo pour envoyer une demande.",
+  "requests_one": "DEMANDE ({{count}})",
+  "requests_other": "DEMANDES ({{count}})",
+  "findPeople": "Trouver des personnes",
+  "searchPlaceholder": "Rechercher par nom ou @pseudo",
+  "noMatches": "Personne ne correspond à « {{query}} ».",
+  "accept": "ACCEPTER",
+  "decline": "REFUSER",
+  "acceptRequest": "ACCEPTER LA DEMANDE",
+  "requestSent": "DEMANDE ENVOYÉE ✕",
+  "pendingCancel": "EN ATTENTE ✕",
+  "friends": "✓ AMIS",
+  "cancelRequest": "Annuler la demande d’ami à @{{username}}",
+  "done": "TERMINÉ",
+  "action": {
+    "add": "AJOUTER",
+    "pending": "EN ATTENTE",
+    "respondBelow": "RÉPONDEZ CI-DESSOUS",
+    "accept": "ACCEPTER",
+    "friends": "AMIS",
+    "requested": "DEMANDÉ",
+    "you": "TOI"
+  },
+  "unfriend": {
+    "title": "Retirer cet ami ?",
+    "body": "{{name}} redevient un inconnu, et les listes que vous partagez avec vos amis cessent de lui être visibles.",
+    "removing": "SUPPRESSION…"
+  },
+  "errors": {
+    "load": "Impossible de charger vos amis. Réessayez dans un instant.",
+    "searchUnavailable": "La recherche de personnes est indisponible pour le moment. Réessayez dans un instant.",
+    "save": "L’enregistrement a échoué. Réessayez."
+  },
+  "stateNote": {
+    "friends": "AMIS",
+    "incoming": "VEUT ÊTRE AMI",
+    "outgoing": "DEMANDE ENVOYÉE",
+    "self": "C'EST TOI",
+    "none": ""
+  },
+  "declineName": "Refuser {{name}}",
+  "actionAria": "{{action}} {{name}}",
+  "inviteAria": "Inviter un ami",
+  "searchPlaceholderMobile": "Nom ou @pseudo",
+  "searchUnavailableTitle": "Recherche indisponible",
+  "noMatchesShort": "AUCUN RÉSULTAT",
+  "nothingHere": "RIEN ICI POUR L'INSTANT",
+  "friendsCount": "AMIS {{count}}",
+  "requestsCount": "DEMANDES {{count}}",
+  "sentCount": "ENVOYÉES {{count}}",
+  "clearSearch": "Effacer la recherche",
+  "editOnYourProfile": "Modifier sur votre profil",
+  "requestSentAction": "Demande envoyée",
+  "acceptAction": "Accepter",
+  "declineAction": "Refuser"
+}

@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
@@ -47,6 +48,7 @@ export function RatingSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<number>(score ?? 0);
 
   const commit = (next: number | null) => {
@@ -55,7 +57,7 @@ export function RatingSheet({
   };
 
   return (
-    <Sheet title="Rate this" controller={sheet}>
+    <Sheet title={t('media.rating.rateThis')} controller={sheet}>
       <View style={styles.readout}>
         <PrismText style={styles.score}>{draft.toFixed(1)}</PrismText>
         <Text style={styles.caption} numberOfLines={1}>
@@ -66,10 +68,10 @@ export function RatingSheet({
       <ScoreSlider value={draft} onChange={setDraft} />
 
       <View style={styles.actions}>
-        <PrismButton label="Save" onPress={() => commit(draft)} style={styles.save} />
+        <PrismButton label={t('common.save')} onPress={() => commit(draft)} style={styles.save} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close without saving"
+          accessibilityLabel={t('media.rating.closeWithoutSaving')}
           onPress={sheet.dismiss}
           android_ripple={{ color: surface.pinkRow }}
           style={({ pressed }) => [styles.dismiss, { opacity: pressed ? 0.75 : 1 }]}
@@ -84,11 +86,11 @@ export function RatingSheet({
       {score !== null ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Clear your rating"
+          accessibilityLabel={t('media.rating.clearYourRating')}
           onPress={() => commit(null)}
           style={({ pressed }) => [styles.clear, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Text style={[type.eyebrow, text.dim]}>CLEAR RATING</Text>
+          <Text style={[type.eyebrow, text.dim]}>{t('media.rating.clear')}</Text>
         </Pressable>
       ) : null}
     </Sheet>
@@ -104,6 +106,7 @@ export function RatingSheet({
  * threshold haptic); nothing is written until SAVE.
  */
 function ScoreSlider({ value, onChange }: { value: number; onChange: (score: number) => void }) {
+  const { t } = useTranslation();
   const trackWidth = useSharedValue(0);
   const lastStep = useSharedValue(-1);
 
@@ -143,7 +146,7 @@ function ScoreSlider({ value, onChange }: { value: number; onChange: (score: num
     <GestureDetector gesture={Gesture.Race(tap, pan)}>
       <View
         accessibilityRole="adjustable"
-        accessibilityLabel="Your score"
+        accessibilityLabel={t('media.rating.yourScore')}
         accessibilityValue={{ min: 0, max: MAX, now: value, text: value.toFixed(1) }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(event) => {

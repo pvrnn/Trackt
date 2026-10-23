@@ -1,4 +1,6 @@
-import { KIND_LABELS_SINGULAR, coverGradientStops } from '@trackt/client';
+import { coverGradientStops } from '@trackt/client';
+import { useLabels } from '../lib/labels';
+import { useTranslation } from 'react-i18next';
 import type { MediaDetail } from '@trackt/shared';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,9 +49,14 @@ export function MediaHero({
   onEditStatus: () => void;
   onEditDates: () => void;
 }) {
+  const { t } = useTranslation();
+  const labels = useLabels();
   const [from, to] = coverGradientStops(media.kind, media.title);
   // A bare count says nothing: "ENDED · 7" is seven of what?
-  const unit = media.kind === 'manga' || media.kind === 'webtoon' ? 'CHAPTERS' : 'EPISODES';
+  const unit =
+    media.kind === 'manga' || media.kind === 'webtoon'
+      ? t('media.part.chapters').toUpperCase()
+      : t('media.part.episodes').toUpperCase();
 
   const panelStyle = useAnimatedStyle(() => ({
     transform: [
@@ -59,7 +66,7 @@ export function MediaHero({
   }));
 
   const meta = [
-    KIND_LABELS_SINGULAR[media.kind].toUpperCase(),
+    labels.kindSingular(media.kind).toUpperCase(),
     media.year ? String(media.year) : null,
     media.seasonNumber ? `S${media.seasonNumber}` : null,
     media.genres.length > 0 ? media.genres.slice(0, 2).join(', ').toUpperCase() : null,
@@ -114,7 +121,9 @@ export function MediaHero({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
-              statusLabel ? `Status: ${statusLabel.toLowerCase()}. Change it` : 'Add to your log'
+              statusLabel
+                ? t('media.hero.statusChange', { status: statusLabel.toLowerCase() })
+                : t('media.hero.addToLog')
             }
             onPress={onEditStatus}
             style={({ pressed }) => [
@@ -125,7 +134,7 @@ export function MediaHero({
           >
             {statusLabel ? <View style={styles.chipDot} /> : null}
             <Text style={[type.eyebrow, statusLabel ? text.pink : text.fg]}>
-              {statusLabel ?? 'ADD TO LOG'}
+              {statusLabel ?? t('media.hero.addToLogLabel')}
             </Text>
           </Pressable>
 
@@ -134,11 +143,17 @@ export function MediaHero({
           {statusLabel ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={dateLabel ? `Dates: ${dateLabel}. Change them` : 'Set dates'}
+              accessibilityLabel={
+                dateLabel
+                  ? t('media.hero.datesChange', { dates: dateLabel })
+                  : t('media.hero.setDates')
+              }
               onPress={onEditDates}
               style={({ pressed }) => [styles.dates, { opacity: pressed ? 0.75 : 1 }]}
             >
-              <Text style={[type.eyebrow, text.muted]}>{dateLabel ?? 'SET DATES'}</Text>
+              <Text style={[type.eyebrow, text.muted]}>
+                {dateLabel ?? t('media.hero.setDatesLabel')}
+              </Text>
             </Pressable>
           ) : null}
 

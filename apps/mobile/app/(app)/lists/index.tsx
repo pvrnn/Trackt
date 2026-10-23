@@ -2,6 +2,7 @@ import { updatedLabel, useLists, visibilityLabel } from '@trackt/client';
 import type { ListSummary } from '@trackt/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from '../../../src/components/Cover';
 import { ListFormSheet } from '../../../src/components/ListFormSheet';
@@ -25,14 +26,15 @@ import { type } from '../../../src/theme/typography';
 export default function ListsScreen() {
   const { data, dataUpdatedAt, isPending, isError } = useLists();
   const router = useRouter();
+  const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
 
   return (
-    <PageScroll title="Lists">
+    <PageScroll title={t('lists.title')}>
       <View style={styles.head}>
-        <PageTitle title="Lists" count={data ? `${data.length} lists` : undefined} />
+        <PageTitle title={t('lists.title')} count={data ? `${data.length} lists` : undefined} />
         <PrismButton
-          label="New list"
+          label={t('lists.dialog.title')}
           icon="plus"
           onPress={() => setCreating(true)}
           style={styles.newList}
@@ -41,14 +43,11 @@ export default function ListsScreen() {
 
       <QueryState
         query={{ data, isPending, isError, dataUpdatedAt }}
-        error={{ title: "Couldn't load", body: "The instance didn't answer." }}
+        error={{ title: t('media.loadFailed.title'), body: t('lists.loadError') }}
       >
         {(lists) =>
           lists.length === 0 ? (
-            <EmptyState
-              title="No lists yet"
-              body="Lists group titles however you like — a watchlist, a top ten, a seasonal shortlist."
-            />
+            <EmptyState title={t('lists.emptyTitle')} body={t('lists.emptyBody')} />
           ) : (
             <View style={styles.cards}>
               {lists.map((list) => (
@@ -72,6 +71,7 @@ export default function ListsScreen() {
 }
 
 function ListCard({ list }: { list: ListSummary }) {
+  const { t } = useTranslation();
   return (
     <Touchable href={`/lists/${list.id}`} style={styles.card}>
       {list.covers.length > 0 ? (
@@ -102,7 +102,7 @@ function ListCard({ list }: { list: ListSummary }) {
           {list.isCollaborative ? <Text style={[type.eyebrow, styles.badge]}>COLLAB</Text> : null}
         </View>
         <Text style={[type.eyebrow, text.dim]}>
-          {list.itemCount} {list.itemCount === 1 ? 'TITLE' : 'TITLES'} ·{' '}
+          {t('lists.titles', { count: list.itemCount })} ·{' '}
           {visibilityLabel(list.visibility).toUpperCase()} · {updatedLabel(list.updatedAt)}
         </Text>
       </View>
