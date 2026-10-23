@@ -1,0 +1,74 @@
+{
+  "action": {
+    "editProfile": "MODIFIER LE PROFIL",
+    "feedback": "ENVOYER UN AVIS"
+  },
+  "loadError": "Impossible de charger votre profil. L’API de l’instance est-elle joignable ?",
+  "public": {
+    "loadError": "Impossible de charger ce profil. L’API de l’instance est-elle joignable ?",
+    "notFoundTitle": "Aucun utilisateur",
+    "notFoundBody": "Personne sur cette instance ne porte le nom @{{username}}.",
+    "backToSearch": "RETOUR À LA RECHERCHE →"
+  },
+  "header": {
+    "memberSince": "@{{username}} · membre depuis {{date}}",
+    "titlesTracked": "TITRES SUIVIS",
+    "streak_one": "SÉRIE DE {{count}} JOUR",
+    "streak_other": "SÉRIE DE {{count}} JOURS"
+  },
+  "stats": {
+    "episodesThisYear": "Épisodes cette année",
+    "chaptersThisYear": "Chapitres cette année",
+    "completed": "Terminés",
+    "titles": "Titres suivis",
+    "meanRating": "Note moyenne"
+  },
+  "favourites": {
+    "title": "Favoris",
+    "emptyOwn": "Rien dans vos favoris pour l’instant. Appuyez sur ♡ FAVORI sur la page d’un titre et il apparaîtra ici, classé par étagère.",
+    "emptyOther": "{{name}} n’a encore rien ajouté à ses favoris.",
+    "findMore": "Trouver d’autres titres à mettre en favori",
+    "movie": "Films favoris",
+    "series": "Séries favorites",
+    "anime": "Animés favoris",
+    "manga": "Mangas favoris",
+    "webtoon": "Webtoons favoris"
+  },
+  "recent": {
+    "title": "Récents",
+    "emptyOwn": "Ce que vous regardez et lisez, vos notes et vos changements de statut apparaissent ici.",
+    "emptyPublic": "Aucun suivi public pour l’instant.",
+    "rated": "Noté",
+    "marked": "Marqué"
+  },
+  "badges": {
+    "title": "Badges",
+    "body": "Les badges arrivent avec la couche sociale v1.x : séries de jours, exploits d’import, crédits de catalogue."
+  },
+  "visibility": {
+    "title": "VISIBILITÉ DU PROFIL",
+    "tooltip": "Toute personne disposant du lien de votre profil peut le consulter ; aucun réglage de visibilité par utilisateur pour l’instant (ADR-0006)"
+  },
+  "edit": {
+    "title": "Modifier le profil",
+    "photoInput": "Photo de profil",
+    "changePhoto": "CHANGER LA PHOTO",
+    "uploadPhoto": "AJOUTER UNE PHOTO",
+    "discardPhoto": "Abandonner la nouvelle photo",
+    "removePhoto": "Supprimer la photo",
+    "photoHint": "PNG, JPEG ou WebP : 2 Mo max. Appliqué à l’enregistrement.",
+    "displayName": "Nom affiché",
+    "bio": "Bio",
+    "bioPlaceholder": "Regarde trop de néo-noir. Lit des webtoons dans le tram.",
+    "socialLinks": "Réseaux sociaux",
+    "handlePlaceholder": "@pseudo ou URL",
+    "unlinkHint": "Laissez un champ vide pour le dissocier.",
+    "errors": {
+      "photoTooBig": "Cette image dépasse 2 Mo. Choisissez-en une plus légère.",
+      "nameRequired": "Le nom ne peut pas être vide.",
+      "socialUrl": "{{platform}} nécessite une URL https:// complète.",
+      "photoFailed": "Vos informations sont enregistrées, mais la photo n’a pas été envoyée. Réessayez depuis MODIFIER LE PROFIL.",
+      "saveFailed": "L’enregistrement a échoué. Réessayez."
+    }
+  }
+}

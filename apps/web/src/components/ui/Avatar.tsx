@@ -18,7 +18,7 @@ const sizeClasses = {
 
 /**
  * Round avatar: uploaded image, or the user's initial on a name-hashed gradient.
- * Radix picks the fallback from the image's real load state — branching on
+ * Radix picks the fallback from the image's real load state: branching on
  * `src` alone rendered a broken-image icon whenever the upload 404'd.
  */
 export function Avatar({ name, src, size = 32, className }: AvatarProps) {

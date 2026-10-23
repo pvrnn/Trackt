@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
@@ -8,7 +9,7 @@ import { listsApi, useCreateList, useLists, useListsInvalidator } from '@trackt/
 /**
  * Add or remove a title across the viewer's lists (PRD §3.4). `containsMedia`
  * comes back on each summary, so membership is server-stated rather than
- * inferred — a list edited in another tab still shows the truth here.
+ * inferred: a list edited in another tab still shows the truth here.
  */
 export function AddToListDialog({
   mediaId,
@@ -19,6 +20,7 @@ export function AddToListDialog({
   mediaTitle: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: lists, isError } = useLists(mediaId);
   const createList = useCreateList();
   const invalidate = useListsInvalidator();
@@ -33,8 +35,8 @@ export function AddToListDialog({
       if (contains) await listsApi.removeItem(listId, mediaId);
       else await listsApi.addItem(listId, mediaId);
       invalidate(listId);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
+    } catch {
+      setError(t('media.saveFailed'));
     } finally {
       setPending(null);
     }
@@ -52,7 +54,7 @@ export function AddToListDialog({
           setNewTitle('');
           await toggle(created.id, false);
         },
-        onError: (cause) => setError(cause.message || 'That didn’t save — try again.'),
+        onError: () => setError(t('media.saveFailed')),
       },
     );
   };
@@ -61,7 +63,7 @@ export function AddToListDialog({
     <Modal onClose={onClose}>
       <div className="flex flex-col gap-5">
         <div>
-          <ModalTitle>Add to list</ModalTitle>
+          <ModalTitle>{t('media.addToList.title')}</ModalTitle>
           {/* Which title is being added was only in the old aria-label; on screen
               the heading alone is ambiguous once the dialog covers the page. */}
           <p className="mt-1 text-sm text-muted">{mediaTitle}</p>
@@ -69,14 +71,12 @@ export function AddToListDialog({
 
         {isError ? (
           <p role="alert" className="text-[15px] text-red-400">
-            Couldn’t load your lists — try again in a moment.
+            {t('media.addToList.loadFailed')}
           </p>
         ) : lists === undefined ? (
           <div className="h-24" aria-busy />
         ) : lists.length === 0 ? (
-          <p className="text-[15px] text-muted">
-            No lists yet — name one below and this title goes straight into it.
-          </p>
+          <p className="text-[15px] text-muted">{t('media.addToList.empty')}</p>
         ) : (
           <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
             {lists.map((entry) => {
@@ -90,7 +90,7 @@ export function AddToListDialog({
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-[15px] font-bold">{entry.title}</span>
                     <span className="font-label text-xs tracking-label text-dim">
-                      {entry.itemCount} {entry.itemCount === 1 ? 'TITLE' : 'TITLES'}
+                      {t('media.addToList.itemCount', { count: entry.itemCount })}
                     </span>
                   </div>
                   <Button
@@ -98,7 +98,11 @@ export function AddToListDialog({
                     disabled={pending !== null}
                     onClick={() => toggle(entry.id, contains)}
                   >
-                    {pending === entry.id ? '…' : contains ? '✓ ADDED' : '＋ ADD'}
+                    {pending === entry.id
+                      ? '…'
+                      : contains
+                        ? t('media.addToList.added')
+                        : t('media.addToList.add')}
                   </Button>
                 </GlassCard>
               );
@@ -108,12 +112,12 @@ export function AddToListDialog({
 
         <form onSubmit={createAndAdd} className="flex items-end gap-3">
           <Input
-            label="New list"
+            label={t('media.addToList.newList')}
             name="newList"
             value={newTitle}
             maxLength={120}
             onChange={(event) => setNewTitle(event.target.value)}
-            placeholder="Name a new list"
+            placeholder={t('media.addToList.namePlaceholder')}
             className="flex-1"
           />
           <Button
@@ -121,7 +125,9 @@ export function AddToListDialog({
             variant="secondary"
             disabled={createList.isPending || newTitle.trim().length === 0}
           >
-            {createList.isPending ? 'CREATING…' : 'CREATE & ADD'}
+            {createList.isPending
+              ? t('media.addToList.creating')
+              : t('media.addToList.createAndAdd')}
           </Button>
         </form>
 
@@ -133,7 +139,7 @@ export function AddToListDialog({
 
         <div className="flex justify-end">
           <Button variant="ghost" onClick={onClose}>
-            DONE
+            {t('media.addToList.done')}
           </Button>
         </div>
       </div>

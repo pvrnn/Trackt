@@ -1,0 +1,43 @@
+{
+  "title": "News",
+  "allKinds": "ALL",
+  "filterAria": "filter by media kind",
+  "range": {
+    "today": "TODAY",
+    "week": "THIS WEEK",
+    "month": "THIS MONTH",
+    "allTime": "ALL TIME"
+  },
+  "from": "FROM",
+  "to": "TO",
+  "clear": "CLEAR",
+  "latest": "Latest",
+  "storyCount_one": "{{count}} STORY",
+  "storyCount_other": "{{count}} STORIES",
+  "loadingFeed": "Loading the feed…",
+  "feedError": "News failed to load. Is this instance’s API reachable? Try again in a moment.",
+  "loadMore": "LOAD MORE",
+  "loadingMore": "LOADING…",
+  "empty": {
+    "title": "Nothing yet",
+    "filtered": "No stories match these filters. Widen the dates, or clear the kind.",
+    "unfiltered": "No news has been published yet. Stories appear here once the central catalog starts publishing them.",
+    "browse": "BROWSE DISCOVER →"
+  },
+  "article": {
+    "back": "← ALL NEWS",
+    "error": "This article couldn’t be loaded. The news service may be briefly unavailable. Try again in a moment.",
+    "sources": "SOURCES",
+    "linkedWorks": "IN THIS STORY",
+    "missingTitle": "No such story",
+    "missingBody": "This article doesn’t exist, or it was withdrawn.",
+    "backToNews": "BACK TO NEWS →"
+  },
+  "mediaHeading": "In the news",
+  "widget": {
+    "heading": "Latest news",
+    "viewAll": "VIEW ALL →",
+    "error": "Couldn’t load news right now.",
+    "empty": "Nothing to report yet. Check back soon."
+  }
+}

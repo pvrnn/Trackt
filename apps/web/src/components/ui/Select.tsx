@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 /**
  * Radix reserves the empty string for its own "nothing selected" state, so an
  * option that genuinely means none (＋ LOG, RATE, UNKNOWN) needs a stand-in.
- * Call sites keep passing '' — the swap lives at this boundary only.
+ * Call sites keep passing ''; the swap lives at this boundary only.
  */
 const NONE = '__none__';
 
@@ -26,7 +26,7 @@ export interface SelectProps {
   /** `pill` only: paints the trigger pink to signal an active choice. */
   selected?: boolean;
   /**
-   * `pill` only: a dim caption inside the trigger, before the value — "STATUS
+   * `pill` only: a dim caption inside the trigger, before the value: "STATUS
    * Completed" rather than a bare "Completed". What names a pill in a row of
    * them, per `docs/design/History.dc.html`.
    */
@@ -47,7 +47,7 @@ export interface SelectProps {
 
 /**
  * The app's one dropdown, on Radix's listbox. Replaces the native `<select>`s,
- * whose popup the OS draws — ignoring the AURA PRISM font, glass surface and
+ * whose popup the OS draws, ignoring the AURA PRISM font, glass surface and
  * pink accent no matter how the closed trigger is styled.
  */
 export function Select({
@@ -148,7 +148,7 @@ export function Select({
   );
 }
 
-/** Labeled glass select well — the `Input` treatment, for form rows. */
+/** Labeled glass select well: the `Input` treatment, for form rows. */
 export function SelectField({
   label,
   id,

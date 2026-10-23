@@ -1,12 +1,13 @@
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { GlassCard } from './GlassCard';
 
 /**
  * Destructive confirm, on Radix's alert dialog rather than `Modal`. The
  * difference is deliberate: `role="alertdialog"`, focus lands on Cancel, and an
- * outside click does *not* dismiss — a misclick shouldn't be able to answer a
+ * outside click does *not* dismiss, since a misclick shouldn't be able to answer a
  * question about deleting something.
  */
 export function ConfirmDialog({
@@ -24,6 +25,7 @@ export function ConfirmDialog({
   onCancel: () => void;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <AlertDialog.Root
       open
@@ -47,7 +49,7 @@ export function ConfirmDialog({
             <div className="flex justify-end gap-3">
               <AlertDialog.Cancel asChild>
                 <Button variant="ghost" disabled={busy}>
-                  CANCEL
+                  {t('common.cancel')}
                 </Button>
               </AlertDialog.Cancel>
               {/* Not AlertDialog.Action: that closes on select, which would tear

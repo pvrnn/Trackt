@@ -1,25 +1,31 @@
 import { Link } from '@tanstack/react-router';
-import { TOPIC_LABELS, coverGradient, formatNewsDate, useMediaNews } from '@trackt/client';
+import { useTranslation } from 'react-i18next';
+import { coverGradient, useMediaNews } from '@trackt/client';
+import { useFormat } from '../../lib/format';
+import { useLabels } from '../../lib/labels';
 import { GlassCard } from '../ui/GlassCard';
 
 /**
- * "In the news" — the media detail sidebar's strip of central articles touching
+ * "In the news": the media detail sidebar's strip of central articles touching
  * this work (`/v1/news/by-media`, ADR-0005).
  *
  * It renders nothing at all when there is nothing to show, which is the same
  * rule the relation sections above it follow: an empty section on a sidebar is
- * a hole, not information. That deliberately collapses three states into one —
+ * a hole, not information. That deliberately collapses three states into one:
  * still loading, no news about this work, and a catalog this instance can't
  * reach (the API degrades that to an empty list rather than an error). None of
  * them is worth a permanent block of chrome on a page whose subject is the work.
  */
 export function MediaNews({ mediaId }: { mediaId: string }) {
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const format = useFormat();
   const { data: articles } = useMediaNews(mediaId);
   if (!articles || articles.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3.5">
-      <h2 className="font-heading text-2xl uppercase">In the news</h2>
+      <h2 className="font-heading text-2xl uppercase">{t('news.mediaHeading')}</h2>
       <ul className="flex flex-col gap-2.5">
         {articles.map((article) => {
           const coverKind = article.kinds[0];
@@ -50,7 +56,7 @@ export function MediaNews({ mediaId }: { mediaId: string }) {
                   {article.title}
                 </Link>
                 <span className="font-label text-[11px] tracking-label text-dim">
-                  {TOPIC_LABELS[article.topic]} · {formatNewsDate(article.publishedAt)}
+                  {labels.topic(article.topic)} · {format.newsDate(article.publishedAt)}
                 </span>
               </div>
             </GlassCard>

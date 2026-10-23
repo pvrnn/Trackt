@@ -6,7 +6,7 @@ import { coverGradient } from '@trackt/client';
 export interface CoverCardProps {
   kind: MediaKind;
   title: string;
-  /** Completion 0..1 — renders the 4px PRISM progress bar along the bottom edge. */
+  /** Completion 0..1; renders the 4px PRISM progress bar along the bottom edge. */
   progress?: number;
   /** Real artwork replaces the generated gradient; title/progress treatment stays. */
   coverUrl?: string;

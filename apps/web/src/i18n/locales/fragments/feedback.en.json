@@ -1,0 +1,19 @@
+{
+  "title": "Send feedback",
+  "intro": "Something broken, something missing, or something that just felt wrong: it all lands with the Trackt project.",
+  "kind": "What kind?",
+  "category": {
+    "bug": "BUG",
+    "feature": "IDEA",
+    "other": "SOMETHING ELSE"
+  },
+  "message": "Message",
+  "placeholder": "What happened, and what did you expect instead?",
+  "minLength": "A little more: 10 characters minimum.",
+  "count": "{{used}}/{{max}}",
+  "context": "Sent with this instance’s address and the page you’re on, so a bug can be reproduced. Your account details stay here.",
+  "sent": "Feedback sent. Thanks.",
+  "error": "Feedback couldn’t be sent. Try again.",
+  "sending": "SENDING…",
+  "send": "SEND"
+}

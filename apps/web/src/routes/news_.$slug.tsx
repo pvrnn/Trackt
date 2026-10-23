@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { HTTPError } from 'ky';
 import type { NewsLinkedWork } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
@@ -7,20 +8,25 @@ import { MarketingNav } from '../components/layout/MarketingNav';
 import { Markdown } from '../components/news/Markdown';
 import { KindDot } from '../components/ui/KindDot';
 import { useOptionalSession } from '../lib/auth-client';
-import { TOPIC_LABELS, coverGradient, formatNewsDate, useNewsArticle } from '@trackt/client';
+import { useFormat } from '../lib/format';
+import { useLabels } from '../lib/labels';
+import { coverGradient, useNewsArticle } from '@trackt/client';
 
 /**
  * `news_.` opts this route out of nesting under `/news`: the feed is a
  * standalone page with no `<Outlet />`, so as a child this component never
- * rendered — the URL changed and the feed stayed on screen.
+ * rendered: the URL changed and the feed stayed on screen.
  */
 export const Route = createFileRoute('/news_/$slug')({
-  head: () => ({ meta: [{ title: 'Article — Trackt' }] }),
+  head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.news') }] }),
   component: ArticlePage,
 });
 
 function ArticlePage() {
   const { slug } = Route.useParams();
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const format = useFormat();
   const { isPending, navUser } = useOptionalSession();
   const { data: article, isPending: articlePending, error } = useNewsArticle(slug);
 
@@ -38,19 +44,18 @@ function ArticlePage() {
             to="/news"
             className="font-label text-xs font-semibold tracking-label text-dim hover:text-pink"
           >
-            ← ALL NEWS
+            {t('news.article.back')}
           </Link>
 
           {articlePending ? (
             <p aria-busy className="text-[15px] text-muted">
-              Loading…
+              {t('common.loading')}
             </p>
           ) : notFound ? (
             <Missing />
           ) : error || !article ? (
             <p role="alert" className="text-[15px] text-red-400">
-              This article couldn&apos;t be loaded — the news service may be briefly unavailable.
-              Try again in a moment.
+              {t('news.article.error')}
             </p>
           ) : (
             <>
@@ -69,7 +74,7 @@ function ArticlePage() {
                 <div className="relative flex flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-pink-selected px-2.5 py-0.5 font-label text-[10px] font-bold tracking-label text-pink">
-                      {TOPIC_LABELS[article.topic]}
+                      {labels.topic(article.topic)}
                     </span>
                     {article.kinds.map((kind) => (
                       <KindDot key={kind} kind={kind} showLabel />
@@ -78,7 +83,7 @@ function ArticlePage() {
                       dateTime={article.publishedAt}
                       className="font-label text-[11px] tracking-label text-dim"
                     >
-                      · {formatNewsDate(article.publishedAt)}
+                      · {format.newsDate(article.publishedAt)}
                     </time>
                   </div>
                   <h1 className="font-heading text-[40px] leading-[1.05] text-white uppercase">
@@ -95,7 +100,7 @@ function ArticlePage() {
 
               <section className="flex flex-col gap-3 border-t border-divider pt-6">
                 <h2 className="font-label text-xs font-semibold tracking-label text-dim">
-                  SOURCES
+                  {t('news.article.sources')}
                 </h2>
                 <ul className="flex flex-col gap-2">
                   {article.sources.map((source) => (
@@ -109,9 +114,9 @@ function ArticlePage() {
                         {source.title}
                       </a>
                       <span className="text-dim">
-                        {' — '}
+                        {' · '}
                         {source.outlet}
-                        {source.publishedAt ? `, ${formatNewsDate(source.publishedAt)}` : ''}
+                        {source.publishedAt ? `, ${format.newsDate(source.publishedAt)}` : ''}
                       </span>
                     </li>
                   ))}
@@ -132,9 +137,12 @@ function ArticlePage() {
  * here that lead nowhere.
  */
 function LinkedWorks({ works }: { works: NewsLinkedWork[] }) {
+  const { t } = useTranslation();
   return (
     <section className="flex flex-col gap-3 border-t border-divider pt-6">
-      <h2 className="font-label text-xs font-semibold tracking-label text-dim">IN THIS STORY</h2>
+      <h2 className="font-label text-xs font-semibold tracking-label text-dim">
+        {t('news.article.linkedWorks')}
+      </h2>
       <ul className="flex flex-wrap gap-2.5">
         {works.map((work) => (
           <li key={`${work.id}-${work.role}`}>
@@ -166,17 +174,18 @@ function LinkedWorks({ works }: { works: NewsLinkedWork[] }) {
 }
 
 function Missing() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-white/20 bg-glass px-8 py-10 text-center backdrop-blur-[16px]">
-      <p className="font-heading text-[32px] text-faint uppercase">No such story</p>
-      <p className="max-w-[420px] text-sm text-muted">
-        This article doesn&apos;t exist, or it was withdrawn.
+      <p className="font-heading text-[32px] text-faint uppercase">
+        {t('news.article.missingTitle')}
       </p>
+      <p className="max-w-[420px] text-sm text-muted">{t('news.article.missingBody')}</p>
       <Link
         to="/news"
         className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
       >
-        BACK TO NEWS →
+        {t('news.article.backToNews')}
       </Link>
     </div>
   );

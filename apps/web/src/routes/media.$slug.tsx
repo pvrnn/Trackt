@@ -2,10 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   LOG_STATUSES,
   MEDIA_RELATION_LABELS,
-  trackingVerbLabel,
   type LogDates,
   type LogStatus,
   type MediaDetail,
@@ -24,12 +24,11 @@ import { Button } from '../components/ui/Button';
 import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
+import { useFormat } from '../lib/format';
+import { useLabels } from '../lib/labels';
 import {
-  LOG_STATUS_LABELS,
   coverGradient,
-  dateRangeLabel,
   todayIso,
-  KIND_LABELS_SINGULAR,
   firstUnwatched,
   invalidateTracking,
   partBlocks,
@@ -53,31 +52,31 @@ function titleFromSlug(slug: string): string {
 export const Route = createFileRoute('/media/$slug')({
   // The detail loads client-side (session-gated query), so the server-rendered
   // title is derived from the slug; the effect below refines it once data lands.
-  head: ({ params }) => ({
-    meta: [{ title: `${titleFromSlug(params.slug) || 'Media'} — Trackt` }],
+  head: ({ params, match }) => ({
+    meta: [
+      {
+        title: match.context.i18n.t('meta.media', {
+          title: titleFromSlug(params.slug) || match.context.i18n.t('media.untitled'),
+        }),
+      },
+    ],
   }),
   component: MediaPage,
 });
 
-/** The '' option clears the log; its label doubles as the resting pill text. */
-const LOG_ITEMS: SelectItem[] = [
-  { value: '', label: '＋ LOG' },
-  ...LOG_STATUSES.map((status) => ({ value: status, label: LOG_STATUS_LABELS[status] })),
-];
-
-/** Sidebar heading per relation label (ADR-0004). Display copy, so it lives here. */
-const RELATION_HEADINGS: Record<MediaRelationLabel, string> = {
-  prequel: 'PREQUEL',
-  sequel: 'SEQUEL',
-  source: 'SOURCE MATERIAL',
-  adaptation: 'ADAPTATIONS',
-  spinoff: 'SPIN-OFFS',
-  parent: 'PARENT WORK',
-  related: 'RELATED',
-};
+/** Sidebar heading per relation label (ADR-0004), in catalog-key form. */
+const RELATION_HEADINGS = {
+  prequel: 'media.relation.prequel',
+  sequel: 'media.relation.sequel',
+  source: 'media.relation.source',
+  adaptation: 'media.relation.adaptation',
+  spinoff: 'media.relation.spinoff',
+  parent: 'media.relation.parent',
+  related: 'media.relation.related',
+} as const satisfies Record<MediaRelationLabel, string>;
 
 /**
- * Group relations into sidebar sections, in MEDIA_RELATION_LABELS order — the
+ * Group relations into sidebar sections, in MEDIA_RELATION_LABELS order: the
  * same order the API sorts by, so headings never reshuffle between renders.
  */
 function groupRelations(relations: MediaDetail['relations']) {
@@ -86,12 +85,20 @@ function groupRelations(relations: MediaDetail['relations']) {
   ).filter(([, items]) => items.length > 0);
 }
 
-function partNoun(detail: MediaDetail): { singular: string; prefix: string } | null {
+function partNoun(detail: MediaDetail) {
   if (detail.kind === 'series' || detail.kind === 'anime') {
-    return { singular: 'Episode', prefix: 'E' };
+    return {
+      singular: 'media.part.episode',
+      plural: 'media.part.episodes',
+      prefix: 'E',
+    } as const;
   }
   if (detail.kind === 'manga' || detail.kind === 'webtoon') {
-    return { singular: 'Chapter', prefix: 'CH' };
+    return {
+      singular: 'media.part.chapter',
+      plural: 'media.part.chapters',
+      prefix: 'CH',
+    } as const;
   }
   return null;
 }
@@ -103,7 +110,7 @@ function partTotal(detail: MediaDetail): number | null {
 
 type ViewerPatch = Partial<NonNullable<MediaDetail['viewer']>>;
 
-/** What an untracked work looks like — the base every optimistic patch lands on. */
+/** What an untracked work looks like: the base every optimistic patch lands on. */
 const EMPTY_VIEWER: NonNullable<MediaDetail['viewer']> = {
   status: null,
   score: null,
@@ -114,6 +121,9 @@ const EMPTY_VIEWER: NonNullable<MediaDetail['viewer']> = {
 };
 
 function MediaPage() {
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const format = useFormat();
   const { slug } = Route.useParams();
   const queryClient = useQueryClient();
   const { isPending: authPending, navUser } = useAuthedPage();
@@ -125,6 +135,12 @@ function MediaPage() {
   // than read from `viewer` on open, so the auto-open path can hand it the
   // dates it just stamped without racing the optimistic cache write.
   const [editingDates, setEditingDates] = useState<LogDates | null>(null);
+
+  /** The '' option clears the log; its label doubles as the resting pill text. */
+  const logItems: SelectItem[] = [
+    { value: '', label: t('media.log') },
+    ...LOG_STATUSES.map((status) => ({ value: status, label: labels.status(status) })),
+  ];
 
   const queryKey = ['media', slug] as const;
 
@@ -169,8 +185,8 @@ function MediaPage() {
   }, [slug]);
 
   useEffect(() => {
-    if (data) document.title = `${data.title} — Trackt`;
-  }, [data]);
+    if (data) document.title = t('meta.media', { title: data.title });
+  }, [data, t]);
 
   if (authPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
@@ -178,15 +194,14 @@ function MediaPage() {
     return (
       <Shell user={navUser}>
         <main className="mx-auto flex max-w-[1360px] flex-col items-start gap-4 px-10 pt-14 pb-20">
-          <h1 className="font-heading text-[56px] leading-none uppercase">Couldn’t load</h1>
-          <p className="max-w-[540px] text-[15px] text-muted">
-            Something went wrong fetching this title — the instance API may be unreachable, or its
-            response wasn’t what we expected.
-          </p>
+          <h1 className="font-heading text-[56px] leading-none uppercase">
+            {t('media.loadFailed.title')}
+          </h1>
+          <p className="max-w-[540px] text-[15px] text-muted">{t('media.loadFailed.body')}</p>
           <div className="mt-2 flex items-center gap-5">
-            <Button onClick={() => refetch()}>RETRY</Button>
+            <Button onClick={() => refetch()}>{t('media.retry')}</Button>
             <Link to="/search" className="text-sm font-bold text-pink">
-              ← BACK TO DISCOVER
+              {t('media.backToDiscover')}
             </Link>
           </div>
         </main>
@@ -198,12 +213,12 @@ function MediaPage() {
     return (
       <Shell user={navUser}>
         <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-10 pt-14 pb-20">
-          <h1 className="font-heading text-[56px] leading-none uppercase">Not found</h1>
-          <p className="text-[15px] text-muted">
-            Nothing lives at “{slug}” on this instance. It may have been removed from the catalog.
-          </p>
+          <h1 className="font-heading text-[56px] leading-none uppercase">
+            {t('media.notFound.title')}
+          </h1>
+          <p className="text-[15px] text-muted">{t('media.notFound.body', { slug })}</p>
           <Link to="/search" className="text-sm font-bold text-pink">
-            ← BACK TO DISCOVER
+            {t('media.backToDiscover')}
           </Link>
         </main>
       </Shell>
@@ -223,19 +238,21 @@ function MediaPage() {
   const detail = data;
   const viewer = detail.viewer ?? EMPTY_VIEWER;
   const noun = partNoun(detail);
+  const unit = noun ? t(noun.singular) : null;
+  const units = noun ? t(noun.plural) : null;
   const total = partTotal(detail);
   const watchedSet = new Set(viewer.watched);
   const listLength = total ?? (viewer.watched.length > 0 ? Math.max(...viewer.watched) : 0);
-  // Candidates stop at the known part count — never offer "CHECK IN E13" on a
+  // Candidates stop at the known part count, so never offer "CHECK IN E13" on a
   // 12-episode series (the server would reject it). Only an unknown total may
   // extend one past the highest watched part. Scanned rather than materialised:
   // a 900-chapter manga allocated a 900-element array on every render to read
   // one number off the front of it.
   const next = noun ? firstUnwatched(watchedSet, total ?? listLength + 1) : null;
   const checkable = noun !== null && listLength > 0;
-  /** 'Watched' or 'Read', per kind — the checklist's done state, in words. */
-  const doneLabel = trackingVerbLabel(detail.kind);
-  /** The highest part with everything before it seen — what a position means. */
+  /** 'Watched' or 'Read', per kind: the checklist's done state, in words. */
+  const doneLabel = labels.trackingVerb(detail.kind);
+  /** The highest part with everything before it seen: what a position means. */
   const position = progressUpTo(watchedSet);
   /** Blocks of forty, or none when the work is short enough to list part by part. */
   const blocks = total !== null ? partBlocks(total, position) : [];
@@ -250,11 +267,11 @@ function MediaPage() {
   const setPosition = (upTo: number) =>
     applyViewer({ watched: partsUpTo(upTo) }, () => trackingApi.setProgress(detail.id, upTo));
 
-  /** Every part row writes the position — see `PartRows`. */
+  /** Every part row writes the position; see `PartRows`. */
   const partRow = (number: number) => (
     <PartRow
       key={number}
-      label={`${noun?.singular ?? 'Part'} ${number}`}
+      label={t('media.part.label', { unit: unit ?? t('media.part.generic'), number })}
       done={watchedSet.has(number)}
       isNext={number === next}
       onClick={() => setPosition(watchedSet.has(number) ? number - 1 : number)}
@@ -267,16 +284,23 @@ function MediaPage() {
    */
   const primary = checkable
     ? position >= (total ?? position)
-      ? { label: 'UP TO DATE', done: true, onClick: () => setPosition(position) }
+      ? { label: t('media.upToDate'), done: true, onClick: () => setPosition(position) }
       : {
-          label: `${trackingVerbLabel(detail.kind, 'present').toUpperCase()} ${noun!.prefix}${position + 1}`,
+          label: t('media.checkIn', {
+            verb: labels.trackingVerb(detail.kind, 'present').toUpperCase(),
+            part: `${noun!.prefix}${position + 1}`,
+          }),
           done: false,
           onClick: () => setPosition(position + 1),
         }
     : viewer.status === 'completed'
-      ? { label: 'WATCHED', done: true, onClick: () => setEditingDates({ ...viewer }) }
+      ? {
+          label: labels.trackingVerb(detail.kind).toUpperCase(),
+          done: true,
+          onClick: () => setEditingDates({ ...viewer }),
+        }
       : {
-          label: 'MARK WATCHED',
+          label: t('media.mark', { verb: labels.trackingVerb(detail.kind).toUpperCase() }),
           done: false,
           onClick: () => {
             const dates = stampedDates('completed', viewer, todayIso());
@@ -289,13 +313,13 @@ function MediaPage() {
 
   const relationGroups = groupRelations(detail.relations);
   /** '04 JAN → 11 FEB' when the log has dates; null offers to add them. */
-  const dateLabel = dateRangeLabel(viewer.startedAt, viewer.finishedAt);
+  const dateLabel = format.dateRange(viewer.startedAt, viewer.finishedAt);
 
-  const countOf = (n: number | null, unit: string) =>
-    n !== null ? `${n} ${unit}${n === 1 ? '' : 'S'}` : null;
-  /** Kind · year · genres, one line — which is why there is no GENRES section. */
+  const countOf = (n: number | null, label: string) =>
+    n !== null ? t('media.partCount', { count: n, unit: label }) : null;
+  /** Kind · year · genres, one line, which is why there is no GENRES section. */
   const metaLine = [
-    KIND_LABELS_SINGULAR[detail.kind].toUpperCase(),
+    labels.kindSingular(detail.kind),
     detail.year !== null ? String(detail.year) : null,
     detail.genres.length > 0 ? detail.genres.slice(0, 3).join(', ').toUpperCase() : null,
   ]
@@ -304,26 +328,29 @@ function MediaPage() {
   /** What the work itself is doing: airing/ended, which season, how many parts. */
   const factsLine = [
     detail.status ? detail.status.toUpperCase() : null,
-    detail.seasonNumber !== null ? `SEASON ${detail.seasonNumber}` : null,
-    noun ? countOf(total, noun.singular.toUpperCase()) : null,
+    detail.seasonNumber !== null ? t('media.season', { number: detail.seasonNumber }) : null,
+    noun && unit ? countOf(total, unit.toUpperCase()) : null,
   ]
     .filter(Boolean)
     .join(' · ');
 
   const detailRows: [string, string][] = [
-    ['STATUS', detail.status ? detail.status.toUpperCase() : '—'],
-    ['RELEASED', detail.releaseDate ?? (detail.year !== null ? String(detail.year) : '—')],
-    ['GENRES', detail.genres.length > 0 ? detail.genres.join(', ') : '—'],
+    [t('media.details.status'), detail.status ? detail.status.toUpperCase() : 'N/A'],
+    [
+      t('media.details.released'),
+      detail.releaseDate ?? (detail.year !== null ? String(detail.year) : 'N/A'),
+    ],
+    [t('media.details.genres'), detail.genres.length > 0 ? detail.genres.join(', ') : 'N/A'],
     ...(detail.synonyms.length > 0
-      ? ([['ALSO KNOWN AS', detail.synonyms.join(' · ')]] as [string, string][])
+      ? ([[t('media.details.alsoKnownAs'), detail.synonyms.join(' · ')]] as [string, string][])
       : []),
     [
-      'EXTERNAL',
+      t('media.details.external'),
       Object.keys(detail.externalIds).length > 0
         ? Object.keys(detail.externalIds)
             .map((k) => k.toUpperCase())
             .join(' · ')
-        : '—',
+        : 'N/A',
     ],
   ];
 
@@ -362,7 +389,7 @@ function MediaPage() {
           />
 
           <div className="flex min-w-0 flex-1 flex-col gap-4">
-            {/* Kind, year and genres on one line — which is why there is no
+            {/* Kind, year and genres on one line, which is why there is no
                 separate GENRES section any more. */}
             <div className="flex flex-wrap items-center gap-2.5">
               <KindDot kind={detail.kind} />
@@ -379,20 +406,20 @@ function MediaPage() {
               </p>
             )}
 
-            {/* Status and dates are facts, not buttons — the chip changes the
+            {/* Status and dates are facts, not buttons: the chip changes the
                 one, the date segment opens the editor for the other. */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Named by the hidden label *plus* the trigger, so the chip
-                  announces "Status, COMPLETED" — an `aria-label` here would
+                  announces "Status, COMPLETED"; an `aria-label` here would
                   replace the value and leave only "status". */}
               <span id="log-status-label" className="sr-only">
-                Status
+                {t('media.statusLabel')}
               </span>
               <Select
                 variant="pill"
                 id="log-status-trigger"
                 aria-labelledby="log-status-label log-status-trigger"
-                items={LOG_ITEMS}
+                items={logItems}
                 value={viewer.status ?? ''}
                 selected={viewer.status !== null}
                 onChange={(value) => {
@@ -430,16 +457,16 @@ function MediaPage() {
                   }
                 }}
               />
-              {/* Only with a log to date — the dates live on the log row, so
+              {/* Only with a log to date: the dates live on the log row, so
                   there is nothing to edit before one exists. */}
               {viewer.status !== null && (
                 <button
                   type="button"
                   onClick={() => setEditingDates({ ...viewer })}
-                  title="Edit the dates you started and finished this"
+                  title={t('media.dates.edit')}
                   className="cursor-pointer font-label text-xs font-semibold tracking-label text-muted transition-colors hover:text-pink"
                 >
-                  {dateLabel ?? '＋ ADD DATES'}
+                  {dateLabel ?? t('media.dates.add')}
                 </button>
               )}
               {factsLine && (
@@ -492,7 +519,9 @@ function MediaPage() {
                 <span aria-hidden className="text-[15px] leading-none">
                   {viewer.favorited ? '♥' : '♡'}
                 </span>
-                <span className="font-label text-xs font-bold tracking-label">FAVOURITE</span>
+                <span className="font-label text-xs font-bold tracking-label">
+                  {t('media.favourite')}
+                </span>
               </button>
 
               <button
@@ -503,13 +532,15 @@ function MediaPage() {
                 <span aria-hidden className="text-[15px] leading-none">
                   ＋
                 </span>
-                <span className="font-label text-xs font-bold tracking-label">LIST</span>
+                <span className="font-label text-xs font-bold tracking-label">
+                  {t('media.list')}
+                </span>
               </button>
             </div>
 
             {viewerMutation.isError && (
               <p role="alert" className="text-sm text-red-400">
-                That didn’t save — try again.
+                {t('media.saveFailed')}
               </p>
             )}
           </div>
@@ -520,9 +551,7 @@ function MediaPage() {
         {/* LEFT: the counter, then the parts it scopes. */}
         <section className="flex min-w-0 flex-col gap-[18px]">
           <div className="flex flex-wrap items-center gap-4">
-            <h2 className="font-heading text-[32px] uppercase">
-              {noun ? `${noun.singular}s` : 'Tracking'}
-            </h2>
+            <h2 className="font-heading text-[32px] uppercase">{units ?? t('media.tracking')}</h2>
             <div className="flex-1" />
             {checkable && total !== null && (
               <button
@@ -530,7 +559,9 @@ function MediaPage() {
                 onClick={() => setPosition(position >= total ? 0 : total)}
                 className="cursor-pointer font-label text-[11px] tracking-label text-pink transition-colors hover:brightness-125"
               >
-                {position >= total ? 'CLEAR PROGRESS' : `MARK ALL ${doneLabel.toUpperCase()}`}
+                {position >= total
+                  ? t('media.clearProgress')
+                  : t('media.markAll', { verb: doneLabel.toUpperCase() })}
               </button>
             )}
           </div>
@@ -538,7 +569,9 @@ function MediaPage() {
           {checkable && total !== null ? (
             <>
               <ProgressCard
-                unitLabel={`${noun!.singular.toUpperCase()}S ${doneLabel.toUpperCase()}`}
+                unitLabel={
+                  volumes ? t('media.progressUnit.chapters') : t('media.progressUnit.episodes')
+                }
                 total={total}
                 position={position}
                 watchedCount={watchedSet.size}
@@ -554,8 +587,8 @@ function MediaPage() {
                         block={block}
                         label={
                           volumes
-                            ? `Volume ${block.index}`
-                            : `${noun!.singular}s ${block.from}–${block.to}`
+                            ? t('media.volume', { number: block.index })
+                            : t('media.partsRange', { unit: units, from: block.from, to: block.to })
                         }
                         rangeLabel={`${noun!.prefix} ${block.from}–${block.to}`}
                         open={block.index === activeBlock.index}
@@ -569,15 +602,19 @@ function MediaPage() {
                   <div className="mt-2 flex items-center gap-4">
                     <h3 className="font-heading text-xl uppercase">
                       {volumes
-                        ? `Volume ${activeBlock.index}`
-                        : `${noun!.singular}s ${activeBlock.from}–${activeBlock.to}`}
-                      {insideBlock ? ' · around you' : ''}
+                        ? t('media.volume', { number: activeBlock.index })
+                        : t('media.partsRange', {
+                            unit: units,
+                            from: activeBlock.from,
+                            to: activeBlock.to,
+                          })}
+                      {insideBlock ? ` · ${t('media.aroundYou')}` : ''}
                     </h3>
                     <span className="h-px flex-1 bg-white/9" />
                   </div>
                   <div className="flex flex-col gap-2">{windowRows.map(partRow)}</div>
                   <p className="font-label text-[11px] leading-relaxed tracking-label text-faint">
-                    OPEN A {volumes ? 'VOLUME' : 'BLOCK'} TO JUMP THERE · THE SLIDER TRAVELS FURTHER
+                    {volumes ? t('media.browseNote.volume') : t('media.browseNote.block')}
                   </p>
                 </>
               ) : (
@@ -588,9 +625,7 @@ function MediaPage() {
             </>
           ) : (
             <p className="rounded-card bg-glass px-6 py-5 text-[15px] text-muted inset-ring inset-ring-white/10">
-              {detail.kind === 'movie'
-                ? 'Movies track in one step — the button above is the whole log.'
-                : 'This entry has no episode or chapter count yet, so there’s nothing granular to tick off. Set a status above to track it.'}
+              {detail.kind === 'movie' ? t('media.empty.movie') : t('media.empty.noParts')}
             </p>
           )}
         </section>
@@ -603,19 +638,22 @@ function MediaPage() {
             <div className="flex flex-1 items-center gap-3.5 rounded-card-sm bg-glass px-4.5 py-4 inset-ring inset-ring-white/10 backdrop-blur-[16px]">
               {viewer.score !== null ? (
                 <span className="text-prism font-display text-[38px] leading-none">
-                  {viewer.score.toFixed(1)}
+                  {format.score(viewer.score)}
                 </span>
               ) : (
                 <span className="font-display text-[38px] leading-none text-faint">–</span>
               )}
               <div className="flex flex-col gap-0.5">
                 <span className="font-label text-[11px] tracking-label text-muted">
-                  {viewer.score !== null ? 'YOUR RATING' : 'RATE THIS'}
+                  {viewer.score !== null ? t('media.rating.yours') : t('media.rating.rate')}
                 </span>
                 <span className="font-label text-[11px] tracking-label text-dim">
                   {detail.community.averageScore !== null
-                    ? `${detail.community.averageScore.toFixed(1)} FROM ${detail.community.ratingCount} HERE`
-                    : 'NO RATINGS HERE YET'}
+                    ? t('media.rating.community', {
+                        score: format.score(detail.community.averageScore),
+                        count: detail.community.ratingCount,
+                      })
+                    : t('media.rating.none')}
                 </span>
               </div>
             </div>
@@ -634,7 +672,7 @@ function MediaPage() {
           </div>
 
           <section className="flex flex-col gap-3.5">
-            <h2 className="font-heading text-2xl uppercase">Details</h2>
+            <h2 className="font-heading text-2xl uppercase">{t('media.details.title')}</h2>
             <div className="flex flex-col">
               {detailRows.map(([key, value]) => (
                 <div
@@ -657,7 +695,7 @@ function MediaPage() {
 
           {relationGroups.map(([label, items]) => (
             <section key={label} className="flex flex-col gap-3.5">
-              <h2 className="font-heading text-2xl uppercase">{RELATION_HEADINGS[label]}</h2>
+              <h2 className="font-heading text-2xl uppercase">{t(RELATION_HEADINGS[label])}</h2>
               <div className="grid grid-cols-3 gap-3">
                 {items.map((item) => (
                   <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
@@ -684,10 +722,10 @@ function MediaPage() {
             </section>
           ))}
 
-          {/* Genre-overlap suggestions — only when there's nothing typed to show (ADR-0004). */}
+          {/* Genre-overlap suggestions, only when there's nothing typed to show (ADR-0004). */}
           {detail.relations.length === 0 && detail.related.length > 0 && (
             <section className="flex flex-col gap-3.5">
-              <h2 className="font-heading text-2xl uppercase">You might also like</h2>
+              <h2 className="font-heading text-2xl uppercase">{t('media.youMightLike')}</h2>
               <div className="grid grid-cols-3 gap-3">
                 {detail.related.map((item) => (
                   <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
@@ -715,8 +753,8 @@ function MediaPage() {
           dates={editingDates}
           mediaTitle={detail.title}
           onClose={() => setEditingDates(null)}
-          // Awaited, so the dialog can show the server's 400 rather than closing
-          // over a rejected write — hence the direct call instead of applyViewer.
+          // Awaited, so the dialog can report a rejected write rather than
+          // closing over it; hence the direct call instead of applyViewer.
           onSave={async (next) => {
             const saved = await trackingApi.setDates(detail.id, next);
             queryClient.setQueryData<MediaDetail | null>(queryKey, (current) =>

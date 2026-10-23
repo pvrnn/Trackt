@@ -1,0 +1,74 @@
+{
+  "action": {
+    "editProfile": "EDIT PROFILE",
+    "feedback": "SEND FEEDBACK"
+  },
+  "loadError": "Couldn’t load your profile. Is the instance API reachable?",
+  "public": {
+    "loadError": "Couldn’t load this profile. Is the instance API reachable?",
+    "notFoundTitle": "No such user",
+    "notFoundBody": "Nobody on this instance goes by @{{username}}.",
+    "backToSearch": "BACK TO SEARCH →"
+  },
+  "header": {
+    "memberSince": "@{{username}} · member since {{date}}",
+    "titlesTracked": "TITLES TRACKED",
+    "streak_one": "{{count}}-DAY STREAK",
+    "streak_other": "{{count}}-DAY STREAK"
+  },
+  "stats": {
+    "episodesThisYear": "Episodes this year",
+    "chaptersThisYear": "Chapters this year",
+    "completed": "Completed",
+    "titles": "Titles tracked",
+    "meanRating": "Mean rating"
+  },
+  "favourites": {
+    "title": "Favourites",
+    "emptyOwn": "Nothing favourited yet. Hit ♡ FAVOURITE on any title’s page and it shows up here, ranked per shelf.",
+    "emptyOther": "{{name}} hasn’t favourited anything yet.",
+    "findMore": "Find more to favourite",
+    "movie": "Favourite movies",
+    "series": "Favourite series",
+    "anime": "Favourite anime",
+    "manga": "Favourite manga",
+    "webtoon": "Favourite webtoons"
+  },
+  "recent": {
+    "title": "Recent",
+    "emptyOwn": "What you watch and read, your ratings, and status changes show up here.",
+    "emptyPublic": "Nothing tracked publicly yet.",
+    "rated": "Rated",
+    "marked": "Marked"
+  },
+  "badges": {
+    "title": "Badges",
+    "body": "Badges land with the v1.x social layer: streaks, importer feats, cataloguer credits."
+  },
+  "visibility": {
+    "title": "PROFILE VISIBILITY",
+    "tooltip": "Anyone with your profile link can view it; no per-user visibility setting yet (ADR-0006)"
+  },
+  "edit": {
+    "title": "Edit profile",
+    "photoInput": "Profile photo",
+    "changePhoto": "CHANGE PHOTO",
+    "uploadPhoto": "UPLOAD PHOTO",
+    "discardPhoto": "Discard new photo",
+    "removePhoto": "Remove photo",
+    "photoHint": "PNG, JPEG, or WebP: 2MB max. Applies when you save.",
+    "displayName": "Display name",
+    "bio": "Bio",
+    "bioPlaceholder": "Watches too much neo-noir. Reads webtoons on the tram.",
+    "socialLinks": "Social links",
+    "handlePlaceholder": "@handle or URL",
+    "unlinkHint": "Leave a field empty to unlink it.",
+    "errors": {
+      "photoTooBig": "That image is over 2MB. Pick a smaller one.",
+      "nameRequired": "Name can’t be empty.",
+      "socialUrl": "{{platform}} needs a full https:// URL.",
+      "photoFailed": "Your details saved, but the photo didn’t upload. Try again from EDIT PROFILE.",
+      "saveFailed": "Saving failed. Try again."
+    }
+  }
+}

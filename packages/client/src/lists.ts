@@ -118,18 +118,45 @@ export function useCreateList() {
  * compact activity stamps: cards read as sentences ("TODAY", "2D AGO"), not
  * feed ticks.
  */
-export function updatedLabel(iso: string, now = Date.now()): string {
+/**
+ * How a list card says when it changed. The words are supplied by the caller
+ * (`UpdatedLabelCopy`) so web can pass translated copy; the English default
+ * keeps mobile's behaviour identical.
+ */
+export interface UpdatedLabelCopy {
+  justNow: string;
+  today: string;
+  yesterday: string;
+  daysAgo: (days: number) => string;
+  weeksAgo: (weeks: number) => string;
+  monthsAgo: (months: number) => string;
+}
+
+const ENGLISH_UPDATED: UpdatedLabelCopy = {
+  justNow: 'JUST NOW',
+  today: 'TODAY',
+  yesterday: 'YESTERDAY',
+  daysAgo: (days) => `${days}D AGO`,
+  weeksAgo: (weeks) => `${weeks}W AGO`,
+  monthsAgo: (months) => `${months}MO AGO`,
+};
+
+export function updatedLabel(
+  iso: string,
+  now = Date.now(),
+  copy: UpdatedLabelCopy = ENGLISH_UPDATED,
+): string {
   const then = Date.parse(iso);
   const minutes = Math.max(0, Math.round((now - then) / 60_000));
-  if (minutes < 60) return 'JUST NOW';
+  if (minutes < 60) return copy.justNow;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return 'TODAY';
+  if (hours < 24) return copy.today;
   const days = Math.round(hours / 24);
-  if (days === 1) return 'YESTERDAY';
-  if (days < 7) return `${days}D AGO`;
+  if (days === 1) return copy.yesterday;
+  if (days < 7) return copy.daysAgo(days);
   const weeks = Math.round(days / 7);
-  if (weeks < 5) return `${weeks}W AGO`;
-  return `${Math.round(days / 30)}MO AGO`;
+  if (weeks < 5) return copy.weeksAgo(weeks);
+  return copy.monthsAgo(Math.round(days / 30));
 }
 
 /** Visibility as the card meta row shows it. */

@@ -1,0 +1,43 @@
+{
+  "title": "Actus",
+  "allKinds": "TOUS",
+  "filterAria": "filtrer par type de média",
+  "range": {
+    "today": "AUJOURD’HUI",
+    "week": "CETTE SEMAINE",
+    "month": "CE MOIS-CI",
+    "allTime": "DEPUIS TOUJOURS"
+  },
+  "from": "DU",
+  "to": "AU",
+  "clear": "EFFACER",
+  "latest": "Dernières actus",
+  "storyCount_one": "{{count}} ACTU",
+  "storyCount_other": "{{count}} ACTUS",
+  "loadingFeed": "Chargement du fil…",
+  "feedError": "Impossible de charger les actus. L’API de cette instance est-elle joignable ? Réessayez dans un instant.",
+  "loadMore": "CHARGER PLUS",
+  "loadingMore": "CHARGEMENT…",
+  "empty": {
+    "title": "Rien pour l’instant",
+    "filtered": "Aucune actu ne correspond à ces filtres. Élargissez les dates ou retirez le type.",
+    "unfiltered": "Aucune actu n’a encore été publiée. Les actus apparaîtront ici dès que le catalogue central commencera à en publier.",
+    "browse": "DÉCOUVRIR →"
+  },
+  "article": {
+    "back": "← TOUTES LES ACTUS",
+    "error": "Impossible de charger cet article. Le service d’actus est peut-être momentanément indisponible. Réessayez dans un instant.",
+    "sources": "SOURCES",
+    "linkedWorks": "DANS CETTE ACTU",
+    "missingTitle": "Actu introuvable",
+    "missingBody": "Cet article n’existe pas, ou il a été retiré.",
+    "backToNews": "RETOUR AUX ACTUS →"
+  },
+  "mediaHeading": "Dans l’actualité",
+  "widget": {
+    "heading": "Dernières actus",
+    "viewAll": "TOUT VOIR →",
+    "error": "Impossible de charger les actus pour le moment.",
+    "empty": "Rien à signaler pour l’instant. Revenez bientôt."
+  }
+}

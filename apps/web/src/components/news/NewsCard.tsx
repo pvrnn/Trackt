@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import type { NewsArticleSummary } from '@trackt/shared';
-import { TOPIC_LABELS, coverGradient, formatNewsDate } from '@trackt/client';
+import { coverGradient } from '@trackt/client';
+import { useFormat } from '../../lib/format';
+import { useLabels } from '../../lib/labels';
 import { KindDot } from '../ui/KindDot';
 
 /**
@@ -8,7 +10,7 @@ import { KindDot } from '../ui/KindDot';
  *
  * Two deliberate deviations from the mockup. Its per-topic tag colours would
  * need nine new palette entries, and AURA PRISM's token set is final
- * (docs/design/README.md) — the tag takes the existing selected-chip treatment
+ * (docs/design/README.md), so the tag takes the existing selected-chip treatment
  * and the colour variety comes from the per-kind dots, which are tokens we
  * already have. And its `＋ PLAN TO WATCH` button is absent: acting on a work
  * needs the viewer's tracking state for it, which a feed summary does not carry,
@@ -16,6 +18,8 @@ import { KindDot } from '../ui/KindDot';
  * headline links through to the article, which links to the work.
  */
 export function NewsCard({ article }: { article: NewsArticleSummary }) {
+  const labels = useLabels();
+  const format = useFormat();
   const coverKind = article.kinds[0];
   return (
     <article className="overflow-hidden rounded-card border border-glass-border bg-glass backdrop-blur-[16px]">
@@ -26,7 +30,7 @@ export function NewsCard({ article }: { article: NewsArticleSummary }) {
         style={
           article.coverUrl
             ? { backgroundImage: `url(${article.coverUrl})`, backgroundSize: 'cover' }
-            : // No cover art yet (sourcing is a later phase) — the generated
+            : // No cover art yet (sourcing is a later phase): the generated
               // gradient placeholder the plan calls for, seeded like every other
               // cover in the app so it is stable across renders.
               { background: coverGradient(coverKind ?? 'movie', article.title) }
@@ -44,13 +48,13 @@ export function NewsCard({ article }: { article: NewsArticleSummary }) {
       <div className="flex flex-col gap-2 px-4.5 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-pink-selected px-2.5 py-0.5 font-label text-[10px] font-bold tracking-label text-pink">
-            {TOPIC_LABELS[article.topic]}
+            {labels.topic(article.topic)}
           </span>
           {article.kinds.map((kind) => (
             <KindDot key={kind} kind={kind} showLabel />
           ))}
           <span className="font-label text-[11px] tracking-label text-dim">
-            · {formatNewsDate(article.publishedAt)}
+            · {format.newsDate(article.publishedAt)}
           </span>
         </div>
 

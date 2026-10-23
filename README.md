@@ -61,6 +61,7 @@ packages/
   client/     The API data layer every client shares: fetch + Zod + React Query, no UI
   db/         Drizzle ORM schema + migrations (PostgreSQL 16)
   providers/  Parked: metadata providers (future per-instance enrichment)
+  llm/        Provider-agnostic LLM port (OpenAI-compatible adapter, newsroom's model layer)
 ```
 
 ### Architecture notes

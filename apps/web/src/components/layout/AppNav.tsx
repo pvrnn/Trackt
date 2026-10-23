@@ -1,38 +1,40 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Link, useNavigate, type LinkProps } from '@tanstack/react-router';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 import { authClient } from '../../lib/auth-client';
 import { useFriends } from '@trackt/client';
 import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
+import { LocaleMenu } from './LocaleMenu';
 import { NavSearch } from './NavSearch';
 import { Wordmark } from './Wordmark';
 
 interface NavItem {
-  label: string;
+  key: 'nav.home' | 'nav.discover' | 'nav.news' | 'nav.lists' | 'nav.history' | 'nav.profile';
   /** Undefined = the page doesn't exist yet; rendered as an inert placeholder. */
   to?: LinkProps['to'];
 }
 
 /**
  * Order from the app mockups (Home/Search/Lists/Profile navs). The mockups
- * label the fourth item ACTIVITY, but it goes to `/profile` — a page that is
+ * label the fourth item ACTIVITY, but it goes to `/profile`, a page that is
  * a profile (identity, favourites, badges, visibility) with activity as one
  * section. Reading it as "the activity feed" sends people to the avatar menu
  * to look for their profile, so it says PROFILE here. ACTIVITY becomes its
  * own item pointing at the real feed when that ships (ROADMAP, v1.x).
  */
 const NAV_ITEMS: NavItem[] = [
-  { label: 'HOME', to: '/home' },
-  { label: 'DISCOVER', to: '/search' },
-  { label: 'NEWS', to: '/news' },
-  { label: 'LISTS', to: '/lists' },
-  // A sixth item, which docs/friends-plan.md §6 argued against for friends —
-  // the argument there was that a feature with no page of its own doesn't earn
+  { key: 'nav.home', to: '/home' },
+  { key: 'nav.discover', to: '/search' },
+  { key: 'nav.news', to: '/news' },
+  { key: 'nav.lists', to: '/lists' },
+  // A sixth item, which docs/friends-plan.md §6 argued against for friends.
+  // The argument there was that a feature with no page of its own doesn't earn
   // a nav slot, and this one is a page. It also absorbs the ROADMAP's Library
   // item, so it is the entry point for "my whole collection" (ADR-0007).
-  { label: 'HISTORY', to: '/history' },
-  { label: 'PROFILE', to: '/profile' },
+  { key: 'nav.history', to: '/history' },
+  { key: 'nav.profile', to: '/profile' },
 ];
 
 export interface AppNavUser {
@@ -46,8 +48,9 @@ export interface AppNavUser {
 
 /** Sticky authenticated-app navigation: wordmark, section links, search, account menu. */
 export function AppNav({ user }: { user: AppNavUser }) {
+  const { t } = useTranslation();
   const items: NavItem[] = NAV_ITEMS;
-  // No dedicated friends surface yet — a badge on PROFILE covers discoverability
+  // No dedicated friends surface yet, so a badge on PROFILE covers discoverability
   // instead of a sixth top-level nav item (docs/friends-plan.md §6).
   const { data: friendsOverview } = useFriends();
   const incomingCount = friendsOverview?.incoming.length ?? 0;
@@ -60,22 +63,22 @@ export function AppNav({ user }: { user: AppNavUser }) {
         {items.map((item) =>
           item.to ? (
             <Link
-              key={item.label}
+              key={item.key}
               to={item.to}
               className="flex items-center gap-1.5 text-dim hover:text-fg"
               activeProps={{ className: 'border-b-2 border-pink pb-0.5 text-fg' }}
             >
-              {item.label}
-              {item.label === 'PROFILE' && incomingCount > 0 && (
+              {t(item.key)}
+              {item.key === 'nav.profile' && incomingCount > 0 && (
                 <span className="rounded-full bg-pink px-1.5 py-0.5 text-[10px] font-bold text-on-prism">
                   {incomingCount}
                 </span>
               )}
             </Link>
           ) : (
-            <Tooltip key={item.label} label="Coming soon">
+            <Tooltip key={item.key} label={t('shell.comingSoon')}>
               <span tabIndex={0} className="cursor-not-allowed text-dim/60">
-                {item.label}
+                {t(item.key)}
               </span>
             </Tooltip>
           ),
@@ -83,6 +86,7 @@ export function AppNav({ user }: { user: AppNavUser }) {
       </div>
       <div className="flex-1" />
       <NavSearch />
+      <LocaleMenu />
       <AccountMenu user={user} />
     </nav>
   );
@@ -95,16 +99,17 @@ const MENU_ITEM =
 
 /**
  * Avatar dropdown: identity header, Profile link, sign out. Radix owns the
- * keyboard contract the hand-rolled version lacked — focus moves into the menu
+ * keyboard contract the hand-rolled version lacked: focus moves into the menu
  * on open, ↑/↓ and typeahead move between items, and focus returns to the
  * avatar on close.
  */
 function AccountMenu({ user }: { user: AppNavUser }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
-        aria-label="account menu"
+        aria-label={t('shell.accountMenu')}
         className="block cursor-pointer rounded-full transition outline-none hover:brightness-115"
       >
         <Avatar name={user.username} src={user.image} size={32} className="size-9" />
@@ -120,7 +125,7 @@ function AccountMenu({ user }: { user: AppNavUser }) {
             <p className="text-[13px] text-dim">@{user.username}</p>
           </DropdownMenu.Label>
           <DropdownMenu.Item asChild className={MENU_ITEM}>
-            <Link to="/profile">Profile</Link>
+            <Link to="/profile">{t('shell.profile')}</Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item
             onSelect={() =>
@@ -130,7 +135,7 @@ function AccountMenu({ user }: { user: AppNavUser }) {
             }
             className={clsx(MENU_ITEM, 'border-t border-divider')}
           >
-            Sign out
+            {t('shell.signOut')}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

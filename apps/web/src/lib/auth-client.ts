@@ -6,7 +6,7 @@ import type { AppNavUser } from '../components/layout/AppNav';
 
 /**
  * Same-origin in both dev (Vite proxies /api → :3001) and prod (monolith proxy),
- * so no baseURL — the client defaults to window.location.origin.
+ * so no baseURL: the client defaults to window.location.origin.
  * Only use these hooks/methods from client-rendered code paths.
  * `role` mirrors the server's additionalFields config (apps/api/src/auth.ts).
  */
@@ -22,7 +22,7 @@ type Session = ReturnType<typeof authClient.useSession>['data'];
 export interface AuthedPage {
   isPending: boolean;
   session: Session;
-  /** null until the session resolves — every app page renders a blank shell until then. */
+  /** null until the session resolves; every app page renders a blank shell until then. */
   navUser: AppNavUser | null;
   /** Re-pull the better-auth session (nav name/avatar) after a profile edit. */
   refetch: () => void;
@@ -65,7 +65,7 @@ export function useAuthedPage(): AuthedPage {
 
 /**
  * The same session resolution without the gate, for pages that are public but
- * render differently when signed in — News is the first (ADR-0005). Signing in
+ * render differently when signed in: News is the first (ADR-0005). Signing in
  * is not a precondition, so a `null` navUser means "show the marketing nav",
  * not "redirect to /login".
  */

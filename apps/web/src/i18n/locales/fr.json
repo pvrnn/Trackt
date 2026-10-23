@@ -1,0 +1,228 @@
+{
+  "common": {
+    "all": "TOUT",
+    "cancel": "ANNULER",
+    "close": "FERMER",
+    "save": "ENREGISTRER",
+    "saving": "ENREGISTREMENT…",
+    "delete": "SUPPRIMER",
+    "remove": "RETIRER",
+    "loading": "Chargement…",
+    "unknown": "INCONNU",
+    "soon": "BIENTÔT",
+    "comingSoon": "Bientôt disponible"
+  },
+  "meta": {
+    "description": "Trackt : suivi de films, séries, animés, mangas et webtoons, open source et auto-hébergeable.",
+    "home": "Accueil · Trackt",
+    "discover": "Découvrir · Trackt",
+    "news": "Actualités · Trackt",
+    "lists": "Listes · Trackt",
+    "history": "Historique · Trackt",
+    "profile": "Profil · Trackt",
+    "login": "Connexion · Trackt",
+    "register": "Créer un compte · Trackt",
+    "notFound": "Page introuvable · Trackt",
+    "media": "{{title}} · Trackt",
+    "list": "{{name}} · Trackt",
+    "user": "{{name}} (@{{username}}) · Trackt",
+    "newsArticle": "{{title}} · Trackt"
+  },
+  "locale": {
+    "switch": "Langue",
+    "en": "English",
+    "fr": "Français"
+  },
+  "nav": {
+    "home": "ACCUEIL",
+    "discover": "DÉCOUVRIR",
+    "news": "ACTUS",
+    "lists": "LISTES",
+    "history": "HISTO",
+    "profile": "PROFIL",
+    "selfHost": "AUTO-HÉBERGEMENT",
+    "api": "API",
+    "github": "GITHUB",
+    "signIn": "CONNEXION"
+  },
+  "kind": {
+    "plural": {
+      "movie": "FILMS",
+      "series": "SÉRIES",
+      "anime": "ANIMÉS",
+      "manga": "MANGAS",
+      "webtoon": "WEBTOONS"
+    },
+    "singular": {
+      "movie": "FILM",
+      "series": "SÉRIE",
+      "anime": "ANIMÉ",
+      "manga": "MANGA",
+      "webtoon": "WEBTOON"
+    }
+  },
+  "status": {
+    "planned": "PRÉVU",
+    "in_progress": "EN COURS",
+    "completed": "TERMINÉ",
+    "dropped": "ABANDONNÉ",
+    "paused": "EN PAUSE"
+  },
+  "newsTopic": {
+    "announcement": "ANNONCÉ",
+    "renewal": "NOUVELLE SAISON",
+    "cancellation": "ANNULÉ",
+    "release_date": "DATE DE SORTIE",
+    "trailer": "BANDE-ANNONCE",
+    "casting": "CASTING",
+    "adaptation": "ADAPTATION",
+    "award": "RÉCOMPENSE",
+    "general": "ACTUS"
+  },
+  "visibility": {
+    "public": "PUBLIC",
+    "followers": "ABONNÉS",
+    "private": "PRIVÉ"
+  },
+  "activity": {
+    "watched": "Vous avez regardé",
+    "read": "Vous avez lu",
+    "rated": "Vous avez noté",
+    "marked": "Vous avez marqué"
+  },
+  "verb": {
+    "watch": "Regarder",
+    "watched": "Vu",
+    "read": "Lire",
+    "readPast": "Lu"
+  },
+  "time": {
+    "justNow": "À L’INSTANT",
+    "today": "AUJOURD’HUI",
+    "yesterday": "HIER",
+    "daysAgo": "IL Y A {{days}} J",
+    "weeksAgo": "IL Y A {{weeks}} SEM.",
+    "monthsAgo": "IL Y A {{months}} MOIS"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Réessayez.",
+    "invalidCredentials": "E-mail ou mot de passe incorrect.",
+    "emailTaken": "Un compte existe déjà avec cet e-mail.",
+    "usernameTaken": "Ce nom d’utilisateur est déjà pris.",
+    "invalidUsername": "3 à 30 caractères : lettres, chiffres, points, tirets bas.",
+    "weakPassword": "Le mot de passe est trop court.",
+    "signInFailed": "Connexion impossible. Réessayez.",
+    "signUpFailed": "Création du compte impossible. Réessayez.",
+    "instanceUnreachable": "Impossible de joindre l’API de l’instance. Est-elle démarrée ? Réessayez dans un instant.",
+    "searchFailed": "La recherche a échoué. L’API de l’instance est-elle joignable ? Réessayez dans un instant."
+  },
+  "shell": {
+    "accountMenu": "menu du compte",
+    "profile": "Profil",
+    "signOut": "Se déconnecter",
+    "comingSoon": "Bientôt disponible",
+    "searchPlaceholder": "Rechercher un titre ou une personne…",
+    "searchAria": "rechercher des titres et des personnes",
+    "searchResults": "résultats de recherche",
+    "searchUnavailable": "La recherche est indisponible pour le moment.",
+    "nothingMatches": "Rien ne correspond à « {{query}} ».",
+    "titles": "TITRES",
+    "people": "PERSONNES",
+    "seeAll": "Voir tous les résultats pour « {{query}} »",
+    "notFoundTitle": "Page introuvable",
+    "notFoundBody": "Cette page n’existe pas, ou n’a jamais existé.",
+    "goHome": "RETOUR À L’ACCUEIL",
+    "errorTitle": "Une erreur est survenue",
+    "errorBody": "La page n’a pas pu s’afficher. Réessayez ou revenez à l’accueil."
+  },
+  "auth": {
+    "login": {
+      "title": "Bon retour",
+      "subtitle": "Tout suivre. Ne rien perdre."
+    },
+    "register": {
+      "title": "Créer un compte",
+      "subtitle": "Votre historique, vos notes et vos listes, exportables à tout moment."
+    },
+    "fields": {
+      "name": "Nom",
+      "username": "Nom d’utilisateur",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe"
+    },
+    "submit": "SE CONNECTER",
+    "submitting": "CONNEXION…",
+    "createAccount": "CRÉER UN COMPTE",
+    "creatingAccount": "CRÉATION DU COMPTE…",
+    "newHere": "Nouveau ici",
+    "alreadyMember": "Déjà membre",
+    "homeAria": "Accueil Trackt",
+    "manifesto": {
+      "line1": "Chaque épisode.",
+      "line2": "Chaque chapitre.",
+      "line3": "À vous pour toujours.",
+      "body": "Open source, auto-hébergeable, export complet à tout moment. Fait par des gens qui ont déjà perdu leur historique."
+    },
+    "validation": {
+      "nameRequired": "Le nom est obligatoire",
+      "usernameFormat": "3 à 30 caractères : lettres, chiffres, points, tirets bas",
+      "emailRequired": "L’e-mail est obligatoire",
+      "passwordLength": "Au moins {{min}} caractères",
+      "passwordMismatch": "Les mots de passe ne correspondent pas"
+    },
+    "tvTime": {
+      "title": "Vous venez de TV Time ?",
+      "body": "Apportez votre export RGPD : 1 000 épisodes importés en moins d’une minute.",
+      "cta": "IMPORTER · BIENTÔT",
+      "tooltip": "L’import TV Time arrive bientôt"
+    }
+  },
+  "marketing": {
+    "hero": {
+      "eyebrow": "OPEN SOURCE · AUTO-HÉBERGEABLE · COMMUNAUTAIRE",
+      "titleTop": "Tout suivre.",
+      "titleBottom": "Ne rien <accent>perdre.</accent>",
+      "body": "Films, séries, animés, mangas et webtoons, avec un export complet à tout moment et une API publique dès le premier jour. TV Time a supprimé 25 millions d’historiques. Plus jamais.",
+      "start": "COMMENCER À SUIVRE",
+      "importSoon": "IMPORTER DEPUIS TV TIME · BIENTÔT",
+      "importTooltip": "L’import TV Time arrive bientôt",
+      "selfHost": "ou auto-hébergez :"
+    },
+    "pillars": {
+      "title": "Pourquoi ce projet existe",
+      "one": {
+        "title": "Vos données, pour toujours",
+        "body": "Export complet à tout moment dans un format ouvert. API publique dès le premier jour. La portabilité est le principe fondateur, pas une case à cocher."
+      },
+      "two": {
+        "title": "Auto-hébergement en une commande",
+        "body": "docker compose up et vous avez votre propre instance : votre catalogue, votre communauté, vos règles."
+      },
+      "three": {
+        "title": "Suivre à la bonne granularité",
+        "body": "Épisodes, chapitres, tomes, relectures. Notes à la demi-point sur les œuvres entières ou les épisodes."
+      },
+      "four": {
+        "title": "Catalogue communautaire",
+        "body": "Webtoons et titres obscurs que les grandes bases ignorent ? Ajoutez-les vous-même et partagez-les entre instances."
+      }
+    },
+    "checkIn": {
+      "titleTop": "Deux gestes.",
+      "titleBottom": "C’est noté.",
+      "body": "Épisode par épisode pour les séries et animés, chapitre par chapitre pour les mangas et webtoons, compteurs de relecture, statistiques précises. La vitesse est une exigence, pas une option.",
+      "episodeOf": "Épisode {{next}} sur {{total}}",
+      "episode": "Épisode {{next}}",
+      "chapterOf": "Chapitre {{next}} sur {{total}}",
+      "chapter": "Chapitre {{next}}"
+    },
+    "footer": {
+      "credit": "GPL-3.0 · Métadonnées de <tmdb>TMDB</tmdb>, <anilist>AniList</anilist> et <tvmaze>TVmaze</tvmaze>. Ce produit utilise l’API TMDB mais n’est ni approuvé ni certifié par TMDB."
+    }
+  },
+  "date": {
+    "from": "DEPUIS {{date}}",
+    "until": "JUSQU’AU {{date}}"
+  }
+}

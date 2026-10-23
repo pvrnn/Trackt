@@ -1,0 +1,228 @@
+{
+  "common": {
+    "all": "ALL",
+    "cancel": "CANCEL",
+    "close": "CLOSE",
+    "save": "SAVE",
+    "saving": "SAVING…",
+    "delete": "DELETE",
+    "remove": "REMOVE",
+    "loading": "Loading…",
+    "unknown": "UNKNOWN",
+    "soon": "SOON",
+    "comingSoon": "Coming soon"
+  },
+  "meta": {
+    "description": "Trackt: open-source, self-hostable tracker for movies, series, anime, manga, and webtoons.",
+    "home": "Home · Trackt",
+    "discover": "Discover · Trackt",
+    "news": "News · Trackt",
+    "lists": "Lists · Trackt",
+    "history": "History · Trackt",
+    "profile": "Profile · Trackt",
+    "login": "Sign in · Trackt",
+    "register": "Create account · Trackt",
+    "notFound": "Not found · Trackt",
+    "media": "{{title}} · Trackt",
+    "list": "{{name}} · Trackt",
+    "user": "{{name}} (@{{username}}) · Trackt",
+    "newsArticle": "{{title}} · Trackt"
+  },
+  "locale": {
+    "switch": "Language",
+    "en": "English",
+    "fr": "Français"
+  },
+  "nav": {
+    "home": "HOME",
+    "discover": "DISCOVER",
+    "news": "NEWS",
+    "lists": "LISTS",
+    "history": "HISTORY",
+    "profile": "PROFILE",
+    "selfHost": "SELF-HOST",
+    "api": "API",
+    "github": "GITHUB",
+    "signIn": "SIGN IN"
+  },
+  "kind": {
+    "plural": {
+      "movie": "MOVIES",
+      "series": "SERIES",
+      "anime": "ANIME",
+      "manga": "MANGA",
+      "webtoon": "WEBTOONS"
+    },
+    "singular": {
+      "movie": "MOVIE",
+      "series": "SERIES",
+      "anime": "ANIME",
+      "manga": "MANGA",
+      "webtoon": "WEBTOON"
+    }
+  },
+  "status": {
+    "planned": "PLANNED",
+    "in_progress": "IN PROGRESS",
+    "completed": "COMPLETED",
+    "dropped": "DROPPED",
+    "paused": "PAUSED"
+  },
+  "newsTopic": {
+    "announcement": "ANNOUNCED",
+    "renewal": "NEW SEASON",
+    "cancellation": "CANCELLED",
+    "release_date": "RELEASE DATE",
+    "trailer": "TRAILER",
+    "casting": "CASTING",
+    "adaptation": "ADAPTATION",
+    "award": "AWARD",
+    "general": "NEWS"
+  },
+  "visibility": {
+    "public": "PUBLIC",
+    "followers": "FOLLOWERS",
+    "private": "PRIVATE"
+  },
+  "activity": {
+    "watched": "You watched",
+    "read": "You read",
+    "rated": "You rated",
+    "marked": "You marked"
+  },
+  "verb": {
+    "watch": "Watch",
+    "watched": "Watched",
+    "read": "Read",
+    "readPast": "Read"
+  },
+  "time": {
+    "justNow": "JUST NOW",
+    "today": "TODAY",
+    "yesterday": "YESTERDAY",
+    "daysAgo": "{{days}}D AGO",
+    "weeksAgo": "{{weeks}}W AGO",
+    "monthsAgo": "{{months}}MO AGO"
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "invalidCredentials": "Invalid email or password.",
+    "emailTaken": "An account with this email already exists.",
+    "usernameTaken": "This username is taken.",
+    "invalidUsername": "3–30 characters: letters, numbers, dots, underscores.",
+    "weakPassword": "Password is too short.",
+    "signInFailed": "Sign in failed. Try again.",
+    "signUpFailed": "Sign up failed. Try again.",
+    "instanceUnreachable": "Couldn’t reach the instance API. Is it running? Try again in a moment.",
+    "searchFailed": "Search failed. Is the instance API reachable? Try again in a moment."
+  },
+  "shell": {
+    "accountMenu": "account menu",
+    "profile": "Profile",
+    "signOut": "Sign out",
+    "comingSoon": "Coming soon",
+    "searchPlaceholder": "Search titles or people…",
+    "searchAria": "search titles and people",
+    "searchResults": "search results",
+    "searchUnavailable": "Search is unavailable right now.",
+    "nothingMatches": "Nothing matches “{{query}}”.",
+    "titles": "TITLES",
+    "people": "PEOPLE",
+    "seeAll": "See all results for “{{query}}”",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "That page doesn’t exist, or it never did.",
+    "goHome": "GO HOME",
+    "errorTitle": "Something broke",
+    "errorBody": "The page failed to render. Try again, or head home."
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Track everything. Lose nothing."
+    },
+    "register": {
+      "title": "Create account",
+      "subtitle": "Your history, ratings, and lists, exportable any time."
+    },
+    "fields": {
+      "name": "Name",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password"
+    },
+    "submit": "SIGN IN",
+    "submitting": "SIGNING IN…",
+    "createAccount": "CREATE ACCOUNT",
+    "creatingAccount": "CREATING ACCOUNT…",
+    "newHere": "New here",
+    "alreadyMember": "Already a member",
+    "homeAria": "Trackt home",
+    "manifesto": {
+      "line1": "Every episode.",
+      "line2": "Every chapter.",
+      "line3": "Yours forever.",
+      "body": "Open source, self-hostable, full export any time. Built by people who lost their history once."
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "usernameFormat": "3–30 characters: letters, numbers, dots, underscores",
+      "emailRequired": "Email is required",
+      "passwordLength": "At least {{min}} characters",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "tvTime": {
+      "title": "Coming from TV Time?",
+      "body": "Bring your GDPR export: 1,000 episodes import in under a minute.",
+      "cta": "IMPORT · SOON",
+      "tooltip": "The TV Time importer is coming soon"
+    }
+  },
+  "marketing": {
+    "hero": {
+      "eyebrow": "OPEN SOURCE · SELF-HOSTABLE · COMMUNITY-OWNED",
+      "titleTop": "Track everything.",
+      "titleBottom": "Lose <accent>nothing.</accent>",
+      "body": "Movies, series, anime, manga, and webtoons, with full export at any time and a public API from day one. TV Time deleted 25 million histories. Never again.",
+      "start": "START TRACKING",
+      "importSoon": "IMPORT FROM TV TIME · SOON",
+      "importTooltip": "The TV Time importer is coming soon",
+      "selfHost": "or self-host:"
+    },
+    "pillars": {
+      "title": "Why this exists",
+      "one": {
+        "title": "Your data, forever",
+        "body": "Full export at any time in an open format. Public API from day one. Portability is the founding principle, not a checkbox."
+      },
+      "two": {
+        "title": "Self-host in one command",
+        "body": "docker compose up and you have your own instance: your catalog, your community, your rules."
+      },
+      "three": {
+        "title": "Track at real granularity",
+        "body": "Episodes, chapters, volumes, rewatches. Half-point ratings on whole works or single episodes."
+      },
+      "four": {
+        "title": "Community catalog",
+        "body": "Webtoons and obscure titles the big databases skip? Add them yourself and share them across instances."
+      }
+    },
+    "checkIn": {
+      "titleTop": "Two taps.",
+      "titleBottom": "It’s logged.",
+      "body": "Per-episode for series and anime, per-chapter for manga and webtoons, rewatch counters, precise stats. Speed is a hard requirement, not a feature.",
+      "episodeOf": "Episode {{next}} of {{total}}",
+      "episode": "Episode {{next}}",
+      "chapterOf": "Chapter {{next}} of {{total}}",
+      "chapter": "Chapter {{next}}"
+    },
+    "footer": {
+      "credit": "GPL-3.0 · Metadata from <tmdb>TMDB</tmdb>, <anilist>AniList</anilist> and <tvmaze>TVmaze</tvmaze>. This product uses the TMDB API but is not endorsed or certified by TMDB."
+    }
+  },
+  "date": {
+    "from": "FROM {{date}}",
+    "until": "UNTIL {{date}}"
+  }
+}

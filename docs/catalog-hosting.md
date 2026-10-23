@@ -6,13 +6,15 @@ Decision doc behind the shipped **catalog service deployment** (ROADMAP → Done
 > This doc was written when instances polled `GET /v1/catalog/changes` every 6
 > hours and cold starts were absorbed by a background job's retry/backoff.
 > **ADR-0002 deleted that feed.** The catalog is now on the *interactive request
-> path* of every self-hosted instance, through three live reads:
+> path* of every self-hosted instance, through three live reads (plus the one
+> write feedback intake needs):
 >
 > | Read | Timeout | Degrades to |
 > | --- | --- | --- |
 > | `GET /v1/catalog/search` (ADR-0002) | `CATALOG_SEARCH_TIMEOUT_MS`, 1500 ms | local-only results |
 > | `GET /v1/catalog/relations` (ADR-0004) | `CATALOG_RELATIONS_TIMEOUT_MS`, 1000 ms | locally-known edges |
 > | `GET /v1/news`, `/v1/news/:slug` (ADR-0005) | `CATALOG_NEWS_TIMEOUT_MS`, 2000 ms | an empty feed |
+> | `POST /v1/feedback` | `CATALOG_FEEDBACK_TIMEOUT_MS`, 4000 ms | a 502 the reporter can retry |
 >
 > Traffic is still instance-bounded — browsers never see `CATALOG_URL` — but a
 > cold start now eats a live user's latency budget rather than a cron's. The
@@ -25,10 +27,10 @@ Decision doc behind the shipped **catalog service deployment** (ROADMAP → Done
 `apps/catalog` is deliberately easy to host (see [ADR-0001](adr/0001-central-slim-catalog.md)):
 
 - One tiny Fastify container (Node 22), self-migrates on boot, `/healthz` + `/readyz`.
-- One small dedicated Postgres. Seven tables: `catalog_media`, `catalog_media_relation` (ADR-0004) and the five `news_*` tables (ADR-0005). Populated catalog likely **0.5–2 GB**, essentially all of it `catalog_media` (anime-offline-database + TVmaze + Wikidata movies + manga ≈ a few hundred thousand slim rows); relations and news are rounding errors beside it.
+- One small dedicated Postgres. Eight tables: `catalog_media`, `catalog_media_relation` (ADR-0004), the five `news_*` tables (ADR-0005) and `feedback`. Populated catalog likely **0.5–2 GB**, essentially all of it `catalog_media` (anime-offline-database + TVmaze + Wikidata movies + manga ≈ a few hundred thousand slim rows); relations, news and feedback are rounding errors beside it.
 - **Read path is live, not polled** — the three endpoints in the callout above, each timeout-bounded and each degrading rather than failing.
-- Write path is a single-writer admin path (`POST /v1/admin/media`, `/v1/admin/relations`, `/v1/admin/news`), hit occasionally by the operator or an importer.
-- No PII in the catalog, but EU hosting is a nice-to-have (project operator is in France).
+- Write path is a single-writer admin path (`POST /v1/admin/media`, `/v1/admin/relations`, `/v1/admin/news`), hit occasionally by the operator or an importer. The one public write is `POST /v1/feedback`, rate-limited per IP: it is the intake every instance forwards its users' reports to.
+- No account data in the catalog. A feedback report carries the message, the page it was filed from and the instance's URL — never the reporter's identity — and EU hosting is a nice-to-have (project operator is in France).
 
 ## TL;DR comparison
 
@@ -171,8 +173,9 @@ section), skip this step entirely — Railway builds straight from
    - `NODE_ENV=production`
    - `DATABASE_URL=<Neon pooled connection string>`
    - `CATALOG_ADMIN_TOKEN=<openssl rand -base64 32>` — keep secret; gates every
-     write route: `POST /v1/admin/media`, `POST /v1/admin/relations` and the
-     `/v1/admin/news` surface, all behind one `requireAdmin` preHandler.
+     admin route: `POST /v1/admin/media`, `POST /v1/admin/relations`, the
+     `/v1/admin/news` surface and the feedback inbox (`GET /v1/admin/feedback`),
+     all behind one `requireAdmin` preHandler.
    - `LOG_LEVEL=info` (optional)
 5. Health check path: `/healthz`.
 6. Deploy, then confirm:

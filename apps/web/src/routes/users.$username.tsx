@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
-import type { PublicProfile } from '@trackt/shared';
+import { useTranslation } from 'react-i18next';
+import type { ActivityEntry, PublicProfile } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
@@ -10,30 +11,37 @@ import { Button, buttonClassName } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { GlassCard } from '../components/ui/GlassCard';
 import { useOptionalSession } from '../lib/auth-client';
+import { useLabels } from '../lib/labels';
 import {
   useAcceptFriendRequest,
   usePublicProfile,
   useRemoveFriend,
   useSendFriendRequest,
-  activityVerbLabel,
   relativeTime,
 } from '@trackt/client';
 
 /**
  * Someone else's profile (ADR-0006 phase 4). Anonymous-readable, so it takes
- * the `news_.$slug.tsx` optional-session posture — marketing nav signed out,
- * app nav signed in — rather than `useAuthedPage()`. Nothing on the page is
+ * the `news_.$slug.tsx` optional-session posture (marketing nav signed out,
+ * app nav signed in) rather than `useAuthedPage()`. Nothing on the page is
  * gated by friendship; `friendState` only decides what the action button does.
  */
 export const Route = createFileRoute('/users/$username')({
-  head: () => ({ meta: [{ title: 'Profile — Trackt' }] }),
+  head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.profile') }] }),
   component: PublicProfilePage,
 });
 
 function PublicProfilePage() {
+  const { t } = useTranslation();
+  const labels = useLabels();
   const { username } = Route.useParams();
   const { isPending: sessionPending, session, navUser } = useOptionalSession();
   const { data: profile, isPending, isError } = usePublicProfile(username);
+
+  const activityVerb = (entry: ActivityEntry) =>
+    entry.verb === 'checked_in'
+      ? labels.trackingVerb(entry.kind, 'past')
+      : t(entry.verb === 'rated' ? 'profile.recent.rated' : 'profile.recent.marked');
 
   if (sessionPending) return <div className="min-h-screen bg-ink" />;
 
@@ -45,7 +53,7 @@ function PublicProfilePage() {
         {isError ? (
           <main className="mx-auto max-w-[1360px] px-10 pt-12">
             <p role="alert" className="text-[15px] text-red-400">
-              Couldn’t load this profile — is the instance API reachable?
+              {t('profile.public.loadError')}
             </p>
           </main>
         ) : isPending ? (
@@ -60,7 +68,7 @@ function PublicProfilePage() {
               friendsMeta={
                 <span>
                   <span className="font-semibold text-fg">{profile.friendCount}</span>{' '}
-                  {profile.friendCount === 1 ? 'FRIEND' : 'FRIENDS'}
+                  {t('social.friendLabel', { count: profile.friendCount })}
                 </span>
               }
               action={<FriendAction profile={profile} signedIn={!!session} />}
@@ -70,11 +78,11 @@ function PublicProfilePage() {
               <FavouriteShelves
                 favorites={profile.favorites}
                 own={false}
-                emptyMessage={`${profile.user.name} hasn’t favourited anything yet.`}
+                emptyMessage={t('profile.favourites.emptyOther', { name: profile.user.name })}
               />
 
               <section className="flex flex-col gap-4">
-                <h2 className="font-heading text-[32px] uppercase">Recent</h2>
+                <h2 className="font-heading text-[32px] uppercase">{t('profile.recent.title')}</h2>
                 {profile.activity.length > 0 ? (
                   <ul className="flex flex-col gap-2">
                     {profile.activity.map((entry, index) => (
@@ -84,7 +92,7 @@ function PublicProfilePage() {
                         className="flex items-center gap-3.5 rounded-card-sm px-4.5 py-3.5"
                       >
                         <p className="flex-1 text-sm text-muted">
-                          {activityVerbLabel(entry)}{' '}
+                          {activityVerb(entry)}{' '}
                           <Link
                             to="/media/$slug"
                             params={{ slug: entry.slug }}
@@ -102,7 +110,7 @@ function PublicProfilePage() {
                   </ul>
                 ) : (
                   <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                    Nothing tracked publicly yet.
+                    {t('profile.recent.emptyPublic')}
                   </GlassCard>
                 )}
               </section>
@@ -116,10 +124,11 @@ function PublicProfilePage() {
 
 /**
  * The one control the page adds over `/profile`. Signed out it points at
- * login rather than posting a request the API would 401 — the button is only
+ * login rather than posting a request the API would 401; the button is only
  * ever shown when it can actually do what it says.
  */
 function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn: boolean }) {
+  const { t } = useTranslation();
   const [confirmingUnfriend, setConfirmingUnfriend] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sendRequest = useSendFriendRequest();
@@ -127,13 +136,12 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
   const remove = useRemoveFriend();
 
   const busy = sendRequest.isPending || accept.isPending || remove.isPending;
-  const onError = (cause: unknown) =>
-    setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.');
+  const onError = () => setError(t('social.errors.save'));
 
   if (profile.friendState === 'self') {
     return (
       <Link to="/profile" className={buttonClassName({ variant: 'secondary' })}>
-        EDIT PROFILE
+        {t('profile.action.editProfile')}
       </Link>
     );
   }
@@ -141,7 +149,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
   if (!signedIn) {
     return (
       <Link to="/login" className={buttonClassName({ variant: 'secondary' })}>
-        SIGN IN TO ADD
+        {t('social.signInToAdd')}
       </Link>
     );
   }
@@ -157,7 +165,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
             sendRequest.mutate(profile.user.username, { onError });
           }}
         >
-          ＋ ADD FRIEND
+          {t('social.addFriend')}
         </Button>
       )}
       {profile.friendState === 'outgoing' && (
@@ -165,13 +173,13 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
           variant="secondary"
           disabled={busy}
           aria-busy={remove.isPending}
-          aria-label={`Cancel friend request to @${profile.user.username}`}
+          aria-label={t('social.cancelRequest', { username: profile.user.username })}
           onClick={() => {
             setError(null);
             remove.mutate(profile.userId, { onError });
           }}
         >
-          REQUEST SENT ✕
+          {t('social.requestSent')}
         </Button>
       )}
       {profile.friendState === 'incoming' && (
@@ -184,7 +192,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
               accept.mutate(profile.userId, { onError });
             }}
           >
-            ACCEPT REQUEST
+            {t('social.acceptRequest')}
           </Button>
           <Button
             variant="ghost"
@@ -195,13 +203,13 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
               remove.mutate(profile.userId, { onError });
             }}
           >
-            DECLINE
+            {t('social.decline')}
           </Button>
         </div>
       )}
       {profile.friendState === 'friends' && (
         <Button variant="secondary" disabled={busy} onClick={() => setConfirmingUnfriend(true)}>
-          ✓ FRIENDS
+          {t('social.friends')}
         </Button>
       )}
       {error && (
@@ -211,8 +219,8 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
       )}
       {confirmingUnfriend && (
         <ConfirmDialog
-          title="Remove friend?"
-          confirmLabel={remove.isPending ? 'REMOVING…' : 'REMOVE'}
+          title={t('social.unfriend.title')}
+          confirmLabel={remove.isPending ? t('social.unfriend.removing') : t('common.remove')}
           busy={remove.isPending}
           onCancel={() => setConfirmingUnfriend(false)}
           onConfirm={() => {
@@ -223,8 +231,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
             });
           }}
         >
-          {profile.user.name} goes back to being a stranger, and any list you share with friends
-          only stops being visible to them.
+          {t('social.unfriend.body', { name: profile.user.name })}
         </ConfirmDialog>
       )}
     </div>
@@ -232,17 +239,20 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
 }
 
 function NoSuchUser({ username }: { username: string }) {
+  const { t } = useTranslation();
   return (
     <main className="mx-auto flex max-w-[760px] flex-col items-center gap-2 px-10 pt-20 pb-20 text-center">
-      <p className="font-heading text-[32px] text-faint uppercase">No such user</p>
+      <p className="font-heading text-[32px] text-faint uppercase">
+        {t('profile.public.notFoundTitle')}
+      </p>
       <p className="max-w-[420px] text-sm text-muted">
-        Nobody on this instance goes by @{username}.
+        {t('profile.public.notFoundBody', { username })}
       </p>
       <Link
         to="/search"
         className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
       >
-        BACK TO SEARCH →
+        {t('profile.public.backToSearch')}
       </Link>
     </main>
   );
