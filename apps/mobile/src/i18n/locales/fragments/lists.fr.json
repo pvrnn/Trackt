@@ -1,0 +1,84 @@
+{
+  "title": "Listes",
+  "detailTitle": "Liste · Trackt",
+  "newList": "＋ NOUVELLE LISTE",
+  "scopes": {
+    "mine": "MES LISTES",
+    "friends": "AMIS",
+    "collaborative": "COLLABORATIVES"
+  },
+  "error": "Vos listes n’ont pas pu se charger. L’API de l’instance est-elle joignable ? Réessayez dans un instant.",
+  "empty": "Aucune liste pour l’instant. Cliquez sur ＋ NOUVELLE LISTE et commencez par les quelques titres que vous défendriez dans une discussion.",
+  "titles_one": "{{count}} TITRE",
+  "titles_other": "{{count}} TITRES",
+  "updated": "MISE À JOUR {{date}}",
+  "card": {
+    "emptyCover": "Vide",
+    "ranked": "CLASSÉE",
+    "collab": "COLLAB"
+  },
+  "visibilityHelp": {
+    "public": "Toute personne disposant du lien peut voir cette liste.",
+    "followers": "Amis uniquement — visible par les amis acceptés.",
+    "private": "Vous seul pouvez voir cette liste."
+  },
+  "dialog": {
+    "title": "Nouvelle liste",
+    "titleLabel": "Titre",
+    "titlePlaceholder": "Meilleurs webtoons, classés",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Qu’est-ce qui les relie ?",
+    "ranked": "Classée — l'ordre compte, je peux le réorganiser",
+    "visibility": "Visibilité",
+    "create": "CRÉER",
+    "creating": "CRÉATION…",
+    "saveError": "Ça n'a pas enregistré — réessayez.",
+    "editTitle": "Modifier la liste",
+    "saveChanges": "Enregistrer les modifications",
+    "nameRequired": "Une liste doit avoir un nom."
+  },
+  "detail": {
+    "loadFailedTitle": "Chargement impossible",
+    "loadFailedBody": "Une erreur est survenue en récupérant cette liste. L’API de l’instance n’est peut-être pas joignable.",
+    "retry": "RÉESSAYER",
+    "allLists": "← TOUTES LES LISTES",
+    "notFoundTitle": "Introuvable",
+    "notFoundBody": "Cette liste n’existe pas, ou elle est privée.",
+    "deleteList": "SUPPRIMER LA LISTE",
+    "titles": "Titres",
+    "ranked": "Classée",
+    "reorderHint": "UTILISEZ LES FLÈCHES POUR RÉORDONNER",
+    "empty": "Rien ici pour l’instant. Ouvrez un titre et cliquez sur ＋ LISTE pour l’ajouter.",
+    "by": "PAR <user>@{{username}}</user>",
+    "season": "SAISON {{number}}",
+    "mediaStatus": {
+      "announced": "ANNONCÉ",
+      "airing": "EN DIFFUSION",
+      "publishing": "EN PUBLICATION",
+      "ended": "TERMINÉ",
+      "cancelled": "ANNULÉ"
+    },
+    "moveUp": "Déplacer {{title}} vers le haut",
+    "moveDown": "Déplacer {{title}} vers le bas",
+    "remove": "Retirer {{title}} de cette liste",
+    "saveError": "L’enregistrement a échoué. Réessayez.",
+    "unavailableTitle": "Liste indisponible",
+    "unavailableBody": "Elle a peut-être été supprimée, ou n'est pas visible pour vous.",
+    "yours": "À VOUS",
+    "edit": "Modifier",
+    "deleteListAction": "Supprimer la liste",
+    "emptyTitle": "Liste vide",
+    "emptyOwner": "Ouvrez un titre et utilisez son bouton LISTE pour l'ajouter ici.",
+    "emptyOther": "Rien n'a encore été ajouté à cette liste."
+  },
+  "delete": {
+    "title": "Supprimer cette liste ?",
+    "confirm": "SUPPRIMER",
+    "confirming": "SUPPRESSION…",
+    "body_one": "« {{title}} » et son {{count}} titre disparaissent. Vos journaux, notes et progrès restent intacts.",
+    "body_other": "« {{title}} » et ses {{count}} titres disparaissent. Vos journaux, notes et progrès restent intacts."
+  },
+  "loadError": "L'instance n'a pas répondu.",
+  "emptyTitle": "Pas encore de listes",
+  "emptyBody": "Les listes regroupent les titres comme vous voulez — une watchlist, un top dix, une sélection saisonnière."
+}

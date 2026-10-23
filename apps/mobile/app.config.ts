@@ -35,6 +35,7 @@ const config: ExpoConfig = {
     'expo-web-browser',
     'expo-font',
     'expo-image',
+    'expo-localization',
     // Phase 3. The date picker is a native module and needs the plugin even
     // though it takes no options; the image picker carries the avatar flow's
     // purpose string, which iOS rejects the build without.

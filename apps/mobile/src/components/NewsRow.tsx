@@ -1,4 +1,7 @@
-import { TOPIC_LABELS, formatNewsDate } from '@trackt/client';
+import { formatNewsDate } from '@trackt/client';
+import { useLabels } from '../lib/labels';
+import { useTranslation } from 'react-i18next';
+import { intlLocale } from '../i18n';
 import type { NewsArticleSummary } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
 import { Cover } from './Cover';
@@ -9,6 +12,8 @@ import { type } from '../theme/typography';
 
 /** One story in the feed: cover, topic, headline, standfirst. */
 export function NewsRow({ article }: { article: NewsArticleSummary }) {
+  const { i18n } = useTranslation();
+  const labels = useLabels();
   const kind = article.kinds[0];
   return (
     <Touchable href={`/news/${article.slug}`} style={styles.card}>
@@ -23,9 +28,11 @@ export function NewsRow({ article }: { article: NewsArticleSummary }) {
       ) : null}
       <View style={styles.cardBody}>
         <View style={styles.metaRow}>
-          <Text style={[type.eyebrow, text.pink]}>{TOPIC_LABELS[article.topic]}</Text>
+          <Text style={[type.eyebrow, text.pink]}>{labels.topic(article.topic)}</Text>
           {kind ? <KindDot kind={kind} /> : null}
-          <Text style={[type.eyebrow, text.dim]}>{formatNewsDate(article.publishedAt)}</Text>
+          <Text style={[type.eyebrow, text.dim]}>
+            {formatNewsDate(article.publishedAt, intlLocale(i18n.language))}
+          </Text>
         </View>
         <Text style={[type.cardTitle, text.fg]} numberOfLines={3}>
           {article.title}

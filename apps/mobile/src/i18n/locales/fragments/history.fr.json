@@ -1,0 +1,53 @@
+{
+  "title": "Historique",
+  "allTime": "TOUT LE TEMPS",
+  "nothingTracked": "RIEN DE SUIVI POUR L’INSTANT",
+  "scope": "{{scope}} · {{titles}}",
+  "titles_one": "{{count}} TITRE",
+  "titles_other": "{{count}} TITRES",
+  "filters": {
+    "allStatuses": "TOUS LES STATUTS",
+    "year": "ANNÉE",
+    "status": "STATUT",
+    "group": "GROUPER",
+    "yearAria": "filtrer par année",
+    "statusAria": "filtrer par statut",
+    "groupAria": "grouper les entrées par",
+    "kind": "TYPE"
+  },
+  "grouping": {
+    "year": "ANNÉE",
+    "season": "SAISON",
+    "month": "MOIS"
+  },
+  "season": {
+    "winter": "HIVER",
+    "spring": "PRINTEMPS",
+    "summer": "ÉTÉ",
+    "autumn": "AUTOMNE"
+  },
+  "stats": {
+    "completed": "Titres terminés",
+    "completedNote": "TERMINÉS · {{scope}}",
+    "inView": "Titres affichés",
+    "inViewNote": "CLASSÉS · {{scope}}",
+    "episodes": "Épisodes",
+    "chapters": "Chapitres",
+    "checkInsNote": "SUIVIS · {{scope}}"
+  },
+  "loading": "Chargement de {{scope}}…",
+  "loadMore": "CHARGER PLUS",
+  "loadingMore": "CHARGEMENT…",
+  "error": "Votre historique n’a pas pu se charger. L’API de l’instance est-elle joignable ?",
+  "empty": {
+    "nothingTitle": "Rien pour l’instant",
+    "nothingBody": "Pointez un épisode ou un chapitre et il apparaît ici, avec les dates auxquelles vous l’avez regardé ou lu.",
+    "filteredTitle": "Aucun résultat",
+    "filteredBody": "Rien dans {{scope}} ne correspond à ce type et ce statut. Retirez l’un des deux pour élargir la recherche.",
+    "windowTitle": "Rien dans {{scope}}",
+    "windowBody": "Vous avez un historique, mais pas dans cette période. Choisissez une autre année ci-dessus, ou TOUT LE TEMPS.",
+    "clear": "EFFACER TYPE ET STATUT",
+    "browse": "PARCOURIR DÉCOUVRIR →"
+  },
+  "loadError": "L'instance n'a pas répondu."
+}

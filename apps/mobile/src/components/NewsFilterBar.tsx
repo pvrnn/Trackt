@@ -1,4 +1,6 @@
-import { KIND_LABELS } from '@trackt/client';
+import { useLabels } from '../lib/labels';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { useEffect, useRef, useState } from 'react';
 import { WINDOWS, everyKind, useWindowCounts, type WindowKey } from '../lib/news-filters';
@@ -32,6 +34,8 @@ export function NewsFilterBar({
   onWindow: (key: WindowKey) => void;
   summary?: string | undefined;
 }) {
+  const { t } = useTranslation();
+  const labels = useLabels();
   const [draft, setDraft] = useState<MediaKind[]>(kinds);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const counts = useWindowCounts(kinds);
@@ -60,17 +64,17 @@ export function NewsFilterBar({
   };
 
   const kindRows: MenuRow[] = [
-    { key: 'all', label: 'All kinds', selected: draft.length === 0 },
+    { key: 'all', label: t('news.allKinds'), selected: draft.length === 0 },
     ...MEDIA_KINDS.map((value) => ({
       key: value,
-      label: KIND_LABELS[value],
+      label: labels.kind(value),
       selected: draft.includes(value),
     })),
   ];
 
   const windowRows: MenuRow[] = WINDOWS.map((entry) => ({
     key: entry.key,
-    label: entry.label,
+    label: t(entry.labelKey),
     count: counts[entry.key],
     selected: entry.key === window,
   }));
@@ -79,7 +83,7 @@ export function NewsFilterBar({
     {
       key: 'kinds',
       icon: 'list',
-      label: kindsLabel(draft),
+      label: kindsLabel(draft, t, labels),
       rows: kindRows,
       // Mark, not fill: a multi-selection routinely has every row selected,
       // and six filled rows says nothing about which ones are on.
@@ -91,7 +95,7 @@ export function NewsFilterBar({
     {
       key: 'window',
       icon: 'clock',
-      label: current.label,
+      label: t(current.labelKey),
       rows: windowRows,
       onSelect: (key) => onWindow(key as WindowKey),
     },
@@ -104,9 +108,13 @@ export function NewsFilterBar({
  * What the kinds pill says. Only a single kind is named — "ANIME + MANGA"
  * beside the date pill leaves no room for the story count on the same row.
  */
-function kindsLabel(kinds: MediaKind[]): string {
-  if (everyKind(kinds)) return 'All kinds';
+function kindsLabel(
+  kinds: MediaKind[],
+  t: TFunction,
+  labels: { kind: (k: MediaKind) => string },
+): string {
+  if (everyKind(kinds)) return t('news.allKinds');
   const only = kinds[0];
-  if (kinds.length === 1 && only) return KIND_LABELS[only];
+  if (kinds.length === 1 && only) return labels.kind(only);
   return `${kinds.length} kinds`;
 }

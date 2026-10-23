@@ -1,0 +1,62 @@
+{
+  "title": "Friends",
+  "addFriend": "Add friend",
+  "signInToAdd": "Sign in to add",
+  "friendLabel_one": "FRIEND",
+  "friendLabel_other": "FRIENDS",
+  "friendsEmpty": "No friends yet. Search by name or handle to send a request.",
+  "requests_one": "REQUEST ({{count}})",
+  "requests_other": "REQUESTS ({{count}})",
+  "findPeople": "Find people",
+  "searchPlaceholder": "Search by name or @handle",
+  "noMatches": "No one matches “{{query}}”.",
+  "accept": "ACCEPT",
+  "decline": "DECLINE",
+  "acceptRequest": "ACCEPT REQUEST",
+  "requestSent": "REQUEST SENT ✕",
+  "pendingCancel": "PENDING ✕",
+  "friends": "✓ FRIENDS",
+  "cancelRequest": "Cancel friend request to @{{username}}",
+  "done": "DONE",
+  "action": {
+    "add": "ADD",
+    "pending": "PENDING",
+    "respondBelow": "RESPOND BELOW",
+    "accept": "ACCEPT",
+    "friends": "FRIENDS",
+    "requested": "REQUESTED",
+    "you": "YOU"
+  },
+  "unfriend": {
+    "title": "Remove friend?",
+    "body": "{{name}} goes back to being a stranger, and any list you share with friends only stops being visible to them.",
+    "removing": "REMOVING…"
+  },
+  "errors": {
+    "load": "Couldn’t load your friends. Try again in a moment.",
+    "searchUnavailable": "People search is unavailable right now. Try again in a moment.",
+    "save": "That didn’t save. Try again."
+  },
+  "stateNote": {
+    "friends": "FRIENDS",
+    "incoming": "WANTS TO BE FRIENDS",
+    "outgoing": "REQUEST SENT",
+    "self": "THIS IS YOU",
+    "none": ""
+  },
+  "declineName": "Decline {{name}}",
+  "actionAria": "{{action}} {{name}}",
+  "inviteAria": "Invite a friend",
+  "searchPlaceholderMobile": "Name or @handle",
+  "searchUnavailableTitle": "Search unavailable",
+  "noMatchesShort": "NO MATCHES",
+  "nothingHere": "NOTHING HERE YET",
+  "friendsCount": "FRIENDS {{count}}",
+  "requestsCount": "REQUESTS {{count}}",
+  "sentCount": "SENT {{count}}",
+  "clearSearch": "Clear search",
+  "editOnYourProfile": "Edit on your profile",
+  "requestSentAction": "Request sent",
+  "acceptAction": "Accept",
+  "declineAction": "Decline"
+}

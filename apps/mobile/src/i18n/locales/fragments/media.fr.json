@@ -1,0 +1,152 @@
+{
+  "untitled": "Média",
+  "loadFailed": {
+    "title": "Chargement impossible",
+    "body": "Impossible de récupérer ce titre : l’API de l’instance est peut-être injoignable, ou sa réponse ne correspondait pas à ce qu’on attendait."
+  },
+  "retry": "RÉESSAYER",
+  "backToDiscover": "← RETOUR À DÉCOUVRIR",
+  "notFound": {
+    "title": "Introuvable",
+    "body": "Rien ne vit à « {{slug}} » sur cette instance. Le titre a peut-être été retiré du catalogue."
+  },
+  "statusLabel": "Statut",
+  "log": "＋ SUIVI",
+  "dates": {
+    "title": "Dates",
+    "add": "＋ AJOUTER DES DATES",
+    "edit": "Modifier les dates de début et de fin",
+    "started": "DÉBUT",
+    "finished": "FIN",
+    "help": "Laissez un champ vide pour l’effacer. C’est la date de fin qui classe un titre sous une année dans votre historique ; sans fin, il est classé sous son début.",
+    "clear": "EFFACER",
+    "future": "Les dates ne peuvent pas être dans le futur.",
+    "floor": "Les dates commencent au {{date}}. Vérifiez l’année.",
+    "order": "La date de fin précède la date de début.",
+    "setDate": "DÉFINIR LA DATE"
+  },
+  "upToDate": "À JOUR",
+  "checkIn": "{{verb}} {{part}}",
+  "checkInCompact": "J’AI {{verb}}",
+  "mark": "MARQUER COMME {{verb}}",
+  "markAll": "MARQUER TOUT COMME {{verb}}",
+  "clearProgress": "EFFACER LA PROGRESSION",
+  "favourite": "FAVORI",
+  "list": "LISTE",
+  "saveFailed": "Ça n'a pas enregistré — réessayez.",
+  "part": {
+    "episode": "Épisode",
+    "episodes": "Épisodes",
+    "chapter": "Chapitre",
+    "chapters": "Chapitres",
+    "generic": "Partie",
+    "label": "{{unit}} {{number}}",
+    "done": "FAIT",
+    "next": "À SUIVRE",
+    "blockAria": "{{label}}, {{range}}, {{done}} sur {{total}} terminés",
+    "doneUnset": " — terminé, appuyer pour annuler",
+    "upNext": " — à suivre"
+  },
+  "partCount_one": "{{count}} {{unit}}",
+  "partCount_other": "{{count}} {{unit}}S",
+  "season": "SAISON {{number}}",
+  "volume": "Volume {{number}}",
+  "partsRange": "{{unit}} {{from}}–{{to}}",
+  "aroundYou": "autour de vous",
+  "tracking": "Suivi",
+  "browseNote": {
+    "volume": "OUVREZ UN VOLUME POUR Y ALLER · LE CURSEUR VA PLUS LOIN",
+    "block": "OUVREZ UN BLOC POUR Y ALLER · LE CURSEUR VA PLUS LOIN"
+  },
+  "empty": {
+    "movie": "Un film se suit en une étape : le bouton ci-dessus est tout le journal.",
+    "noParts": "Cette fiche n’a pas encore de nombre d’épisodes ou de chapitres, il n’y a donc rien à cocher. Définissez un statut ci-dessus pour la suivre."
+  },
+  "progress": {
+    "position": "Où vous en êtes",
+    "valueText": "{{value}} sur {{total}}",
+    "fewer": "Un de moins",
+    "more": "Un de plus",
+    "ahead_one": "{{count}} de plus est coché au-delà. Le déplacer efface tout ce qui dépasse votre position.",
+    "ahead_other": "{{count}} de plus sont cochés au-delà. Le déplacer efface tout ce qui dépasse votre position.",
+    "positionEdit": "Où vous en êtes : {{value}} sur {{total}}. Appuyer pour modifier"
+  },
+  "progressUnit": {
+    "episodes": "ÉPISODES VUS",
+    "chapters": "CHAPITRES LUS"
+  },
+  "rating": {
+    "yours": "VOTRE NOTE",
+    "rate": "NOTER CE TITRE",
+    "rateTrigger": "NOTER",
+    "community": "{{score}} SUR {{count}} ICI",
+    "none": "AUCUNE NOTE ICI POUR L’INSTANT",
+    "label": "Votre note",
+    "group": "note",
+    "rateValue": "Noter {{value}}",
+    "clear": "EFFACER LA NOTE",
+    "rateThis": "Noter",
+    "closeWithoutSaving": "Fermer sans enregistrer",
+    "clearYourRating": "Effacer votre note",
+    "yourScore": "Votre note",
+    "yourRatingChange": "Votre note : {{score}}. La modifier"
+  },
+  "details": {
+    "title": "Détails",
+    "status": "STATUT",
+    "released": "SORTIE",
+    "genres": "GENRES",
+    "alsoKnownAs": "AUSSI CONNU SOUS",
+    "external": "EXTERNE",
+    "source": "SOURCE"
+  },
+  "youMightLike": "Vous aimerez peut-être aussi",
+  "relation": {
+    "prequel": "PRÉQUELLE",
+    "sequel": "SUITE",
+    "source": "ŒUVRE D’ORIGINE",
+    "adaptation": "ADAPTATIONS",
+    "spinoff": "HORS-SÉRIES",
+    "parent": "ŒUVRE PARENTE",
+    "related": "ASSOCIÉS"
+  },
+  "addToList": {
+    "title": "Ajouter à une liste",
+    "loadFailed": "Impossible de charger vos listes — réessayez dans un moment.",
+    "empty": "Pas encore de listes — nommez-en une ci-dessous et ce titre y va directement.",
+    "itemCount_one": "{{count}} TITRE",
+    "itemCount_other": "{{count}} TITRES",
+    "added": "AJOUTÉ",
+    "add": "AJOUTER",
+    "newList": "Nouvelle liste",
+    "namePlaceholder": "Nommer une nouvelle liste",
+    "creating": "CRÉATION…",
+    "createAndAdd": "Créer et ajouter",
+    "done": "Terminé"
+  },
+  "removeFromLibrary": "RETIRER DE LA BIBLIOTHÈQUE",
+  "caughtUp": "À JOUR",
+  "hero": {
+    "statusChange": "Statut : {{status}}. Le modifier",
+    "addToLog": "Ajouter à votre journal",
+    "addToLogLabel": "AJOUTER AU JOURNAL",
+    "datesChange": "Dates : {{dates}}. Les modifier",
+    "setDates": "Définir les dates",
+    "setDatesLabel": "DÉFINIR LES DATES"
+  },
+  "actions": {
+    "fav": "FAV",
+    "removeFromFavourites": "Retirer des favoris",
+    "addToFavourites": "Ajouter aux favoris",
+    "addToList": "Ajouter à une liste"
+  },
+  "relatedTitle": "Lié",
+  "parts": {
+    "sofar": "{{count}} JUSQU'ICI · NOMBRE NON PUBLIÉ",
+    "volumes": "Volumes",
+    "volumesUnit": "VOLUMES",
+    "blocksUnit": "BLOCS",
+    "blockCount": "{{count}} {{unit}}",
+    "aroundYou": " · AUTOUR DE VOUS"
+  }
+}

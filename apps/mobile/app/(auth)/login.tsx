@@ -9,11 +9,13 @@ import { Screen } from '../../src/components/Screen';
 import { authClient } from '../../src/lib/auth-client';
 import { useInstance } from '../../src/lib/instance-provider';
 import { color, space } from '../../src/theme/tokens';
+import { useTranslation } from 'react-i18next';
 import { type } from '../../src/theme/typography';
 
 /** Mirrors `apps/web/src/routes/login.tsx` — same two fields, same better-auth call. */
 export default function Login() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { origin, forgetInstance } = useInstance();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +28,7 @@ export default function Login() {
     const { error } = await authClient().signIn.email({ email: email.trim(), password });
     setSubmitting(false);
     if (error) {
-      setFormError(error.message ?? 'Sign in failed');
+      setFormError(error.message ?? t('errors.signInFailed'));
       return;
     }
     router.replace('/home');
@@ -35,14 +37,14 @@ export default function Login() {
   return (
     <Screen center auraIntensity={1.6}>
       <View style={styles.header}>
-        <PrismText style={type.title}>WELCOME BACK</PrismText>
-        <Text style={[type.body, styles.lede]}>Track everything. Lose nothing.</Text>
+        <PrismText style={type.title}>{t('auth.login.title').toUpperCase()}</PrismText>
+        <Text style={[type.body, styles.lede]}>{t('auth.login.subtitle')}</Text>
       </View>
 
       <GlassCard strongBorder style={styles.card}>
         <Field
-          label="Email"
-          placeholder="you@example.com"
+          label={t('auth.fields.email')}
+          placeholder={t('auth.fields.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -51,7 +53,7 @@ export default function Login() {
           textContentType="emailAddress"
         />
         <Field
-          label="Password"
+          label={t('auth.fields.password')}
           placeholder="••••••••••"
           value={password}
           onChangeText={setPassword}
@@ -66,12 +68,16 @@ export default function Login() {
             {formError}
           </Text>
         ) : null}
-        <PrismButton label="Sign in" onPress={() => void submit()} busy={submitting} />
+        <PrismButton
+          label={submitting ? t('auth.submitting') : t('auth.submit')}
+          onPress={() => void submit()}
+          busy={submitting}
+        />
       </GlassCard>
 
       <View style={styles.footer}>
         <PrismButton
-          label="Create account"
+          label={t('auth.createAccount')}
           variant="secondary"
           onPress={() => router.push('/register')}
         />

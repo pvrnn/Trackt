@@ -1,0 +1,53 @@
+{
+  "title": "History",
+  "allTime": "ALL TIME",
+  "nothingTracked": "NOTHING TRACKED YET",
+  "scope": "{{scope}} · {{titles}}",
+  "titles_one": "{{count}} TITLE",
+  "titles_other": "{{count}} TITLES",
+  "filters": {
+    "allStatuses": "ALL STATUSES",
+    "year": "YEAR",
+    "status": "STATUS",
+    "group": "GROUP",
+    "yearAria": "filter by year",
+    "statusAria": "filter by status",
+    "groupAria": "group entries by",
+    "kind": "KIND"
+  },
+  "grouping": {
+    "year": "YEAR",
+    "season": "SEASON",
+    "month": "MONTH"
+  },
+  "season": {
+    "winter": "WINTER",
+    "spring": "SPRING",
+    "summer": "SUMMER",
+    "autumn": "AUTUMN"
+  },
+  "stats": {
+    "completed": "Titles completed",
+    "completedNote": "FINISHED · {{scope}}",
+    "inView": "Titles in view",
+    "inViewNote": "FILED · {{scope}}",
+    "episodes": "Episodes",
+    "chapters": "Chapters",
+    "checkInsNote": "CHECK-INS · {{scope}}"
+  },
+  "loading": "Loading {{scope}}…",
+  "loadMore": "LOAD MORE",
+  "loadingMore": "LOADING…",
+  "error": "Your history failed to load. Is this instance’s API reachable?",
+  "empty": {
+    "nothingTitle": "Nothing yet",
+    "nothingBody": "Check in to something and it lands here: every episode and chapter, with the dates you watched them.",
+    "filteredTitle": "No matches",
+    "filteredBody": "Nothing in {{scope}} matches this kind and status. Clear one of them to widen the search.",
+    "windowTitle": "Nothing in {{scope}}",
+    "windowBody": "You have history, just not in this window. Pick another year above, or ALL TIME.",
+    "clear": "CLEAR KIND & STATUS",
+    "browse": "BROWSE DISCOVER →"
+  },
+  "loadError": "The instance didn't answer."
+}

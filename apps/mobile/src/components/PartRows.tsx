@@ -1,6 +1,7 @@
 import { partWindow, type PartBlock } from '@trackt/client';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { PRISM, color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 import { Icon } from './Icon';
@@ -37,13 +38,19 @@ export function PartBlockRow({
   onPress: () => void;
 }) {
   const press = usePressMotion();
+  const { t } = useTranslation();
   const percent = Math.round((block.done / block.size) * 100);
 
   return (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ expanded: open }}
-      accessibilityLabel={`${label}, ${rangeLabel}, ${block.done} of ${block.size} done`}
+      accessibilityLabel={t('media.part.blockAria', {
+        label,
+        range: rangeLabel,
+        done: block.done,
+        total: block.size,
+      })}
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
@@ -92,11 +99,12 @@ export function PartRow({
   onPress: () => void;
 }) {
   const press = usePressMotion();
+  const { t } = useTranslation();
   return (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ selected: done }}
-      accessibilityLabel={`${label}${done ? ' — done, tap to unset' : isNext ? ' — up next' : ''}`}
+      accessibilityLabel={`${label}${done ? t('media.part.doneUnset') : isNext ? t('media.part.upNext') : ''}`}
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
@@ -106,7 +114,9 @@ export function PartRow({
       <Marker complete={done} partial={false} outlined={isNext} size={20} />
       <Text style={[type.label, done ? text.muted : text.fg, styles.partLabel]}>{label}</Text>
       {done || isNext ? (
-        <Text style={[type.eyebrow, isNext ? text.pink : text.dim]}>{done ? 'DONE' : 'NEXT'}</Text>
+        <Text style={[type.eyebrow, isNext ? text.pink : text.dim]}>
+          {done ? t('media.part.done') : t('media.part.next')}
+        </Text>
       ) : null}
     </AnimatedPressable>
   );

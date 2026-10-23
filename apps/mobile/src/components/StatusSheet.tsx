@@ -1,4 +1,5 @@
-import { LOG_STATUS_LABELS } from '@trackt/client';
+import { useLabels } from '../lib/labels';
+import { useTranslation } from 'react-i18next';
 import { LOG_STATUSES, type LogStatus } from '@trackt/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { color, layout, radius, space, stroke, surface } from '../theme/tokens';
@@ -27,6 +28,8 @@ export function StatusSheet({
   onPick: (status: LogStatus | null) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
+  const labels = useLabels();
   const sheet = useSheetController(onClose);
   const choose = (status: LogStatus | null) => {
     onPick(status);
@@ -34,18 +37,18 @@ export function StatusSheet({
   };
 
   return (
-    <Sheet title="Status" subtitle={mediaTitle} controller={sheet}>
+    <Sheet title={t('media.statusLabel')} subtitle={mediaTitle} controller={sheet}>
       <View style={styles.rows}>
         {LOG_STATUSES.map((status) => (
           <Row
             key={status}
-            label={LOG_STATUS_LABELS[status]}
+            label={labels.status(status)}
             selected={current === status}
             onPress={() => choose(status)}
           />
         ))}
         {current !== null ? (
-          <Row label="Remove from library" destructive onPress={() => choose(null)} />
+          <Row label={t('media.removeFromLibrary')} destructive onPress={() => choose(null)} />
         ) : null}
       </View>
     </Sheet>

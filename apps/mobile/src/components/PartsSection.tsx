@@ -2,6 +2,8 @@ import { firstUnwatched, partWindow } from '@trackt/client';
 import type { partBlocks } from '@trackt/client';
 import type { MediaDetail } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '../i18n';
 import { SectionTitle } from './Page';
 import { PartBlockRow, PartRow } from './PartRows';
 import { gutter, layout, space, stroke, surface, text } from '../theme/tokens';
@@ -13,9 +15,18 @@ export function partNoun(detail: MediaDetail): {
   plural: string;
   prefix: string;
 } {
-  return detail.kind === 'manga' || detail.kind === 'webtoon'
-    ? { singular: 'Chapter', plural: 'Chapters', prefix: 'CH' }
-    : { singular: 'Episode', plural: 'Episodes', prefix: 'E' };
+  const chapter = detail.kind === 'manga' || detail.kind === 'webtoon';
+  return chapter
+    ? {
+        singular: i18n.t('media.part.chapter'),
+        plural: i18n.t('media.part.chapters'),
+        prefix: 'CH',
+      }
+    : {
+        singular: i18n.t('media.part.episode'),
+        plural: i18n.t('media.part.episodes'),
+        prefix: 'E',
+      };
 }
 
 /**
@@ -52,6 +63,7 @@ export function PartsSection({
   onSetPosition: (upTo: number) => void;
 }) {
   const volumes = detail.kind === 'manga' || detail.kind === 'webtoon';
+  const { t } = useTranslation();
   const next = firstUnwatched(watched, total ?? position + 1);
 
   const row = (number: number) => (
@@ -73,7 +85,7 @@ export function PartsSection({
     return (
       <View style={[gutter, styles.parts]}>
         <SectionTitle title={noun.plural} />
-        <Text style={[type.eyebrow, text.dim]}>{position} SO FAR · COUNT NOT PUBLISHED YET</Text>
+        <Text style={[type.eyebrow, text.dim]}>{t('media.parts.sofar', { count: position })}</Text>
         <View style={styles.rows}>{around.map(row)}</View>
       </View>
     );
@@ -101,9 +113,13 @@ export function PartsSection({
   return (
     <View style={[gutter, styles.parts]}>
       <View style={styles.partsHead}>
-        <SectionTitle title={volumes ? 'Volumes' : noun.plural} />
+        <SectionTitle title={volumes ? t('media.parts.volumes') : noun.plural} />
         <Text style={[type.eyebrow, text.dim]}>
-          {blocks.length} {volumes ? 'VOLUMES' : 'BLOCKS'} · {total} {noun.plural.toUpperCase()}
+          {t('media.parts.blockCount', {
+            count: blocks.length,
+            unit: volumes ? t('media.parts.volumesUnit') : t('media.parts.blocksUnit'),
+          })}{' '}
+          · {total} {noun.plural.toUpperCase()}
         </Text>
       </View>
 
@@ -112,7 +128,11 @@ export function PartsSection({
           <PartBlockRow
             key={block.index}
             block={block}
-            label={volumes ? `Volume ${block.index}` : `${noun.plural} ${block.from}–${block.to}`}
+            label={
+              volumes
+                ? t('media.volume', { number: block.index })
+                : `${noun.plural} ${block.from}–${block.to}`
+            }
             rangeLabel={
               volumes
                 ? `${noun.prefix} ${block.from}–${block.to}`
@@ -127,16 +147,16 @@ export function PartsSection({
       <View style={styles.windowHead}>
         <Text style={[type.section, text.fg]}>
           {(volumes
-            ? `Volume ${active.index}`
+            ? t('media.volume', { number: active.index })
             : `${noun.plural} ${active.from}–${active.to}`
           ).toUpperCase()}
-          {inside ? ' · AROUND YOU' : ''}
+          {inside ? t('media.parts.aroundYou') : ''}
         </Text>
         <View style={styles.rule} />
       </View>
       <View style={styles.rows}>{window.map(row)}</View>
       <Text style={[type.eyebrow, text.faint]}>
-        OPEN A {volumes ? 'VOLUME' : 'BLOCK'} TO JUMP THERE · THE SLIDER TRAVELS FURTHER
+        {t(volumes ? 'media.browseNote.volume' : 'media.browseNote.block')}
       </Text>
     </View>
   );

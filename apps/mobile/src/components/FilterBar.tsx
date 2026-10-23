@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -265,13 +266,14 @@ function FilterMenu({
   onSelect: (key: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { mounted, panelStyle } = useDisclosure(open);
 
   return (
     <Modal transparent visible={mounted} animationType="none" onRequestClose={onClose}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Close the filter"
+        accessibilityLabel={t('common.closeFilter')}
         style={StyleSheet.absoluteFill}
         onPress={onClose}
       />

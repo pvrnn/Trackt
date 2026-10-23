@@ -1,5 +1,6 @@
 import { deleteAccount } from '@trackt/client';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { color, space } from '../theme/tokens';
 import { type } from '../theme/typography';
@@ -33,13 +34,14 @@ export function DeleteAccountSheet({
   onClose: () => void;
 }) {
   const sheet = useSheetController(onClose);
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     if (!password) {
-      setError('Enter your password to confirm.');
+      setError(t('profile.deleteAccountSheet.passwordRequired'));
       return;
     }
     setError(null);
@@ -52,20 +54,20 @@ export function DeleteAccountSheet({
       // still fetching a profile that no longer exists.
       onDeleted();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That didn’t work — try again.');
+      setError(cause instanceof Error ? cause.message : t('profile.deleteAccountSheet.failed'));
       setBusy(false);
     }
   };
 
   return (
-    <Sheet title="Delete account" subtitle={`@${username}`} controller={sheet}>
-      <Text style={[type.body, styles.body]}>
-        This deletes your account on this instance and everything on it — your logs, check-ins,
-        ratings, favourites, lists and friendships. It cannot be undone, and nothing here is kept
-        after it.
-      </Text>
+    <Sheet
+      title={t('profile.deleteAccountSheet.title')}
+      subtitle={`@${username}`}
+      controller={sheet}
+    >
+      <Text style={[type.body, styles.body]}>{t('profile.deleteAccountSheet.body')}</Text>
       <Field
-        label="Password"
+        label={t('profile.deleteAccountSheet.password')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -79,14 +81,14 @@ export function DeleteAccountSheet({
       {error ? <SheetError message={error} /> : null}
       <View style={styles.actions}>
         <PrismButton
-          label="Cancel"
+          label={t('common.cancel')}
           variant="secondary"
           disabled={busy}
           onPress={sheet.dismiss}
           style={styles.action}
         />
         <PrismButton
-          label="Delete account"
+          label={t('profile.deleteAccountSheet.confirm')}
           busy={busy}
           onPress={() => void submit()}
           style={styles.action}

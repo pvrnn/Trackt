@@ -1,0 +1,14 @@
+{
+  "title": "Découvrir",
+  "searchPlaceholder": "Rechercher des titres…",
+  "searchAria": "rechercher des titres",
+  "filterAria": "filtrer par type",
+  "results": "Résultats",
+  "resultCount_one": "{{count}} TITRE",
+  "resultCount_other": "{{count}} TITRES",
+  "empty": "Rien sur cette instance ne correspond à « {{query}} ».",
+  "emptyInKind": "Rien sur cette instance ne correspond à « {{query}} » en {{kind}}.",
+  "missingTitle": "Vous ne le trouvez pas ?",
+  "missingBody": "Le catalogue se remplit au fil du temps : les titres sont ajoutés au catalogue central et arrivent ensuite sur chaque instance. Écrivez une demande pour en faire ajouter un.",
+  "emptyInitial": "Saisissez un titre pour le trouver."
+}

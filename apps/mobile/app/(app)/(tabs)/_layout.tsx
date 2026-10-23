@@ -8,6 +8,7 @@ import type { View as RNView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon, type TabName } from '../../../src/components/TabIcon';
 import { color, layout, space, stroke, surface } from '../../../src/theme/tokens';
+import { useTranslation } from 'react-i18next';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -24,6 +25,7 @@ import { type } from '../../../src/theme/typography';
  */
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Tabs>
@@ -43,16 +45,16 @@ export default function TabsLayout() {
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, styles.barFill]} />
           <TabTrigger name="home" href="/home" asChild>
-            <TabButton icon="home" label="Home" />
+            <TabButton icon="home" label={t('nav.home')} />
           </TabTrigger>
           <TabTrigger name="discover" href="/discover" asChild>
-            <TabButton icon="discover" label="Discover" />
+            <TabButton icon="discover" label={t('nav.discover')} />
           </TabTrigger>
           <TabTrigger name="news" href="/news" asChild>
-            <TabButton icon="news" label="News" />
+            <TabButton icon="news" label={t('nav.news')} />
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
-            <TabButton icon="profile" label="Profile" />
+            <TabButton icon="profile" label={t('nav.profile')} />
           </TabTrigger>
         </View>
       </TabList>

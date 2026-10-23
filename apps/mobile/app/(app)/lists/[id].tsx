@@ -1,11 +1,6 @@
-import {
-  KIND_LABELS_SINGULAR,
-  listsApi,
-  updatedLabel,
-  useList,
-  useListsInvalidator,
-  visibilityLabel,
-} from '@trackt/client';
+import { listsApi, updatedLabel, useList, useListsInvalidator } from '@trackt/client';
+import { useLabels } from '../../../src/lib/labels';
+import { useTranslation } from 'react-i18next';
 import type { ListEntry } from '@trackt/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -40,6 +35,8 @@ import { type } from '../../../src/theme/typography';
  */
 export default function ListScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
+  const labels = useLabels();
   const { data: list, isPending, isError } = useList(id);
   const invalidate = useListsInvalidator();
   const writeFailed = useWriteFailedToast();
@@ -55,8 +52,8 @@ export default function ListScreen() {
     return (
       <ScreenState
         isPending={isPending}
-        title="List unavailable"
-        body="It may have been deleted, or it may not be visible to you."
+        title={t('lists.detail.unavailableTitle')}
+        body={t('lists.detail.unavailableBody')}
       />
     );
   }
@@ -87,14 +84,18 @@ export default function ListScreen() {
         />
         {list.description ? <Text style={[type.body, text.muted]}>{list.description}</Text> : null}
         <Text style={[type.eyebrow, text.dim]}>
-          {list.isOwner ? 'YOURS' : `@${list.owner.username}`} ·{' '}
-          {visibilityLabel(list.visibility).toUpperCase()} · {updatedLabel(list.updatedAt)}
+          {list.isOwner ? t('lists.detail.yours') : `@${list.owner.username}`} ·{' '}
+          {labels.visibility(list.visibility).toUpperCase()} · {updatedLabel(list.updatedAt)}
         </Text>
         {list.isOwner ? (
           <View style={styles.ownerActions}>
-            <PrismButton label="Edit" variant="secondary" onPress={() => setEditing(true)} />
             <PrismButton
-              label="Delete list"
+              label={t('lists.detail.edit')}
+              variant="secondary"
+              onPress={() => setEditing(true)}
+            />
+            <PrismButton
+              label={t('lists.detail.deleteListAction')}
               variant="secondary"
               onPress={() => setConfirmingDelete(true)}
             />
@@ -107,12 +108,8 @@ export default function ListScreen() {
 
       {list.entries.length === 0 ? (
         <EmptyState
-          title="Empty list"
-          body={
-            list.isOwner
-              ? 'Open a title and use its LIST button to put it here.'
-              : 'Nothing has been added to this list yet.'
-          }
+          title={t('lists.detail.emptyTitle')}
+          body={list.isOwner ? t('lists.detail.emptyOwner') : t('lists.detail.emptyOther')}
         />
       ) : (
         <View style={styles.rows}>
@@ -144,11 +141,11 @@ export default function ListScreen() {
 
       {confirmingDelete ? (
         <ConfirmSheet
-          title="Delete list"
+          title={t('lists.detail.deleteListAction')}
           body={`“${list.title}” and its ${list.itemCount} ${
             list.itemCount === 1 ? 'title' : 'titles'
           } go for good. The titles themselves stay in your library.`}
-          confirmLabel="Delete"
+          confirmLabel={t('common.deleteAction')}
           onConfirm={async () => {
             await listsApi.remove(list.id);
             invalidate();
@@ -180,6 +177,7 @@ function Row({
   onMove: (direction: 'up' | 'down') => void;
   onRemove: () => void;
 }) {
+  const labels = useLabels();
   return (
     <View style={styles.rowWrap}>
       <Touchable href={`/media/${entry.slug}`} style={styles.row}>
@@ -202,7 +200,7 @@ function Row({
           <View style={styles.metaRow}>
             <KindDot kind={entry.kind} />
             <Text style={[type.eyebrow, text.dim]}>
-              {KIND_LABELS_SINGULAR[entry.kind]}
+              {labels.kindSingular(entry.kind)}
               {entry.year ? ` · ${entry.year}` : ''}
             </Text>
           </View>

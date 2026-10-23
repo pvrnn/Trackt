@@ -1,5 +1,7 @@
 import { FlashList } from '@shopify/flash-list';
-import { KIND_LABELS, LOG_STATUS_LABELS, groupEntries, useHistory } from '@trackt/client';
+import { groupEntries, useHistory } from '@trackt/client';
+import { useLabels } from '../../src/lib/labels';
+import { useTranslation } from 'react-i18next';
 import {
   LOG_STATUSES,
   MEDIA_KINDS,
@@ -26,15 +28,6 @@ import { duration, staggerDelay } from '../../src/lib/motion';
 import { useAuthedScreen } from '../../src/lib/session';
 import { color, gutter, layout, space } from '../../src/theme/tokens';
 import { type } from '../../src/theme/typography';
-
-/** The collapsed form for the filter cell; the menu spells each status out. */
-const SHORT_STATUS: Record<LogStatus, string> = {
-  planned: 'Planned',
-  in_progress: 'Watching',
-  completed: 'Done',
-  paused: 'Paused',
-  dropped: 'Dropped',
-};
 
 /** Statuses a history row can actually have — the server excludes `planned`. */
 const HISTORY_STATUSES = LOG_STATUSES.filter((status) => status !== 'planned');
@@ -72,6 +65,8 @@ export default function HistoryScreen() {
   const [status, setStatus] = useState<LogStatus | undefined>(undefined);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { t } = useTranslation();
+  const labels = useLabels();
 
   const {
     entries,
@@ -104,7 +99,7 @@ export default function HistoryScreen() {
   }, [entries, year]);
 
   const yearRows: MenuRow[] = [
-    { key: 'all', label: 'All time', selected: year === undefined },
+    { key: 'all', label: t('history.allTime'), selected: year === undefined },
     ...years.map((entry) => ({
       key: String(entry.year),
       label: String(entry.year),
@@ -117,21 +112,21 @@ export default function HistoryScreen() {
     {
       key: 'year',
       icon: 'clock',
-      caption: 'Year',
-      label: year === undefined ? 'All time' : String(year),
+      caption: t('history.filters.year'),
+      label: year === undefined ? t('history.allTime') : String(year),
       rows: yearRows,
       onSelect: (key) => setYear(key === 'all' ? undefined : Number(key)),
     },
     {
       key: 'kind',
       icon: 'list',
-      caption: 'Kind',
-      label: kind ? KIND_LABELS[kind] : 'All',
+      caption: t('history.filters.kind'),
+      label: kind ? labels.kind(kind) : t('common.all'),
       rows: [
-        { key: 'all', label: 'All kinds', selected: kind === undefined },
+        { key: 'all', label: t('news.allKinds'), selected: kind === undefined },
         ...MEDIA_KINDS.map((value) => ({
           key: value,
-          label: KIND_LABELS[value],
+          label: labels.kind(value),
           selected: kind === value,
         })),
       ],
@@ -140,13 +135,13 @@ export default function HistoryScreen() {
     {
       key: 'status',
       icon: 'check',
-      caption: 'Status',
-      label: status ? SHORT_STATUS[status] : 'Any',
+      caption: t('history.filters.status'),
+      label: status ? labels.status(status) : t('history.filters.allStatuses'),
       rows: [
-        { key: 'all', label: 'Any status', selected: status === undefined },
+        { key: 'all', label: t('history.filters.allStatuses'), selected: status === undefined },
         ...HISTORY_STATUSES.map((value) => ({
           key: value,
-          label: LOG_STATUS_LABELS[value],
+          label: labels.status(value),
           selected: status === value,
         })),
       ],
@@ -164,7 +159,7 @@ export default function HistoryScreen() {
     );
   }
 
-  const scope = year === undefined ? 'ALL TIME' : String(year);
+  const scope = year === undefined ? t('history.allTime') : String(year);
   const filtered = kind !== undefined || status !== undefined;
 
   return (
@@ -184,7 +179,7 @@ export default function HistoryScreen() {
         ListHeaderComponent={
           <View style={{ paddingTop: insets.top + HEADER_HEIGHT + space.md }}>
             <View style={gutter}>
-              <PageTitle title="History" count={`${totals.titles} titles · ${scope}`} />
+              <PageTitle title={t('history.title')} count={`${totals.titles} titles · ${scope}`} />
               <StaleNotice updatedAt={updatedAt} />
             </View>
 
@@ -200,10 +195,10 @@ export default function HistoryScreen() {
               entering={FadeIn.duration(duration.commit)}
               style={[gutter, styles.totals]}
             >
-              <Total value={totals.titles} label="Titles" scope={scope} />
-              <Total value={totals.completed} label="Completed" scope={scope} />
-              <Total value={totals.episodes} label="Episodes" scope={scope} />
-              <Total value={totals.chapters} label="Chapters" scope={scope} />
+              <Total value={totals.titles} label={t('lists.detail.titles')} scope={scope} />
+              <Total value={totals.completed} label={t('home.stats.completed')} scope={scope} />
+              <Total value={totals.episodes} label={t('home.stats.episodes')} scope={scope} />
+              <Total value={totals.chapters} label={t('home.stats.chapters')} scope={scope} />
             </Animated.View>
           </View>
         }
@@ -214,21 +209,21 @@ export default function HistoryScreen() {
                 <Loading />
               </OfflineFallback>
             ) : isError ? (
-              <EmptyState title="Couldn't load" body="The instance didn't answer." />
+              <EmptyState title={t('media.loadFailed.title')} body={t('history.loadError')} />
             ) : filtered ? (
               <EmptyState
-                title="Nothing matches"
-                body="No titles in this kind and status. Clear one of them to widen the view."
+                title={t('history.empty.filteredTitle')}
+                body={t('history.empty.filteredBody', { scope })}
               />
             ) : year !== undefined ? (
               <EmptyState
-                title="Nothing in this window"
-                body="You tracked nothing here. Pick another year from the chips above."
+                title={t('history.empty.windowTitle', { scope })}
+                body={t('history.empty.windowBody')}
               />
             ) : (
               <EmptyState
-                title="Nothing yet"
-                body="Titles land here once you start or finish them. Find something in Discover."
+                title={t('history.empty.nothingTitle')}
+                body={t('history.empty.nothingBody')}
               />
             )}
           </View>
@@ -258,7 +253,7 @@ export default function HistoryScreen() {
         }
       />
 
-      <CollapsingHeader title="History" scrollY={scrollY} />
+      <CollapsingHeader title={t('history.title')} scrollY={scrollY} />
     </PageFrame>
   );
 }

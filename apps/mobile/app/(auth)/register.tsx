@@ -8,6 +8,8 @@ import { PrismText } from '../../src/components/PrismText';
 import { Screen } from '../../src/components/Screen';
 import { authClient } from '../../src/lib/auth-client';
 import { color, space } from '../../src/theme/tokens';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '../../src/i18n';
 import { type } from '../../src/theme/typography';
 
 /**
@@ -31,13 +33,12 @@ type FieldErrors = Partial<Record<keyof Fields, string>>;
 
 function validate(f: Fields): FieldErrors {
   const errors: FieldErrors = {};
-  if (!f.name.trim()) errors.name = 'Name is required';
-  if (!USERNAME_RE.test(f.username))
-    errors.username = '3–30 characters: letters, numbers, dots, underscores';
-  if (!f.email.trim()) errors.email = 'Email is required';
+  if (!f.name.trim()) errors.name = i18n.t('auth.validation.nameRequired');
+  if (!USERNAME_RE.test(f.username)) errors.username = i18n.t('auth.validation.usernameFormat');
+  if (!f.email.trim()) errors.email = i18n.t('auth.validation.emailRequired');
   if (f.password.length < MIN_PASSWORD_LENGTH)
-    errors.password = `At least ${MIN_PASSWORD_LENGTH} characters`;
-  if (f.confirm !== f.password) errors.confirm = 'Passwords do not match';
+    errors.password = i18n.t('auth.validation.passwordLength', { min: MIN_PASSWORD_LENGTH });
+  if (f.confirm !== f.password) errors.confirm = i18n.t('auth.validation.passwordMismatch');
   return errors;
 }
 
@@ -45,6 +46,7 @@ const EMPTY: Fields = { name: '', username: '', email: '', password: '', confirm
 
 export default function Register() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [fields, setFields] = useState<Fields>(EMPTY);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -67,7 +69,7 @@ export default function Register() {
     });
     setSubmitting(false);
     if (error) {
-      setFormError(error.message ?? 'Sign up failed');
+      setFormError(error.message ?? t('errors.signUpFailed'));
       return;
     }
     router.replace('/home');
@@ -76,22 +78,20 @@ export default function Register() {
   return (
     <Screen center auraIntensity={1.6}>
       <View style={styles.header}>
-        <PrismText style={type.title}>CREATE ACCOUNT</PrismText>
-        <Text style={[type.body, styles.lede]}>
-          Your history, ratings, and lists — exportable any time.
-        </Text>
+        <PrismText style={type.title}>{t('auth.register.title').toUpperCase()}</PrismText>
+        <Text style={[type.body, styles.lede]}>{t('auth.register.subtitle')}</Text>
       </View>
 
       <GlassCard strongBorder style={styles.card}>
         <Field
-          label="Name"
+          label={t('auth.fields.name')}
           value={fields.name}
           onChangeText={set('name')}
           autoComplete="name"
           error={fieldErrors.name}
         />
         <Field
-          label="Username"
+          label={t('auth.fields.username')}
           placeholder="handle"
           value={fields.username}
           onChangeText={set('username')}
@@ -101,7 +101,7 @@ export default function Register() {
           error={fieldErrors.username}
         />
         <Field
-          label="Email"
+          label={t('auth.fields.email')}
           placeholder="you@example.com"
           value={fields.email}
           onChangeText={set('email')}
@@ -111,7 +111,7 @@ export default function Register() {
           error={fieldErrors.email}
         />
         <Field
-          label="Password"
+          label={t('auth.fields.password')}
           placeholder="••••••••••"
           value={fields.password}
           onChangeText={set('password')}
@@ -120,7 +120,7 @@ export default function Register() {
           error={fieldErrors.password}
         />
         <Field
-          label="Confirm password"
+          label={t('auth.fields.confirmPassword')}
           placeholder="••••••••••"
           value={fields.confirm}
           onChangeText={set('confirm')}
@@ -134,10 +134,18 @@ export default function Register() {
             {formError}
           </Text>
         ) : null}
-        <PrismButton label="Create account" onPress={() => void submit()} busy={submitting} />
+        <PrismButton
+          label={submitting ? t('auth.creatingAccount') : t('auth.createAccount')}
+          onPress={() => void submit()}
+          busy={submitting}
+        />
       </GlassCard>
 
-      <PrismButton label="Back to sign in" variant="secondary" onPress={() => router.back()} />
+      <PrismButton
+        label={t('auth.alreadyMember')}
+        variant="secondary"
+        onPress={() => router.back()}
+      />
     </Screen>
   );
 }

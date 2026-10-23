@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { upNextPartKey, useHomeSummary } from '@trackt/client';
 import { IN_PROGRESS_LIMIT, type UpNextEntry } from '@trackt/shared';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +59,7 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const isOnline = useIsOnline();
   const toast = useToast();
+  const { t } = useTranslation();
   const writeFailed = useWriteFailedToast();
   // Which rows this session has checked in. The row stays put until the next
   // `/me/home` lands (the server decides what "up next" is now), so it has to
@@ -82,7 +84,7 @@ export default function HomeTab() {
     commitHaptic();
     toast({
       message: `${entry.title} — ${partLabel(entry)} checked in${queued ? ' · will sync' : ''}`,
-      action: { label: 'Undo', onPress: () => uncheck.mutate(undoWrite(entry)) },
+      action: { label: t('home.undo'), onPress: () => uncheck.mutate(undoWrite(entry)) },
     });
   };
 
@@ -104,7 +106,7 @@ export default function HomeTab() {
     onError: (error, write) => {
       markCheckedIn(write, true);
       errorHaptic();
-      writeFailed(error, 'Couldn’t undo that — it’s still checked in.');
+      writeFailed(error, t('home.undoFailed'));
     },
   });
 
@@ -154,7 +156,7 @@ export default function HomeTab() {
         refreshControl={pullToRefresh(isRefetching, () => void refetch())}
       >
         <PageTitle
-          title="Up next"
+          title={t('home.title')}
           count={data ? `${data.upNext.length} waiting on you` : undefined}
         />
 
@@ -162,17 +164,14 @@ export default function HomeTab() {
           query={{ data, isPending, isError, dataUpdatedAt }}
           pending={<SkeletonRows />}
           error={{
-            title: "Couldn't load",
-            body: "The instance didn't answer. Pull down to try again.",
+            title: t('media.loadFailed.title'),
+            body: t('home.loadError'),
           }}
         >
           {(data) => (
             <>
               {data.upNext.length === 0 ? (
-                <EmptyState
-                  title="Nothing queued"
-                  body="Start something from Discover and its next episode shows up here."
-                />
+                <EmptyState title={t('home.nothingQueued')} body={t('home.nothingQueuedBody')} />
               ) : (
                 <View style={styles.rows}>
                   {data.upNext.map((entry, index) => (
@@ -189,7 +188,7 @@ export default function HomeTab() {
 
               {data.inProgress.length > 0 ? (
                 <View style={styles.section}>
-                  <SectionTitle title="In progress" />
+                  <SectionTitle title={t('home.inProgress.title')} />
                   <Shelf padding="right">
                     {data.inProgress.map((entry, index) => (
                       <Animated.View
@@ -219,18 +218,18 @@ export default function HomeTab() {
               ) : null}
 
               <View style={styles.section}>
-                <SectionTitle title="This year" />
+                <SectionTitle title={t('home.stats.title')} />
                 <Stats>
-                  <Stat value={data.stats.episodesThisYear} label="Episodes" />
-                  <Stat value={data.stats.chaptersThisYear} label="Chapters" />
-                  <Stat value={data.stats.completedThisYear} label="Completed" />
-                  <Stat value={data.stats.dayStreak} label="Day streak" />
+                  <Stat value={data.stats.episodesThisYear} label={t('home.stats.episodes')} />
+                  <Stat value={data.stats.chaptersThisYear} label={t('home.stats.chapters')} />
+                  <Stat value={data.stats.completedThisYear} label={t('home.stats.completed')} />
+                  <Stat value={data.stats.dayStreak} label={t('home.stats.dayStreak')} />
                 </Stats>
               </View>
 
               {data.activity.length > 0 ? (
                 <View style={styles.section}>
-                  <SectionTitle title="Activity" />
+                  <SectionTitle title={t('home.activity.title')} />
                   <GlassCard style={styles.activityCard}>
                     {data.activity.map((entry, index) => (
                       <Animated.View

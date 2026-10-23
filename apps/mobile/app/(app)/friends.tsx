@@ -1,5 +1,6 @@
 import { useDebounced, useFriends, useUserSearch } from '@trackt/client';
 import type { FriendState, UserSummary } from '@trackt/shared';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -40,6 +41,7 @@ export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
   const { origin } = useInstance();
   const { data: overview, isPending, isError } = useFriends();
+  const { t } = useTranslation();
 
   const [tab, setTab] = useState<Tab>('friends');
   const [query, setQuery] = useState('');
@@ -51,7 +53,7 @@ export default function FriendsScreen() {
   const { data: results, isFetching, isError: searchFailed } = useUserSearch(debounced);
 
   const friendActions = useFriendActions((cause) =>
-    setError(cause instanceof Error ? cause.message : 'That didn’t save — try again.'),
+    setError(cause instanceof Error ? cause.message : t('social.errors.save')),
   );
   const { busy } = friendActions;
 
@@ -87,18 +89,18 @@ export default function FriendsScreen() {
         ? overview.friends.map((friend) => ({
             person: friend,
             state: 'friends' as const,
-            note: 'FRIENDS',
+            note: t('social.stateNote.friends'),
           }))
         : tab === 'requests'
           ? overview.incoming.map((request) => ({
               person: request,
               state: 'incoming' as const,
-              note: 'WANTS TO BE FRIENDS',
+              note: t('social.stateNote.incoming'),
             }))
           : overview.outgoing.map((request) => ({
               person: request,
               state: 'outgoing' as const,
-              note: 'REQUEST SENT',
+              note: t('social.stateNote.outgoing'),
             }));
 
   return (
@@ -108,7 +110,7 @@ export default function FriendsScreen() {
         <Text style={styles.title}>FRIENDS</Text>
         <AnimatedPressable
           accessibilityRole="button"
-          accessibilityLabel="Invite a friend"
+          accessibilityLabel={t('social.inviteAria')}
           onPress={invite}
           android_ripple={ripple(true)}
           style={styles.invite}
@@ -130,7 +132,7 @@ export default function FriendsScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Name or @handle"
+            placeholder={t('social.searchPlaceholderMobile')}
             placeholderTextColor={color.faint}
             autoCapitalize="none"
             autoCorrect={false}
@@ -140,7 +142,7 @@ export default function FriendsScreen() {
           {query.length > 0 ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Clear search"
+              accessibilityLabel={t('social.clearSearch')}
               onPress={() => setQuery('')}
               hitSlop={space.sm}
             >
@@ -154,17 +156,17 @@ export default function FriendsScreen() {
         {searching ? null : (
           <View style={styles.tabs}>
             <RosterTab
-              label={`FRIENDS ${overview?.friends.length ?? 0}`}
+              label={t('social.friendsCount', { count: overview?.friends.length ?? 0 })}
               active={tab === 'friends'}
               onPress={() => setTab('friends')}
             />
             <RosterTab
-              label={`REQUESTS ${overview?.incoming.length ?? 0}`}
+              label={t('social.requestsCount', { count: overview?.incoming.length ?? 0 })}
               active={tab === 'requests'}
               onPress={() => setTab('requests')}
             />
             <RosterTab
-              label={`SENT ${overview?.outgoing.length ?? 0}`}
+              label={t('social.sentCount', { count: overview?.outgoing.length ?? 0 })}
               active={tab === 'sent'}
               onPress={() => setTab('sent')}
             />
@@ -185,20 +187,20 @@ export default function FriendsScreen() {
         {isPending && !searching ? (
           <Loading />
         ) : isError && !searching ? (
-          <EmptyState title="Couldn't load" body="The instance didn't answer — try again." />
+          <EmptyState title={t('media.loadFailed.title')} body={t('social.errors.load')} />
         ) : searching && isFetching && rows.length === 0 ? (
           <Loading />
         ) : searching && searchFailed ? (
           // Not silence: with no results *and* a failed request, "no one
           // matches" would state a negative we don't have.
           <EmptyState
-            title="Search unavailable"
-            body="People search didn’t answer — try again in a moment."
+            title={t('social.searchUnavailableTitle')}
+            body={t('social.errors.searchUnavailable')}
           />
         ) : rows.length === 0 ? (
           <View style={styles.empty}>
             <Text style={[type.eyebrow, text.faint]}>
-              {searching ? 'NO MATCHES' : 'NOTHING HERE YET'}
+              {searching ? t('social.noMatchesShort') : t('social.nothingHere')}
             </Text>
           </View>
         ) : (
@@ -218,9 +220,9 @@ export default function FriendsScreen() {
 
       {unfriending ? (
         <ConfirmSheet
-          title="Remove friend?"
+          title={t('social.unfriend.title')}
           body={`${unfriending.name} goes back to being a stranger, and any list you share with friends only stops being visible to them.`}
-          confirmLabel="Remove"
+          confirmLabel={t('common.removeAction')}
           onConfirm={() =>
             friendActions.remove.mutateAsync(unfriending.id).then(() => commitHaptic())
           }

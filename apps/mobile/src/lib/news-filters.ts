@@ -1,13 +1,14 @@
 import { todayIso, useNewsFeed } from '@trackt/client';
 import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { useMemo } from 'react';
+import { i18n } from '../i18n';
 
 /** The four date windows the feed filter offers. */
 export const WINDOWS = [
-  { key: 'today', label: 'Today', days: 0 },
-  { key: 'week', label: 'This week', days: 7 },
-  { key: 'month', label: 'This month', days: 30 },
-  { key: 'all', label: 'All time', days: null },
+  { key: 'today', labelKey: 'news.range.today', days: 0 },
+  { key: 'week', labelKey: 'news.range.week', days: 7 },
+  { key: 'month', labelKey: 'news.range.month', days: 30 },
+  { key: 'all', labelKey: 'news.range.allTime', days: null },
 ] as const;
 
 export type WindowKey = (typeof WINDOWS)[number]['key'];
@@ -64,6 +65,9 @@ export function everyKind(kinds: MediaKind[]): boolean {
 
 /** "8 STORIES", or "20+ STORIES" when the feed has pages nobody has asked for. */
 export function storyCount(n: number, partial: boolean): string {
-  const noun = n === 1 && !partial ? 'story' : 'stories';
+  const label = i18n.t(n === 1 && !partial ? 'news.storyCount_one' : 'news.storyCount_other', {
+    count: n,
+  });
+  const noun = label.replace(/^\d+\s*/, '');
   return `${n}${partial ? '+' : ''} ${noun}`;
 }

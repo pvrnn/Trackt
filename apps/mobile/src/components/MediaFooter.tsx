@@ -1,5 +1,6 @@
 import type { MediaDetail, RelatedWork, SearchResult } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { GlassCard } from './GlassCard';
 import { SectionTitle } from './Page';
 import { Shelf, ShelfItem } from './Shelf';
@@ -8,11 +9,12 @@ import { type } from '../theme/typography';
 
 /** Everything under the parts: genres, related works, and the details card. */
 export function MediaFooter({ media }: { media: MediaDetail }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.footer}>
       {media.genres.length > 0 ? (
         <View style={gutter}>
-          <SectionTitle title="Genres" />
+          <SectionTitle title={t('media.details.genres')} />
           <View style={styles.genres}>
             {media.genres.map((genre) => (
               <Text key={genre} style={[type.eyebrow, styles.genre]}>
@@ -24,18 +26,18 @@ export function MediaFooter({ media }: { media: MediaDetail }) {
       ) : null}
 
       {media.relations.length > 0 ? (
-        <RelatedShelf title="Related" works={media.relations} />
+        <RelatedShelf title={t('media.relatedTitle')} works={media.relations} />
       ) : media.related.length > 0 ? (
-        <RelatedShelf title="You might also like" works={media.related} />
+        <RelatedShelf title={t('media.youMightLike')} works={media.related} />
       ) : null}
 
       <View style={gutter}>
-        <SectionTitle title="Details" />
+        <SectionTitle title={t('media.details.title')} />
         <GlassCard style={styles.details}>
-          <Detail label="Released" value={media.releaseDate ?? '—'} />
-          <Detail label="Source" value={media.source.toUpperCase()} />
+          <Detail label={t('media.details.released')} value={media.releaseDate ?? '—'} />
+          <Detail label={t('media.details.source')} value={media.source.toUpperCase()} />
           {media.synonyms.length > 0 ? (
-            <Detail label="Also known as" value={media.synonyms.join(' · ')} />
+            <Detail label={t('media.details.alsoKnownAs')} value={media.synonyms.join(' · ')} />
           ) : null}
         </GlassCard>
       </View>

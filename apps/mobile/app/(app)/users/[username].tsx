@@ -1,10 +1,7 @@
-import { KIND_LABELS, activityVerbLabel, relativeTime, usePublicProfile } from '@trackt/client';
-import {
-  MEDIA_KINDS,
-  type FavoriteEntry,
-  type FriendState,
-  type PublicProfile,
-} from '@trackt/shared';
+import { relativeTime, usePublicProfile } from '@trackt/client';
+import { useLabels } from '../../../src/lib/labels';
+import { useTranslation } from 'react-i18next';
+import { MEDIA_KINDS, type FavoriteEntry, type PublicProfile } from '@trackt/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -24,15 +21,6 @@ import { useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, space, stroke, surface, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
-/** What the viewer's relationship to this account currently is, in words. */
-const FRIEND_STATE_LABELS: Record<FriendState, string> = {
-  none: '',
-  friends: 'FRIENDS',
-  outgoing: 'REQUEST SENT',
-  incoming: 'WANTS TO BE FRIENDS',
-  self: 'THIS IS YOU',
-};
-
 /**
  * Someone else's profile (`GET /users/:username/profile`, ADR-0006).
  *
@@ -42,6 +30,8 @@ const FRIEND_STATE_LABELS: Record<FriendState, string> = {
  */
 export default function PublicProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
+  const { t } = useTranslation();
+  const labels = useLabels();
   const { data: profile, isPending, isError } = usePublicProfile(username);
   const { user: viewer } = useOptionalSession();
 
@@ -49,13 +39,23 @@ export default function PublicProfileScreen() {
     return (
       <ScreenState
         isPending={isPending}
-        title="No such profile"
-        body={`Nobody on this instance goes by @${username}.`}
+        title={t('profile.public.notFoundTitle')}
+        body={t('profile.public.notFoundBody', { username })}
       />
     );
   }
 
-  const relationship = FRIEND_STATE_LABELS[profile.friendState];
+  const relationshipKey =
+    profile.friendState === 'friends'
+      ? 'social.stateNote.friends'
+      : profile.friendState === 'outgoing'
+        ? 'social.stateNote.outgoing'
+        : profile.friendState === 'incoming'
+          ? 'social.stateNote.incoming'
+          : profile.friendState === 'self'
+            ? 'social.stateNote.self'
+            : null;
+  const relationship = relationshipKey ? t(relationshipKey) : '';
 
   return (
     <PageScroll title={profile.user.name}>
@@ -77,21 +77,21 @@ export default function PublicProfileScreen() {
       </View>
 
       <Stats>
-        <Stat value={profile.stats.titlesTracked} label="Tracked" />
-        <Stat value={profile.stats.completed} label="Completed" />
-        <Stat value={profile.stats.dayStreak} label="Day streak" />
-        <Stat value={profile.friendCount} label="Friends" />
+        <Stat value={profile.stats.titlesTracked} label={t('profile.stats.titles')} />
+        <Stat value={profile.stats.completed} label={t('profile.stats.completed')} />
+        <Stat value={profile.stats.dayStreak} label={t('home.stats.dayStreak')} />
+        <Stat value={profile.friendCount} label={t('social.title')} />
       </Stats>
 
       {MEDIA_KINDS.map((kind) => {
         const favorites = profile.favorites.filter((entry) => entry.kind === kind);
         if (favorites.length === 0) return null;
-        return <FavoriteBlock key={kind} label={KIND_LABELS[kind]} entries={favorites} />;
+        return <FavoriteBlock key={kind} label={labels.kind(kind)} entries={favorites} />;
       })}
 
       {profile.activity.length > 0 ? (
         <View>
-          <SectionTitle title="Recent activity" />
+          <SectionTitle title={t('home.activity.title')} />
           <GlassCard style={styles.activityCard}>
             {profile.activity.map((entry, index) => (
               <Touchable
@@ -101,7 +101,7 @@ export default function PublicProfileScreen() {
               >
                 <KindDot kind={entry.kind} />
                 <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
-                  {activityVerbLabel(entry).toLowerCase()} {entry.title}{' '}
+                  {labels.activity(entry).toLowerCase()} {entry.title}{' '}
                   <Text style={text.dim}>{entry.detail}</Text>
                 </Text>
                 <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
@@ -125,6 +125,7 @@ export default function PublicProfileScreen() {
  */
 function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn: boolean }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const writeFailed = useWriteFailedToast();
   const { send, accept, remove, busy, sendTo, acceptFrom, removeFrom } =
     useFriendActions(writeFailed);
@@ -133,7 +134,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
   if (profile.friendState === 'self') {
     return (
       <PrismButton
-        label="Edit on your profile"
+        label={t('social.editOnYourProfile')}
         variant="secondary"
         onPress={() => router.push('/profile')}
         style={styles.action}
@@ -144,7 +145,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
   if (!signedIn) {
     return (
       <PrismButton
-        label="Sign in to add"
+        label={t('social.signInToAdd')}
         variant="secondary"
         onPress={() => router.push('/login')}
         style={styles.action}
@@ -156,7 +157,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
     <View style={styles.actions}>
       {profile.friendState === 'none' ? (
         <PrismButton
-          label="Add friend"
+          label={t('social.addFriend')}
           icon="plus"
           busy={send.isPending}
           disabled={busy}
@@ -166,7 +167,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
       ) : null}
       {profile.friendState === 'outgoing' ? (
         <PrismButton
-          label="Request sent"
+          label={t('social.requestSentAction')}
           icon="close"
           variant="secondary"
           busy={remove.isPending}
@@ -178,14 +179,14 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
       {profile.friendState === 'incoming' ? (
         <>
           <PrismButton
-            label="Accept"
+            label={t('social.acceptAction')}
             busy={accept.isPending}
             disabled={busy}
             onPress={() => acceptFrom(profile.userId)}
             style={styles.action}
           />
           <PrismButton
-            label="Decline"
+            label={t('social.declineAction')}
             variant="secondary"
             disabled={busy}
             onPress={() => removeFrom(profile.userId)}
@@ -195,7 +196,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
       ) : null}
       {profile.friendState === 'friends' ? (
         <PrismButton
-          label="Friends"
+          label={t('social.title')}
           icon="check"
           variant="secondary"
           disabled={busy}
@@ -206,9 +207,9 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
 
       {confirmingUnfriend ? (
         <ConfirmSheet
-          title="Remove friend?"
+          title={t('social.unfriend.title')}
           body={`${profile.user.name} goes back to being a stranger, and any list you share with friends only stops being visible to them.`}
-          confirmLabel="Remove"
+          confirmLabel={t('common.removeAction')}
           onConfirm={() => remove.mutateAsync(profile.userId).then(() => commitHaptic())}
           onClose={() => setConfirmingUnfriend(false)}
         />
