@@ -218,6 +218,26 @@ runs at min-scale 0 and cold starts are being tolerated deliberately.
 4. Railway auto-detects the listening port; health check path `/healthz`.
 5. Step 4 above (wiring `CATALOG_URL` into self-hosted instances) is identical.
 
+Verified on Railway (2026-10-24), the details the walkthrough leaves out:
+
+- **Build from the repo root, not from `apps/catalog`.** `apps/catalog/Dockerfile`
+  copies `apps` and `packages` from the workspace root, so the service's build
+  context has to be the repo root: point the service at
+  `apps/catalog/Dockerfile` and leave the root directory unset.
+- **The catalog needs no `RAILWAY_RUN_UID=0`.** It has no volume; the monolith
+  does (its uploads), and that one runs as `USER node` against a root-owned
+  mount.
+- **A cache mount's id must start with `s/<service id>-`** (Railway's own
+  format, see `docs.railway.com/builds/dockerfiles`), so the deploying
+  service's id is baked into the Dockerfile.
+- **Railway assigns `PORT` itself**; the catalog already reads `PORT` from the
+  environment, so nothing to configure.
+- Push-to-`main` auto-deploy needs the Railway GitHub App installed on the
+  repo. If other GitHub Apps (Cursor, Claude) leave check suites `queued` on
+  every commit, Railway's "Wait for CI" gate fails the deployment before the
+  build starts — turn the gate off, or stop those Apps creating suites on
+  push.
+
 ## Sources
 
 - [Railway pricing plans](https://docs.railway.com/pricing/plans), [Railway pricing overview](https://www.srvrlss.io/provider/railway/)
