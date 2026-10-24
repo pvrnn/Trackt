@@ -39,7 +39,7 @@ COPY packages/providers/package.json ./packages/providers/
 # the workspace symlinks). Reinstall prod-only instead.
 # CI=true: pnpm refuses to modify node_modules without a TTY otherwise.
 FROM manifests AS deps
-RUN --mount=type=cache,id=trackt-pnpm-store,target=/pnpm/store \
+RUN --mount=type=cache,id=s/4c074682-8c96-4a9e-adb8-592d967a3869-/pnpm/store,target=/pnpm/store \
   CI=true pnpm install --store-dir /pnpm/store --prod --frozen-lockfile \
     --filter=trackt --filter='@trackt/catalog...'
 
@@ -53,7 +53,12 @@ FROM manifests AS build
 # did not change. --store-dir is passed per install rather than configured
 # globally: a global rc would not survive, and the repo's own .npmrc is
 # copied over /app/.npmrc here.
-RUN --mount=type=cache,id=trackt-pnpm-store,target=/pnpm/store \
+#
+# Railway requires a cache mount's id to start with `s/<service id>-`, so the
+# deploying service's id is baked in here (docs.railway.com/builds/dockerfiles).
+# Change it if this image is deployed as a different service. Other builders
+# treat the id as an opaque cache key.
+RUN --mount=type=cache,id=s/4c074682-8c96-4a9e-adb8-592d967a3869-/pnpm/store,target=/pnpm/store \
   pnpm install --store-dir /pnpm/store --frozen-lockfile \
     --filter=trackt --filter='@trackt/catalog...'
 COPY apps ./apps
@@ -64,7 +69,7 @@ COPY packages ./packages
 # packages/providers, none of which this image ships or needs. The turbo cache
 # lives in a cache mount so a source-only change rebuilds the touched packages
 # instead of all of them.
-RUN --mount=type=cache,id=trackt-turbo,target=/app/.turbo \
+RUN --mount=type=cache,id=s/4c074682-8c96-4a9e-adb8-592d967a3869-/app/.turbo,target=/app/.turbo \
   pnpm exec turbo run build --filter=@trackt/catalog...
 
 # Runtime ships only what apps/catalog needs to boot: its own dist +
