@@ -11,10 +11,8 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 WORKDIR /app
 
-# Manifests only, no sources: Docker caches a layer by the contents of its
-# inputs, so an install that sits after `COPY apps ./apps` is invalidated by
-# every source-only change and re-downloads the workspace's packages on every
-# redeploy.
+# Keep dependency installation separate from source copies so source-only
+# changes don't invalidate pnpm's dependency layers.
 FROM base AS manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json tsconfig.base.json ./
 # Every workspace manifest, including the ones this image does not build:
@@ -61,8 +59,9 @@ FROM manifests AS build
 RUN --mount=type=cache,id=s/4c074682-8c96-4a9e-adb8-592d967a3869-/pnpm/store,target=/pnpm/store \
   pnpm install --store-dir /pnpm/store --frozen-lockfile \
     --filter=trackt --filter='@trackt/catalog...'
-COPY apps ./apps
-COPY packages ./packages
+COPY .gitignore ./
+COPY apps/catalog ./apps/catalog
+COPY packages/shared ./packages/shared
 # Filtered build: only @trackt/catalog and its one workspace dependency
 # (@trackt/shared, via turbo.json's dependsOn: ["^build"]) compile — skips
 # apps/web (vite/tanstack-start), apps/api, apps/worker, packages/db,

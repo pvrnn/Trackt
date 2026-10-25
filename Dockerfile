@@ -8,11 +8,8 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 WORKDIR /app
 
-# Manifests only, no sources. Docker caches a layer by the contents of its
-# inputs, so an install that sits after `COPY apps ./apps` is invalidated by
-# every source-only change and re-downloads the workspace's packages on every
-# redeploy. Keeping the manifests in their own stage makes both installs depend
-# on dependency declarations alone.
+# Keep dependency installation separate from source copies so source-only
+# changes don't invalidate pnpm's dependency layers.
 FROM base AS manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json tsconfig.base.json ./
 # Every workspace manifest, including the ones this image does not build:
@@ -70,8 +67,13 @@ RUN --mount=type=cache,id=s/ef9e3d63-8810-40bb-a9c6-7eba34b414c2-/pnpm/store,tar
     --filter='@trackt/worker...' --filter='@trackt/discord...'
 # Tailwind scans again for SSR after dist/client exists; keep it out of build output.
 COPY .gitignore ./
-COPY apps ./apps
-COPY packages ./packages
+COPY apps/api ./apps/api
+COPY apps/web ./apps/web
+COPY apps/worker ./apps/worker
+COPY apps/discord ./apps/discord
+COPY packages/shared ./packages/shared
+COPY packages/db ./packages/db
+COPY packages/client ./packages/client
 # Same filter for the build: `turbo run build` would otherwise also compile
 # apps/catalog, packages/providers and packages/llm, none of which this image
 # ships. The turbo cache lives in a cache mount so a source-only change
