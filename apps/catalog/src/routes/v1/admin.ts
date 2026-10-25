@@ -70,6 +70,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
             externalIds: media.externalIds,
             description: media.description,
             coverUrl: media.coverUrl,
+            bannerUrl: media.bannerUrl,
           })
           .onConflictDoUpdate({
             target: catalogMedia.id,
@@ -85,6 +86,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
               externalIds: media.externalIds,
               description: media.description,
               coverUrl: media.coverUrl,
+              bannerUrl: media.bannerUrl,
               // Republishing resurrects a tombstoned work: the id is derived from
               // the external id, so this is provably the same work coming back,
               // and leaving the tombstone would silently drop the publish.

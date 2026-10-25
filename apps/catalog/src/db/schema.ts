@@ -48,6 +48,8 @@ export const catalogMedia = pgTable(
     externalIds: jsonb('external_ids').$type<ExternalIds>().notNull().default({}),
     description: text('description'),
     coverUrl: text('cover_url'),
+    /** Wide header artwork (AniList `bannerImage`); enrichment, usually null. */
+    bannerUrl: text('banner_url'),
     /**
      * Monotonic change cursor, bumped by trigger on every insert/update (see the
      * custom migration). Catalog version = max(seq). Requires a single-writer

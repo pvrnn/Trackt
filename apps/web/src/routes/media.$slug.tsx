@@ -363,7 +363,17 @@ function MediaPage() {
           className="absolute inset-0"
           style={{ background: coverGradient(detail.kind, detail.title) }}
         />
-        {detail.coverUrl && (
+        {detail.bannerUrl && (
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${detail.bannerUrl})` }}
+          />
+        )}
+        {/* Fallback only: a poster blown up to full bleed is a crop of one
+            corner of the art, so where a banner exists it is the whole backdrop
+            and the cover is left to the poster card below. */}
+        {!detail.bannerUrl && detail.coverUrl && (
           <div
             aria-hidden
             className="absolute inset-0 bg-cover bg-center opacity-80"

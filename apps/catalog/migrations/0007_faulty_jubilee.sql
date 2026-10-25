@@ -1,0 +1,1 @@
+ALTER TABLE "catalog_media" ADD COLUMN "banner_url" text;

@@ -69,6 +69,7 @@ function movie(overrides: Partial<SlimMedia> = {}): SlimMedia {
     externalIds: { tmdb: 603 },
     description: null,
     coverUrl: null,
+    bannerUrl: null,
     ...overrides,
   };
 }
@@ -87,6 +88,7 @@ function manga(overrides: Partial<SlimMedia> = {}): SlimMedia {
     externalIds: { anilist: 30025 },
     description: null,
     coverUrl: null,
+    bannerUrl: null,
     ...overrides,
   };
 }
@@ -152,6 +154,19 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
 
       const [row] = await db.select().from(catalogMedia);
       expect(row).toMatchObject({ title: 'The Matrix', kind: 'movie', year: 1999 });
+    });
+
+    it('stores the banner and serves it back from search', async () => {
+      const bannerUrl =
+        'https://s4.anilist.co/file/anilistcdn/media/anime/banner/9253-JIhmKgBKsWUN.jpg';
+      expect((await publishMedia(movie({ bannerUrl }))).statusCode).toBe(200);
+
+      const [row] = await db.select().from(catalogMedia);
+      expect(row?.bannerUrl).toBe(bannerUrl);
+
+      const response = await app.inject({ method: 'GET', url: '/v1/catalog/search?q=Matrix' });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().results[0]).toMatchObject({ bannerUrl });
     });
 
     it('is idempotent: a re-send updates in place and reports created: false', async () => {

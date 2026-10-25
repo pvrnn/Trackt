@@ -198,6 +198,7 @@ const slugCollisionHitId = '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a';
 const slugOwnerLocalId = '1a2b3c4d-5e6f-4a8b-9c0d-1e2f3a4b5c6d';
 const existingUnderOtherSlugId = '2f3e4d5c-6b7a-4980-8b1c-2d3e4f5a6b7c';
 const softDeletedId = '6c7f1a2b-3d4e-4f5a-9b8c-1d2e3f4a5b6c';
+const bannerHitId = '3a4b5c6d-7e8f-4a1b-9c2d-3e4f5a6b7c8d';
 
 /** Full central-catalog hit with only the fields under test varying. */
 function slimHit(overrides: {
@@ -206,6 +207,7 @@ function slimHit(overrides: {
   title: string;
   year?: number;
   rank?: number;
+  bannerUrl?: string | null;
 }): Record<string, unknown> {
   return {
     kind: 'movie',
@@ -218,6 +220,7 @@ function slimHit(overrides: {
     externalIds: {},
     description: null,
     coverUrl: null,
+    bannerUrl: null,
     rank: 0.9,
     ...overrides,
   };
@@ -246,6 +249,7 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
       slugOwnerLocalId,
       existingUnderOtherSlugId,
       softDeletedId,
+      bannerHitId,
     ]) {
       await db.delete(media).where(eq(media.id, id));
     }
@@ -288,6 +292,25 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
 
     const [row] = await db.select().from(media).where(eq(media.id, centralOnlyId));
     expect(row).toMatchObject({ source: 'provider', moderation: 'verified' });
+  });
+
+  it('carries the catalog banner through materialization to the detail page', async () => {
+    const bannerUrl =
+      'https://s4.anilist.co/file/anilistcdn/media/anime/banner/9253-JIhmKgBKsWUN.jpg';
+    server = catalogStub(() => ({
+      results: [slimHit({ id: bannerHitId, title: 'Banner Film', bannerUrl })],
+    }));
+    app = await buildAppWithCatalog(await listen(server));
+
+    const search = await app.inject({ method: 'GET', url: '/api/v1/search?q=Banner%20Film' });
+    expect(search.statusCode).toBe(200);
+
+    const [row] = await db.select().from(media).where(eq(media.id, bannerHitId));
+    expect(row?.bannerUrl).toBe(bannerUrl);
+
+    const detail = await app.inject({ method: 'GET', url: `/api/v1/media/${bannerHitId}` });
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json()).toMatchObject({ bannerUrl });
   });
 
   it('returns the suffixed slug when the natural slug is already taken by another work', async () => {
