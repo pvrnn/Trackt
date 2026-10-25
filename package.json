@@ -19,7 +19,11 @@
     "db:generate": "pnpm --filter @trackt/db db:generate",
     "db:migrate": "pnpm --filter @trackt/db db:migrate",
     "db:seed": "pnpm --filter @trackt/db db:seed",
-    "db:set-role": "pnpm --filter @trackt/db db:set-role"
+    "db:set-role": "pnpm --filter @trackt/db db:set-role",
+    "scrape:mal": "node scripts/mal-scrape/scrape.ts",
+    "scrape:mal:top": "node scripts/mal-scrape/top-anime.ts",
+    "scrape:anilist": "node scripts/mal-scrape/from-anilist.ts",
+    "test:scripts": "node --test \"scripts/mal-scrape/test/*.test.ts\""
   },
   "devDependencies": {
     "eslint": "^10.6.0",
