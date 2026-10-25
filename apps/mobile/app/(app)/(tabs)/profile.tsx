@@ -2,14 +2,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { relativeTime, useFriends, useProfileSummary } from '@trackt/client';
 import { useLabels } from '../../../src/lib/labels';
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LOCALES } from '../../../src/i18n';
-import { storeLocale } from '../../../src/lib/storage';
 import { i18n } from '../../../src/i18n';
 import { MEDIA_KINDS, type FavoriteEntry } from '@trackt/shared';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../src/components/Avatar';
+import { LanguageSheet } from '../../../src/components/LanguageSheet';
 import { DeleteAccountSheet } from '../../../src/components/DeleteAccountSheet';
 import { EditProfileSheet } from '../../../src/components/EditProfileSheet';
 import { GlassCard } from '../../../src/components/GlassCard';
@@ -59,6 +58,7 @@ export default function ProfileTab() {
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
 
   if (sessionPending || !user) {
     return (
@@ -99,6 +99,14 @@ export default function ProfileTab() {
               </View>
             ) : null}
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('locale.switch')}
+            onPress={() => setLanguageOpen(true)}
+            style={({ pressed }) => [styles.langButton, pressed && styles.langButtonPressed]}
+          >
+            <Text style={styles.langButtonText}>{i18n.language.toUpperCase()}</Text>
+          </Pressable>
         </View>
         {data?.user.bio ? <Text style={[type.body, styles.bio]}>{data.user.bio}</Text> : null}
 
@@ -245,19 +253,7 @@ export default function ProfileTab() {
           <Text style={[type.bodySm, text.dim]}>
             {origin} · app {CLIENT_VERSION}
           </Text>
-          <View style={{ flexDirection: 'row', gap: space.sm }}>
-            {SUPPORTED_LOCALES.map((loc) => (
-              <PrismButton
-                key={loc}
-                label={t(`locale.${loc}`)}
-                variant={i18n.language === loc ? 'primary' : 'secondary'}
-                onPress={() => {
-                  void storeLocale(loc);
-                  void i18n.changeLanguage(loc);
-                }}
-              />
-            ))}
-          </View>
+          {/* Language switcher moved to the header (top right). */}
           <PrismButton
             label={t('shell.signOut')}
             variant="secondary"
@@ -305,6 +301,8 @@ export default function ProfileTab() {
           }}
         />
       ) : null}
+
+      {languageOpen ? <LanguageSheet onClose={() => setLanguageOpen(false)} /> : null}
     </PageFrame>
   );
 }
@@ -454,5 +452,25 @@ const styles = StyleSheet.create({
   },
   account: {
     gap: space.md,
+  },
+  langButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: stroke,
+    borderColor: surface.glassBorderStrong,
+    backgroundColor: surface.glass,
+    marginLeft: 'auto',
+  },
+  langButtonPressed: {
+    opacity: 0.7,
+  },
+  langButtonText: {
+    fontFamily: type.button.fontFamily,
+    fontSize: 12,
+    color: color.fg,
+    letterSpacing: 0.6,
   },
 });

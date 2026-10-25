@@ -1,4 +1,4 @@
-import type { en } from './locales/index.js';
+import type { en } from './locales/index';
 
 declare module 'i18next' {
   interface CustomTypeOptions {
