@@ -68,6 +68,8 @@ RUN --mount=type=cache,id=s/ef9e3d63-8810-40bb-a9c6-7eba34b414c2-/pnpm/store,tar
     --filter=trackt \
     --filter='@trackt/api...' --filter='@trackt/web...' \
     --filter='@trackt/worker...' --filter='@trackt/discord...'
+# Tailwind scans again for SSR after dist/client exists; keep it out of build output.
+COPY .gitignore ./
 COPY apps ./apps
 COPY packages ./packages
 # Same filter for the build: `turbo run build` would otherwise also compile
