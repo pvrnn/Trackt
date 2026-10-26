@@ -29,6 +29,33 @@ export const Route = createFileRoute('/search')({
 /** Toggle-group value for the unfiltered state; `kind` stays undefined in the URL. */
 const ALL_KINDS = 'all';
 
+/**
+ * How long typing settles before it becomes a query. The search endpoint sits
+ * behind a 60/min per-IP bucket, and this timer is the only thing between a
+ * keystroke and a request.
+ */
+const TYPING_SETTLE_MS = 500;
+
+/**
+ * How many characters `next` adds to `prev`. A keystroke adds one; a paste, a
+ * drag-drop or an autofill adds a run — the difference the caller needs to skip
+ * the settle timer, without reading the clipboard and taking paste away from
+ * the browser (undo, selection replacement and all).
+ */
+function insertedCount(prev: string, next: string): number {
+  let prefix = 0;
+  while (prefix < prev.length && prefix < next.length && prev[prefix] === next[prefix]) prefix++;
+  let suffix = 0;
+  while (
+    suffix < prev.length - prefix &&
+    suffix < next.length - prefix &&
+    prev[prev.length - 1 - suffix] === next[next.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+  return next.length - prefix - suffix;
+}
+
 function SearchPage() {
   const { t } = useTranslation();
   const labels = useLabels();
@@ -51,16 +78,28 @@ function SearchPage() {
   }, [q]);
 
   // Keep the typed value in the URL (?q=…) so searches are shareable/back-able.
+  // Typing waits out TYPING_SETTLE_MS; text arriving in one go is already
+  // settled, so it searches immediately.
+  const previousInput = useRef(input);
   useEffect(() => {
+    // Only a change to the field is ours to push; a run caused by `q` moving
+    // under us (nav search, Back) is the adopt effect's, and rescheduling here
+    // would push the value it is replacing.
+    const changed = input !== previousInput.current;
     const value = input.trim();
-    if (value === q) return;
-    const timer = setTimeout(() => {
-      pushed.current = value;
-      navigate({
-        search: (previous) => ({ ...previous, q: value || undefined }),
-        replace: true,
-      });
-    }, 200);
+    const pasted = insertedCount(previousInput.current, input) > 1;
+    previousInput.current = input;
+    if (!changed || value === q) return;
+    const timer = setTimeout(
+      () => {
+        pushed.current = value;
+        navigate({
+          search: (previous) => ({ ...previous, q: value || undefined }),
+          replace: true,
+        });
+      },
+      pasted ? 0 : TYPING_SETTLE_MS,
+    );
     return () => clearTimeout(timer);
   }, [input, q, navigate]);
 

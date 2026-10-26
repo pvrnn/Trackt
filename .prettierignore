@@ -11,3 +11,6 @@ docs/
 apps/mobile/.expo/
 apps/mobile/expo-env.d.ts
 LICENSE
+
+# captured MyAnimeList markup — fixtures for the scraper, not formatting targets
+scripts/mal-scrape/test/fixtures/

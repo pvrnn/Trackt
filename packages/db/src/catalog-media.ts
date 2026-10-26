@@ -32,6 +32,7 @@ export function buildProviderMediaRow(hit: SlimMedia): ProviderMediaRow {
     externalIds: hit.externalIds,
     description: hit.description,
     coverUrl: hit.coverUrl,
+    bannerUrl: hit.bannerUrl ?? null,
     source: 'provider',
     moderation: 'verified',
   };

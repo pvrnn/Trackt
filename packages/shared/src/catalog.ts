@@ -12,8 +12,8 @@ export const GenreSchema = z.string().min(1).max(64);
 
 /**
  * The slim media contract shared by the central catalog service and every instance
- * (ADR-0001): only redistributable facts. `description`/`coverUrl` are enrichment
- * fields and stay nullable in the catalog.
+ * (ADR-0001): only redistributable facts. `description`/`coverUrl`/`bannerUrl`
+ * are enrichment fields and stay nullable in the catalog.
  */
 export const SlimMediaSchema = z.object({
   /** Canonical uuidv5 for provider-identified works; random for user-created ones. */
@@ -35,6 +35,12 @@ export const SlimMediaSchema = z.object({
   externalIds: ExternalIdsSchema,
   description: z.string().nullable(),
   coverUrl: z.string().nullable(),
+  /**
+   * Wide artwork for a detail-page header (AniList's `bannerImage`). Only some
+   * providers publish one, so it is null far more often than `coverUrl` — a
+   * header must fall back to the cover.
+   */
+  bannerUrl: z.string().nullable().default(null),
 });
 export type SlimMedia = z.infer<typeof SlimMediaSchema>;
 

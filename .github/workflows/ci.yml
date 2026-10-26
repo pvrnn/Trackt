@@ -53,6 +53,7 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm test:scripts
         env:
           CI_REQUIRE_DB: 'true'
       # apps/mobile rides pnpm lint/typecheck above; this is the part they

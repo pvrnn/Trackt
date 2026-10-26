@@ -66,6 +66,12 @@ export const media = pgTable(
     seasonNumber: integer('season_number'),
     description: text('description'),
     coverUrl: text('cover_url'),
+    /**
+     * Wide artwork for the detail page's header (AniList `bannerImage`), where
+     * a poster crop leaves the panel mostly empty. Null for most works, so every
+     * reader falls back to `cover_url`.
+     */
+    bannerUrl: text('banner_url'),
     releaseDate: date('release_date'),
     status: mediaStatusEnum('status'),
     /** {"tmdb": 123, "anilist": 456, ...} — dedup, cross-import, provider switching. */

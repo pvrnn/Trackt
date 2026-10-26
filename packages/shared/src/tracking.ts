@@ -50,6 +50,8 @@ export const MediaDetailSchema = z.object({
   seasonNumber: z.number().int().nullable(),
   description: z.string().nullable(),
   coverUrl: z.string().nullable(),
+  /** Wide artwork for the page header; null when the provider has none. */
+  bannerUrl: z.string().nullable(),
   releaseDate: z.string().nullable(),
   status: MediaStatusSchema.nullable(),
   externalIds: ExternalIdsSchema,
