@@ -105,6 +105,19 @@ class IgdbMcp {
       stdio: ['pipe', 'pipe', 'ignore'],
       env: { ...process.env, CLIENT_ID: clientId, CLIENT_SECRET: clientSecret },
     });
+    // `uvx` is a Python tool, not a repo dependency, so a missing one is a
+    // missing prerequisite rather than a crash: fail the pending calls with
+    // something the operator can act on instead of an unhandled 'error' event.
+    this.child.on('error', (error: NodeJS.ErrnoException) => {
+      const message =
+        error.code === 'ENOENT'
+          ? 'uvx is not on PATH; install uv (https://docs.astral.sh/uv/) to run the IGDB MCP client'
+          : `could not start the IGDB MCP client: ${error.message}`;
+      for (const resolveMessage of this.pending.values()) {
+        resolveMessage({ error: { message } });
+      }
+      this.pending.clear();
+    });
     this.child.stdout.setEncoding('utf8');
     this.child.stdout.on('data', (chunk: string) => {
       this.buffer += chunk;
