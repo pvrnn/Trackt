@@ -138,6 +138,8 @@ export interface AniListNode {
   title: { romaji?: string | null; english?: string | null; native?: string | null };
   synonyms?: string[] | null;
   genres?: string[] | null;
+  /** AniList's own 0–100 weighted mean of user scores; null when unscored. */
+  averageScore?: number | null;
   startDate?: { year?: number | null } | null;
   coverImage?: { large?: string | null } | null;
   /** Wide header artwork, 1900×400-ish; null for most manga and older works. */
@@ -157,7 +159,7 @@ export interface AniListPage<T> {
 const NODE_FIELDS = `
   id idMal type format status seasonYear episodes chapters
   title { romaji english native }
-  synonyms genres startDate { year } coverImage { large } bannerImage
+  synonyms genres averageScore startDate { year } coverImage { large } bannerImage
 `;
 
 /**
@@ -181,20 +183,28 @@ export function mediaFields(options: { withDescription?: boolean } = {}): string
 
 /**
  * Works whose MAL ids are known: how a MAL ranking is pulled, 50 ids per request.
- * `type: ANIME` keeps a MAL id that also exists as a manga out of the result.
+ * The type is mandatory and literal: MAL anime and manga ids are separate
+ * namespaces, and filtering keeps a same-numbered work of the other type out.
  */
-export function mediaByMalIdsQuery(fields: string): string {
+export function mediaByMalIdsQuery(fields: string, type: AniListMediaType = 'ANIME'): string {
   return `
     query ($ids: [Int], $page: Int, $perPage: Int) {
       Page(page: $page, perPage: $perPage) {
         pageInfo { total currentPage lastPage hasNextPage }
-        media(idMal_in: $ids, type: ANIME) { ${fields} }
+        media(idMal_in: $ids, type: ${type}) { ${fields} }
       }
     }
   `;
 }
 
-/** AniList's own ordering: no MAL involved at all. */
+/** `Media.type`: the two AniList namespaces this catalog imports. */
+export type AniListMediaType = 'ANIME' | 'MANGA';
+
+/**
+ * AniList's own ordering: no MAL involved at all. The API refuses a sorted walk
+ * past 5000 entries ("Page depth exceeds maximum allowed"), so this path cannot
+ * reach a top 10k on its own — that is what the MAL list walk is for.
+ */
 export function mediaBySortQuery(fields: string): string {
   return `
     query ($sort: [MediaSort], $type: MediaType, $page: Int, $perPage: Int) {

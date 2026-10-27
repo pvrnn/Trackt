@@ -41,7 +41,18 @@ pnpm scrape:anilist --out apps/catalog/seed/top-anime-anilist.json
 
 # AniList's own ordering, no MAL involved (the API caps a score-sorted walk at 5000)
 pnpm scrape:anilist --source anilist --sort POPULARITY_DESC --max-rank 5000
+
+# the same for manga: MAL's topmanga list, resolved through AniList's MANGA namespace
+pnpm scrape:anilist --kind manga
 ```
+
+`--kind manga` switches the walk's namespace: it reads `topmanga.php` instead of
+`topanime.php`, resolves ids with `type: MANGA` (MAL's anime and manga ids are
+separate namespaces, so `idMal_in` alone would match the wrong work), keeps the
+`manga`/`one_shot` formats, and writes `apps/catalog/seed/top-manga-anilist.json`.
+The seed still contains anime rows — the manga's adaptations — exactly as the
+anime seed carries its manga. `--source anilist` cannot reach 10k for either
+kind: the API refuses a sorted walk past 5000 entries.
 
 `--source mal-ranking` (default) walks MAL's ranking pages **for their links
 only** — 200 cheap list pages, no detail pages — then resolves those MAL ids
@@ -64,6 +75,11 @@ Two things this does that the MAL path cannot:
 The output also carries, per row:
 
 - `coverUrl` — the AniList CDN cover, **on by default** (`--without-cover` drops it)
+- `bannerUrl` — the wide `bannerImage`, on by default (`--without-banner` drops it)
+- `metadata` — provider facts with no catalog column: `providerScore` (AniList's
+  0–100 `averageScore`) and `format` (`tv`, `ova`, `special`, `tv short`…), which
+  is what separates a one-episode special from a one-episode series
+- `synonyms` — at most four: romaji, English, one French, one Spanish
 - `urls` — `catalog_media.id → https://anilist.co/anime/<id>`, for redirection.
   It sits beside the table arrays rather than inside them: it is derivable from
   `external_ids` and has no catalog column, so the arrays stay insertable verbatim.

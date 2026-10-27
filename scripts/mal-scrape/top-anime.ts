@@ -65,8 +65,11 @@ export const MAX_CONSECUTIVE_FAILURES = 5;
 /** MAL formats `mapKind` accepts on an anime page. Anything else is not a work. */
 export const DEFAULT_TYPES = ['tv', 'movie', 'ona', 'ova', 'special', 'tv special'];
 
-export function listUrl(limit: number): string {
-  return `https://myanimelist.net/topanime.php?limit=${limit}`;
+/** Which MAL top list to walk. Both use the same markup; only the path differs. */
+export type MalTopKind = 'anime' | 'manga';
+
+export function listUrl(limit: number, kind: MalTopKind = 'anime'): string {
+  return `https://myanimelist.net/top${kind}.php?limit=${limit}`;
 }
 
 /** The `limit` value whose page contains `rank`. */
@@ -97,7 +100,10 @@ function toCount(value: string | undefined): number | null {
  */
 export function parseTopAnimeRow(row: string): TopAnimeEntry | null {
   const rank = /top-anime-rank-text[^"]*">(\d+)</.exec(row);
-  const link = /<h3[^>]*>\s*<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/.exec(row);
+  // MAL does not order the anchor's attributes the same way on both lists
+  // (topanime puts `href` first, topmanga puts `class` first), so it is matched
+  // anywhere in the tag.
+  const link = /<h3[^>]*>\s*<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/.exec(row);
   if (!rank || !link) return null;
   const identity = /\/(anime|manga)\/(\d+)/.exec(link[1]!);
   if (!identity) return null;

@@ -82,6 +82,32 @@ describe('the ranking table', () => {
     assert.equal(parseTopAnimeRow('<tr class="ranking-list"><td></td></tr>'), null);
   });
 
+  it('reads a manga row from the same markup as an anime one', () => {
+    // topmanga.php shares the ranking-table markup; only the information line
+    // differs (`Manga (42 vols)` instead of `TV (28 eps)`).
+    const row = `<tr class="ranking-list">
+      <td class="rank ac"><span class="lightLink top-anime-rank-text rank1">1</span></td>
+      <td class="title al va-t clearfix word-break"><div class="detail">
+        <h3 class="manga_h3"><a class="hoverinfo_trigger fs14 fw-b" href="https://myanimelist.net/manga/2/Berserk">Berserk</a></h3>
+        <div class="information di-ib mt4">Manga (? vols)<br>Aug 1989 - <br>813,004 members</div>
+      </div></td>
+      <td class="score ac fs14"><span class="text on score-label score-9">9.46</span></td>
+    </tr>`;
+    const [entry] = parseTopAnimePage(row);
+    assert.equal(entry?.rank, 1);
+    assert.equal(entry?.malId, 2);
+    assert.equal(entry?.title, 'Berserk');
+    assert.equal(entry?.format, 'Manga');
+    assert.equal(entry?.score, 9.46);
+    // A volume count is not an episode count; chapters come from AniList.
+    assert.equal(entry?.episodes, null);
+  });
+
+  it("walks MAL's manga ranking when asked for manga", () => {
+    assert.equal(listUrl(0, 'manga'), 'https://myanimelist.net/topmanga.php?limit=0');
+    assert.equal(listUrl(50, 'anime'), 'https://myanimelist.net/topanime.php?limit=50');
+  });
+
   it('pages by 50 and maps a rank onto its page', () => {
     assert.equal(PAGE_SIZE, 50);
     assert.equal(listUrl(0), 'https://myanimelist.net/topanime.php?limit=0');

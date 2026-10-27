@@ -27,7 +27,7 @@ import { pathToFileURL } from 'node:url';
 /** RFC 4122 v5 namespace, frozen forever by ADR-0001. */
 export const TRACKT_CATALOG_NAMESPACE = 'f8d11238-d681-551c-875d-5ac53892f6e7';
 
-export const MEDIA_KINDS = ['movie', 'series', 'anime', 'manga', 'webtoon'] as const;
+export const MEDIA_KINDS = ['movie', 'series', 'anime', 'manga', 'webtoon', 'game'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 export const MEDIA_STATUSES = ['announced', 'airing', 'publishing', 'ended', 'cancelled'] as const;
@@ -43,6 +43,7 @@ export const IDENTITY_PROVIDER_BY_KIND: Record<MediaKind, string | null> = {
   anime: 'anilist',
   manga: 'anilist',
   webtoon: null,
+  game: 'igdb',
 };
 
 /* ------------------------------------------------------------------ *
@@ -107,6 +108,31 @@ export interface MalPage {
   relations: MalRelationRef[];
 }
 
+/** `catalog_media.metadata` keys the importers write. */
+export const PROVIDER_SCORE_KEY = 'providerScore';
+export const FORMAT_KEY = 'format';
+
+/**
+ * `catalog_media.metadata` for a work: the provider facts that are not part of
+ * the catalog's numbered columns.
+ *
+ * `format` is the provider's own vocabulary, lowercased (`tv`, `movie`, `ova`,
+ * `ona`, `special`, `tv short`, `one shot`) and deliberately not an enum — the
+ * sources disagree (AniList has `TV_SHORT`, MAL has `CM`/`PV`). It carries what
+ * `kind` cannot say: a TV special and a one-episode series are both `anime` with
+ * `partCount: 1`, and only the format tells them apart.
+ */
+export function providerMetadata(facts: {
+  score?: number | null;
+  format?: string | null;
+}): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {};
+  const format = facts.format?.trim().toLowerCase().replaceAll('_', ' ');
+  if (format) metadata[FORMAT_KEY] = format;
+  if (facts.score !== null && facts.score !== undefined) metadata[PROVIDER_SCORE_KEY] = facts.score;
+  return metadata;
+}
+
 /** A catalog row plus provenance. `id` stays null until AniList identity is known. */
 export interface DraftMedia {
   id: string | null;
@@ -119,6 +145,8 @@ export interface DraftMedia {
   partCount: number | null;
   seasonNumber: number | null;
   externalIds: Record<string, string | number>;
+  /** Provider extras outside the catalog's numbered columns; see `providerMetadata`. */
+  metadata: Record<string, unknown>;
   description: string | null;
   coverUrl: string | null;
   bannerUrl: string | null;
@@ -178,6 +206,8 @@ export interface SeedMediaRow {
   partCount: number | null;
   seasonNumber: number | null;
   externalIds: Record<string, string | number>;
+  /** Provider extras outside the catalog's numbered columns; see `providerMetadata`. */
+  metadata: Record<string, unknown>;
   description: string | null;
   coverUrl: string | null;
   /** Wide header artwork; only AniList publishes one, and MAL pages carry none. */
@@ -820,6 +850,12 @@ export function buildWork(
     partCount,
     seasonNumber,
     externalIds,
+    // MAL's page score is a 0–10 mean; every provider is stored on one 0–100
+    // scale so an AniList and a MAL import agree.
+    metadata: providerMetadata({
+      score: page.score === null ? null : Math.round(page.score * 10),
+      format: page.format,
+    }),
     description: options.withDescription ? (page.synopsis ?? null) : null,
     coverUrl: options.withCover ? (page.coverUrl ?? null) : null,
     // MAL has no banner: its page's og:image is the poster. `applyAniList`
@@ -948,9 +984,11 @@ export interface AniListRecord {
   seasonYear?: number | null;
   coverImage?: { large?: string | null };
   bannerImage?: string | null;
+  averageScore?: number | null;
+  format?: string | null;
 }
 
-const ANILIST_FIELDS = `id idMal title { romaji english native } synonyms genres episodes chapters volumes status seasonYear coverImage { large } bannerImage`;
+const ANILIST_FIELDS = `id idMal title { romaji english native } synonyms genres averageScore format episodes chapters volumes status seasonYear coverImage { large } bannerImage`;
 
 const ANILIST_STATUS: Record<string, MediaStatus> = {
   RELEASING: 'airing',
@@ -1157,6 +1195,11 @@ export function applyAniList(work: ScrapedWork, record: AniListRecord): void {
   if (media.status === null) media.status = ANILIST_STATUS[record.status ?? ''] ?? null;
   // MAL's og:image is a poster, so AniList is the only source of a banner.
   if (media.bannerUrl === null) media.bannerUrl = record.bannerImage ?? null;
+  const backfill = providerMetadata({
+    score: media.metadata[PROVIDER_SCORE_KEY] === undefined ? record.averageScore : null,
+    format: media.metadata[FORMAT_KEY] === undefined ? record.format : null,
+  });
+  if (Object.keys(backfill).length > 0) media.metadata = { ...media.metadata, ...backfill };
 }
 
 /* ------------------------------------------------------------------ *
@@ -1310,6 +1353,7 @@ export function toSeedFile(payload: Payload): SeedFile {
         partCount: row.partCount,
         seasonNumber: row.seasonNumber,
         externalIds: row.externalIds,
+        metadata: row.metadata,
         description: row.description,
         coverUrl: row.coverUrl,
         bannerUrl: row.bannerUrl,
