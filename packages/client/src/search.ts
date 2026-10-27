@@ -9,7 +9,7 @@ export interface MediaSearchState {
   hasMore: boolean;
 }
 
-/** Maximum supported by the search endpoints; the page renders this batch in pages. */
+/** Results per search page: what the hook asks for and what a caller pages by. */
 export const MEDIA_SEARCH_LIMIT = 30;
 
 /**

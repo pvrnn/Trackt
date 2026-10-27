@@ -10,7 +10,12 @@ import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
 import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
-import { gameSearchContext, groupGameSearchResults, useMediaSearch } from '@trackt/client';
+import {
+  MEDIA_SEARCH_LIMIT,
+  gameSearchContext,
+  groupGameSearchResults,
+  useMediaSearch,
+} from '@trackt/client';
 
 export interface SearchParams {
   q?: string;
@@ -18,8 +23,11 @@ export interface SearchParams {
   page?: number;
 }
 
-const RESULTS_PER_PAGE = 30;
-const MAX_SEARCH_PAGE = Math.floor(1000 / RESULTS_PER_PAGE) + 1;
+/**
+ * The highest page the API can serve: it caps `offset` at 1000, and each page is
+ * one search batch, so a page is only reachable while its offset is under it.
+ */
+const MAX_SEARCH_PAGE = Math.floor(1000 / MEDIA_SEARCH_LIMIT) + 1;
 
 export const Route = createFileRoute('/search')({
   head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.discover') }] }),
