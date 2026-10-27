@@ -11,6 +11,14 @@ const NAMESPACE = 'f8d11238-d681-551c-875d-5ac53892f6e7';
 const PAGE_SIZE = 100;
 const DETAIL_BATCH_SIZE = 100;
 
+/**
+ * IGDB `game_type` ids that are not works a user tracks: modifications, forks,
+ * patches, episodic slices, seasons and add-on packs. They carry their own
+ * rating populations and would otherwise outrank real games — the 10k seed this
+ * replaces had a 10-vote mod at number one.
+ */
+const NON_WORK_GAME_TYPES = new Set([5, 6, 7, 12, 13, 14]);
+
 type Args = { limit: number; minRatingCount: number; out: string };
 type IgdbGame = {
   id: number;
@@ -34,8 +42,11 @@ type IgdbGame = {
 
 function parseArgs(argv: string[]): Args {
   const args: Args = {
-    limit: 10_000,
-    minRatingCount: 10,
+    // IGDB has ~1 960 games with at least 100 ratings; a vote floor low enough
+    // to yield 10 000 rows is a floor of 10, and the ranking it produces is
+    // one-off scores, editions and mods rather than games.
+    limit: 2_000,
+    minRatingCount: 100,
     out: 'apps/catalog/seed/top-games-igdb.json',
   };
   for (let i = 0; i < argv.length; i++) {
@@ -50,7 +61,7 @@ function parseArgs(argv: string[]): Args {
       args.out = value;
       i++;
     } else if (argv[i] === '--help') {
-      console.log('Usage: pnpm scrape:igdb [--limit 10000] [--min-rating-count 10] [--out path]');
+      console.log('Usage: pnpm scrape:igdb [--limit 2000] [--min-rating-count 100] [--out path]');
       process.exit(0);
     } else throw new Error(`Unknown argument: ${argv[i]}`);
   }
@@ -316,6 +327,9 @@ export async function scrapeIgdb(args: Args): Promise<number> {
     await client.start();
     const seenIds = new Set<number>();
     const scanLimit = args.limit + 5_000;
+    // IGDB only holds a few thousand games above any useful vote floor, so a
+    // run that stops because the source ran out is not a partial seed.
+    let exhausted = false;
     for (let offset = 0; offset < scanLimit && games.length < args.limit; offset += PAGE_SIZE) {
       const pageSize = PAGE_SIZE;
       const page = await client.call<{ results: IgdbGame[] }>('query', {
@@ -343,8 +357,12 @@ export async function scrapeIgdb(args: Args): Promise<number> {
         limit: pageSize,
         offset,
       });
-      if (!page.results?.length) break;
+      if (!page.results?.length) {
+        exhausted = true;
+        break;
+      }
       for (const game of page.results) {
+        if (NON_WORK_GAME_TYPES.has(game.game_type ?? 0)) continue;
         if (!seenIds.has(game.id)) {
           seenIds.add(game.id);
           games.push(game);
@@ -353,11 +371,19 @@ export async function scrapeIgdb(args: Args): Promise<number> {
       console.log(
         `Scanned through ${offset + page.results.length}; collected ${games.length}/${args.limit} unique games`,
       );
-      if (page.results.length < pageSize) break;
+      if (page.results.length < pageSize) {
+        exhausted = true;
+        break;
+      }
     }
-    if (games.length < args.limit) {
+    if (games.length < args.limit && !exhausted) {
       throw new Error(
         `IGDB returned only ${games.length} eligible games; refusing to write a partial ${args.limit}-row seed.`,
+      );
+    }
+    if (games.length < args.limit) {
+      console.log(
+        `IGDB has ${games.length} eligible games at ${args.minRatingCount}+ ratings; writing all of them.`,
       );
     }
     const genreIds = games.flatMap((game) => game.genres ?? []);
