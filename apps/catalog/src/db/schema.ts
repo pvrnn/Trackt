@@ -78,9 +78,10 @@ export const catalogMedia = pgTable(
   (t) => [
     index('catalog_media_seq_idx').on(t.seq),
     index('catalog_media_kind_idx').on(t.kind),
-    // Typo-tolerant title search via pg_trgm (extension created in a hand-written
-    // migration, ADR-0002) — mirrors the instance-side media_title_trgm_idx.
-    index('catalog_media_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
+    // Typo-tolerant search indexes sit on the unaccented, lowercased expressions
+    // rather than on the raw columns, in hand-written migrations 0009 and 0011:
+    // drizzle-kit cannot express `immutable_unaccent(lower(...))` in a table
+    // definition.
   ],
 );
 

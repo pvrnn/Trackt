@@ -141,6 +141,13 @@
       "when": 1793051118107,
       "tag": "0019_accent_insensitive_search",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793108037071,
+      "tag": "0020_drop_raw_trgm_indexes",
+      "breakpoints": true
     }
   ]
 }

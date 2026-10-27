@@ -78,6 +78,13 @@
       "when": 1793098890598,
       "tag": "0010_wonderful_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793108037695,
+      "tag": "0011_drop_raw_trgm_indexes",
+      "breakpoints": true
     }
   ]
 }
