@@ -17,9 +17,9 @@ const DETAIL_BATCH_SIZE = 100;
  * rating populations and would otherwise outrank real games — the 10k seed this
  * replaces had a 10-vote mod at number one.
  */
-const NON_WORK_GAME_TYPES = new Set([5, 6, 7, 12, 13, 14]);
+export const NON_WORK_GAME_TYPES = new Set([5, 6, 7, 12, 13, 14]);
 
-type Args = { limit: number; minRatingCount: number; out: string };
+export type Args = { limit: number; minRatingCount: number; out: string };
 type IgdbGame = {
   id: number;
   name: string;
@@ -40,7 +40,7 @@ type IgdbGame = {
   version_title?: string;
 };
 
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   const args: Args = {
     // IGDB has ~1 960 games with at least 100 ratings; a vote floor low enough
     // to yield 10 000 rows is a floor of 10, and the ranking it produces is
@@ -227,7 +227,11 @@ async function detailsMap<T extends { id: number }>(
   return result;
 }
 
-function uuidV5(name: string): string {
+/**
+ * The canonical id every instance derives for a work, for a seed row that has
+ * no `@trackt/shared` to import: same namespace, same `provider:kind:id` key.
+ */
+export function uuidV5(name: string): string {
   const ns = Buffer.from(NAMESPACE.replaceAll('-', ''), 'hex');
   const hash = createHash('sha1')
     .update(Buffer.concat([ns, Buffer.from(name)]))
