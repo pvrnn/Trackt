@@ -1,5 +1,4 @@
-import type { MediaKind } from '@trackt/shared';
-import type { SearchResult } from '@trackt/shared';
+import type { MediaKind, SearchResult } from '@trackt/shared';
 
 export type GameSearchRole =
   | 'edition'
