@@ -1,4 +1,5 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
+import { getCoreRowModel, useReactTable, type PaginationState } from '@tanstack/react-table';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,18 +11,26 @@ import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
 import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
-import { useMediaSearch } from '@trackt/client';
+import { gameSearchContext, groupGameSearchResults, useMediaSearch } from '@trackt/client';
 
 export interface SearchParams {
   q?: string;
   kind?: MediaKind;
+  page?: number;
 }
+
+const RESULTS_PER_PAGE = 30;
+const MAX_SEARCH_PAGE = Math.floor(1000 / RESULTS_PER_PAGE) + 1;
 
 export const Route = createFileRoute('/search')({
   head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.discover') }] }),
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     kind: MEDIA_KINDS.includes(search.kind as MediaKind) ? (search.kind as MediaKind) : undefined,
+    page:
+      Number.isInteger(Number(search.page)) && Number(search.page) > 1
+        ? Math.min(Number(search.page), MAX_SEARCH_PAGE)
+        : 1,
   }),
   component: SearchPage,
 });
@@ -61,9 +70,110 @@ function SearchPage() {
   const labels = useLabels();
   const navigate = useNavigate({ from: Route.fullPath });
   const { isPending, navUser } = useAuthedPage();
-  const { q = '', kind } = Route.useSearch();
+  const { q = '', kind, page = 1 } = Route.useSearch();
   const [input, setInput] = useState(q);
-  const { status, results } = useMediaSearch(q, kind);
+  const [pageInput, setPageInput] = useState(String(page));
+  const paginationState: PaginationState = { pageIndex: page - 1, pageSize: RESULTS_PER_PAGE };
+  const { status, results, hasMore } = useMediaSearch(q, kind, paginationState.pageIndex);
+  const resultGroups = groupGameSearchResults(results);
+  const table = useReactTable({
+    data: results,
+    columns: [],
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    pageCount: -1,
+    state: { pagination: paginationState },
+    onPaginationChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(paginationState) : updater;
+      goToPage(next.pageIndex + 1);
+    },
+  });
+  const currentPage = paginationState.pageIndex + 1;
+
+  function goToPage(nextPage: number) {
+    const boundedPage = Math.max(1, Math.min(MAX_SEARCH_PAGE, nextPage));
+    setPageInput(String(boundedPage));
+    navigate({
+      search: (previous) => ({ ...previous, page: boundedPage > 1 ? boundedPage : undefined }),
+    });
+  }
+
+  useEffect(() => setPageInput(String(currentPage)), [currentPage]);
+
+  const pagination = q && (currentPage > 1 || results.length > 0) && (
+    <nav
+      aria-label={t('discover.pagination')}
+      className="flex flex-wrap items-center justify-center gap-2"
+    >
+      <button
+        type="button"
+        onClick={() => table.previousPage()}
+        disabled={!table.getCanPreviousPage()}
+        className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 font-label text-[12px] tracking-label text-fg transition-colors enabled:hover:text-pink disabled:cursor-not-allowed disabled:text-white/25"
+      >
+        ← {t('discover.previous').toUpperCase()}
+      </button>
+      {Array.from(
+        new Set([Math.max(1, currentPage - 1), currentPage, ...(hasMore ? [currentPage + 1] : [])]),
+      ).map((pageNumber) => (
+        <button
+          key={pageNumber}
+          type="button"
+          onClick={() => table.setPageIndex(pageNumber - 1)}
+          aria-current={currentPage === pageNumber ? 'page' : undefined}
+          aria-label={t('discover.pageNumber', { page: pageNumber })}
+          className={`min-w-10 rounded-full px-3 py-2 font-label text-[12px] tracking-label transition-colors ${
+            currentPage === pageNumber
+              ? 'bg-pink/15 text-pink ring-1 ring-pink ring-inset'
+              : 'bg-white/[0.04] text-dim ring-1 ring-white/10 ring-inset hover:text-pink'
+          }`}
+        >
+          {pageNumber}
+        </button>
+      ))}
+      <form
+        className="ml-2 flex items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1.5 ring-1 ring-white/10 ring-inset"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const requestedPage = Number(pageInput);
+          if (
+            Number.isInteger(requestedPage) &&
+            requestedPage >= 1 &&
+            requestedPage <= MAX_SEARCH_PAGE
+          ) {
+            table.setPageIndex(requestedPage - 1);
+          }
+        }}
+      >
+        <label className="flex items-center gap-2 font-label text-[10px] tracking-label text-dim">
+          {t('discover.goToPage').toUpperCase()}
+          <input
+            type="number"
+            min={1}
+            max={MAX_SEARCH_PAGE}
+            value={pageInput}
+            onChange={(event) => setPageInput(event.target.value)}
+            className="w-10 rounded-full border-0 bg-white/[0.07] px-2 py-1 text-center font-label text-xs text-fg outline-none focus:ring-1 focus:ring-pink"
+          />
+        </label>
+        <button
+          type="submit"
+          aria-label={t('discover.go')}
+          className="text-sm text-dim transition-colors hover:text-pink"
+        >
+          →
+        </button>
+      </form>
+      <button
+        type="button"
+        onClick={() => table.nextPage()}
+        disabled={!hasMore || currentPage === MAX_SEARCH_PAGE || status === 'loading'}
+        className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 font-label text-[12px] tracking-label text-fg transition-colors enabled:hover:text-pink disabled:cursor-not-allowed disabled:text-white/25"
+      >
+        {t('discover.next').toUpperCase()} →
+      </button>
+    </nav>
+  );
 
   // `?q=` also changes without this field: the nav search submits to this page
   // while it is already mounted (no remount on a search-param change), and
@@ -94,7 +204,7 @@ function SearchPage() {
       () => {
         pushed.current = value;
         navigate({
-          search: (previous) => ({ ...previous, q: value || undefined }),
+          search: (previous) => ({ ...previous, q: value || undefined, page: undefined }),
           replace: true,
         });
       },
@@ -149,6 +259,7 @@ function SearchPage() {
                   search: (previous) => ({
                     ...previous,
                     kind: value === ALL_KINDS ? undefined : (value as MediaKind),
+                    page: undefined,
                   }),
                 });
               }}
@@ -172,12 +283,15 @@ function SearchPage() {
             </ToggleGroup.Root>
           </div>
 
-          <div className="flex items-baseline justify-between">
+          <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
             <h2 className="font-heading text-[32px] uppercase">{t('discover.results')}</h2>
-            {q && status !== 'loading' && (
-              <span className="font-label text-[13px] tracking-label text-dim">
+            {pagination}
+            {q && status !== 'loading' ? (
+              <span className="font-label text-[13px] tracking-label text-dim sm:text-right">
                 {t('discover.resultCount', { count: results.length })}
               </span>
+            ) : (
+              <span aria-hidden="true" />
             )}
           </div>
 
@@ -195,28 +309,93 @@ function SearchPage() {
                 : t('discover.empty', { query: q })}
             </p>
           ) : (
-            <ul
-              aria-busy={status === 'loading'}
-              className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
-            >
-              {results.map((result) => (
-                <li key={result.id}>
-                  <Link to="/media/$slug" params={{ slug: result.slug }}>
-                    <CoverCard
-                      kind={result.kind}
-                      title={result.title}
-                      coverUrl={result.coverUrl ?? undefined}
-                      caption={
-                        <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
-                          <KindDot kind={result.kind} showLabel />
-                          {result.year !== null && <span>· {result.year}</span>}
-                        </span>
-                      }
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul
+                aria-busy={status === 'loading'}
+                className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+              >
+                {resultGroups.map(({ result, related }) => {
+                  const gameContext = gameSearchContext(result.kind, result.metadata ?? {});
+                  const role = gameContext?.role
+                    ? t(`discover.gameRole.${gameContext.role}`)
+                    : null;
+                  const context = [
+                    gameContext?.editionTitle
+                      ? t('discover.gameEdition', { name: gameContext.editionTitle })
+                      : role,
+                    gameContext?.parentTitle
+                      ? t('discover.gameFor', { title: gameContext.parentTitle })
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                  return (
+                    <li key={result.id}>
+                      <Link to="/media/$slug" params={{ slug: result.slug }}>
+                        <CoverCard
+                          kind={result.kind}
+                          title={result.title}
+                          coverUrl={result.coverUrl ?? undefined}
+                          caption={
+                            <>
+                              <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
+                                <KindDot kind={result.kind} showLabel />
+                                {result.year !== null && <span>· {result.year}</span>}
+                              </span>
+                              {context && (
+                                <span className="mt-1 block text-xs text-dim">{context}</span>
+                              )}
+                            </>
+                          }
+                        />
+                      </Link>
+                      {related.length > 0 && (
+                        <details className="mt-2 text-xs text-muted">
+                          <summary className="cursor-pointer select-none">
+                            {t('discover.relatedReleases', { count: related.length })}
+                          </summary>
+                          <ul className="mt-1 space-y-1 pl-3">
+                            {related.map((item) => {
+                              const itemContext = gameSearchContext(item.kind, item.metadata ?? {});
+                              const itemRole = itemContext?.role
+                                ? t(`discover.gameRole.${itemContext.role}`)
+                                : null;
+                              const itemLabel = [
+                                itemContext?.editionTitle
+                                  ? t('discover.gameEdition', { name: itemContext.editionTitle })
+                                  : itemRole,
+                                itemContext?.parentTitle
+                                  ? t('discover.gameFor', { title: itemContext.parentTitle })
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ');
+                              return (
+                                <li key={item.id}>
+                                  <Link
+                                    to="/media/$slug"
+                                    params={{ slug: item.slug }}
+                                    className="block rounded px-1 py-1 hover:bg-white/10 hover:text-fg"
+                                  >
+                                    <span className="font-semibold">{item.title}</span>
+                                    {(item.year !== null || itemLabel) && (
+                                      <span className="block text-dim">
+                                        {[item.year, itemLabel].filter(Boolean).join(' · ')}
+                                      </span>
+                                    )}
+                                  </Link>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </details>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {pagination}
+            </>
           )}
 
           <aside className="mt-3 rounded-card border border-dashed border-white/20 bg-glass px-8 py-7 backdrop-blur-[16px]">
