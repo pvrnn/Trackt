@@ -113,7 +113,7 @@ interface MetadataProvider {
 | Webtoons   | **agent-created entities** (central) | MangaUpdates (partial coverage) |
 | Video games | IGDB | — |
 
-- External IDs stored per media (`{tmdb, imdb, anilist, mal, mangadex, mangaupdates}`) → enables dedup, cross-import, and provider switching.
+- External IDs stored per media (`{tmdb, imdb, anilist, mal, mangadex, mangaupdates, igdb}`) → enables dedup, cross-import, and provider switching.
 - Cache policy: details refreshed by background job (weekly for ended titles, daily for airing/publishing ones). Respect provider rate limits with a per-provider token bucket.
 - TMDB attribution displayed in footer/media pages as required by their terms.
 

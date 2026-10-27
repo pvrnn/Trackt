@@ -22,13 +22,13 @@ step; a user can later edit preferences from their profile/settings.
 
 Suggested order:
 
-1. **Welcome** — explain that Trackt tracks movies, series, anime, manga, and webtoons; set
+1. **Welcome** — explain that Trackt tracks movies, series, anime, manga, webtoons and games; set
    expectations and let the user start or skip setup.
 2. **Find friends** — reuse the existing user search and friend-request flow. Explain that a request
    must be accepted before someone is a friend. Allow skipping without creating any relationship.
 3. **Connect Discord (optional)** — offer account linking, explain exactly what connecting enables,
    and provide a clear not-now path. Do not require Discord to use Trackt.
-4. **Choose your interests** — select any combination of movies, series, anime, manga, and webtoons.
+4. **Choose your interests** — select any combination of movies, series, anime, manga, webtoons and games.
    Explain that unselected kinds are filtered from Discover and News, not deleted or untracked.
    Provide an obvious “show all” / select all action.
 5. **Finish** — confirm the choices and go to Home (or the user's intended destination).
@@ -53,7 +53,7 @@ copy and anchors can change with the UI without a separate bespoke flow per page
 - Persist the selected media kinds as **user-owned profile preferences**, not browser-only state,
   so choices follow the account across web/mobile sessions and devices.
 - The supported values match the existing `MediaKind` vocabulary: `movie`, `series`, `anime`,
-  `manga`, `webtoon`.
+  `manga`, `webtoon`, `game`.
 - Define the meaning consistently: selected kinds are shown; unselected kinds are hidden from
   personalized Discover and News surfaces. Filtering affects presentation only — it must not
   change search results, tracking history, profile shelves, friend activity, or saved lists.
