@@ -59,7 +59,7 @@ function chunked<T>(items: T[], size = BULK_CHUNK): T[][] {
  */
 async function setProgressUpTo(db: Db, userId: string, row: MediaRow, upTo: number): Promise<void> {
   const partKind = PART_KIND_BY_MEDIA[row.kind];
-  if (!partKind) return; // movies have no parts
+  if (!partKind) return; // whole-work kinds have no parts
 
   const partsOfMedia = db
     .select({ id: mediaPart.id })

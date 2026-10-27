@@ -26,7 +26,7 @@
     "viewAll_other": "LES {{count}} PLUS RÉCENTS · TOUT VOIR →",
     "rest": "PREMIERS {{count}} · VOIR L'HISTORIQUE POUR LE RESTE"
   },
-  "caughtUp": "Tout est à jour : vous avez regardé ou lu chaque épisode et chapitre connu.",
+  "caughtUp": "Tout est à jour : toute la progression connue est enregistrée.",
   "activity": {
     "title": "Activité récente",
     "line": "{{verb}} <work>{{title}}</work> <detail>{{detail}}</detail>",

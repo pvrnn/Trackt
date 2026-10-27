@@ -26,7 +26,7 @@
     "viewAll_other": "NEWEST {{count}} · VIEW ALL →",
     "rest": "FIRST {{count}} · SEE HISTORY FOR THE REST"
   },
-  "caughtUp": "All caught up: you’ve watched or read every known episode and chapter.",
+  "caughtUp": "All caught up: you’ve logged all known progress.",
   "activity": {
     "title": "Recent activity",
     "line": "{{verb}} <work>{{title}}</work> <detail>{{detail}}</detail>",

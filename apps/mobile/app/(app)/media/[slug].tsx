@@ -80,7 +80,7 @@ export default function MediaScreen() {
 
   const detail = media;
   /** Movies track in one step; every other kind counts parts (ADR-0003). */
-  const hasParts = detail.kind !== 'movie';
+  const hasParts = detail.partCount !== null;
   /** Null while a season is airing or a count is unknown — not zero. */
   const total = hasParts ? detail.partCount : null;
   const noun = partNoun(detail);
@@ -125,7 +125,7 @@ export default function MediaScreen() {
         }
     : viewer.status === 'completed'
       ? {
-          label: t('verb.watched').toUpperCase(),
+          label: labels.trackingVerb(detail.kind).toUpperCase(),
           caughtUp: true,
           onPress: () => setSheet('status'),
         }

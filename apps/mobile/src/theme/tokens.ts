@@ -15,6 +15,7 @@ export const color = {
   gold: '#d9a441',
   onPrism: '#14101a',
   kindMovie: '#8b5cf6',
+  kindGame: '#58a68a',
   kindSeries: '#4a6ee8',
   kindAnime: '#d9a441',
   kindManga: '#e8874a',

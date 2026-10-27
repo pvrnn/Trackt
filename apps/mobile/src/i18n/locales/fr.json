@@ -31,7 +31,7 @@
     "closeFilter": "Fermer le filtre"
   },
   "meta": {
-    "description": "Trackt : suivi de films, séries, animés, mangas et webtoons, open source et auto-hébergeable.",
+    "description": "Trackt : suivi de films, séries, animés, mangas, webtoons et jeux vidéo, open source et auto-hébergeable.",
     "home": "Accueil · Trackt",
     "discover": "Découvrir · Trackt",
     "news": "Actualités · Trackt",
@@ -66,6 +66,7 @@
   "kind": {
     "plural": {
       "movie": "FILMS",
+      "game": "JEUX",
       "series": "SÉRIES",
       "anime": "ANIMÉS",
       "manga": "MANGAS",
@@ -73,6 +74,7 @@
     },
     "singular": {
       "movie": "FILM",
+      "game": "JEU",
       "series": "SÉRIE",
       "anime": "ANIMÉ",
       "manga": "MANGA",
@@ -105,6 +107,7 @@
   "activity": {
     "watched": "Vous avez regardé",
     "read": "Vous avez lu",
+    "played": "Vous avez joué",
     "rated": "Vous avez noté",
     "marked": "Vous avez marqué"
   },
@@ -112,7 +115,9 @@
     "watch": "Regarder",
     "watched": "Vu",
     "read": "Lire",
-    "readPast": "Lu"
+    "readPast": "Lu",
+    "play": "Jouer",
+    "played": "Joué"
   },
   "time": {
     "justNow": "À L’INSTANT",
@@ -206,7 +211,7 @@
       "eyebrow": "OPEN SOURCE · AUTO-HÉBERGEABLE · COMMUNAUTAIRE",
       "titleTop": "Tout suivre.",
       "titleBottom": "Ne rien <accent>perdre.</accent>",
-      "body": "Films, séries, animés, mangas et webtoons, avec un export complet à tout moment et une API publique dès le premier jour. TV Time a supprimé 25 millions d’historiques. Plus jamais.",
+      "body": "Films, séries, animés, mangas, webtoons et jeux vidéo, avec un export complet à tout moment et une API publique dès le premier jour. TV Time a supprimé 25 millions d’historiques. Plus jamais.",
       "start": "COMMENCER À SUIVRE",
       "importSoon": "IMPORTER DEPUIS TV TIME · BIENTÔT",
       "importTooltip": "L’import TV Time arrive bientôt",
@@ -234,7 +239,7 @@
     "checkIn": {
       "titleTop": "Deux gestes.",
       "titleBottom": "C’est noté.",
-      "body": "Épisode par épisode pour les séries et animés, chapitre par chapitre pour les mangas et webtoons, compteurs de relecture, statistiques précises. La vitesse est une exigence, pas une option.",
+      "body": "Épisode par épisode pour les séries et animés, chapitre par chapitre pour les mangas et webtoons, et suivi des jeux en une étape. La vitesse est une exigence, pas une option.",
       "episodeOf": "Épisode {{next}} sur {{total}}",
       "episode": "Épisode {{next}}",
       "chapterOf": "Chapitre {{next}} sur {{total}}",

@@ -13,7 +13,7 @@
     "comingSoon": "Coming soon"
   },
   "meta": {
-    "description": "Trackt: open-source, self-hostable tracker for movies, series, anime, manga, and webtoons.",
+    "description": "Trackt: open-source, self-hostable tracker for movies, series, anime, manga, webtoons, and games.",
     "home": "Home · Trackt",
     "discover": "Discover · Trackt",
     "news": "News · Trackt",
@@ -48,6 +48,7 @@
   "kind": {
     "plural": {
       "movie": "MOVIES",
+      "game": "GAMES",
       "series": "SERIES",
       "anime": "ANIME",
       "manga": "MANGA",
@@ -55,6 +56,7 @@
     },
     "singular": {
       "movie": "MOVIE",
+      "game": "GAME",
       "series": "SERIES",
       "anime": "ANIME",
       "manga": "MANGA",
@@ -87,6 +89,7 @@
   "activity": {
     "watched": "You watched",
     "read": "You read",
+    "played": "You played",
     "rated": "You rated",
     "marked": "You marked"
   },
@@ -94,7 +97,9 @@
     "watch": "Watch",
     "watched": "Watched",
     "read": "Read",
-    "readPast": "Read"
+    "readPast": "Read",
+    "play": "Play",
+    "played": "Played"
   },
   "time": {
     "justNow": "JUST NOW",
@@ -183,7 +188,7 @@
       "eyebrow": "OPEN SOURCE · SELF-HOSTABLE · COMMUNITY-OWNED",
       "titleTop": "Track everything.",
       "titleBottom": "Lose <accent>nothing.</accent>",
-      "body": "Movies, series, anime, manga, and webtoons, with full export at any time and a public API from day one. TV Time deleted 25 million histories. Never again.",
+      "body": "Movies, series, anime, manga, webtoons, and games, with full export at any time and a public API from day one. TV Time deleted 25 million histories. Never again.",
       "start": "START TRACKING",
       "importSoon": "IMPORT FROM TV TIME · SOON",
       "importTooltip": "The TV Time importer is coming soon",
@@ -211,7 +216,7 @@
     "checkIn": {
       "titleTop": "Two taps.",
       "titleBottom": "It’s logged.",
-      "body": "Per-episode for series and anime, per-chapter for manga and webtoons, rewatch counters, precise stats. Speed is a hard requirement, not a feature.",
+      "body": "Per-episode for series and anime, per-chapter for manga and webtoons, and one-step status tracking for games. Speed is a hard requirement, not a feature.",
       "episodeOf": "Episode {{next}} of {{total}}",
       "episode": "Episode {{next}}",
       "chapterOf": "Chapter {{next}} of {{total}}",

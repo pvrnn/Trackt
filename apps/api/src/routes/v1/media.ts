@@ -1,5 +1,6 @@
 import { and, count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import type { FastifyBaseLogger } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
 import {
@@ -8,6 +9,7 @@ import {
   SHOWCASE_LIMIT,
   SHOWCASE_PER_KIND,
   SearchResultSchema,
+  fetchCatalogSearch,
   type MediaDetail,
   type SearchResult,
   type ViewerState,
@@ -33,6 +35,29 @@ async function loadCommunity(db: Db, mediaId: string): Promise<MediaDetail['comm
       ),
     );
   return { averageScore: row?.averageScore ?? null, ratingCount: row?.ratingCount ?? 0 };
+}
+
+async function loadCurrentMetadata(
+  catalogUrl: string | undefined,
+  row: { id: string; kind: string; title: string; metadata: Record<string, unknown> },
+  timeoutMs: number,
+  logger: FastifyBaseLogger,
+): Promise<Record<string, unknown>> {
+  if (row.kind !== 'game' || typeof row.metadata.igdbStatus === 'string' || !catalogUrl) {
+    return row.metadata;
+  }
+  try {
+    const response = await fetchCatalogSearch(catalogUrl, row.title, {
+      kind: 'game',
+      limit: 100,
+      timeoutMs,
+    });
+    const central = response.results.find((hit) => hit.id === row.id);
+    return central ? { ...row.metadata, ...central.metadata } : row.metadata;
+  } catch (error) {
+    logger.warn({ err: error, id: row.id }, 'failed to refresh game release status from catalog');
+    return row.metadata;
+  }
 }
 
 /**
@@ -117,7 +142,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
    * varies per caller — which is what makes it safe to cache at the edge.
    *
    * Kinds are round-robined rather than taken in one ranked run, so the band
-   * shows the breadth (series *and* anime *and* webtoons) that the pitch above
+   * shows the breadth (series, anime, webtoons, and games) that the pitch above
    * it claims, instead of 24 rows of whichever kind the instance has most of.
    * Titles with real artwork sort first — the band is the one surface where a
    * generated gradient is a visible downgrade.
@@ -215,7 +240,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         return reply.status(404).send({ error: 'media not found' });
       }
 
-      const [community, relations, related, viewer] = await Promise.all([
+      const [community, relations, related, viewer, metadata] = await Promise.all([
         loadCommunity(db, row.id),
         loadRelations(db, app.deps.env.CATALOG_URL, row, {
           timeoutMs: app.deps.env.CATALOG_RELATIONS_TIMEOUT_MS,
@@ -223,9 +248,15 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         }),
         loadRelated(db, row),
         user ? loadViewer(db, user.id, row.id) : Promise.resolve(null),
+        loadCurrentMetadata(
+          app.deps.env.CATALOG_URL,
+          row,
+          app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+          request.log,
+        ),
       ]);
 
-      return { ...row, community, relations, related, viewer };
+      return { ...row, metadata, community, relations, related, viewer };
     },
   );
 };

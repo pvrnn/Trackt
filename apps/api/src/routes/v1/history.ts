@@ -4,6 +4,7 @@ import {
   ApiErrorSchema,
   HistoryPageSchema,
   HistoryQuerySchema,
+  PART_KIND_BY_MEDIA,
   decodeHistoryCursor,
   encodeHistoryCursor,
   type HistoryEntry,
@@ -152,7 +153,10 @@ export const historyRoutes: FastifyPluginAsyncZod = async (app) => {
         score: row.score !== null ? Number(row.score) : null,
         watched: Number(row.watched),
         // Movies have no parts to progress through (ADR-0003).
-        total: row.kind === 'movie' ? null : (row.part_count as number | null),
+        total:
+          PART_KIND_BY_MEDIA[row.kind as MediaKind] === null
+            ? null
+            : (row.part_count as number | null),
       }));
 
       const last = page.at(-1);

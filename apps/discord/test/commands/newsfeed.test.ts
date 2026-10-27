@@ -8,6 +8,8 @@ describe('kindsFromSelection', () => {
 
   it('stores "all" and a full selection as the empty filter', () => {
     expect(kindsFromSelection(['all', 'movie'])).toEqual([]);
-    expect(kindsFromSelection(['movie', 'series', 'anime', 'manga', 'webtoon'])).toEqual([]);
+    expect(kindsFromSelection(['movie', 'series', 'anime', 'manga', 'webtoon', 'game'])).toEqual(
+      [],
+    );
   });
 });

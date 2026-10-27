@@ -5,6 +5,7 @@ import { color } from '../theme/tokens';
 /** Per-kind dot colours, straight from the design tokens. */
 export const KIND_COLORS: Record<MediaKind, string> = {
   movie: color.kindMovie,
+  game: color.kindGame,
   series: color.kindSeries,
   anime: color.kindAnime,
   manga: color.kindManga,

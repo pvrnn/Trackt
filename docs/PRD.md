@@ -8,7 +8,7 @@
 
 ## 1. Vision & Principles
 
-A community-owned, open-source tracker for **movies, series, anime, manga, and webtoons** that can never be taken away from its users.
+A community-owned, open-source tracker for **movies, series, anime, manga, webtoons, and video games** that can never be taken away from its users.
 
 **Founding principles:**
 
@@ -35,6 +35,7 @@ A community-owned, open-source tracker for **movies, series, anime, manga, and w
 ### 3.1 Tracking
 
 - Log status per media: planned / in progress / completed / dropped / paused.
+- Games are tracked as whole works with play-status, rating, favourites, and dates; they have no episode/chapter progress.
 - **Granular progress:** per-episode for series/anime, per-chapter (and volume) for manga/webtoons, simple watched-date for movies.
 - One-tap check-in for "next episode/chapter" (speed is a hard UX requirement: ≤2 taps from home screen).
 - Rewatch / reread counters with dated history.
@@ -110,6 +111,7 @@ interface MetadataProvider {
 | Anime      | AniList (GraphQL, no key) | Jikan (MAL), Kitsu              |
 | Manga      | AniList                   | MangaDex API, MangaUpdates      |
 | Webtoons   | **agent-created entities** (central) | MangaUpdates (partial coverage) |
+| Video games | IGDB | — |
 
 - External IDs stored per media (`{tmdb, imdb, anilist, mal, mangadex, mangaupdates}`) → enables dedup, cross-import, and provider switching.
 - Cache policy: details refreshed by background job (weekly for ended titles, daily for airing/publishing ones). Respect provider rate limits with a per-provider token bucket.
@@ -147,7 +149,7 @@ A small central service — run by the project, optional to use — that only ho
 ```sql
 media (
   id uuid pk,
-  kind enum('movie','series','anime','manga','webtoon'),
+  kind enum('movie','series','anime','manga','webtoon','game'),
   title text, original_title text, slug text,
   description text, cover_url text, release_date date,
   status enum('announced','airing','publishing','ended','cancelled'),

@@ -41,7 +41,7 @@
   "error": "Your history failed to load. Is this instance’s API reachable?",
   "empty": {
     "nothingTitle": "Nothing yet",
-    "nothingBody": "Check in to something and it lands here: every episode and chapter, with the dates you watched them.",
+    "nothingBody": "Log something and it lands here, with the dates you started and finished it.",
     "filteredTitle": "No matches",
     "filteredBody": "Nothing in {{scope}} matches this kind and status. Clear one of them to widen the search.",
     "windowTitle": "Nothing in {{scope}}",

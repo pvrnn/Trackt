@@ -3,6 +3,7 @@ import type { MediaKind, NewsTopic } from '@trackt/shared';
 /** Sentence case for Discord, where the web design's uppercase pills would shout. */
 export const KIND_LABELS: Record<MediaKind, string> = {
   movie: 'Movies',
+  game: 'Games',
   series: 'Series',
   anime: 'Anime',
   manga: 'Manga',
