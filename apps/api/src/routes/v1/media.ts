@@ -37,6 +37,18 @@ async function loadCommunity(db: Db, mediaId: string): Promise<MediaDetail['comm
   return { averageScore: row?.averageScore ?? null, ratingCount: row?.ratingCount ?? 0 };
 }
 
+/**
+ * Game rows whose release status has already been asked of the catalog, and
+ * when. Most games have none upstream, so the row never gains the field and the
+ * guard below would send the same search on every view; this makes it once per
+ * row per process instead of once per render. Deliberately not persisted: the
+ * stale cohort is finite, and a restart costs one request for each row that is
+ * still being viewed.
+ */
+const STATUS_ASKED_TTL_MS = 6 * 60 * 60 * 1000;
+const STATUS_ASKED_LIMIT = 10_000;
+const statusAskedAt = new Map<string, number>();
+
 async function loadCurrentMetadata(
   catalogUrl: string | undefined,
   row: { id: string; kind: string; title: string; metadata: Record<string, unknown> },
@@ -46,6 +58,12 @@ async function loadCurrentMetadata(
   if (row.kind !== 'game' || typeof row.metadata.igdbStatus === 'string' || !catalogUrl) {
     return row.metadata;
   }
+  const now = Date.now();
+  const askedAt = statusAskedAt.get(row.id);
+  if (askedAt !== undefined && now - askedAt < STATUS_ASKED_TTL_MS) return row.metadata;
+  // Recorded before the request so concurrent views of one row ask once.
+  if (statusAskedAt.size >= STATUS_ASKED_LIMIT) statusAskedAt.clear();
+  statusAskedAt.set(row.id, now);
   try {
     const response = await fetchCatalogSearch(catalogUrl, row.title, {
       kind: 'game',
