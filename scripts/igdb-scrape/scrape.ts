@@ -286,7 +286,7 @@ function toSeedRow(
       ...new Set(
         (game.genres ?? []).flatMap((id) => {
           const genre = genres.get(id);
-          return genre ? [slug(genre.slug ?? genre.name)] : [];
+          return genre ? [genreTag(genre)] : [];
         }),
       ),
     ],
@@ -322,6 +322,22 @@ function toSeedRow(
       : null,
     bannerUrl: null,
   };
+}
+
+/**
+ * A genre tag a page can print beside the others. IGDB's names carry the id's
+ * punctuation and a parenthetical spelling-out (`Hack and slash/Beat 'em up`,
+ * `Role-Playing (RPG)`), and the media page joins them into one line under the
+ * title, next to the single lowercase words the AniList importer writes.
+ */
+export function genreTag(genre: { name: string; slug?: string }): string {
+  const words = genre.name
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/&/g, ' and ')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  return words || slug(genre.slug ?? genre.name);
 }
 
 function releaseStatusRank(status: string): number {

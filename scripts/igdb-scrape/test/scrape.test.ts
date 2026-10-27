@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { NON_WORK_GAME_TYPES, parseArgs, uuidV5 } from '../scrape.ts';
+import { NON_WORK_GAME_TYPES, genreTag, parseArgs, uuidV5 } from '../scrape.ts';
 
 /**
  * The seed mints its own ids because a scraper has no `@trackt/shared` to
@@ -48,5 +48,16 @@ describe('the release types the seed skips', () => {
     // 0 Main Game, 2 Expansion, 3 Bundle, 4 Standalone Expansion, 8 Remake,
     // 9 Remaster, 10 Expanded Game, 11 Port — the parent graph groups these.
     for (const id of [0, 2, 3, 4, 8, 9, 10, 11]) assert.ok(!NON_WORK_GAME_TYPES.has(id));
+  });
+});
+
+describe('the genre tags the seed writes', () => {
+  it('turns IGDB names into the lowercase phrases the other importers write', () => {
+    assert.equal(genreTag({ name: 'Role-Playing (RPG)' }), 'role playing');
+    assert.equal(genreTag({ name: "Hack and slash/Beat 'em up" }), 'hack and slash beat em up');
+    assert.equal(genreTag({ name: 'Card & Board Game' }), 'card and board game');
+    assert.equal(genreTag({ name: 'Shooter' }), 'shooter');
+    // Nothing left to print: fall back to the id, which is always a tag.
+    assert.equal(genreTag({ name: '(RPG)', slug: 'role-playing-rpg' }), 'role-playing-rpg');
   });
 });
