@@ -4,6 +4,8 @@
   "searchAria": "search titles",
   "filterAria": "filter by kind",
   "results": "Results",
+  "browse": "On this instance",
+  "browseKind": "{{kind}} on this instance",
   "pagination": "Search results pages",
   "previous": "Previous",
   "next": "Next",

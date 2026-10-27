@@ -4,6 +4,8 @@
   "searchAria": "rechercher des titres",
   "filterAria": "filtrer par type",
   "results": "Résultats",
+  "browse": "Sur cette instance",
+  "browseKind": "{{kind}} sur cette instance",
   "pagination": "Pages des résultats de recherche",
   "previous": "Précédent",
   "next": "Suivant",

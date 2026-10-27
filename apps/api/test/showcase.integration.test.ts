@@ -1,8 +1,8 @@
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { SHOWCASE_LIMIT, SearchResultSchema, loadEnv } from '@trackt/shared';
+import { SHOWCASE_LIMIT, SHOWCASE_PER_KIND, SearchResultSchema, loadEnv } from '@trackt/shared';
 import { buildApp, type App } from '../src/app.js';
 
 /**
@@ -63,8 +63,12 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
     await app?.close();
   });
 
-  async function showcase(): Promise<{ statusCode: number; headers: unknown; rows: Row[] }> {
-    const response = await app.inject({ method: 'GET', url: '/api/v1/media/showcase' });
+  async function showcase(query = ''): Promise<{
+    statusCode: number;
+    headers: unknown;
+    rows: Row[];
+  }> {
+    const response = await app.inject({ method: 'GET', url: `/api/v1/media/showcase${query}` });
     return {
       statusCode: response.statusCode,
       headers: response.headers,
@@ -95,6 +99,32 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
     // Round-robin: the first rows should each be a different kind.
     const leading = rows.slice(0, kinds.size).map((row) => row.kind);
     expect(new Set(leading).size).toBe(leading.length);
+  });
+
+  it("narrows to one kind when asked, and drops the band's five-per-kind spread", async () => {
+    // The seed carries three distinct series titles, all inside the band's
+    // per-kind depth — too few to tell the two behaviours apart, so pad it.
+    const padded = Array.from({ length: SHOWCASE_PER_KIND + 2 }, (_, index) => ({
+      kind: 'series' as const,
+      title: `Bulk Series ${index}`,
+      slug: `bulk-series-${index}`,
+    }));
+    await db.insert(media).values(padded);
+    try {
+      const { statusCode, rows } = await showcase('?kind=series');
+      expect(statusCode).toBe(200);
+      expect(new Set(rows.map((row) => row.kind))).toEqual(new Set(['series']));
+      // Beyond the round-robin depth: the caller asked for a screenful of one
+      // kind, and the band's five would have left the grid half empty.
+      expect(rows.length).toBeGreaterThan(SHOWCASE_PER_KIND);
+    } finally {
+      await db.delete(media).where(
+        inArray(
+          media.slug,
+          padded.map((row) => row.slug),
+        ),
+      );
+    }
   });
 
   it('sorts titles that have real artwork ahead of ones that do not', async () => {

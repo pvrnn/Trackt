@@ -15,6 +15,7 @@ import {
   gameSearchContext,
   groupGameSearchResults,
   useMediaSearch,
+  useShowcase,
 } from '@trackt/client';
 
 export interface SearchParams {
@@ -81,6 +82,11 @@ function SearchPage() {
   const [input, setInput] = useState(q);
   const [pageInput, setPageInput] = useState(String(page));
   const { status, results, hasMore } = useMediaSearch(q, kind, page - 1);
+  // What the page shows before anything is typed: the instance's own catalog,
+  // narrowed by the same kind chips the results are. It is the one honest thing
+  // an empty search box can say, and it needs no query to say it.
+  const { data: showcase } = useShowcase(kind);
+  const browseItems = q ? [] : (showcase ?? []);
   const resultGroups = groupGameSearchResults(results);
   const currentPage = page;
 
@@ -283,118 +289,159 @@ function SearchPage() {
             </ToggleGroup.Root>
           </div>
 
-          <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
-            <h2 className="font-heading text-[32px] uppercase">{t('discover.results')}</h2>
-            {pagination}
-            {q && status !== 'loading' ? (
-              <span className="font-label text-[13px] tracking-label text-dim sm:text-right">
-                {t('discover.resultCount', { count: results.length })}
-              </span>
-            ) : (
-              <span aria-hidden="true" />
-            )}
-          </div>
-
-          {!q ? null : status === 'error' ? (
-            <p role="alert" className="text-[15px] text-red-400">
-              {t('errors.searchFailed')}
-            </p>
-          ) : results.length === 0 && status === 'success' ? (
-            <p className="text-[15px] text-muted">
-              {kind
-                ? t('discover.emptyInKind', {
-                    query: q,
-                    kind: labels.kind(kind).toLowerCase(),
-                  })
-                : t('discover.empty', { query: q })}
-            </p>
-          ) : (
-            <>
-              <ul
-                aria-busy={status === 'loading'}
-                className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
-              >
-                {resultGroups.map(({ result, related }) => {
-                  const gameContext = gameSearchContext(result.kind, result.metadata ?? {});
-                  const role = gameContext?.role
-                    ? t(`discover.gameRole.${gameContext.role}`)
-                    : null;
-                  const context = [
-                    gameContext?.editionTitle
-                      ? t('discover.gameEdition', { name: gameContext.editionTitle })
-                      : role,
-                    gameContext?.parentTitle
-                      ? t('discover.gameFor', { title: gameContext.parentTitle })
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ');
-                  return (
-                    <li key={result.id}>
-                      <Link to="/media/$slug" params={{ slug: result.slug }}>
+          {!q ? (
+            /* Nothing typed yet: the instance's own catalog, under the filter
+               chips above. No heading when the shelf is empty — a lone "On this
+               instance" over nothing reads as a load that failed. */
+            browseItems.length > 0 && (
+              <>
+                <h2 className="font-heading text-[32px] uppercase">
+                  {kind
+                    ? t('discover.browseKind', { kind: labels.kind(kind) })
+                    : t('discover.browse')}
+                </h2>
+                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {browseItems.map((item) => (
+                    <li key={item.id}>
+                      <Link to="/media/$slug" params={{ slug: item.slug }}>
                         <CoverCard
-                          kind={result.kind}
-                          title={result.title}
-                          coverUrl={result.coverUrl ?? undefined}
+                          kind={item.kind}
+                          title={item.title}
+                          coverUrl={item.coverUrl ?? undefined}
                           caption={
-                            <>
-                              <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
-                                <KindDot kind={result.kind} showLabel />
-                                {result.year !== null && <span>· {result.year}</span>}
-                              </span>
-                              {context && (
-                                <span className="mt-1 block text-xs text-dim">{context}</span>
-                              )}
-                            </>
+                            <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
+                              <KindDot kind={item.kind} showLabel />
+                              {item.year !== null && <span>· {item.year}</span>}
+                            </span>
                           }
                         />
                       </Link>
-                      {related.length > 0 && (
-                        <details className="mt-2 text-xs text-muted">
-                          <summary className="cursor-pointer select-none">
-                            {t('discover.relatedReleases', { count: related.length })}
-                          </summary>
-                          <ul className="mt-1 space-y-1 pl-3">
-                            {related.map((item) => {
-                              const itemContext = gameSearchContext(item.kind, item.metadata ?? {});
-                              const itemRole = itemContext?.role
-                                ? t(`discover.gameRole.${itemContext.role}`)
-                                : null;
-                              const itemLabel = [
-                                itemContext?.editionTitle
-                                  ? t('discover.gameEdition', { name: itemContext.editionTitle })
-                                  : itemRole,
-                                itemContext?.parentTitle
-                                  ? t('discover.gameFor', { title: itemContext.parentTitle })
-                                  : null,
-                              ]
-                                .filter(Boolean)
-                                .join(' · ');
-                              return (
-                                <li key={item.id}>
-                                  <Link
-                                    to="/media/$slug"
-                                    params={{ slug: item.slug }}
-                                    className="block rounded px-1 py-1 hover:bg-white/10 hover:text-fg"
-                                  >
-                                    <span className="font-semibold">{item.title}</span>
-                                    {(item.year !== null || itemLabel) && (
-                                      <span className="block text-dim">
-                                        {[item.year, itemLabel].filter(Boolean).join(' · ')}
-                                      </span>
-                                    )}
-                                  </Link>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </details>
-                      )}
                     </li>
-                  );
-                })}
-              </ul>
-              {pagination}
+                  ))}
+                </ul>
+              </>
+            )
+          ) : (
+            <>
+              <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                <h2 className="font-heading text-[32px] uppercase">{t('discover.results')}</h2>
+                {pagination}
+                {status !== 'loading' ? (
+                  <span className="font-label text-[13px] tracking-label text-dim sm:text-right">
+                    {t('discover.resultCount', { count: results.length })}
+                  </span>
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+              </div>
+
+              {status === 'error' ? (
+                <p role="alert" className="text-[15px] text-red-400">
+                  {t('errors.searchFailed')}
+                </p>
+              ) : results.length === 0 && status === 'success' ? (
+                <p className="text-[15px] text-muted">
+                  {kind
+                    ? t('discover.emptyInKind', {
+                        query: q,
+                        kind: labels.kind(kind).toLowerCase(),
+                      })
+                    : t('discover.empty', { query: q })}
+                </p>
+              ) : (
+                <>
+                  <ul
+                    aria-busy={status === 'loading'}
+                    className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+                  >
+                    {resultGroups.map(({ result, related }) => {
+                      const gameContext = gameSearchContext(result.kind, result.metadata ?? {});
+                      const role = gameContext?.role
+                        ? t(`discover.gameRole.${gameContext.role}`)
+                        : null;
+                      const context = [
+                        gameContext?.editionTitle
+                          ? t('discover.gameEdition', { name: gameContext.editionTitle })
+                          : role,
+                        gameContext?.parentTitle
+                          ? t('discover.gameFor', { title: gameContext.parentTitle })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ');
+                      return (
+                        <li key={result.id}>
+                          <Link to="/media/$slug" params={{ slug: result.slug }}>
+                            <CoverCard
+                              kind={result.kind}
+                              title={result.title}
+                              coverUrl={result.coverUrl ?? undefined}
+                              caption={
+                                <>
+                                  <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
+                                    <KindDot kind={result.kind} showLabel />
+                                    {result.year !== null && <span>· {result.year}</span>}
+                                  </span>
+                                  {context && (
+                                    <span className="mt-1 block text-xs text-dim">{context}</span>
+                                  )}
+                                </>
+                              }
+                            />
+                          </Link>
+                          {related.length > 0 && (
+                            <details className="mt-2 text-xs text-muted">
+                              <summary className="cursor-pointer select-none">
+                                {t('discover.relatedReleases', { count: related.length })}
+                              </summary>
+                              <ul className="mt-1 space-y-1 pl-3">
+                                {related.map((item) => {
+                                  const itemContext = gameSearchContext(
+                                    item.kind,
+                                    item.metadata ?? {},
+                                  );
+                                  const itemRole = itemContext?.role
+                                    ? t(`discover.gameRole.${itemContext.role}`)
+                                    : null;
+                                  const itemLabel = [
+                                    itemContext?.editionTitle
+                                      ? t('discover.gameEdition', {
+                                          name: itemContext.editionTitle,
+                                        })
+                                      : itemRole,
+                                    itemContext?.parentTitle
+                                      ? t('discover.gameFor', { title: itemContext.parentTitle })
+                                      : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ');
+                                  return (
+                                    <li key={item.id}>
+                                      <Link
+                                        to="/media/$slug"
+                                        params={{ slug: item.slug }}
+                                        className="block rounded px-1 py-1 hover:bg-white/10 hover:text-fg"
+                                      >
+                                        <span className="font-semibold">{item.title}</span>
+                                        {(item.year !== null || itemLabel) && (
+                                          <span className="block text-dim">
+                                            {[item.year, itemLabel].filter(Boolean).join(' · ')}
+                                          </span>
+                                        )}
+                                      </Link>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </details>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {pagination}
+                </>
+              )}
             </>
           )}
 

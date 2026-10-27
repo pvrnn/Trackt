@@ -6,6 +6,7 @@ import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
   MediaDetailSchema,
+  MediaKindSchema,
   SHOWCASE_LIMIT,
   SHOWCASE_PER_KIND,
   SearchResultSchema,
@@ -154,16 +155,23 @@ async function loadViewer(db: Db, userId: string, mediaId: string): Promise<View
 
 export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
   /**
-   * A sample of what this instance actually carries, for the landing page's
-   * cover band. Anonymous and viewer-independent by construction: it serves
-   * `verified` rows only, so there is no session to read and nothing that
-   * varies per caller — which is what makes it safe to cache at the edge.
+   * A sample of what this instance actually carries: the landing page's cover
+   * band, and the Discover page's shelf when nothing has been typed yet.
+   * Anonymous and viewer-independent by construction: it serves `verified` rows
+   * only, so there is no session to read and nothing that varies per caller —
+   * which is what makes it safe to cache at the edge.
    *
    * Kinds are round-robined rather than taken in one ranked run, so the band
    * shows the breadth (series, anime, webtoons, and games) that the pitch above
    * it claims, instead of 24 rows of whichever kind the instance has most of.
-   * Titles with real artwork sort first — the band is the one surface where a
+   * Titles with real artwork sort first — this is the one surface where a
    * generated gradient is a visible downgrade.
+   *
+   * `?kind=` narrows it to one kind and drops the round-robin: a caller that
+   * asked for series wants a screenful of series, not five of them and nineteen
+   * others. Still anonymous and still the same for every caller, so the cache
+   * directive stays `public` — an edge cache keys a CDN entry on the query
+   * string, so each kind is cached apart.
    *
    * Registered before `/media/:idOrSlug` so `showcase` can't be read as a slug.
    */
@@ -173,25 +181,28 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: {
         tags: ['catalog'],
+        querystring: z.object({ kind: MediaKindSchema.optional() }),
         response: {
           200: z.array(SearchResultSchema),
           503: ApiErrorSchema,
         },
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const { kind } = request.query;
 
       const rows = await db.execute(sql`
         WITH visible AS (
           SELECT id, slug, kind, title, year, status, season_number, cover_url, description
           FROM media
           WHERE deleted_at IS NULL AND moderation = 'verified'
+            ${kind ? sql`AND kind = ${kind}` : sql``}
         ),
         one_per_title AS (
           -- A series is one media *per season* (ADR-0003), so "Breaking Bad"
-          -- is several rows with one title. The band would show it twice for
+          -- is several rows with one title. A shelf would show it twice for
           -- no reason a visitor could work out; keep the earliest season.
           SELECT *, row_number() OVER (
                    PARTITION BY kind, title
@@ -209,7 +220,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         )
         SELECT id, slug, kind, title, year, status, season_number, cover_url, description
         FROM ranked
-        WHERE kind_rank <= ${SHOWCASE_PER_KIND}
+        WHERE kind_rank <= ${kind ? SHOWCASE_LIMIT : SHOWCASE_PER_KIND}
         ORDER BY kind_rank, kind
         LIMIT ${SHOWCASE_LIMIT}
       `);
