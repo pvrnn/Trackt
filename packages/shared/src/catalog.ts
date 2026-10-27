@@ -26,13 +26,21 @@ export const SlimMediaSchema = z.object({
   status: MediaStatusSchema.nullable(),
   genres: z.array(GenreSchema),
   /**
-   * Episodes (series/anime season) or chapters (manga/webtoon); null for movies.
+   * Episodes (series/anime season) or chapters (manga/webtoon); null for movies and games.
    * The part kind is derived from `kind` (PART_KIND_BY_MEDIA) — one count, not four (ADR-0003).
    */
   partCount: z.number().int().nullable(),
   /** Which season this row is, for series/anime split per season (ADR-0003); null otherwise. */
   seasonNumber: z.number().int().nullable(),
   externalIds: ExternalIdsSchema,
+  /**
+   * Provider facts that are not part of the slim contract's fixed columns, keyed
+   * by the importer: `providerScore` (0–100, AniList's `averageScore`) and
+   * `format` (the source's own vocabulary — `tv`, `ova`, `special`…).
+   * Carried for analysis — nothing renders it — and copied verbatim into the
+   * instance's own `media.metadata` when a hit is materialized.
+   */
+  metadata: z.record(z.string(), z.unknown()).default({}),
   description: z.string().nullable(),
   coverUrl: z.string().nullable(),
   /**
@@ -60,7 +68,9 @@ export type CatalogVersion = z.infer<typeof CatalogVersionSchema>;
 export const CatalogSearchQuerySchema = z.object({
   q: z.string().min(1).max(200),
   kind: MediaKindSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  // Instances may request the ranked prefix needed to page across their local
+  // and central catalogs before merging the two result streams.
+  limit: z.coerce.number().int().min(1).max(1051).default(20),
 });
 export type CatalogSearchQuery = z.infer<typeof CatalogSearchQuerySchema>;
 

@@ -30,6 +30,10 @@ export function buildProviderMediaRow(hit: SlimMedia): ProviderMediaRow {
     partCount: hit.partCount,
     seasonNumber: hit.seasonNumber,
     externalIds: hit.externalIds,
+    // Provider extras (`providerScore`, `format`) are carried, not interpreted:
+    // the instance keeps them beside its other type-specific metadata, and no
+    // read path renders them yet.
+    metadata: hit.metadata,
     description: hit.description,
     coverUrl: hit.coverUrl,
     bannerUrl: hit.bannerUrl ?? null,

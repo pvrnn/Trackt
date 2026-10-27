@@ -148,6 +148,7 @@ async function loadAdminArticle(db: CatalogDb, id: string): Promise<NewsAdminArt
     partCount: work.partCount,
     seasonNumber: work.seasonNumber,
     externalIds: work.externalIds as ExternalIds,
+    metadata: work.metadata,
     description: work.description,
     coverUrl: work.coverUrl,
     bannerUrl: work.bannerUrl,

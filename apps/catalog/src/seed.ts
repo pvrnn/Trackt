@@ -73,6 +73,7 @@ export async function seedCatalog(db: CatalogDb, file: CatalogSeedFile): Promise
             partCount: row.partCount,
             seasonNumber: row.seasonNumber,
             externalIds: row.externalIds,
+            metadata: row.metadata,
             description: row.description,
             coverUrl: row.coverUrl,
             bannerUrl: row.bannerUrl,
@@ -90,6 +91,9 @@ export async function seedCatalog(db: CatalogDb, file: CatalogSeedFile): Promise
             partCount: sql`excluded.part_count`,
             seasonNumber: sql`excluded.season_number`,
             externalIds: sql`excluded.external_ids`,
+            // Merged, not replaced, for the same reason as the artwork below: a
+            // seed file scraped before a key was imported must not erase it.
+            metadata: sql`${catalogMedia.metadata} || excluded.metadata`,
             description: sql`excluded.description`,
             // COALESCE: a seed file without artwork must not erase covers an
             // enrichment pass has since filled in.
