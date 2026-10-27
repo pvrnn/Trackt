@@ -114,7 +114,13 @@ function SearchPage() {
         ← {t('discover.previous').toUpperCase()}
       </button>
       {Array.from(
-        new Set([Math.max(1, currentPage - 1), currentPage, ...(hasMore ? [currentPage + 1] : [])]),
+        new Set([
+          Math.max(1, currentPage - 1),
+          currentPage,
+          // Nothing past the ceiling is reachable: the API refuses an offset
+          // over 1000, and goToPage would clamp the click back to this page.
+          ...(hasMore && currentPage < MAX_SEARCH_PAGE ? [currentPage + 1] : []),
+        ]),
       ).map((pageNumber) => (
         <button
           key={pageNumber}
