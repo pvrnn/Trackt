@@ -1,5 +1,4 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
-import { getCoreRowModel, useReactTable, type PaginationState } from '@tanstack/react-table';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -73,22 +72,9 @@ function SearchPage() {
   const { q = '', kind, page = 1 } = Route.useSearch();
   const [input, setInput] = useState(q);
   const [pageInput, setPageInput] = useState(String(page));
-  const paginationState: PaginationState = { pageIndex: page - 1, pageSize: RESULTS_PER_PAGE };
-  const { status, results, hasMore } = useMediaSearch(q, kind, paginationState.pageIndex);
+  const { status, results, hasMore } = useMediaSearch(q, kind, page - 1);
   const resultGroups = groupGameSearchResults(results);
-  const table = useReactTable({
-    data: results,
-    columns: [],
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    pageCount: -1,
-    state: { pagination: paginationState },
-    onPaginationChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(paginationState) : updater;
-      goToPage(next.pageIndex + 1);
-    },
-  });
-  const currentPage = paginationState.pageIndex + 1;
+  const currentPage = page;
 
   function goToPage(nextPage: number) {
     const boundedPage = Math.max(1, Math.min(MAX_SEARCH_PAGE, nextPage));
@@ -107,8 +93,8 @@ function SearchPage() {
     >
       <button
         type="button"
-        onClick={() => table.previousPage()}
-        disabled={!table.getCanPreviousPage()}
+        onClick={() => goToPage(currentPage - 1)}
+        disabled={currentPage === 1}
         className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 font-label text-[12px] tracking-label text-fg transition-colors enabled:hover:text-pink disabled:cursor-not-allowed disabled:text-white/25"
       >
         ← {t('discover.previous').toUpperCase()}
@@ -125,7 +111,7 @@ function SearchPage() {
         <button
           key={pageNumber}
           type="button"
-          onClick={() => table.setPageIndex(pageNumber - 1)}
+          onClick={() => goToPage(pageNumber)}
           aria-current={currentPage === pageNumber ? 'page' : undefined}
           aria-label={t('discover.pageNumber', { page: pageNumber })}
           className={`min-w-10 rounded-full px-3 py-2 font-label text-[12px] tracking-label transition-colors ${
@@ -147,7 +133,7 @@ function SearchPage() {
             requestedPage >= 1 &&
             requestedPage <= MAX_SEARCH_PAGE
           ) {
-            table.setPageIndex(requestedPage - 1);
+            goToPage(requestedPage);
           }
         }}
       >
@@ -172,7 +158,7 @@ function SearchPage() {
       </form>
       <button
         type="button"
-        onClick={() => table.nextPage()}
+        onClick={() => goToPage(currentPage + 1)}
         disabled={!hasMore || currentPage === MAX_SEARCH_PAGE || status === 'loading'}
         className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 font-label text-[12px] tracking-label text-fg transition-colors enabled:hover:text-pink disabled:cursor-not-allowed disabled:text-white/25"
       >
