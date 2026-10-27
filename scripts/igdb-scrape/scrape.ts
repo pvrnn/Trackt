@@ -267,7 +267,7 @@ function toSeedRow(
   const parent = parentId === undefined ? undefined : parents.get(parentId);
   const releaseStatus = (game.release_dates ?? [])
     .map((id) => releaseStatuses.get(id))
-    .filter((status): status is string => status !== undefined)
+    .filter(isDisplayableReleaseStatus)
     .sort((a, b) => releaseStatusRank(a) - releaseStatusRank(b))[0];
   return {
     id: uuidV5(`igdb:game:${game.id}`),
@@ -338,6 +338,25 @@ export function genreTag(genre: { name: string; slug?: string }): string {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
   return words || slug(genre.slug ?? genre.name);
+}
+
+/**
+ * Release-date statuses worth printing. IGDB also records platform bookkeeping
+ * ("Digital Compatibility Release", "Next-Gen Optimization Patch Release") which
+ * the media page would uppercase into the status chip of a game that has one.
+ */
+const DISPLAYABLE_RELEASE_STATUSES = new Set([
+  'Full Release',
+  'Early Access',
+  'Alpha',
+  'Beta',
+  'Cancelled',
+  'Delisted',
+  'Offline',
+]);
+
+export function isDisplayableReleaseStatus(status: string | undefined): status is string {
+  return status !== undefined && DISPLAYABLE_RELEASE_STATUSES.has(status);
 }
 
 function releaseStatusRank(status: string): number {

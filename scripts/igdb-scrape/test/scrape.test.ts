@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { NON_WORK_GAME_TYPES, genreTag, parseArgs, uuidV5 } from '../scrape.ts';
+import {
+  NON_WORK_GAME_TYPES,
+  genreTag,
+  isDisplayableReleaseStatus,
+  parseArgs,
+  uuidV5,
+} from '../scrape.ts';
 
 /**
  * The seed mints its own ids because a scraper has no `@trackt/shared` to
@@ -59,5 +65,15 @@ describe('the genre tags the seed writes', () => {
     assert.equal(genreTag({ name: 'Shooter' }), 'shooter');
     // Nothing left to print: fall back to the id, which is always a tag.
     assert.equal(genreTag({ name: '(RPG)', slug: 'role-playing-rpg' }), 'role-playing-rpg');
+  });
+});
+
+describe('the release status the seed keeps', () => {
+  it('drops the platform bookkeeping IGDB records as a release status', () => {
+    assert.ok(isDisplayableReleaseStatus('Full Release'));
+    assert.ok(isDisplayableReleaseStatus('Early Access'));
+    assert.ok(!isDisplayableReleaseStatus('Next-Gen Optimization Patch Release'));
+    assert.ok(!isDisplayableReleaseStatus('Digital Compatibility Release'));
+    assert.ok(!isDisplayableReleaseStatus(undefined));
   });
 });
