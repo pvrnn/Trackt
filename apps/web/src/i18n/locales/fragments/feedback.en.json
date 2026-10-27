@@ -15,5 +15,12 @@
   "sent": "Feedback sent. Thanks.",
   "error": "Feedback couldn’t be sent. Try again.",
   "sending": "SENDING…",
-  "send": "SEND"
+  "send": "SEND",
+  "media": {
+    "title": "Report an issue",
+    "intro": "A cover that isn’t this title, a wrong episode count, a broken relation, a synopsis that describes something else: it all lands with the Trackt project.",
+    "about": "About “{{title}}”",
+    "placeholder": "What’s wrong on this page, and what should it say instead?",
+    "context": "Sent with this instance’s address, the page you’re on and this title, so the entry can be found and fixed. Your account details stay here."
+  }
 }
