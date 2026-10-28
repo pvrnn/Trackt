@@ -94,7 +94,10 @@ export async function seedCatalog(db: CatalogDb, file: CatalogSeedFile): Promise
             // Merged, not replaced, for the same reason as the artwork below: a
             // seed file scraped before a key was imported must not erase it.
             metadata: sql`${catalogMedia.metadata} || excluded.metadata`,
-            description: sql`excluded.description`,
+            // COALESCE: `--with-description` controls the payload of a scrape, not
+            // the stored row, so a re-scrape without it must not blank synopses an
+            // earlier run imported.
+            description: sql`coalesce(excluded.description, ${catalogMedia.description})`,
             // COALESCE: a seed file without artwork must not erase covers an
             // enrichment pass has since filled in.
             coverUrl: sql`coalesce(excluded.cover_url, ${catalogMedia.coverUrl})`,

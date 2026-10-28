@@ -77,12 +77,53 @@ The output also carries, per row:
 - `coverUrl` — the AniList CDN cover, **on by default** (`--without-cover` drops it)
 - `bannerUrl` — the wide `bannerImage`, on by default (`--without-banner` drops it)
 - `metadata` — provider facts with no catalog column: `providerScore` (AniList's
-  0–100 `averageScore`) and `format` (`tv`, `ova`, `special`, `tv short`…), which
-  is what separates a one-episode special from a one-episode series
+  0–100 `averageScore`), `format` (`tv`, `ova`, `special`, `tv short`…, which is
+  what separates a one-episode special from a one-episode series), `startDate`
+  and `endDate` (AniList publishes partial dates, so `YYYY`, `YYYY-MM` or
+  `YYYY-MM-DD`), `duration` (minutes per episode; a film's running time),
+  `volumes` (manga), `studios` (main studios only) and `credits` — the main
+  staff, see below
 - `synonyms` — at most four: romaji, English, one French, one Spanish
 - `urls` — `catalog_media.id → https://anilist.co/anime/<id>`, for redirection.
   It sits beside the table arrays rather than inside them: it is derivable from
   `external_ids` and has no catalog column, so the arrays stay insertable verbatim.
+
+Re-running a scrape without `--with-description` no longer blanks the synopses an
+earlier run imported: both the seed merge and the catalog seeder coalesce
+`description`, the way they already coalesce cover and banner. The flag controls
+what a run downloads, not what survives in the row.
+
+### Credits: who made it, never who voiced it
+
+AniList files every credit — director, key animator, dub scriptwriter, in-between
+— as an edge of one `staff` connection, so the importer keeps a whitelist per kind
+and stores the role as AniList spells it, minus a trailing parenthetical
+(`Story & Art (vols 1-41)` → `Story & Art`, which is how AniList qualifies
+roles instead of splitting them):
+
+| kind              | roles kept                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `anime`           | `Director`, `Original Creator`, `Original Story`, `Series Composition`, `Script`, `Character Design`, `Music` |
+| `manga`/`webtoon` | `Story & Art`, `Story`, `Art`, `Original Creator`, `Original Story`                                           |
+
+`{role, name}` pairs land in `metadata.credits`; `metadata.studios` is the
+`isMain` studio list. Voice actors are a separate `characters` connection and are
+never requested.
+
+Two API limits shape this:
+
+- A nested connection is capped at **25 rows per page** whatever `perPage` says,
+  and the unsorted default mixes key animators into them. `staff(perPage: 25,
+sort: [RELEVANCE])` is what makes those 25 the work's main staff; a work with
+  fewer than 25 recorded credits simply returns fewer.
+- Credits and studios are asked for **on the top-level work only**. Repeating 25
+  staff edges on each of a page's ~5 relation targets would multiply a 290 KB
+  page; a target that never enters the walk as a top-level work is a thin row,
+  which is the same trade-off the seed already makes for other fields.
+
+Per-volume chapter counts are not available: AniList states totals (`chapters`,
+`volumes`) and has no chapter entity, so the seed carries the two totals and
+nothing per volume.
 
 `externalIds` are `{anilist, mal}` here; AniDB and ANN ids only exist on a MAL
 page (AniList's `externalLinks` are streaming links carrying AniList's own site
@@ -178,6 +219,34 @@ from both sides, so each label maps to a direction as well as a type:
 `--map <label>=<type>` overrides any of these, but an override cannot rescue a
 target whose MAL `Type` is not a trackable work (`Music`, `Novel`, …) — those are
 skipped and listed under `report.skipped` rather than guessed into a row.
+
+### Pairs the providers leave unlinked
+
+```sh
+pnpm link:adaptations            # dry run: lists the pairs and the edge each earns
+pnpm link:adaptations -- --apply
+```
+
+The two AniList seeds are closed graphs — each ships the other kind's rows it
+relates to — so a work can appear in both while no edge joins the two rows: an
+anime and the manga of the same name and year that the ranking walk reached from
+different spines. Same-title-and-year pairs with no edge are the ones at risk of
+showing up in search as two unrelated works.
+
+The script only claims what AniList states, asking it directly:
+
+- `ADAPTATION` naming **that** manga → `adaptation`, print → screen (the same
+  direction rule as the table above), so the manga page reads "adaptation" and
+  the anime page "source";
+- `ALTERNATIVE`, `SUMMARY`, `OTHER`, `CHARACTER`, or no relation at all →
+  `related`. That covers the honest cases: `Citrus` anime ↔ `Citrus+` (the sequel
+  manga AniList points at instead), `Steins;Gate` ↔ `Steins Gate!`.
+
+Edges go to every seed that closes the pair on its own, and to the manga seed
+(loaded last) for the rest, since the seeder resolves endpoints against the whole
+database. Removals and derivations are logged to
+`apps/catalog/seed/adaptation-links.json`, and the seeds are backed up to
+`*.pre-link.bak` first.
 
 ## Kinds
 

@@ -125,6 +125,13 @@ export function createAniListClient(options: AniListClientOptions = {}): AniList
  * Media shape
  * ------------------------------------------------------------------ */
 
+/** AniList's partial dates: `month`/`day` are unknown often enough to be null. */
+export interface AniListDate {
+  year?: number | null;
+  month?: number | null;
+  day?: number | null;
+}
+
 /** The node fields a relation *target* needs to be publishable in its own right. */
 export interface AniListNode {
   id: number;
@@ -140,11 +147,26 @@ export interface AniListNode {
   genres?: string[] | null;
   /** AniList's own 0–100 weighted mean of user scores; null when unscored. */
   averageScore?: number | null;
-  startDate?: { year?: number | null } | null;
+  startDate?: AniListDate | null;
+  endDate?: AniListDate | null;
+  /** Minutes per episode; for a film, its running time. */
+  duration?: number | null;
+  /** Published volumes; manga only, and null for most web-published works. */
+  volumes?: number | null;
   coverImage?: { large?: string | null } | null;
   /** Wide header artwork, 1900×400-ish; null for most manga and older works. */
   bannerImage?: string | null;
   description?: string | null;
+  /** Main studios only; sub-contractors are filed without `isMain`. */
+  studios?: { nodes: { name: string }[] } | null;
+  /** Credit edges of the work itself; relation targets do not carry them. */
+  staff?: { edges: AniListStaffEdge[] } | null;
+}
+
+/** One AniList credit. `role` is free text: `Director`, `Story & Art (vols 1-41)`… */
+export interface AniListStaffEdge {
+  role: string;
+  node: { name: { full?: string | null } | null } | null;
 }
 
 export interface AniListMedia extends AniListNode {
@@ -159,7 +181,24 @@ export interface AniListPage<T> {
 const NODE_FIELDS = `
   id idMal type format status seasonYear episodes chapters
   title { romaji english native }
-  synonyms genres averageScore startDate { year } coverImage { large } bannerImage
+  synonyms genres averageScore startDate { year month day } endDate { year month day }
+  duration volumes coverImage { large } bannerImage
+`;
+
+/**
+ * Credits and studios are asked for on the work itself only: they are the
+ * largest part of a page payload, and repeating them on every relation target
+ * would multiply a 50-work request by its edges for rows the walk reaches as
+ * their own top-level work anyway.
+ *
+ * `staff` is a nested connection, and AniList caps nested connections at 25
+ * rows per page whatever `perPage` says. Sorting by `RELEVANCE` is what makes
+ * those 25 the work's main staff rather than 25 key animators: the unsorted
+ * default mixes in episode-level roles.
+ */
+const CREDITS_FIELDS = `
+  studios(isMain: true) { nodes { name } }
+  staff(perPage: 25, sort: [RELEVANCE]) { edges { role node { name { full } } } }
 `;
 
 /**
@@ -172,6 +211,7 @@ export function mediaFields(options: { withDescription?: boolean } = {}): string
   return `
     ${NODE_FIELDS}
     ${description}
+    ${CREDITS_FIELDS}
     relations {
       edges {
         relationType

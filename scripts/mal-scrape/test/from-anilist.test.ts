@@ -10,6 +10,7 @@ import {
   curateSynonyms,
   importAniListMedia,
   isLatinTitle,
+  isoDate,
   meaningfulDescription,
   mapAniListKind,
   mapAniListStatus,
@@ -123,12 +124,69 @@ describe('mapping an AniList record', () => {
     assert.deepEqual(row?.synonyms, ['Sousou no Frieren', 'Frieren: Más allá del final del viaje']);
   });
 
-  it('carries the provider score and format in the row metadata', () => {
-    assert.deepEqual(rowFromMedia(frieren).row?.metadata, { format: 'tv', providerScore: 91 });
-    assert.deepEqual(rowFromMedia(fmab).row?.metadata, { format: 'tv', providerScore: 88 });
-    // Asked for in the query, or the field silently never arrives.
-    assert.match(mediaFields(), /averageScore/);
-    assert.match(mediaFields(), /format/);
+  it('carries the provider facts the catalog has no column for', () => {
+    const metadata = rowFromMedia(frieren).row?.metadata ?? {};
+    assert.equal(metadata.format, 'tv');
+    assert.equal(metadata.providerScore, 91);
+    assert.equal(metadata.startDate, '2023-09-29');
+    assert.equal(metadata.endDate, '2024-03-22');
+    assert.equal(metadata.duration, 24);
+    assert.deepEqual(metadata.studios, ['MADHOUSE']);
+    // Asked for in the query, or the fields silently never arrive.
+    for (const field of ['averageScore', 'duration', 'volumes', 'endDate', 'studios', 'staff']) {
+      assert.match(mediaFields(), new RegExp(field));
+    }
+    // Credits and studios sit on the work only: repeating 25 staff edges on each
+    // of a page's relation targets would multiply the payload.
+    assert.doesNotMatch(mediaFields().slice(mediaFields().indexOf('relations')), /staff/);
+  });
+
+  it('keeps the main staff and drops episode-level and localisation credits', () => {
+    assert.deepEqual(rowFromMedia(frieren).row?.metadata.credits, [
+      { role: 'Original Story', name: 'Kanehito Yamada' },
+      { role: 'Director', name: 'Keiichirou Saitou' },
+      { role: 'Series Composition', name: 'Tomohiro Suzuki' },
+      { role: 'Character Design', name: 'Reiko Nagasawa' },
+    ]);
+    // FMAB's `Original Creator` and `Music` are the roles Frieren files
+    // differently; `Supervisor`, `Main Animator` and `ADR Script` are not kept.
+    const fmabCredits = rowFromMedia(fmab).row?.metadata.credits ?? [];
+    assert.deepEqual(
+      fmabCredits.map((credit) => credit.role),
+      ['Original Creator', 'Director', 'Series Composition', 'Character Design', 'Music'],
+    );
+  });
+
+  it('reads a mangaka off either credit style, qualifier or not', () => {
+    const manga = {
+      ...frieren,
+      type: 'MANGA',
+      format: 'MANGA',
+      chapters: 47,
+      volumes: 6,
+      staff: {
+        edges: [
+          { role: 'Story & Art (vols 1-41)', node: { name: { full: 'Kentarou Miura' } } },
+          { role: 'Story', node: { name: { full: 'Tsugumi Ohba' } } },
+          { role: 'Art', node: { name: { full: 'Takeshi Obata' } } },
+          { role: 'Assistant', node: { name: { full: 'Someone Else' } } },
+        ],
+      },
+    } as unknown as AniListNodeLike;
+    const row = rowFromMedia(manga).row;
+    assert.equal(row?.kind, 'manga');
+    assert.equal(row?.partCount, 47, 'chapters, not volumes');
+    assert.equal(row?.metadata.volumes, 6);
+    assert.deepEqual(row?.metadata.credits, [
+      { role: 'Story & Art', name: 'Kentarou Miura' },
+      { role: 'Story', name: 'Tsugumi Ohba' },
+      { role: 'Art', name: 'Takeshi Obata' },
+    ]);
+    // AniList publishes partial dates: only the parts it states are written.
+    assert.equal(isoDate({ year: 2016 }), '2016');
+    assert.equal(isoDate({ year: 2016, month: 4 }), '2016-04');
+    assert.equal(isoDate({ year: 2016, month: 4, day: 4 }), '2016-04-04');
+    assert.equal(isoDate({ year: null }), null);
   });
 
   it('records the provider format, which is what kind cannot say', () => {
@@ -149,7 +207,7 @@ describe('mapping an AniList record', () => {
     assert.equal(short.row?.metadata.format, 'tv short');
     // An unscored record carries no score key at all.
     const unscored = rowFromMedia({ ...frieren, format: 'OVA', averageScore: null });
-    assert.deepEqual(unscored.row?.metadata, { format: 'ova' });
+    assert.equal(unscored.row?.metadata.providerScore, undefined);
   });
 
   it('walks the manga namespace when --kind manga is given', () => {
@@ -295,6 +353,24 @@ describe('edges from AniList relations', () => {
     );
     assert.ok(page.media.length > 2, 'relation targets are rows too');
   });
+
+  it('keeps the top-level row when a work is also a target on the same page', () => {
+    // The relation node carries no credits or studios, so letting it overwrite
+    // the work's own row would drop the very fields the target is poorer on —
+    // the order of the two within the page is what decides, which is a trap.
+    const referrer = {
+      ...fmab,
+      id: 999_001,
+      idMal: 999_001,
+      relations: { edges: [{ relationType: 'SEQUEL', node: frieren }] },
+    } as AniListMedia;
+    const row = importAniListMedia([referrer, frieren]).media.find(
+      (candidate) => candidate.id === canonicalMediaId('anime', frieren.id),
+    );
+    assert.ok(row?.metadata.credits instanceof Array, 'credits survive the target row');
+    assert.deepEqual(row?.metadata.studios, ['MADHOUSE']);
+    assert.equal(row?.metadata.format, 'tv');
+  });
 });
 
 describe('season numbers from the sequel chain', () => {
@@ -352,6 +428,35 @@ describe('season numbers from the sequel chain', () => {
     );
     assignSeasonNumbers(file);
     assert.equal(seasonOf(file, 40), 3);
+  });
+
+  it('ignores a sequel edge that crosses media kinds', () => {
+    // AniList files a manga spin-off as a sequel of its anime (Cyberpunk:
+    // Edgerunners MADNESS), which must not push the 2022 season to "Season 2".
+    const file = seed([10, 20], [[10, 20]]);
+    file.catalog_media.push({
+      ...row(90),
+      kind: 'manga',
+      id: canonicalMediaId('manga', 90),
+    });
+    file.catalog_media_relation.push({
+      fromId: canonicalMediaId('manga', 90),
+      toId: canonicalMediaId('anime', 20),
+      type: 'sequel',
+    });
+    assignSeasonNumbers(file);
+    assert.equal(seasonOf(file, 20), 2, 'the anime sequel still counts');
+    assert.equal(seasonOf(file, 10), 1);
+    // …and without its anime predecessor the same work is a first season.
+    const alone = seed([20], []);
+    alone.catalog_media.push({ ...row(90), kind: 'manga', id: canonicalMediaId('manga', 90) });
+    alone.catalog_media_relation.push({
+      fromId: canonicalMediaId('manga', 90),
+      toId: canonicalMediaId('anime', 20),
+      type: 'sequel',
+    });
+    assignSeasonNumbers(alone);
+    assert.equal(seasonOf(alone, 20), 1);
   });
 
   it('leaves an unconnected work at 1 and survives a cycle', () => {

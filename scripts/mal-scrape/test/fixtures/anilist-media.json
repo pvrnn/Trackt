@@ -42,7 +42,9 @@
             "Fantasy"
           ],
           "startDate": {
-            "year": 2009
+            "year": 2009,
+            "month": 4,
+            "day": 5
           },
           "coverImage": {
             "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx5114-nSWCgQlmOMtj.jpg"
@@ -287,7 +289,225 @@
               }
             ]
           },
-          "averageScore": 88
+          "averageScore": 88,
+          "endDate": {
+            "year": 2010,
+            "month": 7,
+            "day": 4
+          },
+          "duration": 25,
+          "volumes": null,
+          "studios": {
+            "nodes": [
+              {
+                "name": "bones"
+              }
+            ]
+          },
+          "staff": {
+            "edges": [
+              {
+                "role": "Original Creator",
+                "node": {
+                  "name": {
+                    "full": "Hiromu Arakawa"
+                  }
+                }
+              },
+              {
+                "role": "Director",
+                "node": {
+                  "name": {
+                    "full": "Yasuhiro Irie"
+                  }
+                }
+              },
+              {
+                "role": "Supervisor",
+                "node": {
+                  "name": {
+                    "full": "Yuuichi Shimomura"
+                  }
+                }
+              },
+              {
+                "role": "Series Composition",
+                "node": {
+                  "name": {
+                    "full": "Hiroshi Oonogi"
+                  }
+                }
+              },
+              {
+                "role": "Literary Arts",
+                "node": {
+                  "name": {
+                    "full": "Yoneki Tsumura"
+                  }
+                }
+              },
+              {
+                "role": "Character Design",
+                "node": {
+                  "name": {
+                    "full": "Hiroki Kanno"
+                  }
+                }
+              },
+              {
+                "role": "Mechanical Design",
+                "node": {
+                  "name": {
+                    "full": "Masahisa Suzuki"
+                  }
+                }
+              },
+              {
+                "role": "Title Logo Design",
+                "node": {
+                  "name": {
+                    "full": "Tsuyoshi Kusano"
+                  }
+                }
+              },
+              {
+                "role": "Main Animator",
+                "node": {
+                  "name": {
+                    "full": "Hidenori Fukuoka"
+                  }
+                }
+              },
+              {
+                "role": "Main Animator",
+                "node": {
+                  "name": {
+                    "full": "Yoshimichi Kameda"
+                  }
+                }
+              },
+              {
+                "role": "Art Director",
+                "node": {
+                  "name": {
+                    "full": "Takeshi Satou"
+                  }
+                }
+              },
+              {
+                "role": "Art Design",
+                "node": {
+                  "name": {
+                    "full": "Kazushige Kanehira"
+                  }
+                }
+              },
+              {
+                "role": "Color Design",
+                "node": {
+                  "name": {
+                    "full": "Fusako Nakao"
+                  }
+                }
+              },
+              {
+                "role": "Director of Photography",
+                "node": {
+                  "name": {
+                    "full": "Mayuko Furumoto"
+                  }
+                }
+              },
+              {
+                "role": "Director of Photography",
+                "node": {
+                  "name": {
+                    "full": "Yoshiyuki Takei"
+                  }
+                }
+              },
+              {
+                "role": "Editing",
+                "node": {
+                  "name": {
+                    "full": "Gou Sadamatsu"
+                  }
+                }
+              },
+              {
+                "role": "Sound Director",
+                "node": {
+                  "name": {
+                    "full": "Masafumi Mima"
+                  }
+                }
+              },
+              {
+                "role": "Sound Effects",
+                "node": {
+                  "name": {
+                    "full": "Shizuo Kurahashi"
+                  }
+                }
+              },
+              {
+                "role": "Sound Effects Assistance",
+                "node": {
+                  "name": {
+                    "full": "Tomokazu Mitsui"
+                  }
+                }
+              },
+              {
+                "role": "Music",
+                "node": {
+                  "name": {
+                    "full": "Akira Senju"
+                  }
+                }
+              },
+              {
+                "role": "Music Producer",
+                "node": {
+                  "name": {
+                    "full": "Hiroto Shinohara"
+                  }
+                }
+              },
+              {
+                "role": "Production Desk",
+                "node": {
+                  "name": {
+                    "full": "Mari Suzuki"
+                  }
+                }
+              },
+              {
+                "role": "Design Manager",
+                "node": {
+                  "name": {
+                    "full": "Satoko Iizuka"
+                  }
+                }
+              },
+              {
+                "role": "ADR Script (English; eps. 1, 2, 3)",
+                "node": {
+                  "name": {
+                    "full": "John Burgmeier"
+                  }
+                }
+              },
+              {
+                "role": "Planning",
+                "node": {
+                  "name": {
+                    "full": "Masahiko Minami"
+                  }
+                }
+              }
+            ]
+          }
         },
         {
           "id": 154587,
@@ -326,7 +546,9 @@
             "Fantasy"
           ],
           "startDate": {
-            "year": 2023
+            "year": 2023,
+            "month": 9,
+            "day": 29
           },
           "coverImage": {
             "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx154587-qQTzQnEJJ3oB.jpg"
@@ -542,7 +764,225 @@
               }
             ]
           },
-          "averageScore": 91
+          "averageScore": 91,
+          "endDate": {
+            "year": 2024,
+            "month": 3,
+            "day": 22
+          },
+          "duration": 24,
+          "volumes": null,
+          "studios": {
+            "nodes": [
+              {
+                "name": "MADHOUSE"
+              }
+            ]
+          },
+          "staff": {
+            "edges": [
+              {
+                "role": "Original Story",
+                "node": {
+                  "name": {
+                    "full": "Kanehito Yamada"
+                  }
+                }
+              },
+              {
+                "role": "Original Character Design",
+                "node": {
+                  "name": {
+                    "full": "Tsukasa Abe"
+                  }
+                }
+              },
+              {
+                "role": "Director",
+                "node": {
+                  "name": {
+                    "full": "Keiichirou Saitou"
+                  }
+                }
+              },
+              {
+                "role": "Series Composition",
+                "node": {
+                  "name": {
+                    "full": "Tomohiro Suzuki"
+                  }
+                }
+              },
+              {
+                "role": "Action Director",
+                "node": {
+                  "name": {
+                    "full": "Tooru Iwazawa"
+                  }
+                }
+              },
+              {
+                "role": "Character Design",
+                "node": {
+                  "name": {
+                    "full": "Reiko Nagasawa"
+                  }
+                }
+              },
+              {
+                "role": "Original Work Assistance",
+                "node": {
+                  "name": {
+                    "full": "Hironobu Yoshinaka"
+                  }
+                }
+              },
+              {
+                "role": "Original Work Assistance",
+                "node": {
+                  "name": {
+                    "full": "Katsumasa Ogura"
+                  }
+                }
+              },
+              {
+                "role": "Original Work Assistance",
+                "node": {
+                  "name": {
+                    "full": "Kazunori Ooshima"
+                  }
+                }
+              },
+              {
+                "role": "Title Logo Design",
+                "node": {
+                  "name": {
+                    "full": "Masato Ishizawa"
+                  }
+                }
+              },
+              {
+                "role": "Design Works",
+                "node": {
+                  "name": {
+                    "full": "Akiko Takase"
+                  }
+                }
+              },
+              {
+                "role": "Design Works",
+                "node": {
+                  "name": {
+                    "full": "Ran Kamezawa"
+                  }
+                }
+              },
+              {
+                "role": "Design Works",
+                "node": {
+                  "name": {
+                    "full": "Keita Nagasaka"
+                  }
+                }
+              },
+              {
+                "role": "Design Works",
+                "node": {
+                  "name": {
+                    "full": "Emi Yamasaki"
+                  }
+                }
+              },
+              {
+                "role": "Design Works",
+                "node": {
+                  "name": {
+                    "full": "Ayaka Minoshima"
+                  }
+                }
+              },
+              {
+                "role": "Design Works",
+                "node": {
+                  "name": {
+                    "full": "Yoshiko Matsumura"
+                  }
+                }
+              },
+              {
+                "role": "Design Works",
+                "node": {
+                  "name": {
+                    "full": "Mai Toda"
+                  }
+                }
+              },
+              {
+                "role": "Art Director",
+                "node": {
+                  "name": {
+                    "full": "Sawako Takagi"
+                  }
+                }
+              },
+              {
+                "role": "Art Design",
+                "node": {
+                  "name": {
+                    "full": "Shinji Sugiyama"
+                  }
+                }
+              },
+              {
+                "role": "Concept Art",
+                "node": {
+                  "name": {
+                    "full": "Seiko Yoshioka"
+                  }
+                }
+              },
+              {
+                "role": "Color Design",
+                "node": {
+                  "name": {
+                    "full": "Harue Oono"
+                  }
+                }
+              },
+              {
+                "role": "Director of Photography",
+                "node": {
+                  "name": {
+                    "full": "Akane Fushihara"
+                  }
+                }
+              },
+              {
+                "role": "Assistant Director of Photography",
+                "node": {
+                  "name": {
+                    "full": "Mutsuki Tsugioka"
+                  }
+                }
+              },
+              {
+                "role": "Editing",
+                "node": {
+                  "name": {
+                    "full": "Kashiko Kimura"
+                  }
+                }
+              },
+              {
+                "role": "CG Director",
+                "node": {
+                  "name": {
+                    "full": "Shigenori Hirozumi"
+                  }
+                }
+              }
+            ]
+          }
         }
       ]
     }

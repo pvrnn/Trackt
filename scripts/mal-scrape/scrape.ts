@@ -112,6 +112,12 @@ export interface MalPage {
 export const PROVIDER_SCORE_KEY = 'providerScore';
 export const FORMAT_KEY = 'format';
 
+/** One provider credit, kept whole: the role is the provider's own vocabulary. */
+export interface ProviderCredit {
+  role: string;
+  name: string;
+}
+
 /**
  * `catalog_media.metadata` for a work: the provider facts that are not part of
  * the catalog's numbered columns.
@@ -121,15 +127,30 @@ export const FORMAT_KEY = 'format';
  * sources disagree (AniList has `TV_SHORT`, MAL has `CM`/`PV`). It carries what
  * `kind` cannot say: a TV special and a one-episode series are both `anime` with
  * `partCount: 1`, and only the format tells them apart.
+ *
+ * Dates arrive already reduced to `YYYY`, `YYYY-MM` or `YYYY-MM-DD`: providers
+ * publish partial ones, and the column they would need does not exist.
  */
 export function providerMetadata(facts: {
   score?: number | null;
   format?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  duration?: number | null;
+  volumes?: number | null;
+  studios?: string[] | null;
+  credits?: ProviderCredit[] | null;
 }): Record<string, unknown> {
   const metadata: Record<string, unknown> = {};
   const format = facts.format?.trim().toLowerCase().replaceAll('_', ' ');
   if (format) metadata[FORMAT_KEY] = format;
   if (facts.score !== null && facts.score !== undefined) metadata[PROVIDER_SCORE_KEY] = facts.score;
+  if (facts.startDate) metadata.startDate = facts.startDate;
+  if (facts.endDate) metadata.endDate = facts.endDate;
+  if (facts.duration !== null && facts.duration !== undefined) metadata.duration = facts.duration;
+  if (facts.volumes !== null && facts.volumes !== undefined) metadata.volumes = facts.volumes;
+  if (facts.studios?.length) metadata.studios = facts.studios;
+  if (facts.credits?.length) metadata.credits = facts.credits;
   return metadata;
 }
 
@@ -1388,7 +1409,26 @@ export function toSeedFile(payload: Payload): SeedFile {
 export function mergeSeedFiles(base: SeedFile | null, next: SeedFile): SeedFile {
   if (!base) return next;
   const media = new Map(base.catalog_media.map((row) => [row.id, row]));
-  for (const row of next.catalog_media) media.set(row.id, row);
+  for (const row of next.catalog_media) {
+    const previous = media.get(row.id);
+    // Two columns a scrape does not own alone: `dedup:tmdb` folds `tmdb` into an
+    // AniList row's external ids and metadata, and replacing the row wholesale on
+    // a re-scrape would drop it — the duplicate is gone from the TMDB seed by
+    // then, so it cannot be derived again.
+    media.set(
+      row.id,
+      previous
+        ? {
+            ...row,
+            externalIds: { ...previous.externalIds, ...row.externalIds },
+            metadata: { ...previous.metadata, ...row.metadata },
+            // Same reason: `--with-description` buys a paragraph per work, so a
+            // re-scrape without it must not blank a synopsis already imported.
+            description: row.description ?? previous.description,
+          }
+        : row,
+    );
+  }
   const relations = new Map(base.catalog_media_relation.map((row) => [relationKey(row), row]));
   for (const row of next.catalog_media_relation) relations.set(relationKey(row), row);
   const urls = { ...base.urls, ...next.urls };
