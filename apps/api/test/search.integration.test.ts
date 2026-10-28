@@ -133,6 +133,130 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
     }
   });
 
+  it('prefers the main work over its spin-off when the query names the franchise', async () => {
+    // ADR-0010: the spin-off's shorter title trigrams better against the query
+    // (0.28 vs 0.21), which is what put it first before the prefix-tier format
+    // class existed. The main work is the answer to a franchise-name query.
+    const ids = {
+      short: '9a4a2a5b-6f04-46b4-9a01-000000000015',
+      main: '9a4a2a5b-6f04-46b4-9a01-000000000016',
+      season: '9a4a2a5b-6f04-46b4-9a01-000000000017',
+    };
+    await db.insert(media).values([
+      {
+        id: ids.short,
+        kind: 'anime',
+        title: 'Zero Probe ~Break Time~',
+        slug: 'zero-probe-break-time',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 65, format: 'tv short' },
+      },
+      {
+        id: ids.main,
+        kind: 'anime',
+        title: 'Zero Probe -Main Line-',
+        slug: 'zero-probe-main-line',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 81, format: 'tv' },
+      },
+      {
+        id: ids.season,
+        kind: 'anime',
+        title: 'Zero Probe -Main Line- Season 2',
+        slug: 'zero-probe-main-line-season-2',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 83, format: 'tv' },
+      },
+    ]);
+
+    try {
+      const { results } = await search('q=Zero%20Probe');
+      expect(results.slice(0, 3).map((result) => (result as { id: string }).id)).toEqual([
+        ids.main,
+        ids.season,
+        ids.short,
+      ]);
+    } finally {
+      for (const id of Object.values(ids)) await db.delete(media).where(eq(media.id, id));
+    }
+  });
+
+  it('keeps a derived format out of the penalty outside the prefix tier', async () => {
+    // The format class is a franchise-query tie-break, not a global demotion: a
+    // short that describes exactly what was typed still wins on popularity.
+    const ids = {
+      short: '9a4a2a5b-6f04-46b4-9a01-000000000018',
+      main: '9a4a2a5b-6f04-46b4-9a01-000000000019',
+    };
+    await db.insert(media).values([
+      {
+        id: ids.short,
+        kind: 'anime',
+        title: 'Alpha Probe Times',
+        slug: 'alpha-probe-times',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 20, format: 'tv short' },
+      },
+      {
+        id: ids.main,
+        kind: 'anime',
+        title: 'Alpha Probe Times plus',
+        slug: 'alpha-probe-times-plus',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 99, format: 'tv' },
+      },
+    ]);
+
+    try {
+      const { results } = await search('q=Probe%20Times');
+      const top = results[0] as { id: string };
+      expect(top.id).toBe(ids.main);
+    } finally {
+      for (const id of Object.values(ids)) await db.delete(media).where(eq(media.id, id));
+    }
+  });
+
+  it('lets an exact match outrank a more popular prefix match', async () => {
+    // The tier is the integer part of `rank` and the signals below it sum to
+    // less than one, so no amount of popularity or format bonus crosses it.
+    const ids = {
+      exact: '9a4a2a5b-6f04-46b4-9a01-000000000020',
+      prefix: '9a4a2a5b-6f04-46b4-9a01-000000000021',
+    };
+    await db.insert(media).values([
+      {
+        id: ids.exact,
+        kind: 'anime',
+        title: 'Tier Probe',
+        slug: 'tier-probe',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 10, format: 'tv short' },
+      },
+      {
+        id: ids.prefix,
+        kind: 'anime',
+        title: 'Tier Probe Chronicles',
+        slug: 'tier-probe-chronicles',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 100, format: 'tv' },
+      },
+    ]);
+
+    try {
+      const { results } = await search('q=Tier%20Probe');
+      expect((results[0] as { id: string }).id).toBe(ids.exact);
+    } finally {
+      for (const id of Object.values(ids)) await db.delete(media).where(eq(media.id, id));
+    }
+  });
+
   it('matches accented titles with or without accents', async () => {
     const id = '9a4a2a5b-6f04-46b4-9a01-000000000014';
     await db.insert(media).values({

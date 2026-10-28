@@ -16,5 +16,6 @@ export * from './news-client.js';
 export * from './profile.js';
 export * from './queues.js';
 export * from './rating.js';
+export * from './search-rank.js';
 export * from './slug.js';
 export * from './tracking.js';
