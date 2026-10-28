@@ -39,9 +39,13 @@ describe('canonicalMediaId', () => {
     // These IDs are shared by every Trackt instance in existence — never update them.
     expect(canonicalMediaId('movie', 603)).toBe('2e1c929b-ab13-5b76-9706-c68e438b6a03');
     expect(canonicalMediaId('anime', 1)).toBe('ab89c239-b251-51e5-b339-3c8c3904f52b');
+    expect(canonicalMediaId('game', 55864)).toBe('b63ef2a5-7ab3-5a75-b9ec-a50a58a6831e');
   });
 
   it('uses the identity provider of each kind', () => {
+    expect(canonicalMediaId('game', 55864)).toBe(
+      uuidv5(TRACKT_CATALOG_NAMESPACE, canonicalMediaKey('igdb', 'game', 55864)),
+    );
     expect(canonicalMediaId('series', 1396)).toBe(
       uuidv5(TRACKT_CATALOG_NAMESPACE, canonicalMediaKey('tmdb', 'series', 1396)),
     );

@@ -7,9 +7,10 @@ import { MEDIA_KINDS, TRACKING_VERB_BY_MEDIA, trackingVerbLabel } from '../src/i
  * wrong entry would have the UI telling people they "watched" a manga.
  */
 describe('tracking verb', () => {
-  it('watches video and reads print', () => {
+  it('uses the right verb for video, print, and games', () => {
     expect(TRACKING_VERB_BY_MEDIA).toEqual({
       movie: 'watch',
+      game: 'play',
       series: 'watch',
       anime: 'watch',
       manga: 'read',
@@ -23,6 +24,7 @@ describe('tracking verb', () => {
 
   it('labels each kind in past tense by default', () => {
     expect(trackingVerbLabel('movie')).toBe('Watched');
+    expect(trackingVerbLabel('game')).toBe('Played');
     expect(trackingVerbLabel('series')).toBe('Watched');
     expect(trackingVerbLabel('anime')).toBe('Watched');
     expect(trackingVerbLabel('manga')).toBe('Read');
@@ -31,6 +33,7 @@ describe('tracking verb', () => {
 
   it('labels each kind in present tense on request', () => {
     expect(trackingVerbLabel('movie', 'present')).toBe('Watch');
+    expect(trackingVerbLabel('game', 'present')).toBe('Play');
     expect(trackingVerbLabel('series', 'present')).toBe('Watch');
     expect(trackingVerbLabel('anime', 'present')).toBe('Watch');
     expect(trackingVerbLabel('manga', 'present')).toBe('Read');

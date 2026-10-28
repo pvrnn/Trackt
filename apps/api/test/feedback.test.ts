@@ -51,4 +51,26 @@ describe('feedback route', () => {
     });
     expect(response.statusCode).toBe(400);
   });
+
+  it('accepts the work a media-page report names, and only as a uuid', async () => {
+    const scoped = await app.inject({
+      method: 'POST',
+      url: '/api/v1/feedback',
+      payload: {
+        ...valid,
+        // Canonical media ids are UUIDv5, and the version nibble is checked.
+        mediaId: '6f9619ff-8b86-5011-a42d-00cf4fc964ff',
+        mediaTitle: 'Ashfall Chronicle',
+      },
+    });
+    // Past validation, stopped by the session gate — the body itself is fine.
+    expect(scoped.statusCode).toBe(401);
+
+    const slugAsId = await app.inject({
+      method: 'POST',
+      url: '/api/v1/feedback',
+      payload: { ...valid, mediaId: 'ashfall-chronicle-2025' },
+    });
+    expect(slugAsId.statusCode).toBe(400);
+  });
 });

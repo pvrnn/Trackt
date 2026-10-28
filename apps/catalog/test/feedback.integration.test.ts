@@ -53,6 +53,10 @@ const report = {
   category: 'bug',
   message: 'Marking an episode watched left the card unchecked until a reload.',
   route: '/media/ashfall-chronicle-2025',
+  // Canonical media ids are UUIDv5 (ADR-0002); `z.uuid()` checks the version
+  // nibble, so a made-up v0 id is rejected as firmly as a slug.
+  mediaId: '6f9619ff-8b86-5011-a42d-00cf4fc964ff',
+  mediaTitle: 'Ashfall Chronicle',
   instanceUrl: 'https://trackt.example.com',
   appVersion: '0.1.0',
 };
@@ -91,6 +95,7 @@ describe.runIf(available)('feedback (postgres)', () => {
     expect(Date.parse(receipt.createdAt)).not.toBeNaN();
 
     const [row] = await db.select().from(feedback);
+    // Includes the work a media-page report names, beside the route.
     expect(row).toMatchObject(report);
   });
 
@@ -103,7 +108,13 @@ describe.runIf(available)('feedback (postgres)', () => {
 
     expect(response.statusCode).toBe(201);
     const [row] = await db.select().from(feedback);
-    expect(row).toMatchObject({ route: null, instanceUrl: null, appVersion: null });
+    expect(row).toMatchObject({
+      route: null,
+      mediaId: null,
+      mediaTitle: null,
+      instanceUrl: null,
+      appVersion: null,
+    });
   });
 
   it('rejects an unknown category and a too-short message', async () => {
@@ -135,6 +146,8 @@ describe.runIf(available)('feedback (postgres)', () => {
       {
         category: 'feature',
         message: 'The second thing that went wrong today.',
+        mediaId: '6f9619ff-8b86-5011-a42d-00cf4fc964ff',
+        mediaTitle: 'Ashfall Chronicle',
         createdAt: new Date('2026-01-02T09:00:00.000Z'),
       },
     ]);
@@ -151,5 +164,11 @@ describe.runIf(available)('feedback (postgres)', () => {
       'The second thing that went wrong today.',
       'The first thing that went wrong today.',
     ]);
+    // The inbox names the work, so a media report reads without a lookup.
+    expect(entries[0]).toMatchObject({
+      mediaId: '6f9619ff-8b86-5011-a42d-00cf4fc964ff',
+      mediaTitle: 'Ashfall Chronicle',
+    });
+    expect(entries[1]).toMatchObject({ mediaId: null, mediaTitle: null });
   });
 });

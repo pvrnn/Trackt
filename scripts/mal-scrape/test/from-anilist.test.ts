@@ -7,13 +7,16 @@ import {
   DEFAULT_TYPES,
   assignSeasonNumbers,
   clock,
+  curateSynonyms,
   importAniListMedia,
+  isLatinTitle,
   meaningfulDescription,
   mapAniListKind,
   mapAniListStatus,
   parseFromAniListArgs,
   planEdges,
   rowFromMedia,
+  titleLanguage,
   walkImport,
   type FromAniListOptions,
 } from '../from-anilist.ts';
@@ -41,6 +44,64 @@ const payload = JSON.parse(readFileSync(join(here, 'fixtures', 'anilist-media.js
 const frieren = payload.data.Page.media.find((media) => media.id === 154587)!;
 const fmab = payload.data.Page.media.find((media) => media.id === 5114)!;
 
+describe('curating synonyms', () => {
+  it('keeps the romaji original and the English title, and nothing else Latin', () => {
+    assert.deepEqual(curateSynonyms(fmab), ['Hagane no Renkinjutsushi: FULLMETAL ALCHEMIST']);
+  });
+
+  it('drops every translation written in another script', () => {
+    // Frieren's list is mostly Hebrew, Arabic, Cyrillic, Thai, Hangul and kana.
+    const kept = curateSynonyms(frieren);
+    assert.ok(kept.every(isLatinTitle), kept.join(' | '));
+  });
+
+  it('keeps at most one French and one Spanish title, the best-scoring one', () => {
+    assert.deepEqual(
+      curateSynonyms({
+        title: { romaji: 'Sen to Chihiro no Kamikakushi', english: 'Spirited Away' },
+        synonyms: [
+          '千と千尋の神隠し',
+          'Le Voyage de Chihiro',
+          'La Città Incantata',
+          'El Viaje de Chihiro',
+          'Chihiros Reise ins Zauberland',
+          'A Viagem de Chihiro',
+          'Унесённые призраками',
+        ],
+      }),
+      ['Sen to Chihiro no Kamikakushi', 'Le Voyage de Chihiro', 'El Viaje de Chihiro'],
+    );
+  });
+
+  it('needs a word exclusive to the language, not one it shares', () => {
+    // `saga`, `final`, `magia`, `historia` and `del` are shared with Italian,
+    // Portuguese or English, so a title resting on one of them is left out.
+    assert.equal(titleLanguage('The Final Season'), null);
+    assert.equal(titleLanguage('Magia Record'), null);
+    assert.equal(titleLanguage('Berserk Saga'), null);
+    assert.equal(titleLanguage('La Leyenda de los Héroes de la Galaxia'), 'es');
+    assert.equal(titleLanguage('Les Carnets de l’Apothicaire'), 'fr');
+  });
+
+  it('is not fooled by a title that only repeats the row title', () => {
+    assert.deepEqual(
+      curateSynonyms({
+        title: { english: 'Les Misérables' },
+        synonyms: ['LES MISERABLES', 'ＬＥＳ　ＭＩＳＥＲＡＢＬＥＳ'],
+      }),
+      [],
+    );
+  });
+
+  it('never repeats itself', () => {
+    const kept = curateSynonyms({
+      title: { romaji: 'Sousou no Frieren', english: 'Frieren: Beyond Journey’s End' },
+      synonyms: ['Sousou no Frieren', 'Frieren: Beyond Journey’s End', 'sousou no frieren'],
+    });
+    assert.deepEqual(kept, ['Sousou no Frieren']);
+  });
+});
+
 describe('mapping an AniList record', () => {
   it('derives the same canonical id the MAL scraper computes', () => {
     const { row } = rowFromMedia(frieren);
@@ -59,7 +120,47 @@ describe('mapping an AniList record', () => {
     assert.equal(row?.partCount, 28);
     assert.equal(row?.seasonNumber, null, 'filled from the sequel chain, not guessed');
     assert.deepEqual(row?.genres.slice(0, 3), ['adventure', 'drama', 'fantasy']);
-    assert.ok(row?.synonyms.includes('葬送のフリーレン'));
+    assert.deepEqual(row?.synonyms, ['Sousou no Frieren', 'Frieren: Más allá del final del viaje']);
+  });
+
+  it('carries the provider score and format in the row metadata', () => {
+    assert.deepEqual(rowFromMedia(frieren).row?.metadata, { format: 'tv', providerScore: 91 });
+    assert.deepEqual(rowFromMedia(fmab).row?.metadata, { format: 'tv', providerScore: 88 });
+    // Asked for in the query, or the field silently never arrives.
+    assert.match(mediaFields(), /averageScore/);
+    assert.match(mediaFields(), /format/);
+  });
+
+  it('records the provider format, which is what kind cannot say', () => {
+    // A one-episode special and a one-episode series are both `anime` with
+    // `partCount: 1`; only the format tells them apart.
+    const special = rowFromMedia({
+      ...frieren,
+      format: 'SPECIAL',
+      episodes: 1,
+    } as AniListNodeLike & { format: string });
+    assert.equal(special.row?.kind, 'anime');
+    assert.equal(special.row?.partCount, 1);
+    assert.equal(special.row?.metadata.format, 'special');
+    // TV_SHORT is an AniList spelling with no MAL equivalent: stored as words.
+    const short = rowFromMedia({ ...frieren, format: 'TV_SHORT' } as AniListNodeLike & {
+      format: string;
+    });
+    assert.equal(short.row?.metadata.format, 'tv short');
+    // An unscored record carries no score key at all.
+    const unscored = rowFromMedia({ ...frieren, format: 'OVA', averageScore: null });
+    assert.deepEqual(unscored.row?.metadata, { format: 'ova' });
+  });
+
+  it('walks the manga namespace when --kind manga is given', () => {
+    const options = parseFromAniListArgs(['--kind', 'manga']);
+    assert.equal(options.kind, 'manga');
+    assert.equal(options.out, 'apps/catalog/seed/top-manga-anilist.json');
+    assert.deepEqual([...options.types], ['manga', 'one_shot']);
+    // The type is literal in the query: MAL anime and manga ids are separate
+    // namespaces, so `idMal_in` alone would resolve the wrong work.
+    assert.match(mediaByMalIdsQuery(mediaFields(), 'MANGA'), /type: MANGA/);
+    assert.match(mediaByMalIdsQuery(mediaFields(), 'ANIME'), /type: ANIME/);
   });
 
   it('keeps only the ids AniList actually states', () => {
@@ -210,6 +311,7 @@ describe('season numbers from the sequel chain', () => {
     externalIds: { anilist: id },
     description: null,
     coverUrl: null,
+    metadata: {},
     bannerUrl: null,
   });
   const seed = (ids: number[], edges: [number, number][]): SeedFile => ({
@@ -428,6 +530,7 @@ describe('the walk', () => {
           externalIds: { anilist: 1 },
           description: null,
           coverUrl: null,
+          metadata: {},
           bannerUrl: null,
         },
       ],

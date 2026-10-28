@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
-import { useDebounced, useMediaSearch } from '@trackt/client';
+import { gameSearchContext, useDebounced, useMediaSearch } from '@trackt/client';
 import { useLabels } from '../../../src/lib/labels';
 import { useTranslation } from 'react-i18next';
 import { MEDIA_KINDS, type MediaKind, type SearchResult } from '@trackt/shared';
@@ -159,6 +159,18 @@ export default function DiscoverTab() {
 }
 
 function ResultTile({ result, width }: { result: SearchResult; width: number }) {
+  const { t } = useTranslation();
+  const gameContext = gameSearchContext(result.kind, result.metadata ?? {});
+  const context = [
+    gameContext?.editionTitle
+      ? t('discover.gameEdition', { name: gameContext.editionTitle })
+      : gameContext?.role
+        ? t(`discover.gameRole.${gameContext.role}`)
+        : null,
+    gameContext?.parentTitle ? t('discover.gameFor', { title: gameContext.parentTitle }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <Touchable href={`/media/${result.slug}`} style={styles.tile}>
       <Cover kind={result.kind} title={result.title} coverUrl={result.coverUrl} width={width} />
@@ -171,6 +183,11 @@ function ResultTile({ result, width }: { result: SearchResult; width: number }) 
           {result.seasonNumber ? `S${result.seasonNumber}` : (result.year ?? '—')}
         </Text>
       </View>
+      {context ? (
+        <Text style={[type.bodySm, text.dim, styles.gameContext]} numberOfLines={2}>
+          {context}
+        </Text>
+      ) : null}
     </Touchable>
   );
 }
@@ -195,6 +212,9 @@ const styles = StyleSheet.create({
   },
   tileTitle: {
     color: color.fg,
+  },
+  gameContext: {
+    marginTop: 2,
   },
   metaRow: {
     flexDirection: 'row',

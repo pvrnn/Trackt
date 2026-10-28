@@ -5,6 +5,7 @@ import { useLabels } from '../../lib/labels';
 /** Static class strings so Tailwind's scanner sees every kind color. */
 const dotClasses: Record<MediaKind, string> = {
   movie: 'bg-kind-movie',
+  game: 'bg-kind-game',
   series: 'bg-kind-series',
   anime: 'bg-kind-anime',
   manga: 'bg-kind-manga',

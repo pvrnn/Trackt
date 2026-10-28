@@ -23,8 +23,18 @@ const CATEGORY_KEYS = {
  * should discover after the fact that "feedback" carried metadata. No account
  * identity travels: the instance requires a session, but nothing about the user
  * is forwarded.
+ *
+ * `media` scopes the same dialog to one work when it is opened from a media
+ * page: the copy invites the data problems that page can have, and the id and
+ * title ride along so the operator lands on the entry instead of a slug.
  */
-export function FeedbackDialog({ onClose }: { onClose: () => void }) {
+export function FeedbackDialog({
+  onClose,
+  media,
+}: {
+  onClose: () => void;
+  media?: { id: string; title: string };
+}) {
   const { t } = useTranslation();
   const submit = useSubmitFeedback();
   const toast = useToast();
@@ -66,6 +76,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
         // Read at submit time: the reporter may have opened the dialog from
         // one page and navigated while typing it.
         route: `${window.location.pathname}${window.location.search}`,
+        ...(media ? { mediaId: media.id, mediaTitle: media.title } : {}),
       },
       {
         onSuccess: () => {
@@ -80,8 +91,15 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
     <Modal open={!closing} onClose={requestClose}>
       <form onSubmit={send} className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <ModalTitle>{t('feedback.title')}</ModalTitle>
-          <p className="text-sm leading-relaxed text-muted">{t('feedback.intro')}</p>
+          <ModalTitle>{t(media ? 'feedback.media.title' : 'feedback.title')}</ModalTitle>
+          <p className="text-sm leading-relaxed text-muted">
+            {t(media ? 'feedback.media.intro' : 'feedback.intro')}
+          </p>
+          {media && (
+            <p className="text-sm font-semibold text-fg">
+              {t('feedback.media.about', { title: media.title })}
+            </p>
+          )}
         </div>
 
         <fieldset className="flex flex-col gap-2.5">
@@ -114,7 +132,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
             rows={5}
             maxLength={4000}
             value={message}
-            placeholder={t('feedback.placeholder')}
+            placeholder={t(media ? 'feedback.media.placeholder' : 'feedback.placeholder')}
             onChange={(event) => setMessage(event.target.value)}
             disabled={submit.isPending}
             className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
@@ -125,7 +143,9 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
           </p>
         </div>
 
-        <p className="text-xs leading-relaxed text-faint">{t('feedback.context')}</p>
+        <p className="text-xs leading-relaxed text-faint">
+          {t(media ? 'feedback.media.context' : 'feedback.context')}
+        </p>
 
         {submit.error && (
           <p role="alert" className="text-sm text-red-400">

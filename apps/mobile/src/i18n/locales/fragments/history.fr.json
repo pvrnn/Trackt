@@ -41,7 +41,7 @@
   "error": "Votre historique n’a pas pu se charger. L’API de l’instance est-elle joignable ?",
   "empty": {
     "nothingTitle": "Rien pour l’instant",
-    "nothingBody": "Pointez un épisode ou un chapitre et il apparaît ici, avec les dates auxquelles vous l’avez regardé ou lu.",
+    "nothingBody": "Ajoutez un titre à votre suivi pour le retrouver ici, avec ses dates de début et de fin.",
     "filteredTitle": "Aucun résultat",
     "filteredBody": "Rien dans {{scope}} ne correspond à ce type et ce statut. Retirez l’un des deux pour élargir la recherche.",
     "windowTitle": "Rien dans {{scope}}",

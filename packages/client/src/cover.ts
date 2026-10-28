@@ -19,6 +19,7 @@ export function hashString(input: string): number {
 /** Per-kind hue families: violet-blues for movies/series, golds for anime/manga, magentas for webtoons. */
 const HUE_RANGES: Record<MediaKind, [number, number]> = {
   movie: [248, 272],
+  game: [265, 289],
   series: [218, 242],
   anime: [32, 46],
   manga: [22, 36],

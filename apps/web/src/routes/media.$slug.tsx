@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   LOG_STATUSES,
@@ -11,6 +11,7 @@ import {
   type MediaDetail,
   type MediaRelationLabel,
 } from '@trackt/shared';
+import { FeedbackDialog } from '../components/feedback/FeedbackDialog';
 import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { AddToListDialog } from '../components/media/AddToListDialog';
@@ -28,6 +29,7 @@ import { useFormat } from '../lib/format';
 import { useLabels } from '../lib/labels';
 import {
   coverGradient,
+  externalProfiles,
   todayIso,
   firstUnwatched,
   invalidateTracking,
@@ -104,7 +106,7 @@ function partNoun(detail: MediaDetail) {
 }
 
 function partTotal(detail: MediaDetail): number | null {
-  // Movies have no episodes/chapters; every other kind counts in partCount (ADR-0003).
+  // Whole-work kinds have no episodes/chapters; all others use partCount (ADR-0003).
   return detail.kind === 'movie' ? null : detail.partCount;
 }
 
@@ -131,6 +133,7 @@ function MediaPage() {
   /** Which block of parts is expanded, or null for "the one you are in". */
   const [openBlock, setOpenBlock] = useState<number | null>(null);
   const [addingToList, setAddingToList] = useState(false);
+  const [reportingIssue, setReportingIssue] = useState(false);
   // The dialog's *initial* dates, or null when it's closed. Held here rather
   // than read from `viewer` on open, so the auto-open path can hand it the
   // dates it just stamped without racing the optimistic cache write.
@@ -312,11 +315,18 @@ function MediaPage() {
         };
 
   const relationGroups = groupRelations(detail.relations);
+  /** Upstream records for the external row: the ids are also the redirect targets. */
+  const external = externalProfiles(detail.kind, detail.externalIds, detail.metadata);
   /** '04 JAN → 11 FEB' when the log has dates; null offers to add them. */
   const dateLabel = format.dateRange(viewer.startedAt, viewer.finishedAt);
 
   const countOf = (n: number | null, label: string) =>
     n !== null ? t('media.partCount', { count: n, unit: label }) : null;
+  const displayStatus =
+    detail.status?.toUpperCase() ??
+    (typeof detail.metadata.igdbStatus === 'string'
+      ? detail.metadata.igdbStatus.toUpperCase()
+      : null);
   /** Kind · year · genres, one line, which is why there is no GENRES section. */
   const metaLine = [
     labels.kindSingular(detail.kind),
@@ -327,15 +337,15 @@ function MediaPage() {
     .join(' · ');
   /** What the work itself is doing: airing/ended, which season, how many parts. */
   const factsLine = [
-    detail.status ? detail.status.toUpperCase() : null,
+    displayStatus,
     detail.seasonNumber !== null ? t('media.season', { number: detail.seasonNumber }) : null,
     noun && unit ? countOf(total, unit.toUpperCase()) : null,
   ]
     .filter(Boolean)
     .join(' · ');
 
-  const detailRows: [string, string][] = [
-    [t('media.details.status'), detail.status ? detail.status.toUpperCase() : 'N/A'],
+  const detailRows: [string, ReactNode][] = [
+    [t('media.details.status'), displayStatus ?? 'N/A'],
     [
       t('media.details.released'),
       detail.releaseDate ?? (detail.year !== null ? String(detail.year) : 'N/A'),
@@ -346,11 +356,29 @@ function MediaPage() {
       : []),
     [
       t('media.details.external'),
-      Object.keys(detail.externalIds).length > 0
-        ? Object.keys(detail.externalIds)
-            .map((k) => k.toUpperCase())
-            .join(' · ')
-        : 'N/A',
+      external.length > 0 ? (
+        <span className="inline-flex flex-wrap justify-end gap-x-2 gap-y-1">
+          {external.map(({ provider, url }) =>
+            url ? (
+              <a
+                key={provider}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-pink underline-offset-2 transition hover:underline"
+              >
+                {provider.toUpperCase()} ↗
+              </a>
+            ) : (
+              <span key={provider} className="text-dim">
+                {provider.toUpperCase()}
+              </span>
+            ),
+          )}
+        </span>
+      ) : (
+        'N/A'
+      ),
     ],
   ];
 
@@ -635,7 +663,9 @@ function MediaPage() {
             </>
           ) : (
             <p className="rounded-card bg-glass px-6 py-5 text-[15px] text-muted inset-ring inset-ring-white/10">
-              {detail.kind === 'movie' ? t('media.empty.movie') : t('media.empty.noParts')}
+              {detail.kind === 'movie' || detail.kind === 'game'
+                ? t(`media.empty.${detail.kind}`)
+                : t('media.empty.noParts')}
             </p>
           )}
         </section>
@@ -696,6 +726,17 @@ function MediaPage() {
                 </div>
               ))}
             </div>
+            {/* Sits with the facts rather than in the hero: what a media report
+                is almost always about is one of the rows above. Styled as a
+                control, not a caption — as text it read as another row. */}
+            <button
+              type="button"
+              onClick={() => setReportingIssue(true)}
+              className="mt-1 flex cursor-pointer items-center gap-2 self-start rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-[11px] font-bold tracking-btn text-muted transition hover:border-pink hover:text-pink"
+            >
+              <span aria-hidden>⚑</span>
+              {t('media.reportIssue')}
+            </button>
           </section>
 
           {/* Central news touching this work (ADR-0005). Placed above the
@@ -774,6 +815,12 @@ function MediaPage() {
             );
             await invalidateTracking(queryClient);
           }}
+        />
+      )}
+      {reportingIssue && (
+        <FeedbackDialog
+          media={{ id: detail.id, title: detail.title }}
+          onClose={() => setReportingIssue(false)}
         />
       )}
     </Shell>

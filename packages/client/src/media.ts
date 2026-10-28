@@ -8,6 +8,7 @@ import {
   type LogDatesBody,
   type LogStatus,
   type MediaDetail,
+  type MediaKind,
   type SearchResult,
 } from '@trackt/shared';
 import { toError } from './http.js';
@@ -41,19 +42,25 @@ export function useMediaDetail(slug: string) {
 }
 
 /**
- * What this instance carries, for the landing page's cover band. Public — the
- * landing page has no session, and the endpoint serves `verified` rows only.
+ * What this instance carries: the landing page's cover band, and Discover's
+ * shelf for the state where nothing has been typed yet. Public — the endpoint
+ * serves `verified` rows only and reads no session.
  *
- * A failure is not worth surfacing here: the band is decoration above the fold
- * on a marketing page, and it has a designed fallback. `data ?? []` lets the
- * caller treat "failed" and "this instance has an empty catalog" as one state,
- * which is what the fallback is for.
+ * `kind` narrows the sample to one kind (the shelf follows the filter chips);
+ * the unfiltered call is the same one the band makes.
+ *
+ * A failure is not worth surfacing here: a band is decoration above the fold
+ * on a marketing page, and a browse shelf is a suggestion. `data ?? []` lets
+ * the caller treat "failed" and "this instance has an empty catalog" as one
+ * state, which is what both have a fallback for.
  */
-export function useShowcase() {
+export function useShowcase(kind?: MediaKind) {
   return useQuery({
-    queryKey: ['showcase'],
+    queryKey: ['showcase', kind ?? 'all'],
     queryFn: async ({ signal }): Promise<SearchResult[]> => {
-      const json = await http().get('media/showcase', { signal }).json();
+      const json = await http()
+        .get('media/showcase', { signal, searchParams: kind ? { kind } : undefined })
+        .json();
       return SearchResultSchema.array().parse(json);
     },
     // It changes when the catalog is populated, not between page views.

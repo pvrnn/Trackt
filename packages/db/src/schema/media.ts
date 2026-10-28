@@ -104,8 +104,9 @@ export const media = pgTable(
     // Derived season-sibling lookup, run on every series detail page (ADR-0004).
     // The jsonb GIN index above serves containment, not `->>` equality.
     index('media_external_tmdb_idx').on(sql`(${t.externalIds} ->> 'tmdb')`),
-    // Typo-tolerant title search via pg_trgm (extension created in the initial migration).
-    index('media_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
+    // Search indexes sit on the unaccented, lowercased expressions rather than on
+    // the raw columns, in hand-written migrations 0019 and 0020: drizzle-kit
+    // cannot express `immutable_unaccent(lower(...))` in a table definition.
   ],
 );
 

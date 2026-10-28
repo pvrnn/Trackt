@@ -10,6 +10,7 @@ import {
 
 const KIND_PLURAL = {
   movie: 'kind.plural.movie',
+  game: 'kind.plural.game',
   series: 'kind.plural.series',
   anime: 'kind.plural.anime',
   manga: 'kind.plural.manga',
@@ -18,6 +19,7 @@ const KIND_PLURAL = {
 
 const KIND_SINGULAR = {
   movie: 'kind.singular.movie',
+  game: 'kind.singular.game',
   series: 'kind.singular.series',
   anime: 'kind.singular.anime',
   manga: 'kind.singular.manga',
@@ -53,9 +55,14 @@ const VISIBILITY = {
 function activityKey(entry: ActivityEntry) {
   switch (entry.verb) {
     case 'checked_in':
-      return TRACKING_VERB_BY_MEDIA[entry.kind] === 'watch'
-        ? ('activity.watched' as const)
-        : ('activity.read' as const);
+      switch (TRACKING_VERB_BY_MEDIA[entry.kind]) {
+        case 'watch':
+          return 'activity.watched' as const;
+        case 'read':
+          return 'activity.read' as const;
+        case 'play':
+          return 'activity.played' as const;
+      }
     case 'rated':
       return 'activity.rated' as const;
     case 'status':
@@ -72,9 +79,11 @@ export function useLabels() {
     topic: (topic: NewsTopic) => t(TOPIC[topic]),
     visibility: (visibility: ListSummary['visibility']) => t(VISIBILITY[visibility]),
     activity: (entry: ActivityEntry) => t(activityKey(entry)),
-    trackingVerb: (kind: MediaKind, tense: 'present' | 'past' = 'past') =>
-      TRACKING_VERB_BY_MEDIA[kind] === 'watch'
-        ? t(tense === 'present' ? 'verb.watch' : 'verb.watched')
-        : t(tense === 'present' ? 'verb.read' : 'verb.readPast'),
+    trackingVerb: (kind: MediaKind, tense: 'present' | 'past' = 'past') => {
+      const verb = TRACKING_VERB_BY_MEDIA[kind];
+      if (verb === 'watch') return t(tense === 'present' ? 'verb.watch' : 'verb.watched');
+      if (verb === 'read') return t(tense === 'present' ? 'verb.read' : 'verb.readPast');
+      return t(tense === 'present' ? 'verb.play' : 'verb.played');
+    },
   };
 }

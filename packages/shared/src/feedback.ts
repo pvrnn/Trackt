@@ -13,11 +13,19 @@ export type FeedbackCategory = z.infer<typeof FeedbackCategorySchema>;
  * What the reporter writes. `route` is the page they were on, captured by the
  * client at submit time — a bug report that doesn't say where it happened is
  * usually a round trip, and the browser already knows.
+ *
+ * A report filed from a media page also names the work: `/media/<slug>` is
+ * instance-local and says nothing about which row was on screen, while the
+ * canonical id is the same id the catalog published, so the operator can open
+ * the exact entry. The title rides along as a label — the inbox should read
+ * without a join, and a row may be gone from the catalog by the time it does.
  */
 export const FeedbackSubmissionSchema = z.object({
   category: FeedbackCategorySchema,
   message: z.string().trim().min(10).max(4000),
   route: z.string().max(300).optional(),
+  mediaId: z.uuid().optional(),
+  mediaTitle: z.string().trim().max(300).optional(),
 });
 export type FeedbackSubmission = z.infer<typeof FeedbackSubmissionSchema>;
 
@@ -45,6 +53,9 @@ export const FeedbackEntrySchema = z.object({
   category: FeedbackCategorySchema,
   message: z.string(),
   route: z.string().nullable(),
+  /** Set when the report came from a media page. */
+  mediaId: z.uuid().nullable(),
+  mediaTitle: z.string().nullable(),
   instanceUrl: z.string().nullable(),
   appVersion: z.string().nullable(),
   createdAt: z.string(),

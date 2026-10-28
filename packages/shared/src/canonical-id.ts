@@ -14,6 +14,7 @@ export const TRACKT_CATALOG_NAMESPACE = 'f8d11238-d681-551c-875d-5ac53892f6e7';
  */
 export const IDENTITY_PROVIDER_BY_KIND: Record<MediaKind, string | null> = {
   movie: 'tmdb',
+  game: 'igdb',
   series: 'tmdb',
   anime: 'anilist',
   manga: 'anilist',

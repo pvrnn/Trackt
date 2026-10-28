@@ -11,7 +11,12 @@ import { useLabels } from '../../../src/lib/labels';
 import { useTranslation } from 'react-i18next';
 import { intlLocale } from '../../../src/i18n';
 import { shortDate } from '@trackt/client';
-import { type LogDates, type LogStatus, type MediaDetail } from '@trackt/shared';
+import {
+  PART_KIND_BY_MEDIA,
+  type LogDates,
+  type LogStatus,
+  type MediaDetail,
+} from '@trackt/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -79,8 +84,12 @@ export default function MediaScreen() {
   }
 
   const detail = media;
-  /** Movies track in one step; every other kind counts parts (ADR-0003). */
-  const hasParts = detail.kind !== 'movie';
+  /**
+   * Whether the work is tracked part by part. Read off the kind, not off
+   * `partCount`: an airing season or a long-running manga publishes a null count
+   * while its parts still exist, and those parts stay checkable.
+   */
+  const hasParts = PART_KIND_BY_MEDIA[detail.kind] !== null;
   /** Null while a season is airing or a count is unknown — not zero. */
   const total = hasParts ? detail.partCount : null;
   const noun = partNoun(detail);
@@ -125,7 +134,7 @@ export default function MediaScreen() {
         }
     : viewer.status === 'completed'
       ? {
-          label: t('verb.watched').toUpperCase(),
+          label: labels.trackingVerb(detail.kind).toUpperCase(),
           caughtUp: true,
           onPress: () => setSheet('status'),
         }

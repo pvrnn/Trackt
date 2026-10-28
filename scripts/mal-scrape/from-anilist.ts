@@ -48,6 +48,7 @@ import {
   normalizeGenres,
   planAdaptation,
   prose,
+  providerMetadata,
   providerUrl,
   publishPayload,
   readSeedFile,
@@ -118,8 +119,188 @@ export function meaningfulDescription(raw: string | null | undefined): string | 
   return text;
 }
 
-function titleOf(node: AniListNodeLike): string | null {
+type TitleShape = {
+  title: { romaji?: string | null; english?: string | null; native?: string | null };
+};
+
+function titleOf(node: TitleShape): string | null {
   return node.title.english ?? node.title.romaji ?? node.title.native ?? null;
+}
+
+/* ------------------------------------------------------------------ *
+ * Synonyms
+ * ------------------------------------------------------------------ */
+
+/**
+ * `synonyms` is AniList's free-text bucket: romanizations, marketing subtitles,
+ * typos and translated titles in a dozen scripts. The catalog keeps four strings
+ * at most — the romaji original, the English title, and one French and one
+ * Spanish title — because the detail page renders all of them as a single
+ * "also known as" line.
+ *
+ * AniList stamps no language on a synonym, so French and Spanish have to be
+ * recognised from the text. The lists below hold only words and spellings that
+ * are exclusive to one of the two languages: anything shared (`de`, `la`,
+ * `magia`, `historia`, `saga`, `final`, `dragon`…) is deliberately absent, since
+ * it says nothing about the language and is what mislabels a Portuguese or
+ * Italian title. A candidate showing another language's mark at all is dropped
+ * rather than guessed at — a missing translation is cheaper than a wrong one.
+ */
+const FRENCH_WORDS = new Set(
+  `le les des du une aux et dans pour avec sur cette ces très au est sont comme mais tout
+   tous toute toutes qui que chez sans sous entre encore toujours jamais aussi alors quand donc
+   amour ange apothicaire aube aventure baiser bataille carnet carnets château chevalier
+   chevaliers chien ciel cité cœur coeur conte démon dernier dernière école enfant enquête épée
+   étoile famille femme feu fille forêt frère garçon glace guerre héros héroïne histoire homme
+   jour larme légende lumière lune madame magicien mère monsieur monstre mort nuit nouveau
+   nouvelle ombre père petit petite pluie premier première deuxième troisième princesse récit
+   reine rêve roi royaume saison sœur soeur soleil sortilège temps terre titan tome vie
+   ville voix voyage voyageur`
+    .split(/\s+/)
+    .filter(Boolean),
+);
+
+const SPANISH_WORDS = new Set(
+  `el los las del unas unos más también muy mucho casi siempre nunca cuando donde aunque pero
+   porque desde hasta según además es y
+   bosque bruja brujo caballero camino castillo corazón cuaderno demonio día diarios doncella
+   escuela espíritu estrella eternidad eterno fuego héroe héroes hermana hermano hielo hija
+   hijo imperio infierno isla lágrima leyenda lluvia maga mañana milagro monstruo mujer niño niña
+   noche nueva nuevo ojo película pequeño pequeña perro pueblo recuerdos reina rey sangre segunda
+   señor señora silencio sueño temporada tierra titán titanes túnel último última primera tercera
+   viaje viejo vieja ciudad`
+    .split(/\s+/)
+    .filter(Boolean),
+);
+
+/** Words that belong to neither target language. One is enough to disqualify. */
+const OTHER_LANGUAGE_WORDS = new Set(
+  `der die das und ein eine einer eines einem dem den mit von zu im ist nicht auf für über
+   welt stadt reise schwert ritter stern traum träne abenteuer staffel zweite dritte letzte
+   geschichte stimme schloss könig krieger herz nacht leben tod himmel erde hexe dämon engel blut
+   eis schatten licht prinz prinzessin hund schule land freund mutter vater bruder schwester kind
+   junge mann frau titan angriff geist wunder schlacht
+   il lo gli della dei delle nel nella nello alla allo agli sul sulla che non più di da sono
+   questo questa viaggio voce silenzio castello città sogno spada cavaliere stella lacrima parte
+   guerriero strega streghe demone angelo sangue fuoco ghiaccio regno principe principessa regina
+   cane paese famiglia amico amica madre padre fratello sorella bambino bambina uomo donna figlio
+   mostro titano attacco leggenda spirito miracolo battaglia impero storia oltre
+   não nao uma do da dos das os as ao aos em com seu sua pelo pela mais filme coração silêncio
+   jornada vingança história você até após além porém através
+   ve bir ile için nin lar ler și lui din cu pe sunt
+   i w na z się że jest oraz dla przez
+   og och av på med til den det ett jag han hon inte är om ikke
+   és az hogy egy`
+    .split(/\s+/)
+    .filter(Boolean),
+);
+
+/**
+ * Letters that give away a language this importer does not carry: Vietnamese tone
+ * marks, Turkish, Romanian, Polish, Czech, Nordic and Hungarian diacritics.
+ * `â`/`ê`/`ô`/`ç` are absent on purpose — French uses them too.
+ */
+const OTHER_LANGUAGE_LETTERS = /[ãõăđơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹışğșțăøåæßőű]/u;
+
+/** What a title may consist of: Latin letters, marks, digits, spaces, punctuation. */
+const TITLE_CHARACTERS = /^[\p{Script=Latin}\p{M}\p{N}\p{Zs}\s\-'’!?.,:;"“”‘’()\[\]&/+#*~·…–—|]+$/u;
+
+export function normalizeTitle(raw: string): string {
+  return raw.normalize('NFKC').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Comparison key for "is this the same title?": case and accent folding, so the
+ * uppercase or unaccented repeat of the row title (`LES MISÉRABLES` when the row
+ * is already `Les Misérables`) does not survive as a synonym of itself.
+ */
+export function titleKey(raw: string): string {
+  return normalizeTitle(raw)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '');
+}
+
+/** Anything outside the Latin alphabet is a translation this catalog does not store. */
+export function isLatinTitle(text: string): boolean {
+  return TITLE_CHARACTERS.test(normalizeTitle(text));
+}
+
+function titleWords(text: string): string[] {
+  return normalizeTitle(text)
+    .toLowerCase()
+    .split(/[^\p{L}\p{M}\p{N}]+/u)
+    .filter(Boolean);
+}
+
+export interface LanguageScores {
+  fr: number;
+  es: number;
+  other: number;
+}
+
+export function scoreTitleLanguage(text: string): LanguageScores {
+  const scores: LanguageScores = { fr: 0, es: 0, other: 0 };
+  for (const word of titleWords(text)) {
+    if (FRENCH_WORDS.has(word)) scores.fr++;
+    if (SPANISH_WORDS.has(word)) scores.es++;
+    if (OTHER_LANGUAGE_WORDS.has(word)) scores.other++;
+  }
+  // The one Spanish mark no other language here uses.
+  if (/[ñ¿¡]/u.test(text)) scores.es += 2;
+  if (OTHER_LANGUAGE_LETTERS.test(text)) scores.other++;
+  return scores;
+}
+
+/** `fr`/`es` when the title reads as exactly one of them, else null. */
+export function titleLanguage(text: string): 'fr' | 'es' | null {
+  if (!isLatinTitle(text) || titleWords(text).length > 8) return null;
+  const { fr, es, other } = scoreTitleLanguage(text);
+  if (other > 0 || fr === es) return null;
+  return fr > es ? 'fr' : 'es';
+}
+
+/**
+ * The four synonyms a row keeps, in display order. A translated title is only
+ * taken from `synonyms` — the romaji and English titles come from `title`, where
+ * AniList actually states them.
+ */
+export function curateSynonyms(node: {
+  title: { romaji?: string | null; english?: string | null; native?: string | null };
+  synonyms?: string[] | null;
+}): string[] {
+  const title = normalizeTitle(titleOf(node) ?? '');
+  const taken = new Set([titleKey(title)]);
+  const keep = (raw: string | null | undefined): string | null => {
+    const clean = normalizeTitle(raw ?? '');
+    const key = titleKey(clean);
+    if (!clean || taken.has(key)) return null;
+    taken.add(key);
+    return clean;
+  };
+
+  const japanese = isLatinTitle(node.title.romaji ?? '') ? keep(node.title.romaji) : null;
+  const english = keep(node.title.english);
+
+  const localized: Record<'fr' | 'es', { text: string; score: number }> = {
+    fr: { text: '', score: 0 },
+    es: { text: '', score: 0 },
+  };
+  for (const candidate of node.synonyms ?? []) {
+    const clean = normalizeTitle(candidate);
+    if (!clean || taken.has(titleKey(clean))) continue;
+    const language = titleLanguage(clean);
+    if (!language) continue;
+    const score = scoreTitleLanguage(clean)[language];
+    if (score > localized[language].score) localized[language] = { text: clean, score };
+  }
+
+  return [
+    japanese,
+    english,
+    keep(localized.fr.text || null),
+    keep(localized.es.text || null),
+  ].filter((value): value is string => value !== null);
 }
 
 /**
@@ -137,9 +318,12 @@ function externalIdsOf(node: AniListNodeLike): Record<string, string | number> {
 type AniListNodeLike = {
   id: number;
   idMal: number | null;
+  type?: string | null;
+  format?: string | null;
   title: { romaji?: string | null; english?: string | null; native?: string | null };
   synonyms?: string[] | null;
   genres?: string[] | null;
+  averageScore?: number | null;
   episodes?: number | null;
   chapters?: number | null;
   seasonYear?: number | null;
@@ -168,20 +352,13 @@ export interface RowResult {
  * `assignSeasonNumbers` fills it once every edge is in.
  */
 export function rowFromMedia(media: AniListNodeLike, options: RowOptions = {}): RowResult {
-  const decision = mapAniListKind(
-    (media as { type?: string }).type ?? null,
-    (media as { format?: string | null }).format ?? null,
-  );
+  const decision = mapAniListKind(media.type ?? null, media.format ?? null);
   if (!decision.kind) return { row: null, kind: null, reason: decision.reason };
 
   const title = titleOf(media);
   if (!title) return { row: null, kind: decision.kind, reason: 'no title on the AniList record' };
 
-  const synonyms: string[] = [];
-  for (const candidate of [media.title.romaji, media.title.native, ...(media.synonyms ?? [])]) {
-    const clean = candidate?.trim();
-    if (clean && clean !== title && !synonyms.includes(clean)) synonyms.push(clean);
-  }
+  const synonyms = curateSynonyms(media);
 
   const kind = decision.kind;
   const row: DraftMedia = {
@@ -195,6 +372,7 @@ export function rowFromMedia(media: AniListNodeLike, options: RowOptions = {}): 
     partCount: kind === 'anime' ? (media.episodes ?? null) : (media.chapters ?? null),
     seasonNumber: null,
     externalIds: externalIdsOf(media),
+    metadata: providerMetadata({ score: media.averageScore ?? null, format: media.format ?? null }),
     description: options.withDescription ? meaningfulDescription(media.description) : null,
     coverUrl: options.withCover ? (media.coverImage?.large ?? null) : null,
     bannerUrl: options.withBanner === false ? null : (media.bannerImage ?? null),
@@ -430,17 +608,21 @@ Usage:
   node scripts/mal-scrape/from-anilist.ts [options]
 
 Source:
+  --kind <anime|manga>   which AniList namespace to walk (default anime); also
+                         picks MAL's topanime/topmanga list and the default output
   --source mal-ranking   walk MAL's ranking for its links only (200 list pages,
                           no detail pages) and resolve them via AniList (default)
-  --source anilist       walk AniList's own ranking; no MAL involved
+  --source anilist       walk AniList's own ranking; no MAL involved (capped at
+                         5000 entries, so it cannot reach a top 10k on its own)
   --sort <MediaSort>     with --source anilist (default SCORE_DESC)
   --max-rank <n>         stop after this rank (default 10000)
   --from-rank <n>        start at this rank (default 1)
   --types <list>         AniList formats to keep, comma-separated
-                         (default tv,movie,ova,ona,special,tv_short)
+                         (default tv,movie,ova,ona,special,tv_short; manga:
+                         manga,one_shot)
 
 Output:
-  --out <file>           seed file (default apps/catalog/seed/top-anime-anilist.json)
+  --out <file>           seed file (default apps/catalog/seed/top-<kind>-anilist.json)
   --merge <file>         fold this run into an existing seed file
   --with-description     include AniList synopses (default: null)
   --without-cover        drop cover art URLs (included by default: cover_url is
@@ -456,12 +638,18 @@ Politeness:
                          reports a 30 requests/minute limit)
 
   --help                 this text
+
+Manga:  node scripts/mal-scrape/from-anilist.ts --kind manga
 `;
 
 export const DEFAULT_TYPES = ['tv', 'movie', 'ova', 'ona', 'special', 'tv_short'];
+/** AniList `MediaFormat` values a manga walk keeps (novels and manhwa are refused by kind). */
+export const DEFAULT_MANGA_TYPES = ['manga', 'one_shot'];
 
 export interface FromAniListOptions {
   source: 'mal-ranking' | 'anilist';
+  /** Which AniList namespace the walk resolves: anime or manga. */
+  kind: 'anime' | 'manga';
   sort: string;
   maxRank: number;
   fromRank: number;
@@ -481,6 +669,7 @@ export interface FromAniListOptions {
 export function parseFromAniListArgs(argv: string[]): FromAniListOptions {
   const options: FromAniListOptions = {
     source: 'mal-ranking',
+    kind: 'anime',
     sort: 'SCORE_DESC',
     maxRank: 10000,
     fromRank: 1,
@@ -502,6 +691,13 @@ export function parseFromAniListArgs(argv: string[]): FromAniListOptions {
     '--help',
   ]);
   const valued: Record<string, (value: string) => void> = {
+    '--kind': (value) => {
+      if (value !== 'anime' && value !== 'manga')
+        throw new Error("--kind must be 'anime' or 'manga'");
+      options.kind = value;
+      options.types = new Set(value === 'manga' ? DEFAULT_MANGA_TYPES : DEFAULT_TYPES);
+      options.out = `apps/catalog/seed/top-${value}-anilist.json`;
+    },
     '--source': (value) => {
       if (value !== 'mal-ranking' && value !== 'anilist') {
         throw new Error("--source must be 'mal-ranking' or 'anilist'");
@@ -598,12 +794,15 @@ async function walkMalRanking(
   deps: Required<Pick<WalkDeps, 'fetchHtml' | 'log' | 'now'>>,
   onPage: (items: AniListMedia[]) => Promise<void>,
 ): Promise<number> {
-  const query = mediaByMalIdsQuery(mediaFields({ withDescription: options.withDescription }));
+  const query = mediaByMalIdsQuery(
+    mediaFields({ withDescription: options.withDescription }),
+    options.kind === 'manga' ? 'MANGA' : 'ANIME',
+  );
   const startLimit = Math.floor((options.fromRank - 1) / 50) * 50;
   let pages = 0;
 
   for (let limit = startLimit; limit < options.maxRank; limit += 50) {
-    const entries = parseTopAnimePage(await deps.fetchHtml(listUrl(limit))).filter(
+    const entries = parseTopAnimePage(await deps.fetchHtml(listUrl(limit, options.kind))).filter(
       (entry) => entry.rank >= options.fromRank && entry.rank <= options.maxRank,
     );
     if (entries.length === 0) break;
@@ -643,7 +842,7 @@ async function walkAniListRanking(
   for (let page = firstPage; page <= lastPage; page++) {
     const envelope = await client.query<{ Page: AniListPage<AniListMedia> }>(query, {
       sort: [options.sort],
-      type: 'ANIME',
+      type: options.kind === 'manga' ? 'MANGA' : 'ANIME',
       page,
       perPage,
     });

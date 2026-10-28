@@ -139,6 +139,75 @@ describe.runIf(available)('GET /v1/catalog/search (postgres)', () => {
     const { results } = await search('q=matrix');
     for (const result of results) expect(typeof (result as { rank: number }).rank).toBe('number');
   });
+
+  it('orders equally relevant titles by provider score, then anime format', async () => {
+    const ids = [
+      '9a4a2a5b-6f04-46b4-9a01-000000000001',
+      '9a4a2a5b-6f04-46b4-9a01-000000000002',
+      '9a4a2a5b-6f04-46b4-9a01-000000000003',
+    ];
+    await db.insert(catalogMedia).values([
+      {
+        id: ids[0]!,
+        kind: 'anime',
+        title: 'Ranking Probe',
+        synonyms: [],
+        year: 2020,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+        metadata: { providerScore: 75, format: 'special' },
+      },
+      {
+        id: ids[1]!,
+        kind: 'anime',
+        title: 'Ranking Probe',
+        synonyms: [],
+        year: 2020,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+        metadata: { providerScore: 90, format: 'special' },
+      },
+      {
+        id: ids[2]!,
+        kind: 'anime',
+        title: 'Ranking Probe',
+        synonyms: [],
+        year: 2020,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+        metadata: { providerScore: 90, format: 'tv' },
+      },
+    ]);
+
+    const { results } = await search('q=Ranking%20Probe');
+    expect(results.slice(0, 3).map((result) => (result as { id: string }).id)).toEqual([
+      ids[2],
+      ids[1],
+      ids[0],
+    ]);
+  });
+
+  it('matches accented titles with or without accents', async () => {
+    const id = '9a4a2a5b-6f04-46b4-9a01-000000000004';
+    await db.insert(catalogMedia).values({
+      id,
+      kind: 'anime',
+      title: 'Pokémon Horizons',
+      synonyms: [],
+      year: 2023,
+      status: 'airing',
+      genres: [],
+      externalIds: {},
+    });
+
+    for (const query of ['pokemon horizons', 'pokémon horizons']) {
+      const { results } = await search(`q=${encodeURIComponent(query)}`);
+      expect(results.map((result) => (result as { id: string }).id)).toContain(id);
+    }
+  });
 });
 
 describe.runIf(!available)('GET /v1/catalog/search (postgres)', () => {

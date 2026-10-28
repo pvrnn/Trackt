@@ -29,10 +29,12 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
       const viewer = await getSessionUser(app, request);
-      return searchFederated(db, app.deps.env.CATALOG_URL, request.query, viewer, {
+      const result = await searchFederated(db, app.deps.env.CATALOG_URL, request.query, viewer, {
         timeoutMs: app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
         logger: app.log,
       });
+      reply.header('x-has-more', String(result.hasMore));
+      return result.results;
     },
   );
 };

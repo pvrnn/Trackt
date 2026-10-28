@@ -46,6 +46,12 @@ export const catalogMedia = pgTable(
     /** Which season this row is, for series/anime split per season (ADR-0003); null otherwise. */
     seasonNumber: integer('season_number'),
     externalIds: jsonb('external_ids').$type<ExternalIds>().notNull().default({}),
+    /**
+     * Provider facts outside the slim contract's columns, as published by the
+     * importer (`providerScore`: 0–100; `format`: the source's own vocabulary).
+     * Opaque here on purpose — forwarded to instances, not queried by the catalog.
+     */
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
     description: text('description'),
     coverUrl: text('cover_url'),
     /** Wide header artwork (AniList `bannerImage`); enrichment, usually null. */
@@ -72,9 +78,10 @@ export const catalogMedia = pgTable(
   (t) => [
     index('catalog_media_seq_idx').on(t.seq),
     index('catalog_media_kind_idx').on(t.kind),
-    // Typo-tolerant title search via pg_trgm (extension created in a hand-written
-    // migration, ADR-0002) — mirrors the instance-side media_title_trgm_idx.
-    index('catalog_media_title_trgm_idx').using('gin', sql`${t.title} gin_trgm_ops`),
+    // Typo-tolerant search indexes sit on the unaccented, lowercased expressions
+    // rather than on the raw columns, in hand-written migrations 0009 and 0011:
+    // drizzle-kit cannot express `immutable_unaccent(lower(...))` in a table
+    // definition.
   ],
 );
 
@@ -265,7 +272,7 @@ export const newsArticleMedia = pgTable(
 );
 
 /* ------------------------------------------------------------------ *
- * Feedback. One row per report filed from any instance's profile page.
+ * Feedback. One row per report filed from any instance's profile or media page.
  *
  * No `seq` and no `deleted_at`, for the same reason the news tables have
  * none: catalog version is max(catalog_media.seq), and a feedback report
@@ -281,6 +288,15 @@ export const feedback = pgTable(
     message: text('message').notNull(),
     /** The page the report was filed from, as the client saw it. */
     route: text('route'),
+    /**
+     * The work a media-page report is about. Canonical, so it is the catalog's
+     * own id when the work came from here — but deliberately not an FK: an
+     * instance can report on a row this catalog never published, and an inbox
+     * entry must survive the row it points at.
+     */
+    mediaId: uuid('media_id'),
+    /** The title as the reporter saw it: the inbox reads without a lookup. */
+    mediaTitle: text('media_title'),
     /** Which deployment it came from — added by the instance API, not the browser. */
     instanceUrl: text('instance_url'),
     appVersion: text('app_version'),

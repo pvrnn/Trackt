@@ -55,6 +55,7 @@ export const MediaDetailSchema = z.object({
   releaseDate: z.string().nullable(),
   status: MediaStatusSchema.nullable(),
   externalIds: ExternalIdsSchema,
+  metadata: z.record(z.string(), z.unknown()).default({}),
   source: MediaSourceSchema,
   moderation: ModerationStatusSchema,
   community: z.object({

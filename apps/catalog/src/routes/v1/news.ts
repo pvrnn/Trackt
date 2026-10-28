@@ -200,8 +200,8 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
         // Tombstoned works drop out via the join, as everywhere else.
         db.execute(sql`
           SELECT t.id, t.kind, t.title, t.synonyms, t.year, t.status, t.genres,
-                 t.part_count, t.season_number, t.external_ids, t.description, t.cover_url,
-                 t.banner_url, m.role
+                 t.part_count, t.season_number, t.external_ids, t.metadata, t.description,
+                 t.cover_url, t.banner_url, m.role
           FROM news_article_media m
           JOIN catalog_media t ON t.id = m.media_id AND t.deleted_at IS NULL
           WHERE m.article_id = ${articleId}
@@ -227,6 +227,7 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
         partCount: row.part_count as number | null,
         seasonNumber: row.season_number as number | null,
         externalIds: row.external_ids as ExternalIds,
+        metadata: (row.metadata as Record<string, unknown> | null) ?? {},
         description: row.description as string | null,
         coverUrl: row.cover_url as string | null,
         bannerUrl: (row.banner_url as string | null) ?? null,

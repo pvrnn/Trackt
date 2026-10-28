@@ -275,6 +275,9 @@ describe('buildWork', () => {
     assert.deepEqual(work.media.synonyms.slice(0, 2), ['Sousou no Frieren', '葬送のフリーレン']);
     assert.deepEqual(work.media.genres, ['adventure', 'drama', 'fantasy']);
     assert.deepEqual(work.media.externalIds, { mal: 52991, anidb: 17617, ann: 26334 });
+    // The page's format and 0–10 score ride in metadata, the format lowercased
+    // and the score rescaled to the catalog's one 0–100 scale.
+    assert.deepEqual(work.media.metadata, { format: 'tv', providerScore: 92 });
   });
 
   it('plans the adaptation edge from the manga, and the sequel forwards', () => {
@@ -407,6 +410,7 @@ describe('payload and seed file', () => {
       'genres',
       'id',
       'kind',
+      'metadata',
       'partCount',
       'seasonNumber',
       'status',
@@ -453,6 +457,7 @@ describe('seed rows match the catalog schema', () => {
       'partCount',
       'seasonNumber',
       'externalIds',
+      'metadata',
       'description',
       'coverUrl',
       'bannerUrl',

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Media types Trackt can track. Webtoons rely on user-created entries (PRD §3.5). */
-export const MEDIA_KINDS = ['movie', 'series', 'anime', 'manga', 'webtoon'] as const;
+export const MEDIA_KINDS = ['movie', 'series', 'anime', 'manga', 'webtoon', 'game'] as const;
 export const MediaKindSchema = z.enum(MEDIA_KINDS);
 export type MediaKind = z.infer<typeof MediaKindSchema>;
 
@@ -25,25 +25,26 @@ export const LOG_STATUSES = ['planned', 'in_progress', 'completed', 'dropped', '
 export const LogStatusSchema = z.enum(LOG_STATUSES);
 export type LogStatus = z.infer<typeof LogStatusSchema>;
 
-/** Structural parts of a work: seasons/episodes for video, volumes/chapters for print. */
+/** Structural units a user can check in; whole-work kinds such as movies and games have none. */
 export const PART_KINDS = ['season', 'episode', 'volume', 'chapter'] as const;
 export const PartKindSchema = z.enum(PART_KINDS);
 export type PartKind = z.infer<typeof PartKindSchema>;
 
-/** The part kind check-ins create per media kind; null = not checkable (movies). */
+/** The part kind check-ins create per media kind; null = whole-work tracking. */
 export const PART_KIND_BY_MEDIA: Record<
   MediaKind,
   Extract<PartKind, 'episode' | 'chapter'> | null
 > = {
   movie: null,
+  game: null,
   series: 'episode',
   anime: 'episode',
   manga: 'chapter',
   webtoon: 'chapter',
 };
 
-/** Whether a kind is watched or read — the user-facing verb for tracking it. */
-export type TrackingVerb = 'watch' | 'read';
+/** The user-facing verb for tracking a media kind. */
+export type TrackingVerb = 'watch' | 'read' | 'play';
 
 /**
  * The verb each media kind is tracked with. Exhaustive over MediaKind on
@@ -52,6 +53,7 @@ export type TrackingVerb = 'watch' | 'read';
  */
 export const TRACKING_VERB_BY_MEDIA: Record<MediaKind, TrackingVerb> = {
   movie: 'watch',
+  game: 'play',
   series: 'watch',
   anime: 'watch',
   manga: 'read',
@@ -61,11 +63,12 @@ export const TRACKING_VERB_BY_MEDIA: Record<MediaKind, TrackingVerb> = {
 const TRACKING_VERB_FORMS: Record<TrackingVerb, Record<'present' | 'past', string>> = {
   watch: { present: 'Watch', past: 'Watched' },
   read: { present: 'Read', past: 'Read' },
+  play: { present: 'Play', past: 'Played' },
 };
 
 /**
- * The word a check-in reads as for a kind: 'Watch'/'Watched' for video,
- * 'Read' for print (its past tense is spelt the same). Returned capitalised;
+ * The word a check-in reads as for a kind: 'Watch'/'Watched', 'Read', or
+ * 'Play'/'Played'. Returned capitalised;
  * callers case it for their surface — `.toUpperCase()` on buttons,
  * `.toLowerCase()` mid-sentence.
  */

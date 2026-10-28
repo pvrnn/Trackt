@@ -1,6 +1,6 @@
 # Trackt
 
-Open-source, self-hostable tracker for **movies, series, anime, manga, and webtoons** — community-owned, so it can never be taken away from its users.
+Open-source, self-hostable tracker for **movies, series, anime, manga, webtoons, and video games** — community-owned, so it can never be taken away from its users.
 
 > TV Time shut down and deleted everyone's history. Trackt exists so that never happens again: **full export at any time, a public API from day one, and self-hosting in one command.**
 
@@ -76,7 +76,7 @@ packages/
 
 ## Metadata attribution
 
-Catalog entries reference external IDs from [TMDB](https://www.themoviedb.org/), [AniList](https://anilist.co/), and [TVmaze](https://www.tvmaze.com/). Optional per-instance enrichment may use the TMDB API with the instance's own key; this product uses the TMDB API but is not endorsed or certified by TMDB.
+Catalog entries reference external IDs from [TMDB](https://www.themoviedb.org/), [AniList](https://anilist.co/), [TVmaze](https://www.tvmaze.com/), and [IGDB](https://www.igdb.com/). Optional per-instance enrichment may use the TMDB API with the instance's own key; this product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ## License
 

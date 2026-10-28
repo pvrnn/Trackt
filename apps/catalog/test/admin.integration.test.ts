@@ -69,6 +69,7 @@ function movie(overrides: Partial<SlimMedia> = {}): SlimMedia {
     externalIds: { tmdb: 603 },
     description: null,
     coverUrl: null,
+    metadata: {},
     bannerUrl: null,
     ...overrides,
   };
@@ -88,6 +89,7 @@ function manga(overrides: Partial<SlimMedia> = {}): SlimMedia {
     externalIds: { anilist: 30025 },
     description: null,
     coverUrl: null,
+    metadata: {},
     bannerUrl: null,
     ...overrides,
   };
@@ -167,6 +169,17 @@ describe.runIf(available)('POST /v1/admin (postgres)', () => {
       const response = await app.inject({ method: 'GET', url: '/v1/catalog/search?q=Matrix' });
       expect(response.statusCode).toBe(200);
       expect(response.json().results[0]).toMatchObject({ bannerUrl });
+    });
+
+    it('stores provider metadata and serves it back from search', async () => {
+      const metadata = { providerScore: 83 };
+      expect((await publishMedia(movie({ metadata }))).statusCode).toBe(200);
+
+      const [row] = await db.select().from(catalogMedia);
+      expect(row?.metadata).toEqual(metadata);
+
+      const response = await app.inject({ method: 'GET', url: '/v1/catalog/search?q=Matrix' });
+      expect(response.json().results[0]).toMatchObject({ metadata });
     });
 
     it('is idempotent: a re-send updates in place and reports created: false', async () => {

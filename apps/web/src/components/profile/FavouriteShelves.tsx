@@ -8,6 +8,7 @@ import { Tooltip } from '../ui/Tooltip';
 
 const KIND_BLOCK_KEYS = {
   movie: 'profile.favourites.movie',
+  game: 'profile.favourites.game',
   series: 'profile.favourites.series',
   anime: 'profile.favourites.anime',
   manga: 'profile.favourites.manga',

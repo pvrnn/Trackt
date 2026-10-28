@@ -1,13 +1,16 @@
 import { and, count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import type { FastifyBaseLogger } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
   MediaDetailSchema,
+  MediaKindSchema,
   SHOWCASE_LIMIT,
   SHOWCASE_PER_KIND,
   SearchResultSchema,
+  fetchCatalogSearch,
   type MediaDetail,
   type SearchResult,
   type ViewerState,
@@ -33,6 +36,47 @@ async function loadCommunity(db: Db, mediaId: string): Promise<MediaDetail['comm
       ),
     );
   return { averageScore: row?.averageScore ?? null, ratingCount: row?.ratingCount ?? 0 };
+}
+
+/**
+ * Game rows whose release status has already been asked of the catalog, and
+ * when. Most games have none upstream, so the row never gains the field and the
+ * guard below would send the same search on every view; this makes it once per
+ * row per process instead of once per render. Deliberately not persisted: the
+ * stale cohort is finite, and a restart costs one request for each row that is
+ * still being viewed.
+ */
+const STATUS_ASKED_TTL_MS = 6 * 60 * 60 * 1000;
+const STATUS_ASKED_LIMIT = 10_000;
+const statusAskedAt = new Map<string, number>();
+
+async function loadCurrentMetadata(
+  catalogUrl: string | undefined,
+  row: { id: string; kind: string; title: string; metadata: Record<string, unknown> },
+  timeoutMs: number,
+  logger: FastifyBaseLogger,
+): Promise<Record<string, unknown>> {
+  if (row.kind !== 'game' || typeof row.metadata.igdbStatus === 'string' || !catalogUrl) {
+    return row.metadata;
+  }
+  const now = Date.now();
+  const askedAt = statusAskedAt.get(row.id);
+  if (askedAt !== undefined && now - askedAt < STATUS_ASKED_TTL_MS) return row.metadata;
+  // Recorded before the request so concurrent views of one row ask once.
+  if (statusAskedAt.size >= STATUS_ASKED_LIMIT) statusAskedAt.clear();
+  statusAskedAt.set(row.id, now);
+  try {
+    const response = await fetchCatalogSearch(catalogUrl, row.title, {
+      kind: 'game',
+      limit: 100,
+      timeoutMs,
+    });
+    const central = response.results.find((hit) => hit.id === row.id);
+    return central ? { ...row.metadata, ...central.metadata } : row.metadata;
+  } catch (error) {
+    logger.warn({ err: error, id: row.id }, 'failed to refresh game release status from catalog');
+    return row.metadata;
+  }
 }
 
 /**
@@ -111,16 +155,23 @@ async function loadViewer(db: Db, userId: string, mediaId: string): Promise<View
 
 export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
   /**
-   * A sample of what this instance actually carries, for the landing page's
-   * cover band. Anonymous and viewer-independent by construction: it serves
-   * `verified` rows only, so there is no session to read and nothing that
-   * varies per caller — which is what makes it safe to cache at the edge.
+   * A sample of what this instance actually carries: the landing page's cover
+   * band, and the Discover page's shelf when nothing has been typed yet.
+   * Anonymous and viewer-independent by construction: it serves `verified` rows
+   * only, so there is no session to read and nothing that varies per caller —
+   * which is what makes it safe to cache at the edge.
    *
    * Kinds are round-robined rather than taken in one ranked run, so the band
-   * shows the breadth (series *and* anime *and* webtoons) that the pitch above
+   * shows the breadth (series, anime, webtoons, and games) that the pitch above
    * it claims, instead of 24 rows of whichever kind the instance has most of.
-   * Titles with real artwork sort first — the band is the one surface where a
+   * Titles with real artwork sort first — this is the one surface where a
    * generated gradient is a visible downgrade.
+   *
+   * `?kind=` narrows it to one kind and drops the round-robin: a caller that
+   * asked for series wants a screenful of series, not five of them and nineteen
+   * others. Still anonymous and still the same for every caller, so the cache
+   * directive stays `public` — an edge cache keys a CDN entry on the query
+   * string, so each kind is cached apart.
    *
    * Registered before `/media/:idOrSlug` so `showcase` can't be read as a slug.
    */
@@ -130,25 +181,28 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: {
         tags: ['catalog'],
+        querystring: z.object({ kind: MediaKindSchema.optional() }),
         response: {
           200: z.array(SearchResultSchema),
           503: ApiErrorSchema,
         },
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const { kind } = request.query;
 
       const rows = await db.execute(sql`
         WITH visible AS (
           SELECT id, slug, kind, title, year, status, season_number, cover_url, description
           FROM media
           WHERE deleted_at IS NULL AND moderation = 'verified'
+            ${kind ? sql`AND kind = ${kind}` : sql``}
         ),
         one_per_title AS (
           -- A series is one media *per season* (ADR-0003), so "Breaking Bad"
-          -- is several rows with one title. The band would show it twice for
+          -- is several rows with one title. A shelf would show it twice for
           -- no reason a visitor could work out; keep the earliest season.
           SELECT *, row_number() OVER (
                    PARTITION BY kind, title
@@ -166,7 +220,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         )
         SELECT id, slug, kind, title, year, status, season_number, cover_url, description
         FROM ranked
-        WHERE kind_rank <= ${SHOWCASE_PER_KIND}
+        WHERE kind_rank <= ${kind ? SHOWCASE_LIMIT : SHOWCASE_PER_KIND}
         ORDER BY kind_rank, kind
         LIMIT ${SHOWCASE_LIMIT}
       `);
@@ -215,7 +269,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         return reply.status(404).send({ error: 'media not found' });
       }
 
-      const [community, relations, related, viewer] = await Promise.all([
+      const [community, relations, related, viewer, metadata] = await Promise.all([
         loadCommunity(db, row.id),
         loadRelations(db, app.deps.env.CATALOG_URL, row, {
           timeoutMs: app.deps.env.CATALOG_RELATIONS_TIMEOUT_MS,
@@ -223,9 +277,15 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         }),
         loadRelated(db, row),
         user ? loadViewer(db, user.id, row.id) : Promise.resolve(null),
+        loadCurrentMetadata(
+          app.deps.env.CATALOG_URL,
+          row,
+          app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+          request.log,
+        ),
       ]);
 
-      return { ...row, community, relations, related, viewer };
+      return { ...row, metadata, community, relations, related, viewer };
     },
   );
 };

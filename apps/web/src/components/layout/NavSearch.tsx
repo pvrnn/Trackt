@@ -11,7 +11,13 @@ import {
   type ReactNode,
 } from 'react';
 import type { SearchResult, UserSearchResult } from '@trackt/shared';
-import { coverGradient, useUserSearch, useMediaSearch, useDebounced } from '@trackt/client';
+import {
+  coverGradient,
+  gameSearchContext,
+  useUserSearch,
+  useMediaSearch,
+  useDebounced,
+} from '@trackt/client';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '../ui/Avatar';
 import { KindDot } from '../ui/KindDot';
@@ -337,6 +343,18 @@ function MediaRow({
   onHighlight: () => void;
   onSelect: () => void;
 }) {
+  const { t } = useTranslation();
+  const gameContext = gameSearchContext(result.kind, result.metadata ?? {});
+  const context = [
+    gameContext?.editionTitle
+      ? t('discover.gameEdition', { name: gameContext.editionTitle })
+      : gameContext?.role
+        ? t(`discover.gameRole.${gameContext.role}`)
+        : null,
+    gameContext?.parentTitle ? t('discover.gameFor', { title: gameContext.parentTitle }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <Link
       to="/media/$slug"
@@ -370,6 +388,7 @@ function MediaRow({
           <KindDot kind={result.kind} showLabel />
           {result.year !== null && <span className="text-dim">· {result.year}</span>}
         </span>
+        {context && <span className="truncate text-xs text-dim">{context}</span>}
       </span>
     </Link>
   );

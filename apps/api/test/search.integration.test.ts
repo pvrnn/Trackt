@@ -85,6 +85,75 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
     expect(top.seasonNumber).not.toBeNull();
   });
 
+  it('orders equally relevant local results by provider score, then anime format', async () => {
+    const ids = [
+      '9a4a2a5b-6f04-46b4-9a01-000000000011',
+      '9a4a2a5b-6f04-46b4-9a01-000000000012',
+      '9a4a2a5b-6f04-46b4-9a01-000000000013',
+    ];
+    await db.insert(media).values([
+      {
+        id: ids[0]!,
+        kind: 'anime',
+        title: 'Ranking Probe',
+        slug: 'ranking-probe-special-low',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 75, format: 'special' },
+      },
+      {
+        id: ids[1]!,
+        kind: 'anime',
+        title: 'Ranking Probe',
+        slug: 'ranking-probe-special-high',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 90, format: 'special' },
+      },
+      {
+        id: ids[2]!,
+        kind: 'anime',
+        title: 'Ranking Probe',
+        slug: 'ranking-probe-tv-high',
+        source: 'provider',
+        moderation: 'verified',
+        metadata: { providerScore: 90, format: 'tv' },
+      },
+    ]);
+
+    try {
+      const { results } = await search('q=Ranking%20Probe');
+      expect(results.slice(0, 3).map((result) => (result as { id: string }).id)).toEqual(
+        ids.toReversed(),
+      );
+    } finally {
+      await db.delete(media).where(eq(media.id, ids[0]!));
+      await db.delete(media).where(eq(media.id, ids[1]!));
+      await db.delete(media).where(eq(media.id, ids[2]!));
+    }
+  });
+
+  it('matches accented titles with or without accents', async () => {
+    const id = '9a4a2a5b-6f04-46b4-9a01-000000000014';
+    await db.insert(media).values({
+      id,
+      kind: 'anime',
+      title: 'Pokémon Horizons',
+      slug: 'pokemon-horizons-accent-test',
+      source: 'provider',
+      moderation: 'verified',
+    });
+
+    try {
+      for (const query of ['pokemon horizons', 'pokémon horizons']) {
+        const { results } = await search(`q=${encodeURIComponent(query)}`);
+        expect(results.map((result) => (result as { id: string }).id)).toContain(id);
+      }
+    } finally {
+      await db.delete(media).where(eq(media.id, id));
+    }
+  });
+
   it('tolerates typos via trigram matching', async () => {
     const { results } = await search('q=cowbay%20bebop');
     expect(results[0]).toMatchObject({
@@ -220,6 +289,7 @@ function slimHit(overrides: {
     externalIds: {},
     description: null,
     coverUrl: null,
+    metadata: {},
     bannerUrl: null,
     rank: 0.9,
     ...overrides,
@@ -402,6 +472,7 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
           partCount: 7,
           seasonNumber: 1,
           externalIds: { tmdb: 1396 },
+          metadata: { igdbType: 'Expansion', parentTitle: 'The Witcher 3: Wild Hunt' },
           description: null,
           coverUrl: null,
           rank: 1,
@@ -414,8 +485,12 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
       method: 'GET',
       url: '/api/v1/search?q=Breaking%20Bad',
     });
-    const results = response.json() as { id: string }[];
+    const results = response.json() as { id: string; metadata?: Record<string, unknown> }[];
     expect(results.filter((r) => r.id === breakingBadId)).toHaveLength(1);
+    expect(results.find((r) => r.id === breakingBadId)?.metadata).toMatchObject({
+      igdbType: 'Expansion',
+      parentTitle: 'The Witcher 3: Wild Hunt',
+    });
   });
 
   it('never resurrects a soft-deleted local row from a central hit', async () => {

@@ -42,8 +42,8 @@ export function checkCanonicalId(media: SlimMedia): CanonicalIdCheck {
     }
     expected = canonicalSeriesSeasonId(externalId, media.seasonNumber);
   } else {
-    // Anime carry a seasonNumber too, but AniList already issues a distinct id
-    // per season/cour, so the external id alone identifies the row.
+    // Anime carry a seasonNumber too, but AniList issues a distinct id per
+    // season/cour; IGDB likewise identifies each game directly.
     expected = canonicalMediaId(media.kind, externalId);
   }
 

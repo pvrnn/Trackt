@@ -28,7 +28,7 @@
   "upToDate": "UP TO DATE",
   "checkIn": "{{verb}} {{part}}",
   "checkInCompact": "CHECK IN",
-  "mark": "MARK {{verb}}",
+  "mark": "MARK AS {{verb}}",
   "markAll": "MARK ALL {{verb}}",
   "clearProgress": "CLEAR PROGRESS",
   "favourite": "FAVOURITE",
@@ -60,6 +60,7 @@
   },
   "empty": {
     "movie": "Movies track in one step: the button above is the whole log.",
+    "game": "Games track in one step: the button above is the whole log.",
     "noParts": "This entry has no episode or chapter count yet, so there’s nothing granular to tick off. Set a status above to track it."
   },
   "progress": {

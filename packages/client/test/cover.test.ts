@@ -37,6 +37,7 @@ describe('coverGradient', () => {
   it('stays inside its kind hue family for every kind', () => {
     const ranges: Record<(typeof MEDIA_KINDS)[number], [number, number]> = {
       movie: [248, 272],
+      game: [265, 289],
       series: [218, 242],
       anime: [32, 46],
       manga: [22, 36],

@@ -30,7 +30,7 @@ Decision doc behind the shipped **catalog service deployment** (ROADMAP → Done
 - One small dedicated Postgres. Eight tables: `catalog_media`, `catalog_media_relation` (ADR-0004), the five `news_*` tables (ADR-0005) and `feedback`. Populated catalog likely **0.5–2 GB**, essentially all of it `catalog_media` (anime-offline-database + TVmaze + Wikidata movies + manga ≈ a few hundred thousand slim rows); relations, news and feedback are rounding errors beside it.
 - **Read path is live, not polled** — the three endpoints in the callout above, each timeout-bounded and each degrading rather than failing.
 - Write path is a single-writer admin path (`POST /v1/admin/media`, `/v1/admin/relations`, `/v1/admin/news`), hit occasionally by the operator or an importer. The one public write is `POST /v1/feedback`, rate-limited per IP: it is the intake every instance forwards its users' reports to.
-- No account data in the catalog. A feedback report carries the message, the page it was filed from and the instance's URL — never the reporter's identity — and EU hosting is a nice-to-have (project operator is in France).
+- No account data in the catalog. A feedback report carries the message, the page it was filed from, the work it is about when filed from a media page (its canonical id and the title as shown) and the instance's URL — never the reporter's identity — and EU hosting is a nice-to-have (project operator is in France).
 
 ## TL;DR comparison
 

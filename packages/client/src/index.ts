@@ -13,6 +13,8 @@
  * Configure it once at startup with `configureClient()`; see `runtime.ts`.
  */
 export * from './cover.js';
+export * from './external.js';
+export * from './game-search.js';
 export * from './feedback.js';
 export * from './format.js';
 export * from './friends.js';

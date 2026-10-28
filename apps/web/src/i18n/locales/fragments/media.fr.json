@@ -56,6 +56,7 @@
   },
   "empty": {
     "movie": "Un film se suit en une étape : le bouton ci-dessus est tout le journal.",
+    "game": "Un jeu se suit en une étape : le bouton ci-dessus est tout le journal.",
     "noParts": "Cette fiche n’a pas encore de nombre d’épisodes ou de chapitres, il n’y a donc rien à cocher. Définissez un statut ci-dessus pour la suivre."
   },
   "progress": {
@@ -89,6 +90,7 @@
     "alsoKnownAs": "AUSSI CONNU SOUS",
     "external": "EXTERNE"
   },
+  "reportIssue": "SIGNALER UN PROBLÈME",
   "youMightLike": "Vous aimerez peut-être aussi",
   "relation": {
     "prequel": "PRÉQUELLE",

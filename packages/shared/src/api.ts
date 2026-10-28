@@ -21,6 +21,8 @@ export const SearchQuerySchema = z.object({
   /** Optional filter — search is cross-kind by default. */
   kind: MediaKindSchema.optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
+  /** Number of ranked results to skip; bounded to keep federated prefix scans finite. */
+  offset: z.coerce.number().int().min(0).max(1000).default(0),
 });
 export type SearchQuery = z.infer<typeof SearchQuerySchema>;
 
@@ -36,6 +38,7 @@ export const SearchResultSchema = z.object({
   seasonNumber: z.number().int().nullable(),
   coverUrl: z.string().nullable(),
   description: z.string().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export type SearchResult = z.infer<typeof SearchResultSchema>;
 

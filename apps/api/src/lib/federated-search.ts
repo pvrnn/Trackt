@@ -88,6 +88,7 @@ async function materializeCentralHits(
         seasonNumber: persisted.seasonNumber,
         coverUrl: persisted.coverUrl,
         description: persisted.description,
+        metadata: persisted.metadata,
         rank: hit.rank,
       });
     } catch (error) {
@@ -103,13 +104,15 @@ export async function searchFederated(
   query: SearchQuery,
   viewer: SessionUser | null,
   options: SearchFederatedOptions,
-): Promise<SearchResult[]> {
+): Promise<{ results: SearchResult[]; hasMore: boolean }> {
+  const sourceQuery = { ...query, limit: query.offset + query.limit + 1, offset: 0 };
   const [local, central] = await Promise.all([
-    searchLocalMedia(db, query),
-    searchCentralSafe(catalogUrl, query, options),
+    searchLocalMedia(db, sourceQuery),
+    searchCentralSafe(catalogUrl, sourceQuery, options),
   ]);
 
   const localIds = new Set(local.map((r) => r.id));
+  const centralById = new Map(central.map((hit) => [hit.id, hit]));
   const centralOnly = central.filter((hit) => !localIds.has(hit.id));
   // A soft-deleted local row is invisible to the local search above, so its
   // central hit lands here — filter it out or federation would resurrect a
@@ -120,10 +123,45 @@ export async function searchFederated(
     centralOnly.map((hit) => hit.id),
   );
   const insertable = centralOnly.filter((hit) => !softDeleted.has(hit.id));
-  const materialized = await materializeCentralHits(db, insertable, options.logger);
+  const merged = [
+    ...local.map((result) => {
+      const centralHit = centralById.get(result.id);
+      return {
+        source: 'local' as const,
+        rank: result.rank,
+        title: result.title,
+        result: centralHit
+          ? {
+              ...result,
+              metadata: { ...result.metadata, ...centralHit.metadata },
+            }
+          : result,
+      };
+    }),
+    ...insertable.map((result) => ({
+      source: 'central' as const,
+      rank: result.rank,
+      title: result.title,
+      result,
+    })),
+  ].sort(
+    (a, b) =>
+      b.rank - a.rank || a.title.localeCompare(b.title) || a.result.id.localeCompare(b.result.id),
+  );
+  const page = merged.slice(query.offset, query.offset + query.limit + 1);
+  const hasMore = page.length > query.limit;
+  const visiblePage = page.slice(0, query.limit);
+  const pageHits = visiblePage.flatMap((item) => (item.source === 'central' ? [item.result] : []));
+  const materialized = await materializeCentralHits(db, pageHits, options.logger);
+  const byId = new Map(materialized.map((result) => [result.id, result]));
 
-  return [...local, ...materialized]
-    .sort((a, b) => b.rank - a.rank || a.title.localeCompare(b.title))
-    .slice(0, query.limit)
-    .map(({ rank: _rank, ...result }) => result);
+  const results = visiblePage.flatMap((item) => {
+    if (item.source === 'local') {
+      const { rank: _rank, ...result } = item.result;
+      return [result];
+    }
+    const result = byId.get(item.result.id);
+    return result ? [result] : [];
+  });
+  return { results, hasMore };
 }

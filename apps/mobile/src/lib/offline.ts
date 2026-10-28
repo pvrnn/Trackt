@@ -6,7 +6,7 @@ import {
   stampedDates,
   trackingApi,
 } from '@trackt/client';
-import type { LogStatus, MediaDetail } from '@trackt/shared';
+import { PART_KIND_BY_MEDIA, type LogStatus, type MediaDetail } from '@trackt/shared';
 
 /**
  * Offline, as data. A check-in has to survive the app being killed while the
@@ -194,10 +194,10 @@ export function trackingPatch(
 
 /**
  * How many parts a sweep covers: the known count, or one past the highest
- * check-in while a season is still airing. Zero for a movie, which tracks in one
- * step and has no parts to sweep (ADR-0003).
+ * check-in while a season is still airing. Zero for kinds without parts, which
+ * track in one step and have nothing to sweep (ADR-0003).
  */
 function sweepLength(detail: MediaDetail, viewer: NonNullable<MediaDetail['viewer']>): number {
-  if (detail.kind === 'movie') return 0;
+  if (PART_KIND_BY_MEDIA[detail.kind] === null) return 0;
   return detail.partCount ?? (viewer.watched.length > 0 ? Math.max(...viewer.watched) : 0);
 }

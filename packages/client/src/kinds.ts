@@ -8,6 +8,7 @@ import type { LogStatus, MediaKind } from '@trackt/shared';
  */
 export const KIND_LABELS: Record<MediaKind, string> = {
   movie: 'MOVIES',
+  game: 'GAMES',
   series: 'SERIES',
   anime: 'ANIME',
   manga: 'MANGA',
@@ -16,6 +17,7 @@ export const KIND_LABELS: Record<MediaKind, string> = {
 
 export const KIND_LABELS_SINGULAR: Record<MediaKind, string> = {
   movie: 'MOVIE',
+  game: 'GAME',
   series: 'SERIES',
   anime: 'ANIME',
   manga: 'MANGA',

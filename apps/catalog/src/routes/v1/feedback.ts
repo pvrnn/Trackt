@@ -47,6 +47,8 @@ export const feedbackRoutes: FastifyPluginAsyncZod = async (app) => {
           category: request.body.category,
           message: request.body.message,
           route: request.body.route ?? null,
+          mediaId: request.body.mediaId ?? null,
+          mediaTitle: request.body.mediaTitle ?? null,
           instanceUrl: request.body.instanceUrl ?? null,
           appVersion: request.body.appVersion ?? null,
         })
@@ -88,6 +90,8 @@ export const feedbackRoutes: FastifyPluginAsyncZod = async (app) => {
           category: row.category,
           message: row.message,
           route: row.route,
+          mediaId: row.mediaId,
+          mediaTitle: row.mediaTitle,
           instanceUrl: row.instanceUrl,
           appVersion: row.appVersion,
           createdAt: row.createdAt.toISOString(),
