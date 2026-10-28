@@ -24,6 +24,24 @@ canonical uuid derived from the IGDB id, with IGDB's own facts (`igdbType`,
 `metadata` — so `apps/catalog` `db:seed` loads it as it stands. There are no
 relation edges: this pass reads rankings, not a graph.
 
+## Steam links
+
+Two reads attach each game's Steam store page as `externalIds.steam` (the app
+id), which both clients turn into `store.steampowered.com/app/<id>` — the link is
+derivable from the id, so it needs no metadata. IGDB states a store page in two
+places that don't agree, and the union is what the link needs: `external_game`
+(source 1, the app id in `uid`), and a Steam `website` entry whose URL carries the
+same id. The Witcher (2007) has no `external_game` row at all, only the website —
+which is why both are read. Neither has a reverse field on `game`, so this costs
+one filtered query per 100 games each, not a field on the walk.
+
+It is deliberately partial, and the seed says nothing it cannot back: 1 180 of the
+1 961 rows (60 %) carry a listing, because console exclusives and pre-Steam PC
+games have no store page at all, and IGDB files a later PC port's listing under
+the port's own row — Horizon Zero Dawn's Steam page belongs to `Horizon Zero
+Dawn: Complete Edition`. Where a game carries several listings the oldest wins.
+Games without one simply have no `steam` key rather than a guessed app id.
+
 ## Ranking
 
 `total_rating` is an average, so it says nothing on its own about how much data

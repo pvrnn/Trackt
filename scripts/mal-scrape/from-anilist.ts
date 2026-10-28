@@ -29,8 +29,10 @@ import {
   mediaByMalIdsQuery,
   mediaBySortQuery,
   mediaFields,
+  type AniListDate,
   type AniListMedia,
   type AniListPage,
+  type AniListStaffEdge,
 } from './anilist.ts';
 import {
   IDENTITY_PROVIDER_BY_KIND,
@@ -40,6 +42,7 @@ import {
   type MediaRelationType,
   type MediaStatus,
   type Payload,
+  type ProviderCredit,
   type SeedFile,
   type SeedRelationRow,
   canonicalMediaId,
@@ -315,6 +318,77 @@ function externalIdsOf(node: AniListNodeLike): Record<string, string | number> {
   return ids;
 }
 
+/* ------------------------------------------------------------------ *
+ * Credits and provider facts
+ * ------------------------------------------------------------------ */
+
+/**
+ * The staff roles worth a credit line: who ran the work, who wrote it, who drew
+ * it. AniList files every key animator, in-between and dub director as a staff
+ * edge too, so a whitelist is the filter — voice actors are a separate
+ * `characters` connection and never reach here.
+ *
+ * A role's trailing parenthetical is dropped before matching because AniList
+ * qualifies roles instead of splitting them: `Story & Art (vols 1-41)`,
+ * `Script (German)`, `Editing (2020-2023)`.
+ */
+const ANIME_CREDIT_ROLES = new Set([
+  'Director',
+  'Original Creator',
+  'Original Story',
+  'Series Composition',
+  'Script',
+  'Character Design',
+  'Music',
+]);
+
+/** `Story & Art` is the single-credited mangaka; `Story`/`Art` the split team. */
+const MANGA_CREDIT_ROLES = new Set([
+  'Story & Art',
+  'Story',
+  'Art',
+  'Original Creator',
+  'Original Story',
+]);
+
+function baseCreditRole(role: string): string {
+  return role.trim().replace(/\s*\([^()]*\)\s*$/, '');
+}
+
+export function creditsOf(node: AniListNodeLike, kind: MediaKind): ProviderCredit[] {
+  const allowed = kind === 'anime' ? ANIME_CREDIT_ROLES : MANGA_CREDIT_ROLES;
+  const credits: ProviderCredit[] = [];
+  const seen = new Set<string>();
+  for (const edge of node.staff?.edges ?? []) {
+    const name = edge.node?.name?.full?.trim();
+    const role = baseCreditRole(edge.role);
+    if (!name || !allowed.has(role)) continue;
+    const key = `${role}:${name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    credits.push({ role, name });
+  }
+  return credits;
+}
+
+export function studiosOf(node: AniListNodeLike): string[] {
+  const names = (node.studios?.nodes ?? []).map((studio) => studio.name.trim()).filter(Boolean);
+  return [...new Set(names)];
+}
+
+/** AniList's partial date → `YYYY`, `YYYY-MM` or `YYYY-MM-DD`; null when unset. */
+export function isoDate(
+  date: { year?: number | null; month?: number | null; day?: number | null } | null | undefined,
+): string | null {
+  const year = date?.year;
+  if (!year) return null;
+  const month =
+    date.month && date.month >= 1 && date.month <= 12 ? String(date.month).padStart(2, '0') : null;
+  const day =
+    month && date.day && date.day >= 1 && date.day <= 31 ? String(date.day).padStart(2, '0') : null;
+  return [year, month, day].filter((part) => part !== null && part !== undefined).join('-');
+}
+
 type AniListNodeLike = {
   id: number;
   idMal: number | null;
@@ -328,7 +402,12 @@ type AniListNodeLike = {
   chapters?: number | null;
   seasonYear?: number | null;
   status?: string | null;
-  startDate?: { year?: number | null } | null;
+  startDate?: AniListDate | null;
+  endDate?: AniListDate | null;
+  duration?: number | null;
+  volumes?: number | null;
+  studios?: { nodes: { name: string }[] } | null;
+  staff?: { edges: AniListStaffEdge[] } | null;
   coverImage?: { large?: string | null } | null;
   bannerImage?: string | null;
   description?: string | null;
@@ -372,7 +451,16 @@ export function rowFromMedia(media: AniListNodeLike, options: RowOptions = {}): 
     partCount: kind === 'anime' ? (media.episodes ?? null) : (media.chapters ?? null),
     seasonNumber: null,
     externalIds: externalIdsOf(media),
-    metadata: providerMetadata({ score: media.averageScore ?? null, format: media.format ?? null }),
+    metadata: providerMetadata({
+      score: media.averageScore ?? null,
+      format: media.format ?? null,
+      startDate: isoDate(media.startDate),
+      endDate: isoDate(media.endDate),
+      duration: media.duration ?? null,
+      volumes: media.volumes ?? null,
+      studios: studiosOf(media),
+      credits: creditsOf(media, kind),
+    }),
     description: options.withDescription ? meaningfulDescription(media.description) : null,
     coverUrl: options.withCover ? (media.coverImage?.large ?? null) : null,
     bannerUrl: options.withBanner === false ? null : (media.bannerImage ?? null),
@@ -509,9 +597,14 @@ export function planEdges(
  * edges rather than guessed from a title.
  */
 export function assignSeasonNumbers(seed: SeedFile): number {
+  // A season ordinal only means something inside one medium: AniList files a
+  // manga spin-off as a `sequel` of its anime (Cyberpunk: Edgerunners MADNESS),
+  // and counting that edge would push the 2022 season to "Season 2".
+  const kindOf = new Map(seed.catalog_media.map((row) => [row.id, row.kind]));
   const predecessors = new Map<string, string[]>();
   for (const edge of seed.catalog_media_relation) {
     if (edge.type !== 'sequel') continue;
+    if (kindOf.get(edge.fromId) !== kindOf.get(edge.toId)) continue;
     const list = predecessors.get(edge.toId) ?? [];
     list.push(edge.fromId);
     predecessors.set(edge.toId, list);
@@ -591,7 +684,10 @@ export function importAniListMedia(
         continue;
       }
       edges.set(`${plan.edge.fromId}:${plan.edge.toId}:${plan.edge.type}`, plan.edge);
-      if (plan.target?.id) media.set(plan.target.id, plan.target);
+      // A work can be this page's own row *and* another work's relation target,
+      // and the relation node is the poorer of the two (no credits, no studios).
+      // The target only fills a gap; it never replaces a top-level row.
+      if (plan.target?.id && !media.has(plan.target.id)) media.set(plan.target.id, plan.target);
     }
   }
 

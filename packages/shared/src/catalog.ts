@@ -35,8 +35,10 @@ export const SlimMediaSchema = z.object({
   externalIds: ExternalIdsSchema,
   /**
    * Provider facts that are not part of the slim contract's fixed columns, keyed
-   * by the importer: `providerScore` (0–100, AniList's `averageScore`) and
-   * `format` (the source's own vocabulary — `tv`, `ova`, `special`…).
+   * by the importer: `providerScore` (0–100, AniList's `averageScore`), `format`
+   * (the source's own vocabulary — `tv`, `ova`, `special`…), and from AniList
+   * `startDate`/`endDate` (partial, `YYYY`/`YYYY-MM`/`YYYY-MM-DD`), `duration`,
+   * `volumes`, `studios` and `credits` (`[{role, name}]`, main staff only).
    * Carried for analysis — nothing renders it — and copied verbatim into the
    * instance's own `media.metadata` when a hit is materialized.
    */

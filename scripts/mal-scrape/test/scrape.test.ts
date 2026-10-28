@@ -431,6 +431,42 @@ describe('payload and seed file', () => {
     assert.equal(merged.catalog_media.length, first.catalog_media.length);
     assert.equal(merged.catalog_media_relation.length, first.catalog_media_relation.length);
   });
+
+  it('coalesces metadata and external ids instead of replacing them', () => {
+    // `dedup:tmdb` folds `tmdb` into an AniList row after the scrape, and the
+    // duplicate leaves the TMDB seed, so a re-scrape that replaced the row would
+    // lose the link with nothing left to re-derive it from.
+    const base = toSeedFile(payload);
+    const deduped = structuredClone(base);
+    deduped.catalog_media[0]!.metadata = { ...deduped.catalog_media[0]!.metadata, tmdb: 12345 };
+    deduped.catalog_media[0]!.externalIds = {
+      ...deduped.catalog_media[0]!.externalIds,
+      tmdb: 12345,
+    };
+    deduped.catalog_media[0]!.description = 'An imported synopsis.';
+
+    const rescraped = structuredClone(base);
+    rescraped.catalog_media[0]!.metadata = {
+      ...rescraped.catalog_media[0]!.metadata,
+      providerScore: 1,
+    };
+    rescraped.catalog_media[0]!.externalIds = { anilist: 154587 };
+    rescraped.catalog_media[0]!.description = null;
+
+    const merged = mergeSeedFiles(deduped, rescraped).catalog_media[0]!;
+    assert.equal(merged.metadata.tmdb, 12345);
+    assert.equal(merged.metadata.providerScore, 1, 'the fresh scrape wins on its own keys');
+    assert.equal(
+      merged.description,
+      deduped.catalog_media[0]!.description,
+      'a re-scrape without --with-description keeps the synopsis it did not ask for',
+    );
+    assert.deepEqual(merged.externalIds, {
+      ...deduped.catalog_media[0]!.externalIds,
+      anilist: 154587,
+      tmdb: 12345,
+    });
+  });
 });
 
 describe('seed rows match the catalog schema', () => {

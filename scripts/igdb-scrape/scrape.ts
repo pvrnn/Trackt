@@ -227,6 +227,86 @@ async function detailsMap<T extends { id: number }>(
   return result;
 }
 
+/** Every row matching `request`, following the query tool's 100-row page cap. */
+async function queryAll<T>(
+  client: IgdbMcp,
+  request: { entity: string; fields: string[]; filters?: Record<string, unknown> },
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const page = await client.call<{ results: T[] }>('query', {
+      ...request,
+      sort: { field: 'id', order: 'ASC' },
+      limit: PAGE_SIZE,
+      offset,
+    });
+    const batch = page.results ?? [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) return rows;
+  }
+}
+
+/**
+ * Steam app ids keyed by IGDB game id, from `external_game` first and IGDB's
+ * Steam `website` entry second. The two disagree at the edges and the union is
+ * what a store link needs: The Witcher (2007) has no `external_game` row at all,
+ * only `store.steampowered.com/app/20900` filed as a website.
+ *
+ * Both reads are sparse by nature — console exclusives and pre-Steam PC games
+ * have no store page, and IGDB files a later PC port's listing under the port's
+ * own row — so the seed links what IGDB states and never infers the rest.
+ */
+async function steamLinks(client: IgdbMcp, gameIds: number[]): Promise<Map<number, number>> {
+  const appIds = new Map<number, number>();
+  const unique = [...new Set(gameIds)];
+  const source = (
+    await queryAll<{ id: number; name: string }>(client, {
+      entity: 'external_game_source',
+      fields: ['name'],
+    })
+  ).find((row) => row.name === 'Steam')?.id;
+  const websiteType = (
+    await queryAll<{ id: number; type: string }>(client, {
+      entity: 'website_type',
+      fields: ['type'],
+    })
+  ).find((row) => row.type === 'Steam')?.id;
+  if (source === undefined) return appIds;
+
+  const batches = (ids: number[]) =>
+    Array.from({ length: Math.ceil(ids.length / DETAIL_BATCH_SIZE) }, (_, index) =>
+      ids.slice(index * DETAIL_BATCH_SIZE, (index + 1) * DETAIL_BATCH_SIZE),
+    );
+
+  for (const batch of batches(unique)) {
+    const rows = await queryAll<{ game: number; uid: string }>(client, {
+      entity: 'external_game',
+      filters: { game: { in: batch }, external_game_source: { eq: source } },
+      fields: ['game', 'uid'],
+    });
+    for (const row of rows) {
+      // A game can carry several listings (a demo, a store re-release); the
+      // oldest is the original page. A non-numeric uid derives no URL.
+      if (!appIds.has(row.game) && /^\d+$/.test(row.uid)) appIds.set(row.game, Number(row.uid));
+    }
+  }
+  if (websiteType !== undefined) {
+    for (const batch of batches(unique.filter((id) => !appIds.has(id)))) {
+      const rows = await queryAll<{ game: number; url: string }>(client, {
+        entity: 'website',
+        filters: { game: { in: batch }, type: { eq: websiteType } },
+        fields: ['game', 'url'],
+      });
+      for (const row of rows) {
+        const appId = row.url.match(/\/app\/(\d+)/)?.[1];
+        if (!appIds.has(row.game) && appId) appIds.set(row.game, Number(appId));
+      }
+    }
+  }
+  console.log(`Resolved steam ids: ${appIds.size}/${unique.length}`);
+  return appIds;
+}
+
 /**
  * The canonical id every instance derives for a work, for a seed row that has
  * no `@trackt/shared` to import: same namespace, same `provider:kind:id` key.
@@ -261,8 +341,10 @@ function toSeedRow(
   parents: Map<number, { name: string }>,
   releaseStatuses: Map<number, string>,
   gameStatuses: Map<number, string>,
+  steamIds: Map<number, number>,
 ) {
   const cover = game.cover === undefined ? undefined : covers.get(game.cover);
+  const steamId = steamIds.get(game.id);
   const parentId = game.parent_game ?? game.version_parent;
   const parent = parentId === undefined ? undefined : parents.get(parentId);
   const releaseStatus = (game.release_dates ?? [])
@@ -292,7 +374,7 @@ function toSeedRow(
     ],
     partCount: null,
     seasonNumber: null,
-    externalIds: { igdb: game.id },
+    externalIds: { igdb: game.id, ...(steamId === undefined ? {} : { steam: steamId }) },
     metadata: {
       format: 'game',
       igdbType:
@@ -485,6 +567,10 @@ export async function scrapeIgdb(args: Args): Promise<number> {
       const name = row.status === undefined ? undefined : releaseStatusRows.get(row.status)?.name;
       if (name) releaseStatuses.set(releaseDateId, name);
     }
+    const steamIds = await steamLinks(
+      client,
+      selectedGames.map((game) => game.id),
+    );
 
     const output = resolve(args.out);
     await mkdir(dirname(output), { recursive: true });
@@ -507,6 +593,7 @@ export async function scrapeIgdb(args: Args): Promise<number> {
           parents,
           releaseStatuses,
           new Map([...gameStatusRows].map(([id, row]) => [id, row.status])),
+          steamIds,
         ),
       ),
       catalog_media_relation: [],

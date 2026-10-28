@@ -54,4 +54,11 @@ describe('externalProfiles', () => {
       externalProfiles('game', { igdb: 1942 }, { igdbUrl: 'https://example.com/games/witcher' }),
     ).toEqual([{ provider: 'igdb', url: null }]);
   });
+
+  it('links a Steam app id to its store page', () => {
+    expect(externalProfiles('game', { igdb: 1942, steam: 292030 })).toEqual([
+      { provider: 'igdb', url: null },
+      { provider: 'steam', url: 'https://store.steampowered.com/app/292030' },
+    ]);
+  });
 });

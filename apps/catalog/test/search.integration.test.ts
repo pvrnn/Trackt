@@ -190,6 +190,58 @@ describe.runIf(available)('GET /v1/catalog/search (postgres)', () => {
     ]);
   });
 
+  it('prefers the main work over its spin-off when the query names the franchise', async () => {
+    // ADR-0010: the spin-off's shorter title trigrams better against the query,
+    // which is what put it first before the format class existed.
+    const ids = {
+      short: '9a4a2a5b-6f04-46b4-9a01-000000000015',
+      main: '9a4a2a5b-6f04-46b4-9a01-000000000016',
+      season: '9a4a2a5b-6f04-46b4-9a01-000000000017',
+    };
+    await db.insert(catalogMedia).values([
+      {
+        id: ids.short,
+        kind: 'anime',
+        title: 'Zero Probe ~Break Time~',
+        synonyms: [],
+        year: 2020,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+        metadata: { providerScore: 65, format: 'tv short' },
+      },
+      {
+        id: ids.main,
+        kind: 'anime',
+        title: 'Zero Probe -Main Line-',
+        synonyms: [],
+        year: 2020,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+        metadata: { providerScore: 81, format: 'tv' },
+      },
+      {
+        id: ids.season,
+        kind: 'anime',
+        title: 'Zero Probe -Main Line- Season 2',
+        synonyms: [],
+        year: 2021,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+        metadata: { providerScore: 83, format: 'tv' },
+      },
+    ]);
+
+    const { results } = await search('q=Zero%20Probe');
+    expect(results.slice(0, 3).map((result) => (result as { id: string }).id)).toEqual([
+      ids.main,
+      ids.season,
+      ids.short,
+    ]);
+  });
+
   it('matches accented titles with or without accents', async () => {
     const id = '9a4a2a5b-6f04-46b4-9a01-000000000004';
     await db.insert(catalogMedia).values({

@@ -18,6 +18,22 @@ No `.env` is required in development — defaults are baked into `packages/share
 
 If your dev database predates the central-catalog pivot ([ADR-0001](docs/adr/0001-central-slim-catalog.md)), reset it once: `docker compose -f docker-compose.dev.yml down -v && docker compose -f docker-compose.dev.yml up -d && pnpm db:migrate && pnpm db:seed`.
 
+### The central catalog's own database
+
+`pnpm db:seed` above is the _instance_ fixture. The catalog service has its own
+Postgres (`:5433`) and its own seed path, which loads the scraper outputs in
+`apps/catalog/seed/` (gitignored — they carry provider data):
+
+```sh
+pnpm --filter @trackt/catalog db:seed:all              # every seed, in dependency order
+pnpm --filter @trackt/catalog db:seed -- <file.json>   # one seed (absolute path)
+pnpm --filter @trackt/catalog db:clear -- --yes        # empty media + edges, then reseed
+```
+
+`db:seed:all` is idempotent (upserts), so it is also the way to refresh a
+catalog after re-scraping. `db:clear` deletes published rows and requires
+`--yes`; it leaves news, feedback and the `catalog_seq` cursor alone.
+
 ## Running the mobile app
 
 `pnpm dev` already starts Metro — `@trackt/mobile:dev` is `expo start`, so port 8081 is taken from the moment the stack is up and its output is in the turbo stream prefixed `@trackt/mobile:dev:`. Running `expo start` again in `apps/mobile` collides with it and, being non-interactive, exits with `Skipping dev server` rather than prompting for another port. There is only ever one Metro.
