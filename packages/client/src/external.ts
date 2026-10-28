@@ -12,6 +12,7 @@ const PROVIDER_PATHS: Record<string, (kind: MediaKind, id: string) => string> = 
   ann: (_kind, id) => `https://www.animenewsnetwork.com/encyclopedia/anime.php?id=${id}`,
   tmdb: (kind, id) => `https://www.themoviedb.org/${kind === 'movie' ? 'movie' : 'tv'}/${id}`,
   imdb: (_kind, id) => `https://www.imdb.com/title/${id}/`,
+  steam: (_kind, id) => `https://store.steampowered.com/app/${id}`,
 };
 
 /** AniList and MAL spell print works differently from their video pages. */
