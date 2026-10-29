@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { relativeTime, useFriends, useProfileSummary } from '@trackt/client';
+import { relativeTime, useFlag, useFriends, useProfileSummary } from '@trackt/client';
 import { useLabels } from '../../../src/lib/labels';
 import { useTranslation } from 'react-i18next';
 import { i18n } from '../../../src/i18n';
@@ -50,6 +50,7 @@ export default function ProfileTab() {
   const { user, isPending: sessionPending, refetch: refetchSession } = useAuthedScreen();
   const { t } = useTranslation();
   const labels = useLabels();
+  const listsOn = useFlag('lists.custom');
   const { origin, forgetInstance } = useInstance();
   const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useProfileSummary();
   const { data: friends } = useFriends();
@@ -137,12 +138,14 @@ export default function ProfileTab() {
               {/* The second navigation level the four-tab spine displaces here —
                 one row each, glyph to chevron, the way the design files it. */}
               <View style={styles.destinations}>
-                <Destination
-                  icon="list"
-                  href="/lists"
-                  label={t('lists.title')}
-                  meta={t('profile.yourCollections')}
-                />
+                {listsOn ? (
+                  <Destination
+                    icon="list"
+                    href="/lists"
+                    label={t('lists.title')}
+                    meta={t('profile.yourCollections')}
+                  />
+                ) : null}
                 <Destination
                   icon="clock"
                   href="/history"

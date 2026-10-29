@@ -2,7 +2,7 @@ import httpProxy from '@fastify/http-proxy';
 import { sql } from 'drizzle-orm';
 import { Redis } from 'ioredis';
 import { createDb } from '@trackt/db';
-import { EnvValidationError, loadEnv } from '@trackt/shared';
+import { EnvValidationError, loadEnv, parseFlagOverrides } from '@trackt/shared';
 import { buildApp } from './app.js';
 import { createAuth } from './auth.js';
 
@@ -39,6 +39,13 @@ async function main(): Promise<void> {
   redis.on('error', (error) => {
     app.log.warn({ err: error }, 'redis connection error');
   });
+
+  // The flag grammar is warned about once, at boot, rather than on every
+  // evaluation: an operator's stale FEATURE_FLAGS must not brick an upgrade,
+  // but it must not be silent either (ADR-0011).
+  for (const warning of parseFlagOverrides(env.FEATURE_FLAGS).warnings) {
+    app.log.warn(warning);
+  }
 
   // Monolith mode: everything that isn't an API route is proxied to the web SSR server.
   if (env.WEB_PROXY_UPSTREAM) {

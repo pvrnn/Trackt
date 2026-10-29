@@ -17,6 +17,7 @@ import {
   type ListSummary,
 } from '@trackt/shared';
 import { areFriends } from '../../lib/friends.js';
+import { requireFlag } from '../../lib/flags.js';
 import { canEditList, canViewList } from '../../lib/list-visibility.js';
 import { getSessionUser, type SessionUser } from '../../lib/session.js';
 import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
@@ -190,6 +191,11 @@ async function loadList(db: Db, listId: string): Promise<ListRow | undefined> {
 }
 
 export const listRoutes: FastifyPluginAsyncZod = async (app) => {
+  // ADR-0011: the whole custom-lists surface is one kill switch. A closed gate
+  // answers 404 for every route below, which is also what the clients read as
+  // "this instance does not have lists" rather than as an error.
+  app.addHook('preHandler', requireFlag('lists.custom'));
+
   app.get(
     '/lists',
     {

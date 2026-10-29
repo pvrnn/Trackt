@@ -21,6 +21,8 @@
     "db:migrate": "node dist/bin/migrate.js",
     "db:seed": "node dist/bin/seed.js",
     "db:set-role": "node dist/bin/set-role.js",
+    "db:flag": "node dist/bin/flag.js",
+    "db:flag:list": "node dist/bin/flag.js list",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

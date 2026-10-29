@@ -8,10 +8,11 @@ import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { FlagGate } from '../components/ui/FlagGate';
 import { useAuthedPage } from '../lib/auth-client';
 import { useFormat } from '../lib/format';
 import { useLabels } from '../lib/labels';
-import { coverGradient, listsApi, useList, useListsInvalidator } from '@trackt/client';
+import { coverGradient, listsApi, useFlag, useList, useListsInvalidator } from '@trackt/client';
 
 export const Route = createFileRoute('/lists_/$id')({
   head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('lists.detailTitle') }] }),
@@ -33,6 +34,7 @@ function ListDetailPage() {
   const { id } = Route.useParams();
   const navigate = Route.useNavigate();
   const { isPending: authPending, navUser } = useAuthedPage();
+  const listsOn = useFlag('lists.custom');
   const { data, isError, refetch } = useList(id);
   const invalidate = useListsInvalidator();
   const [busy, setBusy] = useState(false);
@@ -43,6 +45,18 @@ function ListDetailPage() {
   const inFlight = useRef(false);
 
   if (authPending || !navUser) return <div className="min-h-screen bg-ink" />;
+
+  if (!listsOn) {
+    return (
+      <Shell user={navUser}>
+        <FlagGate
+          flag="lists.custom"
+          title={t('lists.unavailableTitle')}
+          body={t('lists.unavailableBody')}
+        />
+      </Shell>
+    );
+  }
 
   if (isError) {
     return (

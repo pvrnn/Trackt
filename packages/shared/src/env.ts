@@ -47,6 +47,15 @@ const RawEnvSchema = z.object({
    */
   CATALOG_FEEDBACK_TIMEOUT_MS: z.coerce.number().int().positive().default(4000),
   TMDB_API_KEY: z.string().optional(),
+  /**
+   * Emergency override for feature flags (ADR-0011): `key=on|off|0-100,key=off`.
+   * Parsed by `parseFlagOverrides`, which warns about what it cannot read.
+   */
+  FEATURE_FLAGS: optionalString,
+  /** Header your reverse proxy sets with the viewer's country, e.g. `cf-ipcountry`. */
+  FLAG_COUNTRY_HEADER: optionalString,
+  /** Fixed country for a single-region deployment; ISO 3166-1 alpha-2. */
+  FLAG_COUNTRY: optionalString,
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   UPLOADS_DIR: z.string().default('./data/uploads'),
   S3_ENDPOINT: z.string().optional(),
@@ -84,6 +93,11 @@ const HINTS: Record<string, string> = {
     'optional — enables the Discord bot; Bot → Token at https://discord.com/developers/applications',
   DISCORD_APPLICATION_ID:
     'optional — needed to register slash commands; General Information → Application ID',
+  FEATURE_FLAGS:
+    'optional — key=on|off|0-100 comma-separated, e.g. lists.custom=off; unknown keys are warned and ignored',
+  FLAG_COUNTRY_HEADER:
+    'optional — the header your own reverse proxy sets with the viewer country, e.g. cf-ipcountry',
+  FLAG_COUNTRY: 'optional — ISO 3166-1 alpha-2 country for a single-region deployment, e.g. FR',
 };
 
 export class EnvValidationError extends Error {
@@ -108,6 +122,9 @@ export interface Env {
   CATALOG_NEWS_TIMEOUT_MS: number;
   CATALOG_FEEDBACK_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
+  FEATURE_FLAGS?: string | undefined;
+  FLAG_COUNTRY_HEADER?: string | undefined;
+  FLAG_COUNTRY?: string | undefined;
   LOG_LEVEL: (typeof LOG_LEVELS)[number];
   UPLOADS_DIR: string;
   S3_ENDPOINT?: string | undefined;

@@ -118,6 +118,46 @@ Search is **federated**: an instance queries its own `media` table _and_ the pro
 
 Every central call must stay timeout-bounded and degrade instead of failing the request — that posture is the contract, not an implementation detail. Canonical media IDs are deterministic UUIDv5s (`packages/shared/src/canonical-id.ts`) and must be identical on every instance: never mint random IDs for provider-identified works. `packages/providers` is parked (future per-instance enrichment) — don't extend it for core features.
 
+## Rolling a feature out
+
+Feature flags are rollout controls, not authorization (ADR-0011). A registry entry
+in `packages/shared/src/flags.ts` names the key and its shipped `default`; the
+database row in `feature_flag` is an optional deviation, so an instance that
+never touches one keeps exactly what the code says. Three commands cover almost
+everything:
+
+```sh
+pnpm --filter @trackt/db db:flag:list                           # registry + live rules
+pnpm --filter @trackt/db db:flag -- lists.custom=10             # 10% of signed-in users
+pnpm --filter @trackt/db db:flag -- lists.custom=off            # kill it now
+```
+
+`on`/`off` are booleans and a number is a percentage of _signed-in_ users;
+anonymous visitors are eligible only at 100%. Options: `--countries=FR,BE`
+(ISO 3166-1 alpha-2) and `--from=` / `--until=` (ISO timestamps, the window is
+end-exclusive). The same rules are writable over HTTP at `/v1/admin/flags`
+(role `admin`, bootstrapped with `pnpm db:set-role`) and per user through
+`PUT /v1/admin/flags/:key/overrides/:userId` — the tool for instances too small
+for a meaningful percentage. `db:flag -- lists.custom --reset` drops the row and
+returns to the compiled default.
+
+The API evaluates every gate; clients only read booleans from `GET /v1/flags`
+and fall back to the compiled default whenever it cannot answer. A closed gate
+answers `404`. The rule could take up to 5 seconds to reach another API process,
+and an env override wins over the row in both directions:
+
+```sh
+FEATURE_FLAGS="lists.custom=off"   # emergency knob; warns about unknown keys at boot
+```
+
+Country allowlists need a source. Set `FLAG_COUNTRY_HEADER` to the header your
+own reverse proxy sets (`cf-ipcountry`, `x-vercel-ip-country`) or pin
+`FLAG_COUNTRY`; with neither, every viewer reads as unknown and fails closed. A
+flag is never a substitute for a role, visibility or friendship check. When a
+feature is done, retire the flag in this order: flip the registry `default` to
+the shipped state and deploy, drop the row (`DELETE /v1/admin/flags/:key`), then
+delete the key and its branches in one PR.
+
 ## Tests
 
 Tests live in each package's `test/` directory (mirroring `src/`), not alongside the source files. Name them `<subject>.test.ts` for unit tests or `<subject>.integration.test.ts` for tests that need the dev compose databases.

@@ -5,6 +5,7 @@ import {
   progressUpTo,
   todayIso,
   trackingApi,
+  useFlag,
   useMediaDetail,
 } from '@trackt/client';
 import { useLabels } from '../../../src/lib/labels';
@@ -56,6 +57,7 @@ export default function MediaScreen() {
   const labels = useLabels();
   const loc = intlLocale(i18n.language);
   const { data: media, dataUpdatedAt, isPending, isError } = useMediaDetail(slug);
+  const listsOn = useFlag('lists.custom');
   const queryClient = useQueryClient();
   const { apply } = useViewerMutation(slug);
   const insets = useSafeAreaInsets();
@@ -181,7 +183,7 @@ export default function MediaScreen() {
             onToggleFavorite={() =>
               apply({ op: viewer.favorited ? 'unfavorite' : 'favorite', id: detail.id })
             }
-            onAddToList={() => setSheet('list')}
+            onAddToList={listsOn ? () => setSheet('list') : undefined}
           />
 
           <RatingCard

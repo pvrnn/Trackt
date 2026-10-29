@@ -25,6 +25,9 @@ services:
       REDIS_URL: redis://redis:6379
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env — generate one with `openssl rand -base64 32`}
       CATALOG_URL: ${CATALOG_URL:-}
+      FEATURE_FLAGS: ${FEATURE_FLAGS:-}
+      FLAG_COUNTRY_HEADER: ${FLAG_COUNTRY_HEADER:-}
+      FLAG_COUNTRY: ${FLAG_COUNTRY:-}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-}
