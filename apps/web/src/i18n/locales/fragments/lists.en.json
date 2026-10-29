@@ -1,5 +1,7 @@
 {
   "title": "Lists",
+  "unavailableTitle": "Lists aren’t available here",
+  "unavailableBody": "This instance has custom lists switched off for now. Your logs, ratings and progress are untouched — they live on each title, not in a list.",
   "detailTitle": "List · Trackt",
   "newList": "＋ NEW LIST",
   "scopes": {

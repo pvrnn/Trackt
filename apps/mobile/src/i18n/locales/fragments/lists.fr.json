@@ -1,5 +1,7 @@
 {
   "title": "Listes",
+  "unavailableTitle": "Les listes ne sont pas disponibles ici",
+  "unavailableBody": "Cette instance a désactivé les listes personnalisées pour le moment. Vos journaux, notes et progressions ne bougent pas — ils vivent sur chaque titre, pas dans une liste.",
   "detailTitle": "Liste · Trackt",
   "newList": "＋ NOUVELLE LISTE",
   "scopes": {

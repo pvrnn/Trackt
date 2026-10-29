@@ -39,6 +39,7 @@ import {
   progressUpTo,
   stampedDates,
   trackingApi,
+  useFlag,
   useMediaDetail,
 } from '@trackt/client';
 
@@ -129,6 +130,7 @@ function MediaPage() {
   const { slug } = Route.useParams();
   const queryClient = useQueryClient();
   const { isPending: authPending, navUser } = useAuthedPage();
+  const listsOn = useFlag('lists.custom');
   const { data, isError, refetch } = useMediaDetail(slug);
   /** Which block of parts is expanded, or null for "the one you are in". */
   const [openBlock, setOpenBlock] = useState<number | null>(null);
@@ -562,18 +564,20 @@ function MediaPage() {
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setAddingToList(true)}
-                className="flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full bg-glass px-5 text-muted inset-ring inset-ring-white/15 transition hover:text-pink hover:inset-ring-pink"
-              >
-                <span aria-hidden className="text-[15px] leading-none">
-                  ＋
-                </span>
-                <span className="font-label text-xs font-bold tracking-label">
-                  {t('media.list')}
-                </span>
-              </button>
+              {listsOn && (
+                <button
+                  type="button"
+                  onClick={() => setAddingToList(true)}
+                  className="flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full bg-glass px-5 text-muted inset-ring inset-ring-white/15 transition hover:text-pink hover:inset-ring-pink"
+                >
+                  <span aria-hidden className="text-[15px] leading-none">
+                    ＋
+                  </span>
+                  <span className="font-label text-xs font-bold tracking-label">
+                    {t('media.list')}
+                  </span>
+                </button>
+              )}
             </div>
 
             {viewerMutation.isError && (

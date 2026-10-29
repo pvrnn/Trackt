@@ -1,4 +1,4 @@
-import { listsApi, updatedLabel, useList, useListsInvalidator } from '@trackt/client';
+import { listsApi, updatedLabel, useFlag, useList, useListsInvalidator } from '@trackt/client';
 import { useLabels } from '../../../src/lib/labels';
 import { useTranslation } from 'react-i18next';
 import type { ListEntry } from '@trackt/shared';
@@ -38,6 +38,7 @@ export default function ListScreen() {
   const { t } = useTranslation();
   const labels = useLabels();
   const { data: list, isPending, isError } = useList(id);
+  const listsOn = useFlag('lists.custom');
   const invalidate = useListsInvalidator();
   const writeFailed = useWriteFailedToast();
   const router = useRouter();
@@ -47,6 +48,16 @@ export default function ListScreen() {
   // ↑/↓ are tapped in bursts, and a button that disables itself mid-burst moves
   // out from under the thumb.
   const inFlight = useRef(false);
+
+  if (!listsOn) {
+    return (
+      <ScreenState
+        isPending={false}
+        title={t('lists.unavailableTitle')}
+        body={t('lists.unavailableBody')}
+      />
+    );
+  }
 
   if (isPending || isError || !list) {
     return (

@@ -6,6 +6,7 @@ import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { Button } from '../components/ui/Button';
 import { Chip } from '../components/ui/Chip';
+import { FlagGate } from '../components/ui/FlagGate';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { Modal, ModalTitle } from '../components/ui/Modal';
@@ -53,47 +54,55 @@ function ListsPage() {
       <div className="relative">
         <AppNav user={navUser} />
         <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h1 className="font-heading text-[64px] leading-none uppercase">{t('lists.title')}</h1>
-            <Button onClick={() => setCreating(true)}>{t('lists.newList')}</Button>
-          </div>
+          <FlagGate
+            flag="lists.custom"
+            title={t('lists.unavailableTitle')}
+            body={t('lists.unavailableBody')}
+          >
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <h1 className="font-heading text-[64px] leading-none uppercase">
+                {t('lists.title')}
+              </h1>
+              <Button onClick={() => setCreating(true)}>{t('lists.newList')}</Button>
+            </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            {SCOPES.map((scope) =>
-              scope.ready ? (
-                <Chip key={scope.key} selected>
-                  {t(scope.label)}
-                </Chip>
-              ) : (
-                <Tooltip key={scope.key} label={t('common.comingSoon')}>
-                  <span
-                    tabIndex={0}
-                    className="cursor-not-allowed rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-xs font-semibold tracking-label text-dim/60"
-                  >
+            <div className="flex flex-wrap gap-2.5">
+              {SCOPES.map((scope) =>
+                scope.ready ? (
+                  <Chip key={scope.key} selected>
                     {t(scope.label)}
-                  </span>
-                </Tooltip>
-              ),
-            )}
-          </div>
+                  </Chip>
+                ) : (
+                  <Tooltip key={scope.key} label={t('common.comingSoon')}>
+                    <span
+                      tabIndex={0}
+                      className="cursor-not-allowed rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-xs font-semibold tracking-label text-dim/60"
+                    >
+                      {t(scope.label)}
+                    </span>
+                  </Tooltip>
+                ),
+              )}
+            </div>
 
-          {isError ? (
-            <p role="alert" className="text-[15px] text-red-400">
-              {t('lists.error')}
-            </p>
-          ) : lists === undefined ? (
-            <div className="h-40" aria-busy />
-          ) : lists.length === 0 ? (
-            <GlassCard className="px-6 py-5 text-[15px] text-muted">{t('lists.empty')}</GlassCard>
-          ) : (
-            <ul className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              {lists.map((entry) => (
-                <li key={entry.id}>
-                  <ListCard list={entry} />
-                </li>
-              ))}
-            </ul>
-          )}
+            {isError ? (
+              <p role="alert" className="text-[15px] text-red-400">
+                {t('lists.error')}
+              </p>
+            ) : lists === undefined ? (
+              <div className="h-40" aria-busy />
+            ) : lists.length === 0 ? (
+              <GlassCard className="px-6 py-5 text-[15px] text-muted">{t('lists.empty')}</GlassCard>
+            ) : (
+              <ul className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                {lists.map((entry) => (
+                  <li key={entry.id}>
+                    <ListCard list={entry} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </FlagGate>
         </main>
       </div>
       {creating && <NewListDialog onClose={() => setCreating(false)} />}

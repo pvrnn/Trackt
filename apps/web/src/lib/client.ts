@@ -19,5 +19,6 @@ export function configureWebClient(): void {
   configureClient({
     http: ky.create({ prefix: '/api/v1/' }),
     useIsAuthed: () => !!authClient.useSession().data,
+    useViewerId: () => authClient.useSession().data?.user.id ?? null,
   });
 }

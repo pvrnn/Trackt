@@ -63,6 +63,7 @@ describe('runTrackingWrite', () => {
         return Promise.resolve();
       }) as unknown as ClientRuntime['http'],
       useIsAuthed: () => true,
+      useViewerId: () => null,
     });
 
     for (const write of WRITES) await runTrackingWrite(write);

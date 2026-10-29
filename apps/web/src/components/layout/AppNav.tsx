@@ -3,7 +3,7 @@ import { Link, useNavigate, type LinkProps } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { authClient } from '../../lib/auth-client';
-import { useFriends } from '@trackt/client';
+import { useFriends, useFlag } from '@trackt/client';
 import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
 import { LocaleMenu } from './LocaleMenu';
@@ -49,7 +49,10 @@ export interface AppNavUser {
 /** Sticky authenticated-app navigation: wordmark, section links, search, account menu. */
 export function AppNav({ user }: { user: AppNavUser }) {
   const { t } = useTranslation();
-  const items: NavItem[] = NAV_ITEMS;
+  const listsOn = useFlag('lists.custom');
+  // A half-rolled-out instance must not offer a destination that answers
+  // "unavailable": a user below the bucket simply doesn't see LISTS.
+  const items: NavItem[] = NAV_ITEMS.filter((item) => item.to !== '/lists' || listsOn);
   // No dedicated friends surface yet, so a badge on PROFILE covers discoverability
   // instead of a sixth top-level nav item (docs/friends-plan.md §6).
   const { data: friendsOverview } = useFriends();

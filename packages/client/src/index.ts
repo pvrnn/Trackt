@@ -16,6 +16,7 @@ export * from './cover.js';
 export * from './external.js';
 export * from './game-search.js';
 export * from './feedback.js';
+export * from './flags.js';
 export * from './format.js';
 export * from './friends.js';
 export * from './history.js';

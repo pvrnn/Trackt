@@ -28,6 +28,13 @@ export interface ClientRuntime {
    * called during render to gate queries, and has to re-render on sign-in.
    */
   useIsAuthed: () => boolean;
+  /**
+   * The signed-in user's id, or null. Also a hook, and the cache identity of
+   * anything that answers differently per viewer (feature flags). Web and mobile
+   * read it from their own better-auth session; no better-auth import enters
+   * this package.
+   */
+  useViewerId: () => string | null;
 }
 
 let runtime: ClientRuntime | null = null;
@@ -39,7 +46,7 @@ export function configureClient(next: ClientRuntime): void {
 function required(): ClientRuntime {
   if (!runtime) {
     throw new Error(
-      '@trackt/client is not configured — call configureClient({ http, useIsAuthed }) before rendering.',
+      '@trackt/client is not configured — call configureClient({ http, useIsAuthed, useViewerId }) before rendering.',
     );
   }
   return runtime;
@@ -57,4 +64,9 @@ export function http(): KyInstance {
  */
 export function useIsAuthed(): boolean {
   return required().useIsAuthed();
+}
+
+/** The viewer id for cache keys that answer per viewer. Null when signed out. */
+export function useViewerId(): string | null {
+  return required().useViewerId();
 }

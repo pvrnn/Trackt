@@ -1,5 +1,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { adminFlagRoutes } from './admin/flags.js';
 import { feedbackRoutes } from './feedback.js';
+import { flagsRoutes } from './flags.js';
 import { friendRoutes } from './friends.js';
 import { historyRoutes } from './history.js';
 import { homeRoutes } from './home.js';
@@ -12,6 +14,8 @@ import { trackingRoutes } from './tracking.js';
 import { userRoutes } from './users.js';
 
 export const v1Routes: FastifyPluginAsyncZod = async (app) => {
+  await app.register(flagsRoutes);
+  await app.register(adminFlagRoutes, { prefix: '/admin' });
   await app.register(searchRoutes);
   await app.register(mediaRoutes);
   await app.register(trackingRoutes);

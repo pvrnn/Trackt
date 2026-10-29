@@ -26,5 +26,6 @@ export function configureMobileClient(origin: string): void {
       },
     }),
     useIsAuthed: () => !!authClient().useSession().data,
+    useViewerId: () => authClient().useSession().data?.user.id ?? null,
   });
 }

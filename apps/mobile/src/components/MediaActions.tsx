@@ -37,7 +37,7 @@ export function MediaActionRow({
   favorited: boolean;
   onPrimary: () => void;
   onToggleFavorite: () => void;
-  onAddToList: () => void;
+  onAddToList?: () => void;
 }) {
   const press = usePressMotion();
   const { t } = useTranslation();
@@ -84,12 +84,14 @@ export function MediaActionRow({
         }
         onPress={onToggleFavorite}
       />
-      <SatelliteButton
-        icon="plus"
-        caption={t('media.list')}
-        label={t('media.actions.addToList')}
-        onPress={onAddToList}
-      />
+      {onAddToList ? (
+        <SatelliteButton
+          icon="plus"
+          caption={t('media.list')}
+          label={t('media.actions.addToList')}
+          onPress={onAddToList}
+        />
+      ) : null}
     </View>
   );
 }

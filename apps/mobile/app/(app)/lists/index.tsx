@@ -1,4 +1,4 @@
-import { updatedLabel, useLists, visibilityLabel } from '@trackt/client';
+import { updatedLabel, useFlag, useLists, visibilityLabel } from '@trackt/client';
 import type { ListSummary } from '@trackt/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -25,9 +25,18 @@ import { type } from '../../../src/theme/typography';
  */
 export default function ListsScreen() {
   const { data, dataUpdatedAt, isPending, isError } = useLists();
+  const listsOn = useFlag('lists.custom');
   const router = useRouter();
   const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
+
+  if (!listsOn) {
+    return (
+      <PageScroll title={t('lists.title')}>
+        <EmptyState title={t('lists.unavailableTitle')} body={t('lists.unavailableBody')} />
+      </PageScroll>
+    );
+  }
 
   return (
     <PageScroll title={t('lists.title')}>

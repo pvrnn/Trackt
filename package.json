@@ -20,6 +20,8 @@
     "db:migrate": "pnpm --filter @trackt/db db:migrate",
     "db:seed": "pnpm --filter @trackt/db db:seed",
     "db:set-role": "pnpm --filter @trackt/db db:set-role",
+    "db:flag": "pnpm --filter @trackt/db db:flag",
+    "db:flag:list": "pnpm --filter @trackt/db db:flag:list",
     "scrape:mal": "node scripts/mal-scrape/scrape.ts",
     "scrape:mal:top": "node scripts/mal-scrape/top-anime.ts",
     "scrape:anilist": "node scripts/mal-scrape/from-anilist.ts",

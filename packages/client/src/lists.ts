@@ -7,6 +7,7 @@ import {
   type ListSummary,
   type UpdateListBody,
 } from '@trackt/shared';
+import { useFlag } from './flags.js';
 import { toError } from './http.js';
 import { http, useIsAuthed } from './runtime.js';
 
@@ -42,9 +43,10 @@ async function request<T>(
 /** The viewer's own lists. `containsMedia` marks which already hold a title. */
 export function useLists(containsMedia?: string) {
   const isAuthed = useIsAuthed();
+  const listsEnabled = useFlag('lists.custom');
   return useQuery({
     queryKey: [...listsKey, containsMedia ?? null],
-    enabled: isAuthed,
+    enabled: isAuthed && listsEnabled,
     queryFn: async () => {
       const search = containsMedia ? `?containsMedia=${encodeURIComponent(containsMedia)}` : '';
       return request(`lists${search}`, (value) => ListSummarySchema.array().parse(value));
@@ -55,9 +57,10 @@ export function useLists(containsMedia?: string) {
 /** One list. `data === null` is a real 404 — missing, or private to someone else. */
 export function useList(id: string) {
   const isAuthed = useIsAuthed();
+  const listsEnabled = useFlag('lists.custom');
   return useQuery({
     queryKey: listKey(id),
-    enabled: isAuthed,
+    enabled: isAuthed && listsEnabled,
     queryFn: async (): Promise<ListDetail | null> => {
       const response = await http().get(`lists/${seg(id)}`, { throwHttpErrors: false });
       if (response.status === 404) return null;
