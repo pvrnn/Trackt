@@ -139,6 +139,23 @@ playwright install chromium`. The Docker image does not ship it (300 MB of
 Chromium to read one public page), and no test needs it — scraper tests run
 against fixtures captured from the live site.
 
+### Letterboxd, measured (2026-10-30)
+
+The grid *markup* parses with no browser; fetching it may not. From this machine
+plain HTTP was challenged (`403`, `Just a moment…`) on the first
+`/films/page/1/` request, while `/watchlist/` answered `200` for a dozen pages
+and the diary only answered through Chromium. `IMPORT_FETCH_MODE=fallback` is
+therefore the realistic default for this source, not an emergency lever.
+
+- A films page is 72 posters, a diary page 50 rows; both end with a page that has
+  no `<a class="next">`.
+- The diary prints its month and year once per month and leaves those cells empty
+  on the rows below, so the parser carries them forward. Its later pages live at
+  `/<user>/diary/films/page/<n>/`, not under `/films/`.
+- `/film/<slug>/` (200 through the browser) carries both
+  `themoviedb.org/movie/<id>` and `imdb.com/title/<tt…>` links, which is the whole
+  enrichment path — one request per film, hence opt-in and capped.
+
 ## The worker
 
 `QUEUES.importer` was parked. It now carries one job type:

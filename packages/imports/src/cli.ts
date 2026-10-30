@@ -6,7 +6,7 @@ import { IMPORT_SOURCES } from './sources.js';
 import type { ImportCredentials, ImportSource } from './types.js';
 
 /**
- * `pnpm import -- --source <mal|anilist> --user <email|uuid> --profile <name> [--dry-run] [--overwrite]`
+ * `pnpm import -- --source <mal|anilist|letterboxd> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich]`
  *
  * The first driver of the importer: the product surface (a wizard that enqueues
  * an `importer` job) is a later step, so the pipeline is exercised without
@@ -19,13 +19,14 @@ interface Args {
   profile: string;
   dryRun: boolean;
   overwrite: boolean;
+  enrich: boolean;
 }
 
 const DEFAULT_SOURCE: ImportSource = 'mal';
 
 const USAGE =
-  'usage: pnpm import -- --source <mal|anilist> --user <email|uuid> --profile <name> ' +
-  '[--dry-run] [--overwrite]';
+  'usage: pnpm import -- --source <mal|anilist|letterboxd> --user <email|uuid> --profile <name> ' +
+  '[--dry-run] [--overwrite] [--enrich]';
 
 function parseSource(value: string | undefined): ImportSource {
   const source = (value ?? DEFAULT_SOURCE) as ImportSource;
@@ -40,6 +41,7 @@ function parseArgs(argv: string[]): Args {
     profile: '',
     dryRun: false,
     overwrite: false,
+    enrich: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -47,6 +49,7 @@ function parseArgs(argv: string[]): Args {
     if (arg === '--') continue;
     if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--overwrite') args.overwrite = true;
+    else if (arg === '--enrich') args.enrich = true;
     else if (arg === '--source') args.source = parseSource(argv[++i]);
     else if (arg === '--user') args.user = argv[++i] ?? '';
     else if (arg === '--profile') args.profile = argv[++i] ?? '';
@@ -113,6 +116,7 @@ async function main(): Promise<void> {
       credentials,
       dryRun: args.dryRun,
       overwrite: args.overwrite,
+      enrichFilmPages: args.enrich,
     });
 
     console.log(`\nplan (${args.source}:${args.profile})`);

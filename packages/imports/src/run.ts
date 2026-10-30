@@ -1,7 +1,8 @@
 import type { Db } from '@trackt/db';
 import { fetchAniListEntries } from './anilist/adapter.js';
 import { applyImportPlan, type ApplyOptions, type ImportReport } from './apply.js';
-import type { FetchLike } from './http/fetch.js';
+import type { FetchLike, PageFetcher } from './http/fetch.js';
+import { fetchLetterboxdEntries } from './letterboxd/adapter.js';
 import { fetchMalEntries } from './mal/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
 import { findLoggedMediaIds, resolveImportEntries } from './resolve.js';
@@ -35,6 +36,11 @@ export interface RunImportOptions {
   fetch?: FetchLike;
   baseUrl?: string;
   requestSpacingMs?: number;
+  /** Injected page transport for scrape sources (Letterboxd), so tests need no network. */
+  fetcher?: PageFetcher;
+  /** Scrape sources: read each work's own page for its provider ids (one request per work). */
+  enrichFilmPages?: boolean;
+  maxEnrich?: number;
 }
 
 export interface ImportRun {
@@ -47,6 +53,7 @@ export interface ImportRun {
 const ADAPTERS: Record<ImportSource, (options: FetchEntriesOptions) => Promise<FetchedEntries>> = {
   mal: fetchMalEntries,
   anilist: fetchAniListEntries,
+  letterboxd: fetchLetterboxdEntries,
 };
 
 /** Fetch a source's lists and work out what the import would do. Reads, never writes. */
@@ -60,6 +67,9 @@ export async function planImport(db: Db, options: RunImportOptions): Promise<Imp
     ...(options.requestSpacingMs !== undefined
       ? { requestSpacingMs: options.requestSpacingMs }
       : {}),
+    ...(options.fetcher ? { fetcher: options.fetcher } : {}),
+    ...(options.enrichFilmPages ? { enrichFilmPages: options.enrichFilmPages } : {}),
+    ...(options.maxEnrich !== undefined ? { maxEnrich: options.maxEnrich } : {}),
   });
 
   const { targets, warnings } = await resolveImportEntries(db, fetched.entries);

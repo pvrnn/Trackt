@@ -1,5 +1,5 @@
 import type { ExternalIds, LogStatus, MediaKind } from '@trackt/shared';
-import type { FetchLike } from './http/fetch.js';
+import type { FetchLike, PageFetcher } from './http/fetch.js';
 
 /**
  * Account imports: taking a user's list *off* another tracker and writing it
@@ -7,7 +7,7 @@ import type { FetchLike } from './http/fetch.js';
  * (`scripts/*-scrape` + `apps/catalog`) — nothing here publishes media, and a
  * row the catalog does not carry is reported, never invented.
  */
-export type ImportSource = 'mal' | 'anilist';
+export type ImportSource = 'mal' | 'anilist' | 'letterboxd';
 
 /** The media kinds an import can target — the catalog's own vocabulary, not a source's. */
 export type ImportKind = MediaKind;
@@ -53,7 +53,9 @@ export type ImportWarningCode =
   /** The title fallback found more than one local row: an import does not guess. */
   | 'ambiguous-title-match'
   /** The provider row cannot be read at all (it names no work). */
-  | 'malformed-row';
+  | 'malformed-row'
+  /** One of the source's lists could not be read; the rest of the import stands. */
+  | 'partial-source';
 
 export interface ImportWarning {
   code: ImportWarningCode;
@@ -88,6 +90,12 @@ export interface FetchEntriesOptions {
   fetch?: FetchLike;
   baseUrl?: string;
   requestSpacingMs?: number;
+  /** Injected page transport for the scrape sources, so tests need no network. */
+  fetcher?: PageFetcher;
+  /** Scrape sources: read each work's own page for its provider ids. */
+  enrichFilmPages?: boolean;
+  /** Hard cap on those per-work requests (default 200). */
+  maxEnrich?: number;
 }
 
 /** One source's fetch + map half: provider rows in, Trackt entries out. */

@@ -13,7 +13,9 @@ export type ImportErrorKind =
   /** The credential was rejected. */
   | 'auth'
   | 'http'
-  | 'malformed';
+  | 'malformed'
+  /** The source needed a real browser and this instance has none installed. */
+  | 'browser';
 
 export class ImportError extends Error {
   constructor(

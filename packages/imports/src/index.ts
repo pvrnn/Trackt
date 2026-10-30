@@ -8,7 +8,40 @@ export type { AniListDate, AniListListEntry, AniListMedia } from './anilist/sche
 export { applyImportPlan, type ApplyOptions, type ImportReport } from './apply.js';
 export { applyDateRules, dateFromParts, readFullDate } from './dates.js';
 export { ImportError, type ImportErrorKind } from './errors.js';
-export { BROWSER_USER_AGENT, type FetchLike } from './http/fetch.js';
+export {
+  BROWSER_USER_AGENT,
+  createBrowserFetcher,
+  createHttpFetcher,
+  createImportFetcher,
+  looksLikeChallenge,
+  type BrowserFetcherOptions,
+  type DisposablePageFetcher,
+  type FetchLike,
+  type HttpFetcherOptions,
+  type ImportFetchMode,
+  type ImportFetcherOptions,
+  type PageFetcher,
+  type TextFetchLike,
+} from './http/fetch.js';
+export {
+  createLetterboxdClient,
+  type LetterboxdClient,
+  type LetterboxdClientOptions,
+} from './letterboxd/client.js';
+export {
+  mapLetterboxdEntry,
+  type LetterboxdList,
+  type LetterboxdRawEntry,
+} from './letterboxd/map.js';
+export {
+  hasNextPage,
+  parseDiary,
+  parseFilmLinks,
+  parsePosterGrid,
+  type DiaryItem,
+  type FilmLinks,
+  type PosterItem,
+} from './letterboxd/parse.js';
 export { createMalClient, MalApiError, type MalClient } from './mal/client.js';
 export { mapMalEntry, type MapOptions } from './mal/map.js';
 export type { MalListEntry, MalListStatus } from './mal/schemas.js';

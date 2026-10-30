@@ -45,4 +45,14 @@ export const IMPORT_SOURCES: Record<ImportSource, ImportSourceDefinition> = {
     access: 'api',
     titleFallback: false,
   },
+  letterboxd: {
+    id: 'letterboxd',
+    label: 'Letterboxd',
+    kinds: ['movie'],
+    joinKeys: ['tmdb', 'imdb'],
+    credential: null,
+    access: 'scrape',
+    browser: true,
+    titleFallback: true,
+  },
 };
