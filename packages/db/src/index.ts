@@ -14,6 +14,7 @@ export {
   insertNewProviderMedia,
   type PersistedMediaRow,
 } from './catalog-media.js';
+export { setAllProgress, setProgressUpTo, type ProgressMediaRow } from './progress.js';
 
 export interface CreateDbOptions {
   /** Max pool connections (default 10). */

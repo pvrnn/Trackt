@@ -48,6 +48,13 @@ const RawEnvSchema = z.object({
   CATALOG_FEEDBACK_TIMEOUT_MS: z.coerce.number().int().positive().default(4000),
   TMDB_API_KEY: z.string().optional(),
   /**
+   * MyAnimeList API client id, for importing a user's anime/manga list
+   * (`@trackt/imports`). Registered once at https://myanimelist.net/apiconfig;
+   * public lists are readable with the `X-MAL-CLIENT-ID` header alone, so no
+   * user OAuth token is involved.
+   */
+  MAL_CLIENT_ID: optionalString,
+  /**
    * Emergency override for feature flags (ADR-0011): `key=on|off|0-100,key=off`.
    * Parsed by `parseFlagOverrides`, which warns about what it cannot read.
    */
@@ -88,6 +95,8 @@ const HINTS: Record<string, string> = {
     'base URL of the central slim catalog service (ADR-0001); unset disables federated search',
   TMDB_API_KEY:
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
+  MAL_CLIENT_ID:
+    'optional — enables MyAnimeList list imports; create an API client at https://myanimelist.net/apiconfig and use its Client ID',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
   DISCORD_BOT_TOKEN:
     'optional — enables the Discord bot; Bot → Token at https://discord.com/developers/applications',
@@ -122,6 +131,7 @@ export interface Env {
   CATALOG_NEWS_TIMEOUT_MS: number;
   CATALOG_FEEDBACK_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
+  MAL_CLIENT_ID?: string | undefined;
   FEATURE_FLAGS?: string | undefined;
   FLAG_COUNTRY_HEADER?: string | undefined;
   FLAG_COUNTRY?: string | undefined;
