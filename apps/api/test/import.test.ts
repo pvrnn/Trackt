@@ -202,6 +202,22 @@ describe('import routes', () => {
     expect(queue.adds.length).toBe(before);
   });
 
+  it('queues a preview as its own job, so it cannot swallow the real run', async () => {
+    const response = await post({ source: 'anilist', profile: 'alice', dryRun: true });
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toEqual({ jobId: `${jobId}-preview`, state: 'waiting' });
+
+    const added = queue.adds.at(-1);
+    expect(added?.data).toEqual({
+      userId: USER_ID,
+      source: 'anilist',
+      profile: 'alice',
+      dryRun: true,
+    });
+    // The real run queued earlier is still waiting under its own id.
+    expect(queue.jobs.get(jobId)?.state).toBe('waiting');
+  });
+
   it('re-runs a source once its previous job has finished', async () => {
     const stored = queue.jobs.get(jobId) as StoredJob;
     stored.state = 'completed';

@@ -19,7 +19,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@trackt/shared": "workspace:*"
+    "@trackt/shared": "workspace:*",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.101.4",

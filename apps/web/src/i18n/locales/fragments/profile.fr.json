@@ -1,7 +1,8 @@
 {
   "action": {
     "editProfile": "MODIFIER LE PROFIL",
-    "feedback": "ENVOYER UN AVIS"
+    "feedback": "ENVOYER UN AVIS",
+    "import": "IMPORTER"
   },
   "loadError": "Impossible de charger votre profil. L’API de l’instance est-elle joignable ?",
   "public": {
@@ -70,6 +71,81 @@
       "socialUrl": "{{platform}} nécessite une URL https:// complète.",
       "photoFailed": "Vos informations sont enregistrées, mais la photo n’a pas été envoyée. Réessayez depuis MODIFIER LE PROFIL.",
       "saveFailed": "L’enregistrement a échoué. Réessayez."
+    }
+  },
+  "import": {
+    "title": "Importer",
+    "intro": "Rapatriez votre historique depuis un autre service. Rien n’est écrit avant que vous ayez vu l’aperçu.",
+    "back": "RETOUR",
+    "retry": "RÉESSAYER",
+    "queued": "En attente de l’importateur de cette instance…",
+    "unknownJob": "Cette tâche n’est plus dans la file de cette instance. Recommencez.",
+    "sources": {
+      "loading": "Vérification de ce que cette instance peut importer…",
+      "empty": "Cette instance ne propose aucun import. Son opérateur peut en activer un dans l’environnement de l’API.",
+      "error": "Impossible de lire les importateurs de cette instance.",
+      "unknown": "ce service"
+    },
+    "choose": {
+      "pick": "Depuis où ?",
+      "field": "NOM D’UTILISATEUR",
+      "fieldIdle": "Choisissez d’abord une source",
+      "fieldHint": "Le nom présent dans l’URL de votre profil, pas l’URL. Seuls les profils publics peuvent être lus.",
+      "preview": "APERÇU",
+      "starting": "DÉMARRAGE…",
+      "placeholder": {
+        "mal": "myanimelist.net/profile/pseudo",
+        "anilist": "anilist.co/user/pseudo",
+        "letterboxd": "letterboxd.com/pseudo",
+        "trakt": "trakt.tv/users/pseudo",
+        "other": "pseudo"
+      }
+    },
+    "preview": {
+      "reading": "Lecture de votre profil {{source}}. Rien n’a encore été écrit.",
+      "resultTitle": "Ce que l’import ferait",
+      "forProfile": "{{source}} · {{profile}}",
+      "total": "Entrées",
+      "matched": "Au catalogue",
+      "unmatched": "Hors catalogue",
+      "existing": "Déjà suivis",
+      "pending": "Seraient écrits",
+      "warnings": "Avertissements",
+      "matchedByTitle": "{{n}} reconnus au titre et à l’année seulement — à vérifier.",
+      "unmatchedTitle": "Hors catalogue",
+      "more": "… {{n}} de plus",
+      "nothing": "Tout ce profil est déjà suivi. Rien ne serait écrit.",
+      "importNow": "IMPORTER MAINTENANT",
+      "unreadable": "L’aperçu est terminé, mais son résultat est illisible. Réessayez."
+    },
+    "run": {
+      "running": "Écriture de votre bibliothèque. Vous pouvez fermer : l’import continue.",
+      "progress": "{{done}} / {{total}}",
+      "doneTitle": "Import terminé",
+      "created": "Créés",
+      "updated": "Mis à jour",
+      "skipped": "Déjà suivis",
+      "withProgress": "Avec progression",
+      "ratings": "Notes",
+      "warnings": "{{n}} entrées ont donné un avertissement ; elles ont quand même été écrites.",
+      "unreadable": "L’import est terminé, mais son résultat est illisible. Vérifiez votre bibliothèque."
+    },
+    "failed": {
+      "title": "L’import a échoué"
+    },
+    "errorKind": {
+      "credential": "Cette instance n’a pas l’identifiant d’API que cette source demande.",
+      "notFound": "Aucun profil à ce nom d’utilisateur.",
+      "private": "Ce profil est privé. Rendez-le public et réessayez.",
+      "auth": "Le fournisseur a refusé les identifiants de cette instance.",
+      "http": "Le fournisseur n’a pas répondu — il nous limite peut-être. Réessayez dans une minute.",
+      "malformed": "Ce profil a répondu dans une forme que l’importateur n’a pas comprise.",
+      "browser": "Lire cette source demande un navigateur, et cette instance n’en a pas installé.",
+      "other": "Un problème est survenu en contactant le fournisseur."
+    },
+    "errors": {
+      "start": "Impossible de lancer l’import.",
+      "poll": "Impossible de lire la progression de l’import."
     }
   }
 }

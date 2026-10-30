@@ -20,7 +20,7 @@ import { getSessionUser } from '../../lib/session.js';
  *
  * The pipeline itself lives in `@trackt/imports` and the worker drives it, so
  * these routes do three things — say what this instance can import, enqueue one
- * job per (viewer, source), and report that job's state.
+ * job per (viewer, source) and kind of run, and report that job's state.
  *
  * Nothing here reads a provider. That is what keeps a slow scrape off the
  * request path, and it is why a missing credential is refused here (409) instead
@@ -161,7 +161,7 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = await getSessionUser(app, request);
       if (!user) return reply.status(401).send({ error: 'authentication required' });
 
-      const { source, profile, overwrite } = request.body;
+      const { source, profile, overwrite, dryRun } = request.body;
 
       // Refuse at the door rather than after the job has been claimed and failed:
       // the operator can fix this, the viewer cannot.
@@ -177,8 +177,11 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
         source,
         profile,
         ...(overwrite === undefined ? {} : { overwrite }),
+        ...(dryRun === undefined ? {} : { dryRun }),
       });
-      const jobId = importJobId(user.id, source);
+      // A preview is not the run it previews: distinct ids keep one from
+      // joining (and swallowing) the other in the queue.
+      const jobId = importJobId(user.id, source, dryRun ?? false);
 
       const existing = await queue.getJob(jobId);
       if (existing) {

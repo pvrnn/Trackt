@@ -173,12 +173,14 @@ interface ImportJobData {
 ```
 
 - Producer: `POST /v1/me/import` (authenticated) validates the source and
-  enqueues. One job per (viewer, source), id `${userId}-${source}` — BullMQ
-  reserves `:` inside a custom id, which is why it is not the colon the first
-  draft assumed. A double-click therefore joins the job already waiting or
-  running; a finished job is removed and re-queued, so the same source can be
-  imported again later. A source whose credential env var is unset is refused
-  with a 409 that names the variable, before any job is created.
+  enqueues. One job per (viewer, source) and kind of run, id `${userId}-${source}`
+  — or `${userId}-${source}-preview` for a `dryRun: true` body, which is what the
+  web wizard previews with; a preview must not join, and so swallow, the real run
+  it previews. BullMQ reserves `:` inside a custom id, which is why it is not the
+  colon the first draft assumed. A double-click therefore joins the job already
+  waiting or running; a finished job is removed and re-queued, so the same source
+  can be imported again later. A source whose credential env var is unset is
+  refused with a 409 that names the variable, before any job is created.
 - `GET /v1/me/import/:jobId` reports BullMQ state, progress and the completed
   result; another viewer's job answers 404 rather than 403, so the route never
   confirms a job it will not show. `GET /v1/me/import/sources` lists what this

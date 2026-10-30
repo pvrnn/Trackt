@@ -1,7 +1,8 @@
 {
   "action": {
     "editProfile": "EDIT PROFILE",
-    "feedback": "SEND FEEDBACK"
+    "feedback": "SEND FEEDBACK",
+    "import": "IMPORT"
   },
   "loadError": "Couldn’t load your profile. Is the instance API reachable?",
   "public": {
@@ -70,6 +71,81 @@
       "socialUrl": "{{platform}} needs a full https:// URL.",
       "photoFailed": "Your details saved, but the photo didn’t upload. Try again from EDIT PROFILE.",
       "saveFailed": "Saving failed. Try again."
+    }
+  },
+  "import": {
+    "title": "Import",
+    "intro": "Bring your history over from another service. Nothing is written until you have seen the preview.",
+    "back": "BACK",
+    "retry": "RETRY",
+    "queued": "Waiting for this instance’s importer to start…",
+    "unknownJob": "That job is no longer on this instance’s queue. Start again.",
+    "sources": {
+      "loading": "Checking what this instance can import…",
+      "empty": "This instance offers no imports. Its operator can turn one on in the API’s environment.",
+      "error": "Couldn’t read this instance’s importers.",
+      "unknown": "that service"
+    },
+    "choose": {
+      "pick": "Where from?",
+      "field": "USERNAME",
+      "fieldIdle": "Pick a source first",
+      "fieldHint": "The name from your profile URL, not the URL itself. Only public profiles can be read.",
+      "preview": "PREVIEW",
+      "starting": "STARTING…",
+      "placeholder": {
+        "mal": "myanimelist.net/profile/username",
+        "anilist": "anilist.co/user/username",
+        "letterboxd": "letterboxd.com/username",
+        "trakt": "trakt.tv/users/username",
+        "other": "username"
+      }
+    },
+    "preview": {
+      "reading": "Reading your {{source}} profile. Nothing has been written yet.",
+      "resultTitle": "What it would do",
+      "forProfile": "{{source}} · {{profile}}",
+      "total": "Entries",
+      "matched": "In the catalog",
+      "unmatched": "Not in the catalog",
+      "existing": "Already logged",
+      "pending": "Would be written",
+      "warnings": "Warnings",
+      "matchedByTitle": "{{n}} matched by title and year only — worth a look.",
+      "unmatchedTitle": "Not in the catalog",
+      "more": "… {{n}} more",
+      "nothing": "Everything on that profile is already logged. Nothing would be written.",
+      "importNow": "IMPORT NOW",
+      "unreadable": "The preview finished, but its result could not be read. Try again."
+    },
+    "run": {
+      "running": "Writing your library. You can close this — the import carries on.",
+      "progress": "{{done}} / {{total}}",
+      "doneTitle": "Import finished",
+      "created": "Created",
+      "updated": "Updated",
+      "skipped": "Already logged",
+      "withProgress": "With progress",
+      "ratings": "Ratings",
+      "warnings": "{{n}} entries came with a warning; they were written anyway.",
+      "unreadable": "The import finished, but its result could not be read. Check your library."
+    },
+    "failed": {
+      "title": "The import failed"
+    },
+    "errorKind": {
+      "credential": "This instance is missing the API credential that source needs.",
+      "notFound": "No profile with that username.",
+      "private": "That profile is private. Make it public and try again.",
+      "auth": "The provider refused this instance’s credentials.",
+      "http": "The provider didn’t answer — it may be rate-limiting us. Try again in a minute.",
+      "malformed": "That profile answered in a shape the importer didn’t understand.",
+      "browser": "Reading this source needs a browser, and this instance has none installed.",
+      "other": "Something went wrong talking to the provider."
+    },
+    "errors": {
+      "start": "Couldn’t start the import.",
+      "poll": "Couldn’t read the import’s progress."
     }
   }
 }

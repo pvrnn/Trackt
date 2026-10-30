@@ -36,19 +36,21 @@ const importJobData = z.object({
 
 export const ImportJobDataSchema: z.ZodType<ImportJobData> = importJobData;
 
-/** The API's body: the session supplies `userId`, and a queued job never dry-runs. */
-export const ImportRequestSchema = importJobData.omit({ userId: true, dryRun: true });
+/** The API's body: the session supplies `userId`; `dryRun` asks for a preview. */
+export const ImportRequestSchema = importJobData.omit({ userId: true });
 export type ImportRequest = z.infer<typeof ImportRequestSchema>;
 
 /**
- * One job per (viewer, source), so a double-click joins the job already in
- * flight instead of starting a second scrape of the same profile.
+ * One job per (viewer, source) and per kind of run, so a double-click joins the
+ * job already in flight instead of starting a second scrape of the same
+ * profile — while a preview and the import it previews stay two jobs, since the
+ * first is discarded as soon as the viewer reads it.
  *
  * BullMQ refuses `:` in a custom id (it separates the Redis key's parts), so the
  * separator is `-`; neither a uuid nor a source id contains one alone.
  */
-export function importJobId(userId: string, source: ImportSource): string {
-  return `${userId}-${source}`;
+export function importJobId(userId: string, source: ImportSource, dryRun = false): string {
+  return `${userId}-${source}${dryRun ? '-preview' : ''}`;
 }
 
 /** Rows applied / rows to apply. `errorKind` is how a failure's kind survives BullMQ. */
