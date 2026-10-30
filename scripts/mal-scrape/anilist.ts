@@ -256,5 +256,40 @@ export function mediaBySortQuery(fields: string): string {
   `;
 }
 
+/**
+ * Everything of one kind that started inside a date window.
+ *
+ * A sorted walk stops at page 100 (`Page depth exceeds maximum allowed`), so no
+ * single ordering can enumerate the whole catalogue. Windows are the way round
+ * it: no year holds more than a few thousand works, so a year per window stays
+ * under the depth cap and the windows tile the id space.
+ *
+ * `FuzzyDateInt` is `YYYYMMDD`; an exclusive lower bound of `(year-1)1231` and an
+ * exclusive upper bound of `year1231` select exactly the works dated in `year`,
+ * partial dates (`YYYY0000`) included.
+ */
+export function mediaByStartDateQuery(fields: string): string {
+  return `
+    query ($lo: FuzzyDateInt, $hi: FuzzyDateInt, $type: MediaType, $page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo { hasNextPage }
+        media(startDate_greater: $lo, startDate_lesser: $hi, type: $type, sort: [ID]) { ${fields} }
+      }
+    }
+  `;
+}
+
+/** Works in a status — announced rows have no start date, so no window reaches them. */
+export function mediaByStatusQuery(fields: string): string {
+  return `
+    query ($status: [MediaStatus], $type: MediaType, $page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo { hasNextPage }
+        media(status_in: $status, type: $type, sort: [ID]) { ${fields} }
+      }
+    }
+  `;
+}
+
 /** `perPage` maximum the API accepts. */
 export const ANILIST_MAX_PER_PAGE = 50;

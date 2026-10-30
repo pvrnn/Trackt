@@ -60,6 +60,49 @@ through `idMal_in`, 50 at a time. That is 400 requests for the whole top 10000,
 versus 10200 for the HTML scraper, and the API's 30 requests/minute is what sets
 the pace (`--delay`, default 2000 ms).
 
+### Everything AniList has: `--source anilist-all`
+
+Both walks above stop well short of the provider's catalogue, and neither can be
+pushed further:
+
+- MAL's ranking **ranks ~23,050 anime** and paginates to ~30,650 entries; past
+  the ranked set the rank column renders `–` and the parser drops the row. The
+  unranked tail is not worth having either — sampled pages at limit 24000 resolve
+  to 29 of 31 music videos, and at 30500 to 49 of 50 one-episode OVAs.
+- A sorted AniList walk stops at page 100 (`Page depth exceeds maximum allowed`),
+  i.e. 5,000 works. `pageInfo.total` is no help in sizing anything: it is capped
+  at 5,000 and reports the cap for any non-empty filter.
+
+```sh
+# every anime AniList dates, no popularity floor
+pnpm scrape:anilist --source anilist-all
+
+# the same for manga; the seed grows by two orders of magnitude over the ranking
+pnpm scrape:anilist --source anilist-all --kind manga
+```
+
+The walk tiles the namespace with **start-date year windows** (`startDate_greater`
+/ `startDate_lesser`, sorted by id) and pages each one until it answers empty.
+Every work with a start date falls in exactly one window, and no year holds more
+than 5,000 works — except in manga, where recent years overflow the depth cap, so
+a year that comes back full at page 100 is walked again a month at a time (the
+lower bound reaches back to `YYYY0099`, which puts a year-only date in January
+rather than between two windows). Works in `NOT_YET_RELEASED` carry no date at
+all, so a last pass by status collects them.
+
+Sizing, measured on a full walk (2026-10): **19,806 anime** in trackable formats
+(music videos aside) against the 16,553 the MAL ranking reaches at its ceiling,
+and **129,994 manga** in `MANGA`/`ONE_SHOT` alone — 536 requests / 18 min for
+anime, 3,960 requests / 2h12m for manga, whose recent years hold ~8,000 works
+each. Manhwa are still refused — no identity provider, so no canonical id
+(ADR-0001).
+
+`--max-rank` caps the number of works this source imports (default: no cap), and
+`--write-every <n>` writes the seed every n pages instead of after each one: at six
+figures the whole file is 150 MB, and re-serialising it per page costs more than
+the requests it protects. The trade-off is that a crash loses up to n pages of
+progress instead of one.
+
 Two things this does that the MAL path cannot:
 
 - **Relation targets are rows.** The catalog's edge table has foreign keys on
