@@ -14,14 +14,7 @@ import {
  * response shape from an older instance is allowed to omit.
  */
 
-const STATES: ImportJobState[] = [
-  'waiting',
-  'active',
-  'delayed',
-  'completed',
-  'failed',
-  'unknown',
-];
+const STATES: ImportJobState[] = ['waiting', 'active', 'delayed', 'completed', 'failed', 'unknown'];
 
 describe('importProgressPercent', () => {
   it('is null until the job reports a total', () => {

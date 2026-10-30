@@ -6,7 +6,13 @@ export {
 export { mapAniListEntry } from './anilist/map.js';
 export type { AniListDate, AniListListEntry, AniListMedia } from './anilist/schemas.js';
 export { applyImportPlan, type ApplyOptions, type ImportReport } from './apply.js';
-export { applyDateRules, dateFromParts, formatDateParts, readFullDate, isFullDate } from './dates.js';
+export {
+  applyDateRules,
+  dateFromParts,
+  formatDateParts,
+  readFullDate,
+  isFullDate,
+} from './dates.js';
 export { ImportError, type ImportErrorKind } from './errors.js';
 export {
   BROWSER_USER_AGENT,

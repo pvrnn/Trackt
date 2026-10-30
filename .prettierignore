@@ -14,3 +14,6 @@ LICENSE
 
 # captured MyAnimeList markup — fixtures for the scraper, not formatting targets
 scripts/mal-scrape/test/fixtures/
+
+# captured provider markup and JSON — fixtures for the importers, not formatting targets
+packages/imports/test/fixtures/
