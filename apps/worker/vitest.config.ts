@@ -1,8 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
-// No tests exist yet — catalog-sync (the only job this worker ran) was
-// retired by ADR-0002. Passes cleanly until importers/notifications (PRD §6)
-// land with their own suites.
+// The queue wiring (importer.test.ts) runs against a fake job and a stubbed
+// pipeline: no Redis required, so the suite stays hermetic like the rest.
 export default defineConfig({
   test: {
     passWithNoTests: true,

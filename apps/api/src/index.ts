@@ -5,6 +5,7 @@ import { createDb } from '@trackt/db';
 import { EnvValidationError, loadEnv, parseFlagOverrides } from '@trackt/shared';
 import { buildApp } from './app.js';
 import { createAuth } from './auth.js';
+import { createImportQueue } from './lib/import-queue.js';
 
 async function main(): Promise<void> {
   let env;
@@ -21,11 +22,15 @@ async function main(): Promise<void> {
   const db = createDb(env.DATABASE_URL);
   const redis = new Redis(env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1 });
   const auth = createAuth(db, env);
+  // Producer side of the importer queue. It connects lazily on the first `add`,
+  // so an API that boots before Redis can still serve reads.
+  const importQueue = createImportQueue(env.REDIS_URL);
 
   const app = await buildApp({
     env,
     db,
     auth,
+    importQueue,
     dbPing: async () => {
       await db.execute(sql`select 1`);
     },
@@ -67,6 +72,7 @@ async function main(): Promise<void> {
     } catch (error) {
       app.log.error({ err: error }, 'error during shutdown');
     } finally {
+      await importQueue.close().catch(() => undefined);
       redis.disconnect();
       process.exit(0);
     }

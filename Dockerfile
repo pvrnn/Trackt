@@ -24,6 +24,7 @@ COPY apps/catalog/package.json ./apps/catalog/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/db/package.json ./packages/db/
 COPY packages/client/package.json ./packages/client/
+COPY packages/imports/package.json ./packages/imports/
 COPY packages/llm/package.json ./packages/llm/
 COPY packages/providers/package.json ./packages/providers/
 
@@ -46,8 +47,8 @@ RUN --mount=type=cache,id=s/ef9e3d63-8810-40bb-a9c6-7eba34b414c2-/pnpm/store,tar
 
 FROM manifests AS build
 # Filtered to the monolith's workspace graph (api, web, worker, discord and
-# their dependencies: shared, db, client). The root project comes along for
-# turbo. apps/mobile, apps/catalog, packages/llm and packages/providers are
+# their dependencies: shared, db, client, imports). The root project comes along
+# for turbo. apps/mobile, apps/catalog, packages/llm and packages/providers are
 # not part of this image — see the runtime stage.
 #
 # The pnpm store lives in a BuildKit cache mount: it is content-addressed, so
@@ -74,6 +75,7 @@ COPY apps/discord ./apps/discord
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
 COPY packages/client ./packages/client
+COPY packages/imports ./packages/imports
 # Same filter for the build: `turbo run build` would otherwise also compile
 # apps/catalog, packages/providers and packages/llm, none of which this image
 # ships. The turbo cache lives in a cache mount so a source-only change
@@ -100,6 +102,9 @@ COPY --from=build /app/packages/db/package.json ./packages/db/
 COPY --from=build /app/packages/db/dist ./packages/db/dist
 COPY --from=build /app/packages/db/migrations ./packages/db/migrations
 COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=build /app/packages/imports/package.json ./packages/imports/
+COPY --from=build /app/packages/imports/dist ./packages/imports/dist
+COPY --from=deps /app/packages/imports/node_modules ./packages/imports/node_modules
 COPY --from=build /app/apps/api/package.json ./apps/api/
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules

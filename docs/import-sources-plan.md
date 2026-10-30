@@ -158,7 +158,9 @@ therefore the realistic default for this source, not an emergency lever.
 
 ## The worker
 
-`QUEUES.importer` was parked. It now carries one job type:
+`QUEUES.importer` carries one job type, declared once in
+`packages/imports/src/job.ts` — the API produces it and `apps/worker` consumes
+it, so neither can drift:
 
 ```ts
 interface ImportJobData {
@@ -171,13 +173,33 @@ interface ImportJobData {
 ```
 
 - Producer: `POST /v1/me/import` (authenticated) validates the source and
-  enqueues; `GET /v1/me/import/:id` reports BullMQ state, progress and the final
-  report. `GET /v1/me/import/sources` lists what this instance can actually run
-  (a source whose credential env var is unset says so, without naming secrets).
-- Consumer: `apps/worker` runs a BullMQ `Worker` on the `importer` queue, calls
-  `runImport`, and reports progress as rows are applied (`completed/total`).
-  Failures carry the importer's own error kind so the client can say *why*
-  (wrong profile name, private list, missing credential, rate-limited).
+  enqueues. One job per (viewer, source), id `${userId}-${source}` — BullMQ
+  reserves `:` inside a custom id, which is why it is not the colon the first
+  draft assumed. A double-click therefore joins the job already waiting or
+  running; a finished job is removed and re-queued, so the same source can be
+  imported again later. A source whose credential env var is unset is refused
+  with a 409 that names the variable, before any job is created.
+- `GET /v1/me/import/:jobId` reports BullMQ state, progress and the completed
+  result; another viewer's job answers 404 rather than 403, so the route never
+  confirms a job it will not show. `GET /v1/me/import/sources` lists what this
+  instance can actually run — an unset credential, or a scrape source with
+  `IMPORT_FETCH_MODE` still at `http`, comes back `available: false` with the
+  reason. No secret leaves the process.
+- Consumer: `apps/worker` runs a BullMQ `Worker` on the `importer` queue with
+  concurrency 1 — an import is a scrape of somebody's profile, and two at once
+  is rude to the provider. The processor is exported separately
+  (`createImportProcessor`), so the wiring is tested with a fake job and a
+  stubbed pipeline: no Redis, no network.
+- Progress comes from the apply loop rather than the pipeline as a whole
+  (`applyImportPlan`'s optional `onProgress(done, total)`, forwarded by
+  `runImport`), because apply is the only per-row step. The job result is a
+  JSON-sized summary — plan counts plus `matchedByTitle`, the report, and the
+  first 100 unmatched rows with a `truncated` flag — never the plan itself.
+- Failures carry the importer's own error kind. BullMQ keeps an error's message
+  but not its class, so the processor writes `errorKind` into the job's progress,
+  which is the only field the API can read back on a failed job; the client can
+  then say *why* (wrong profile name, private list, missing credential,
+  rate-limited) instead of "import failed".
 - Retries: 2, exponential. A job is idempotent per row (existing logs are left
   alone unless `overwrite`), which is what makes a retry safe.
 

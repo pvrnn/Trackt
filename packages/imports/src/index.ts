@@ -29,6 +29,26 @@ export {
   type LetterboxdClientOptions,
 } from './letterboxd/client.js';
 export {
+  ImportJobDataSchema,
+  ImportJobResultSchema,
+  ImportPlanSummarySchema,
+  ImportReportSchema,
+  ImportRequestSchema,
+  ImportSourceSchema,
+  ImportWarningSchema,
+  MAX_JOB_UNMATCHED,
+  credentialsFromEnv,
+  importJobId,
+  toJobResult,
+  type ImportCredentialEnv,
+  type ImportJobData,
+  type ImportJobProgress,
+  type ImportJobResult,
+  type ImportPlanSummary,
+  type ImportRequest,
+  type ImportUnmatchedEntry,
+} from './job.js';
+export {
   mapLetterboxdEntry,
   type LetterboxdList,
   type LetterboxdRawEntry,

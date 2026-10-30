@@ -9,6 +9,12 @@ export interface ApplyOptions {
    * backfill, so a second run adds the new entries and touches nothing else.
    */
   overwrite?: boolean;
+  /**
+   * Rows applied so far, and how many there are in total. The pipeline has no
+   * finer granularity than this: the fetch is a handful of list requests, and
+   * apply is the only loop that runs per row.
+   */
+  onProgress?: (done: number, total: number) => void;
 }
 
 export interface ImportReport {
@@ -124,21 +130,24 @@ export async function applyImportPlan(
     unmatched: [],
   };
 
+  let done = 0;
   for (const row of plan.rows) {
     if (row.target === null) {
       report.unmatched.push({ externalId: row.entry.externalId, title: row.entry.title });
-      continue;
+    } else {
+      const outcome = await writeLogRow(db, userId, row, overwrite);
+      if (outcome === 'skipped') {
+        report.skippedExisting += 1;
+      } else {
+        if (outcome === 'created') report.created += 1;
+        else report.updated += 1;
+        if (row.upTo > 0) report.withProgress += 1;
+        if (row.entry.score !== null) report.ratings += 1;
+      }
     }
 
-    const outcome = await writeLogRow(db, userId, row, overwrite);
-    if (outcome === 'skipped') {
-      report.skippedExisting += 1;
-      continue;
-    }
-    if (outcome === 'created') report.created += 1;
-    else report.updated += 1;
-    if (row.upTo > 0) report.withProgress += 1;
-    if (row.entry.score !== null) report.ratings += 1;
+    done += 1;
+    options.onProgress?.(done, plan.rows.length);
   }
 
   return report;

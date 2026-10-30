@@ -42,6 +42,8 @@ export interface RunImportOptions {
   /** Scrape sources: read each work's own page for its provider ids (one request per work). */
   enrichFilmPages?: boolean;
   maxEnrich?: number;
+  /** Rows applied so far, and how many there are. A queue job turns this into its progress. */
+  onProgress?: (done: number, total: number) => void;
 }
 
 export interface ImportRun {
@@ -101,6 +103,7 @@ export async function runImport(
   if (options.dryRun) return { plan, report: null };
   const report = await applyImportPlan(db, options.userId, plan, {
     overwrite: options.overwrite,
+    ...(options.onProgress ? { onProgress: options.onProgress } : {}),
   });
   return { plan, report };
 }
