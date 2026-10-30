@@ -1,0 +1,250 @@
+{
+  "data": {
+    "MediaListCollection": {
+      "lists": [
+        {
+          "name": "Watching",
+          "entries": [
+            {
+              "id": 12342600,
+              "mediaId": 39115,
+              "status": "CURRENT",
+              "score": 0,
+              "progress": 11,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 39115,
+                "idMal": 9115,
+                "episodes": null,
+                "chapters": null,
+                "format": "NOVEL",
+                "seasonYear": null,
+                "title": {
+                  "romaji": "Ookami to Koushinryou",
+                  "english": "Spice & Wolf"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Planning",
+          "entries": [
+            {
+              "id": 12342601,
+              "mediaId": 42854,
+              "status": "PLANNING",
+              "score": 0,
+              "progress": 0,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 42854,
+                "idMal": 12854,
+                "episodes": null,
+                "chapters": 132,
+                "format": "NOVEL",
+                "seasonYear": null,
+                "title": {
+                  "romaji": "Toaru Majutsu no Index",
+                  "english": "A Certain Magical Index"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dropped",
+          "entries": [
+            {
+              "id": 12218924,
+              "mediaId": 30642,
+              "status": "DROPPED",
+              "score": 0,
+              "progress": 16,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 30642,
+                "idMal": 642,
+                "episodes": null,
+                "chapters": 224,
+                "format": "MANGA",
+                "seasonYear": null,
+                "title": {
+                  "romaji": "Vinland Saga",
+                  "english": "Vinland Saga"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Paused",
+          "entries": [
+            {
+              "id": 12223761,
+              "mediaId": 41329,
+              "status": "PAUSED",
+              "score": 0,
+              "progress": 8,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 41329,
+                "idMal": 11329,
+                "episodes": null,
+                "chapters": 144,
+                "format": "MANGA",
+                "seasonYear": null,
+                "title": {
+                  "romaji": "Mudazumo Naki Kaikaku",
+                  "english": "Reform with No Wasted Draws - The Legend of Koizumi"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Completed",
+          "entries": [
+            {
+              "id": 14580785,
+              "mediaId": 85781,
+              "status": "COMPLETED",
+              "score": 81,
+              "progress": 1,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": 2017,
+                "month": 2,
+                "day": 8
+              },
+              "media": {
+                "id": 85781,
+                "idMal": null,
+                "episodes": null,
+                "chapters": 1,
+                "format": "ONE_SHOT",
+                "seasonYear": null,
+                "title": {
+                  "romaji": "RKD-EK9",
+                  "english": null
+                }
+              }
+            },
+            {
+              "id": 12013157,
+              "mediaId": 30025,
+              "status": "COMPLETED",
+              "score": 63,
+              "progress": 116,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 30025,
+                "idMal": 25,
+                "episodes": null,
+                "chapters": 116,
+                "format": "MANGA",
+                "seasonYear": null,
+                "title": {
+                  "romaji": "Hagane no Renkinjutsushi",
+                  "english": "Fullmetal Alchemist"
+                }
+              }
+            },
+            {
+              "id": 12013156,
+              "mediaId": 30012,
+              "status": "COMPLETED",
+              "score": 62,
+              "progress": 706,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": 2004,
+                "month": 10,
+                "day": 1
+              },
+              "completedAt": {
+                "year": 2016,
+                "month": 8,
+                "day": 18
+              },
+              "media": {
+                "id": 30012,
+                "idMal": 12,
+                "episodes": null,
+                "chapters": 706,
+                "format": "MANGA",
+                "seasonYear": null,
+                "title": {
+                  "romaji": "BLEACH",
+                  "english": "Bleach"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

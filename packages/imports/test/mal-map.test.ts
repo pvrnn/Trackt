@@ -27,14 +27,17 @@ describe('mapMalEntry (anime)', () => {
     expect(entry).toMatchObject({
       source: 'mal',
       kind: 'anime',
-      externalId: 1,
+      externalId: '1',
       title: 'Cowboy Bebop',
+      year: null,
+      seasonNumber: null,
       status: 'in_progress',
       score: null,
       progress: 12,
       startedAt: '2019-04-01',
       finishedAt: null,
       notes: null,
+      externalIds: { mal: 1 },
     });
   });
 

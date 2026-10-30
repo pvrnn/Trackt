@@ -1,6 +1,5 @@
 import { PART_KIND_BY_MEDIA } from '@trackt/shared';
-import type { ImportTarget } from './resolve.js';
-import { importKey } from './resolve.js';
+import { entryKey, type ImportTarget } from './resolve.js';
 import { warning, type ImportEntry, type ImportSource, type ImportWarning } from './types.js';
 
 /**
@@ -12,6 +11,8 @@ export interface ImportPlanRow {
   entry: ImportEntry;
   /** Null when the catalog does not carry this work (skipped, never invented). */
   target: ImportTarget | null;
+  /** How the entry found its row; null when unmatched. */
+  matchedBy: 'external-id' | 'title' | null;
   /** The viewer already logs this work; left alone unless the run overwrites. */
   existing: boolean;
   /** Progress position the import will write, after clamping to what the catalog knows. */
@@ -42,9 +43,9 @@ export interface BuildPlanInput {
   targets: Map<string, ImportTarget>;
   /** Local media ids the viewer already has a log row for. */
   loggedMediaIds: Set<string>;
-  /** Warnings the mapper produced, keyed by `importKey`. */
+  /** Warnings the mapper produced, keyed by `entryKey`. */
   entryWarnings?: Map<string, ImportWarning[]>;
-  /** Warnings resolution produced (duplicate provider ids). */
+  /** Warnings resolution produced (duplicate provider ids, ambiguous titles). */
   warnings?: ImportWarning[];
 }
 
@@ -86,7 +87,7 @@ export function buildImportPlan(input: BuildPlanInput): ImportPlan {
   let existing = 0;
 
   for (const entry of input.entries) {
-    const key = importKey(entry.kind, entry.externalId);
+    const key = entryKey(entry);
     const target = input.targets.get(key) ?? null;
     const rowWarnings = [...(input.entryWarnings?.get(key) ?? [])];
     const isExisting = target ? input.loggedMediaIds.has(target.id) : false;
@@ -95,7 +96,14 @@ export function buildImportPlan(input: BuildPlanInput): ImportPlan {
     if (target) matched += 1;
     if (isExisting) existing += 1;
 
-    rows.push({ entry, target, existing: isExisting, upTo, warnings: rowWarnings });
+    rows.push({
+      entry,
+      target,
+      matchedBy: target?.matchedBy ?? null,
+      existing: isExisting,
+      upTo,
+      warnings: rowWarnings,
+    });
   }
 
   const warnings = [...(input.warnings ?? []), ...rows.flatMap((row) => row.warnings)];
@@ -119,7 +127,7 @@ export function buildImportPlan(input: BuildPlanInput): ImportPlan {
   };
 }
 
-export function unmatchedTitles(plan: ImportPlan): { externalId: number; title: string }[] {
+export function unmatchedTitles(plan: ImportPlan): { externalId: string; title: string }[] {
   return plan.rows
     .filter((row) => row.target === null)
     .map((row) => ({ externalId: row.entry.externalId, title: row.entry.title }));

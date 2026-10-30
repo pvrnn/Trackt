@@ -1,36 +1,56 @@
 import { eq, or } from 'drizzle-orm';
 import { createDb, users } from '@trackt/db';
 import { EnvValidationError, loadEnv } from '@trackt/shared';
-import { runMalImport } from './run.js';
+import { runImport } from './run.js';
+import { IMPORT_SOURCES } from './sources.js';
+import type { ImportCredentials, ImportSource } from './types.js';
 
 /**
- * `pnpm import:mal -- --user <email|uuid> --profile <mal username> [--dry-run] [--overwrite]`
+ * `pnpm import -- --source <mal|anilist> --user <email|uuid> --profile <name> [--dry-run] [--overwrite]`
  *
- * The first driver of the importer, and deliberately the only one for now: the
- * product surface (a wizard that enqueues an `importer` job) is a later step, so
- * the pipeline is exercised without building a UI around it first.
+ * The first driver of the importer: the product surface (a wizard that enqueues
+ * an `importer` job) is a later step, so the pipeline is exercised without
+ * building a UI around it first.
  */
 
 interface Args {
+  source: ImportSource;
   user: string;
   profile: string;
   dryRun: boolean;
   overwrite: boolean;
 }
 
+const DEFAULT_SOURCE: ImportSource = 'mal';
+
 const USAGE =
-  'usage: pnpm import:mal -- --user <email|uuid> --profile <myanimelist username> [--dry-run] [--overwrite]';
+  'usage: pnpm import -- --source <mal|anilist> --user <email|uuid> --profile <name> ' +
+  '[--dry-run] [--overwrite]';
+
+function parseSource(value: string | undefined): ImportSource {
+  const source = (value ?? DEFAULT_SOURCE) as ImportSource;
+  if (!(source in IMPORT_SOURCES)) throw new Error(`unknown source "${source}"\n${USAGE}`);
+  return source;
+}
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { user: '', profile: '', dryRun: false, overwrite: false };
+  const args: Args = {
+    source: DEFAULT_SOURCE,
+    user: '',
+    profile: '',
+    dryRun: false,
+    overwrite: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    // `pnpm import:mal -- --user …` forwards the separator as an argument.
+    // `pnpm import -- --user …` forwards the separator as an argument.
     if (arg === '--') continue;
     if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--overwrite') args.overwrite = true;
+    else if (arg === '--source') args.source = parseSource(argv[++i]);
     else if (arg === '--user') args.user = argv[++i] ?? '';
     else if (arg === '--profile') args.profile = argv[++i] ?? '';
+    else if (arg?.startsWith('--source=')) args.source = parseSource(arg.slice('--source='.length));
     else if (arg?.startsWith('--user=')) args.user = arg.slice('--user='.length);
     else if (arg?.startsWith('--profile=')) args.profile = arg.slice('--profile='.length);
     else throw new Error(`unknown argument "${arg}"\n${USAGE}`);
@@ -39,19 +59,30 @@ function parseArgs(argv: string[]): Args {
   return args;
 }
 
+/** `MAL_CLIENT_ID` → `malClientId`: the `ImportCredentials` field an env var fills. */
+function credentialField(envName: string): keyof ImportCredentials {
+  const [first, ...rest] = envName.toLowerCase().split('_');
+  const camel = [first, ...rest.map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)];
+  return camel.join('') as keyof ImportCredentials;
+}
+
 function line(label: string, value: number | string): string {
   return `  ${label.padEnd(14)} ${value}`;
 }
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  const definition = IMPORT_SOURCES[args.source];
 
   const env = loadEnv();
-  if (!env.MAL_CLIENT_ID) {
-    throw new Error(
-      'MAL_CLIENT_ID is not set — create an API client at https://myanimelist.net/apiconfig ' +
-        'and export its Client ID (public lists need nothing else).',
-    );
+  const credentials: ImportCredentials = {};
+  if (definition.credential) {
+    const field = credentialField(definition.credential.env);
+    const value = env[definition.credential.env as keyof typeof env];
+    if (typeof value !== 'string' || !value) {
+      throw new Error(`${definition.credential.env} is not set — ${definition.credential.hint}`);
+    }
+    credentials[field] = value;
   }
 
   const db = createDb(env.DATABASE_URL, { max: 2 });
@@ -71,25 +102,29 @@ async function main(): Promise<void> {
     if (!user) throw new Error(`no local user matches "${args.user}"`);
 
     console.log(
-      `importing MyAnimeList "${args.profile}" into ${user.username ?? user.email}` +
+      `importing ${definition.label} "${args.profile}" into ${user.username ?? user.email}` +
         ` (${args.dryRun ? 'dry run — nothing will be written' : 'applying'})`,
     );
 
-    const { plan, report } = await runMalImport(db, {
+    const { plan, report } = await runImport(db, {
       userId: user.id,
+      source: args.source,
       profile: args.profile,
-      clientId: env.MAL_CLIENT_ID,
+      credentials,
       dryRun: args.dryRun,
       overwrite: args.overwrite,
     });
 
-    console.log(`\nplan (mal:${args.profile})`);
+    console.log(`\nplan (${args.source}:${args.profile})`);
     console.log(line('rows', plan.summary.total));
     console.log(line('in catalog', plan.summary.matched));
     console.log(line('not in catalog', plan.summary.unmatched));
     console.log(line('already logged', plan.summary.existing));
     console.log(line('pending', plan.summary.pending));
     console.log(line('warnings', plan.summary.warnings));
+
+    const byTitle = plan.rows.filter((row) => row.matchedBy === 'title').length;
+    if (byTitle > 0) console.log(line('by title', byTitle));
 
     if (report) {
       console.log('\nwritten');
@@ -103,7 +138,9 @@ async function main(): Promise<void> {
     if (plan.warnings.length > 0) {
       console.log('\nwarnings');
       for (const w of plan.warnings.slice(0, 20)) {
-        console.log(`  [${w.code}] ${w.title ?? '—'} (mal ${w.externalId ?? '—'}): ${w.message}`);
+        console.log(
+          `  [${w.code}] ${w.title ?? '—'} (${args.source} ${w.externalId ?? '—'}): ${w.message}`,
+        );
       }
       if (plan.warnings.length > 20) console.log(`  … ${plan.warnings.length - 20} more`);
     }
@@ -112,7 +149,7 @@ async function main(): Promise<void> {
     if (unmatched.length > 0) {
       console.log('\nnot in this instance’s catalog (skipped)');
       for (const row of unmatched.slice(0, 30)) {
-        console.log(`  mal ${row.entry.externalId}  ${row.entry.title}`);
+        console.log(`  ${args.source} ${row.entry.externalId}  ${row.entry.title}`);
       }
       if (unmatched.length > 30) console.log(`  … ${unmatched.length - 30} more`);
     }

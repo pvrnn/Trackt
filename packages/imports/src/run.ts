@@ -1,24 +1,31 @@
 import type { Db } from '@trackt/db';
+import { fetchAniListEntries } from './anilist/adapter.js';
 import { applyImportPlan, type ApplyOptions, type ImportReport } from './apply.js';
-import { createMalClient, type FetchLike } from './mal/client.js';
-import { mapMalEntry } from './mal/map.js';
+import type { FetchLike } from './http/fetch.js';
+import { fetchMalEntries } from './mal/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
-import { findLoggedMediaIds, importKey, resolveImportEntries } from './resolve.js';
-import type { ImportEntry, ImportKind, ImportWarning } from './types.js';
+import { findLoggedMediaIds, resolveImportEntries } from './resolve.js';
+import type {
+  FetchedEntries,
+  FetchEntriesOptions,
+  ImportCredentials,
+  ImportSource,
+} from './types.js';
 
 /**
  * The importer proper: fetch → map → resolve → plan → apply. One call, so the
  * caller does not need to know the order — the CLI drives it today, and the
- * `importer` queue's processor will be a thin wrapper over the same function.
+ * `importer` queue's processor is a thin wrapper over the same function.
  */
 
-export interface RunMalImportOptions {
+export interface RunImportOptions {
   /** The Trackt user the log rows belong to. */
   userId: string;
-  /** MyAnimeList username (or `@me`, which needs an OAuth token this client does not have). */
+  source: ImportSource;
+  /** The provider username whose list is imported. */
   profile: string;
-  /** MAL API client id — `MAL_CLIENT_ID`. */
-  clientId: string;
+  /** Source credentials resolved from env by the caller (CLI/worker), e.g. { malClientId }. */
+  credentials: ImportCredentials;
   /** Build the plan and stop. Nothing is written. */
   dryRun?: boolean;
   overwrite?: boolean;
@@ -30,18 +37,24 @@ export interface RunMalImportOptions {
   requestSpacingMs?: number;
 }
 
-export interface MalImportRun {
+export interface ImportRun {
   plan: ImportPlan;
   /** Null on a dry run. */
   report: ImportReport | null;
 }
 
-const LIST_KINDS: ImportKind[] = ['anime', 'manga'];
+/** One entry per source: adding a source is a module plus a line here. */
+const ADAPTERS: Record<ImportSource, (options: FetchEntriesOptions) => Promise<FetchedEntries>> = {
+  mal: fetchMalEntries,
+  anilist: fetchAniListEntries,
+};
 
-/** Fetch both lists and work out what the import would do. Reads, never writes. */
-export async function planMalImport(db: Db, options: RunMalImportOptions): Promise<ImportPlan> {
-  const client = createMalClient({
-    clientId: options.clientId,
+/** Fetch a source's lists and work out what the import would do. Reads, never writes. */
+export async function planImport(db: Db, options: RunImportOptions): Promise<ImportPlan> {
+  const fetched = await ADAPTERS[options.source]({
+    profile: options.profile,
+    credentials: options.credentials,
+    ...(options.now ? { now: options.now } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
     ...(options.requestSpacingMs !== undefined
@@ -49,28 +62,7 @@ export async function planMalImport(db: Db, options: RunMalImportOptions): Promi
       : {}),
   });
 
-  const entries: ImportEntry[] = [];
-  const entryWarnings = new Map<string, ImportWarning[]>();
-  const dropped: ImportWarning[] = [];
-
-  // Sequential on purpose: MAL allows 3 requests/second and two lists are two
-  // requests. Parallelising would save nothing and start on the wrong foot.
-  for (const kind of LIST_KINDS) {
-    const rows = await client.fetchList(kind, options.profile);
-    for (const raw of rows) {
-      const mapped = mapMalEntry(kind, raw, options.now ? { now: options.now } : {});
-      if (!mapped.entry) {
-        // A row the mapper refused is not in the plan, so its warning has to
-        // travel on its own rather than with the entry's.
-        dropped.push(...mapped.warnings);
-        continue;
-      }
-      entryWarnings.set(importKey(mapped.entry.kind, mapped.entry.externalId), mapped.warnings);
-      entries.push(mapped.entry);
-    }
-  }
-
-  const { targets, warnings: resolveWarnings } = await resolveImportEntries(db, entries);
+  const { targets, warnings } = await resolveImportEntries(db, fetched.entries);
   const loggedMediaIds = await findLoggedMediaIds(
     db,
     options.userId,
@@ -78,22 +70,22 @@ export async function planMalImport(db: Db, options: RunMalImportOptions): Promi
   );
 
   return buildImportPlan({
-    source: 'mal',
+    source: options.source,
     profile: options.profile,
-    entries,
+    entries: fetched.entries,
     targets,
     loggedMediaIds,
-    entryWarnings,
-    warnings: [...resolveWarnings, ...dropped],
+    entryWarnings: fetched.entryWarnings,
+    warnings: [...warnings, ...fetched.warnings],
   });
 }
 
 /** Plan, then apply unless `dryRun`. */
-export async function runMalImport(
+export async function runImport(
   db: Db,
-  options: RunMalImportOptions & ApplyOptions,
-): Promise<MalImportRun> {
-  const plan = await planMalImport(db, options);
+  options: RunImportOptions & ApplyOptions,
+): Promise<ImportRun> {
+  const plan = await planImport(db, options);
   if (options.dryRun) return { plan, report: null };
   const report = await applyImportPlan(db, options.userId, plan, {
     overwrite: options.overwrite,

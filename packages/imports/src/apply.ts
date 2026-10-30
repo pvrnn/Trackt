@@ -25,7 +25,7 @@ export interface ImportReport {
   ratings: number;
   warnings: ImportWarning[];
   /** Provider rows this instance's catalog does not carry, skipped. */
-  unmatched: { externalId: number; title: string }[];
+  unmatched: { externalId: string; title: string }[];
 }
 
 /**
