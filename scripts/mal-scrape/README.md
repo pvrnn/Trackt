@@ -97,6 +97,36 @@ anime, 3,960 requests / 2h12m for manga, whose recent years hold ~8,000 works
 each. Manhwa are still refused — no identity provider, so no canonical id
 (ADR-0001).
 
+### Pruning the long tail: `pnpm prune:seeds`
+
+An enumeration is not a ranking, and manga shows the difference: of those 129,994
+rows, 66,929 carry **no MAL id at all** (web manga, doujin, self-published — the
+provider indexes about 500 a week), 21,385 are one-shots, and 77% have no score.
+A catalogue that offers all of it makes search compete with works nobody has
+ever rated.
+
+```sh
+pnpm prune:seeds              # dry run: what the floor would remove
+pnpm prune:seeds --apply      # rewrite both AniList seeds, backups *.pre-prune.bak
+```
+
+The floor, applied to manga rows only (anime is untouched):
+
+- a manga row with **no MAL id** is dropped — MAL's absence is the proxy for
+  "nobody outside the provider has indexed it", and before this source existed the
+  catalogue had no way to reach it either;
+- a **one-shot** is kept only at a provider score of 60 or above, because a
+  one-chapter work with no score is indistinguishable from spam. Every other
+  manga format keeps its row whatever it scores: a chapter count is not evidence
+  of quality. `--one-shot-min-score <n>` moves the bar, `--keep-unmatched-mal`
+  switches the id rule off.
+
+Edges whose endpoint the floor removes go with it, computed across both seeds at
+once (an edge may point into the other file), so the graph stays closed and
+publishable. Measured effect: 72,732 rows and 9,498 edges removed, leaving
+**19,806 anime** and **58,402 manga** — the one-shot cut alone keeps 1,170 of
+21,385. Run it after any `--source anilist-all` walk, before `db:seed:all`.
+
 `--max-rank` caps the number of works this source imports (default: no cap), and
 `--write-every <n>` writes the seed every n pages instead of after each one: at six
 figures the whole file is 150 MB, and re-serialising it per page costs more than
