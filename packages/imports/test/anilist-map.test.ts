@@ -82,6 +82,8 @@ describe('mapAniListEntry (anime)', () => {
     expect(entry?.startedAt).toBeNull();
     expect(entry?.finishedAt).toBeNull();
     expect(warnings.filter((w) => w.code === 'partial-date')).toHaveLength(2);
+    // The warning quotes what AniList stated, not a placeholder for the gaps.
+    expect(warnings[0]?.message).toContain('"2010"');
   });
 
   it('drops a finish date that precedes the start', () => {

@@ -1,5 +1,5 @@
 import type { LogStatus } from '@trackt/shared';
-import { applyDateRules, dateFromParts } from '../dates.js';
+import { applyDateRules, dateFromParts, formatDateParts } from '../dates.js';
 import { warning, type ImportEntry, type ImportKind, type ImportWarning } from '../types.js';
 import type { AniListDate, AniListListEntry } from './schemas.js';
 
@@ -29,13 +29,13 @@ function readDate(
   if (day) return day;
   // AniList always sends the object, with nulls for the parts it does not know:
   // all-null is "no date", some-null is a date that has no day (ADR-0007).
-  const partial = parts && (parts.year || parts.month || parts.day);
-  if (!partial) return null;
+  const stated = formatDateParts(parts);
+  if (!stated) return null;
   warnings.push(
     warning(
       'partial-date',
       row,
-      `${field} date "${parts.year ?? '—'}-${parts.month ?? '—'}-${parts.day ?? '—'}" is not a full day — a log date is a day, so it was left blank`,
+      `${field} date "${stated}" is not a full day — a log date is a day, so it was left blank`,
     ),
   );
   return null;

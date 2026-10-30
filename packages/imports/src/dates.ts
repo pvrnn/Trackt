@@ -29,6 +29,18 @@ export function dateFromParts(
   return isFullDate(value) ? value : null;
 }
 
+/** The parts a provider actually stated — `2010`, `2010-05`, `2010-05-06`. */
+export function formatDateParts(
+  parts: { year?: number | null; month?: number | null; day?: number | null } | null | undefined,
+): string | null {
+  if (!parts?.year) return null;
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const head = `${String(parts.year).padStart(4, '0')}`;
+  if (!parts.month) return head;
+  if (!parts.day) return `${head}-${pad(parts.month)}`;
+  return `${head}-${pad(parts.month)}-${pad(parts.day)}`;
+}
+
 /** A provider date string (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`) that must name a day. */
 export function readFullDate(
   value: string | null | undefined,
