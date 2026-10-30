@@ -78,6 +78,7 @@ export {
   type ImportPlan,
   type ImportPlanRow,
 } from './plan.js';
+export { buildPlanReport, planReportCsv, type PlanReport, type PlanReportRow } from './report.js';
 export {
   entryKey,
   findLoggedMediaIds,

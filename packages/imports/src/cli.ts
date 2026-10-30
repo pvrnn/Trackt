@@ -1,12 +1,15 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { eq, or } from 'drizzle-orm';
 import { createDb, users } from '@trackt/db';
 import { EnvValidationError, loadEnv } from '@trackt/shared';
+import { buildPlanReport, planReportCsv } from './report.js';
 import { runImport } from './run.js';
 import { IMPORT_SOURCES } from './sources.js';
 import type { ImportCredentials, ImportSource } from './types.js';
 
 /**
- * `pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich]`
+ * `pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich] [--report <file>]`
  *
  * The first driver of the importer: the product surface (a wizard that enqueues
  * an `importer` job) is a later step, so the pipeline is exercised without
@@ -20,13 +23,15 @@ interface Args {
   dryRun: boolean;
   overwrite: boolean;
   enrich: boolean;
+  /** Where the whole plan goes: JSON, or CSV when the path says so. */
+  report: string | null;
 }
 
 const DEFAULT_SOURCE: ImportSource = 'mal';
 
 const USAGE =
   'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> ' +
-  '[--dry-run] [--overwrite] [--enrich]';
+  '[--dry-run] [--overwrite] [--enrich] [--report <file>]';
 
 function parseSource(value: string | undefined): ImportSource {
   const source = (value ?? DEFAULT_SOURCE) as ImportSource;
@@ -42,6 +47,7 @@ function parseArgs(argv: string[]): Args {
     dryRun: false,
     overwrite: false,
     enrich: false,
+    report: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -50,6 +56,8 @@ function parseArgs(argv: string[]): Args {
     if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--overwrite') args.overwrite = true;
     else if (arg === '--enrich') args.enrich = true;
+    else if (arg === '--report') args.report = argv[++i] ?? '';
+    else if (arg?.startsWith('--report=')) args.report = arg.slice('--report='.length);
     else if (arg === '--source') args.source = parseSource(argv[++i]);
     else if (arg === '--user') args.user = argv[++i] ?? '';
     else if (arg === '--profile') args.profile = argv[++i] ?? '';
@@ -59,6 +67,7 @@ function parseArgs(argv: string[]): Args {
     else throw new Error(`unknown argument "${arg}"\n${USAGE}`);
   }
   if (!args.user || !args.profile) throw new Error(USAGE);
+  if (args.report === '') throw new Error(`--report needs a path\n${USAGE}`);
   return args;
 }
 
@@ -118,6 +127,20 @@ async function main(): Promise<void> {
       overwrite: args.overwrite,
       enrichFilmPages: args.enrich,
     });
+
+    if (args.report) {
+      // Written before the console report is truncated: a run's unmatched rows
+      // exist nowhere else once the process exits.
+      const file = resolve(args.report);
+      const report = buildPlanReport(plan, { applied: !args.dryRun });
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(
+        file,
+        file.endsWith('.csv') ? planReportCsv(report) : `${JSON.stringify(report, null, 2)}\n`,
+        'utf8',
+      );
+      console.log(`\nreport written to ${file}`);
+    }
 
     console.log(`\nplan (${args.source}:${args.profile})`);
     console.log(line('rows', plan.summary.total));

@@ -214,3 +214,9 @@ interface ImportJobData {
   existing self-skip rule when Docker is absent.
 - The worker's processor is tested with a fake `Job` and a stubbed importer, so
   the queue wiring is covered without Redis.
+- A CLI run keeps nothing: an unmatched row writes no row anywhere, so the
+  console's thirty-line sample was the only trace of the other 2 500. `--report
+  <file>` (JSON, or CSV when the path ends in `.csv`) now writes the whole plan —
+  every row with its provider id, year, score, status, `matchedBy`, the catalog
+  title it landed on and its warnings — before the console truncates anything.
+  Gitignored, under `data/`.
