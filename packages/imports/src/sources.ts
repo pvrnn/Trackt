@@ -55,4 +55,19 @@ export const IMPORT_SOURCES: Record<ImportSource, ImportSourceDefinition> = {
     browser: true,
     titleFallback: true,
   },
+  trakt: {
+    id: 'trakt',
+    label: 'Trakt',
+    // A series row is one season (ADR-0003), so one show yields several entries.
+    kinds: ['movie', 'series'],
+    joinKeys: ['tmdb', 'imdb'],
+    credential: {
+      env: 'TRAKT_CLIENT_ID',
+      hint:
+        'create an API app at https://trakt.tv/oauth/applications and use its Client ID ' +
+        '(public profiles need nothing else)',
+    },
+    access: 'api',
+    titleFallback: false,
+  },
 };

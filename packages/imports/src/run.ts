@@ -6,6 +6,7 @@ import { fetchLetterboxdEntries } from './letterboxd/adapter.js';
 import { fetchMalEntries } from './mal/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
 import { findLoggedMediaIds, resolveImportEntries } from './resolve.js';
+import { fetchTraktEntries } from './trakt/adapter.js';
 import type {
   FetchedEntries,
   FetchEntriesOptions,
@@ -25,7 +26,7 @@ export interface RunImportOptions {
   source: ImportSource;
   /** The provider username whose list is imported. */
   profile: string;
-  /** Source credentials resolved from env by the caller (CLI/worker), e.g. { malClientId }. */
+  /** Source credentials resolved from env by the caller (CLI/worker): `malClientId`, `traktClientId`. */
   credentials: ImportCredentials;
   /** Build the plan and stop. Nothing is written. */
   dryRun?: boolean;
@@ -54,6 +55,7 @@ const ADAPTERS: Record<ImportSource, (options: FetchEntriesOptions) => Promise<F
   mal: fetchMalEntries,
   anilist: fetchAniListEntries,
   letterboxd: fetchLetterboxdEntries,
+  trakt: fetchTraktEntries,
 };
 
 /** Fetch a source's lists and work out what the import would do. Reads, never writes. */

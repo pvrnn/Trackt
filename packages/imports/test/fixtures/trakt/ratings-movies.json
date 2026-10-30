@@ -1,0 +1,22 @@
+[
+  {
+    "rated_at": "2024-03-11T08:05:00.000Z",
+    "rating": 8,
+    "type": "movie",
+    "movie": {
+      "title": "The Matrix",
+      "year": 1999,
+      "ids": { "trakt": 481, "slug": "the-matrix-1999", "imdb": "tt0133093", "tmdb": 603 }
+    }
+  },
+  {
+    "rated_at": "2023-09-01T12:00:00.000Z",
+    "rating": 6,
+    "type": "movie",
+    "movie": {
+      "title": "A Rated Film With No Watch",
+      "year": 2021,
+      "ids": { "trakt": 900002, "slug": "a-rated-film-with-no-watch-2021", "tmdb": 880002 }
+    }
+  }
+]

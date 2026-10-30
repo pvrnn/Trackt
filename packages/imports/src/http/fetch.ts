@@ -4,11 +4,20 @@ import { ImportError } from '../errors.js';
  * The slice of `fetch` the provider clients use, so a test can pass a stub.
  * `body` and `method` exist for the POST-shaped APIs (AniList GraphQL); the
  * scrape fetchers below take their own seam.
+ *
+ * `headers` is optional because only some providers put anything there worth
+ * reading (Trakt's page count), and a client that ignores it must not have to
+ * fabricate one.
  */
 export type FetchLike = (
   url: string,
   init: { method?: string; headers: Record<string, string>; body?: string },
-) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+) => Promise<{
+  ok: boolean;
+  status: number;
+  json(): Promise<unknown>;
+  headers?: Record<string, string>;
+}>;
 
 /** What a public web page expects to see; several providers 403 a bare client. */
 export const BROWSER_USER_AGENT =

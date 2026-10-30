@@ -1,4 +1,5 @@
 import { eq, inArray, sql } from 'drizzle-orm';
+import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -13,7 +14,7 @@ import {
   users,
   type Db,
 } from '@trackt/db';
-import { canonicalMediaId } from '@trackt/shared';
+import { canonicalMediaId, canonicalSeriesSeasonId } from '@trackt/shared';
 import type { FetchLike } from '../src/http/fetch.js';
 import { entryKey, resolveImportEntries } from '../src/resolve.js';
 import { planImport, runImport } from '../src/run.js';
@@ -61,6 +62,8 @@ const available = await ensureTestDatabase();
 const bebopId = canonicalMediaId('anime', 1); // MAL 1 / AniList 1, 26 episodes
 const frierenId = canonicalMediaId('anime', 154587); // MAL 52991, 28 episodes
 const fmaMangaId = canonicalMediaId('manga', 30025); // MAL 25, 116 chapters
+const breakingBadS1Id = canonicalSeriesSeasonId(1396, 1); // 7 episodes
+const breakingBadS2Id = canonicalSeriesSeasonId(1396, 2); // 13 episodes
 
 /**
  * A MAL list as the API would hand it over: two rows the seed carries, one it
@@ -195,6 +198,55 @@ function stubAniList(): FetchLike {
         data: { MediaListCollection: { lists: [{ name: 'Lists', entries }] } },
       }),
     };
+  };
+}
+
+/**
+ * Trakt as the adapter reads it. The bodies are the hand-written fixtures in
+ * `test/fixtures/trakt/` (documented shapes, not captures): no client id was
+ * available on this machine to record a real profile.
+ */
+function stubTrakt(): FetchLike {
+  const fixture = (name: string): unknown =>
+    JSON.parse(
+      readFileSync(new URL(`./fixtures/trakt/${name}`, import.meta.url), 'utf8'),
+    ) as unknown;
+
+  const announcedProgress = {
+    aired: 0,
+    completed: 0,
+    seasons: [{ number: 1, title: 'Season 1', aired: 0, completed: 0, episodes: [] }],
+  };
+
+  return async (url) => {
+    const path = new URL(url).pathname;
+    let body: unknown;
+    if (path.endsWith('/watched/movies')) body = fixture('watched-movies.json');
+    else if (path.endsWith('/watched/shows')) body = fixture('watched-shows.json');
+    else if (path.endsWith('/shows/1388/progress/watched')) body = fixture('show-progress.json');
+    else if (path.endsWith('/progress/watched')) body = announcedProgress;
+    else if (path.endsWith('/ratings/movies')) body = fixture('ratings-movies.json');
+    else if (path.endsWith('/ratings/shows'))
+      body = [
+        {
+          rated_at: '2020-03-01T10:00:00.000Z',
+          rating: 9,
+          type: 'show',
+          show: { title: 'Breaking Bad', year: 2008, ids: { trakt: 1388, tmdb: 1396 } },
+        },
+      ];
+    else if (path.endsWith('/watchlist/movies')) body = fixture('watchlist-movies.json');
+    else if (path.endsWith('/watchlist/shows'))
+      body = [
+        {
+          rank: 1,
+          listed_at: '2026-01-06T10:00:00.000Z',
+          type: 'show',
+          show: { title: 'The Wire', year: 2002, ids: { trakt: 1438, tmdb: 1438 } },
+        },
+      ];
+    else return { ok: false, status: 404, json: async () => ({}) };
+    return { ok: true, status: 200, json: async () => body };
   };
 }
 
@@ -556,6 +608,92 @@ describe.runIf(available)('account import (postgres)', () => {
       } finally {
         await db.delete(media).where(inArray(media.id, twins));
       }
+    });
+  });
+
+  describe('Trakt', () => {
+    const traktSeason = (seasonNumber: number): ImportEntry =>
+      entry({
+        source: 'trakt',
+        kind: 'series',
+        title: 'Breaking Bad',
+        year: 2008,
+        seasonNumber,
+        externalIds: { tmdb: 1396 },
+      });
+
+    it('scopes a per-season entry to the row with that season number', async () => {
+      // The real registry this time, not a mutated one: Trakt joins on TMDB and
+      // one show is one entry per season.
+      const { targets } = await resolveImportEntries(db, [
+        traktSeason(1),
+        traktSeason(2),
+        traktSeason(3),
+      ]);
+
+      expect(targets.get(entryKey(traktSeason(1)))?.id).toBe(breakingBadS1Id);
+      expect(targets.get(entryKey(traktSeason(2)))?.id).toBe(breakingBadS2Id);
+      expect(targets.get(entryKey(traktSeason(1)))?.seasonNumber).toBe(1);
+      expect(targets.get(entryKey(traktSeason(2)))?.seasonNumber).toBe(2);
+      // Season 3 is not in the fixture catalog, and a season number must not
+      // fall back to "any season of this show".
+      expect(targets.has(entryKey(traktSeason(3)))).toBe(false);
+    });
+
+    it('imports movies and one row per watched season end to end', async () => {
+      const { plan, report } = await runImport(db, {
+        userId,
+        source: 'trakt',
+        profile: 'paul',
+        credentials: { traktClientId: 'test-client' },
+        fetch: stubTrakt(),
+        requestSpacingMs: 0,
+        now: NOW,
+      });
+
+      // Three watched films, two Breaking Bad seasons, one watchlisted film
+      // (The Matrix is watchlisted *and* watched: one row, the watched one).
+      // The announced show's season has nothing out and is skipped.
+      expect(plan.summary).toMatchObject({ total: 6, matched: 5, unmatched: 1 });
+      expect(plan.warnings.map((w) => w.code)).toEqual(expect.arrayContaining(['partial-source']));
+      expect(plan.warnings.some((w) => /no aired episode/.test(w.message))).toBe(true);
+      expect(plan.warnings.some((w) => /planned show names no season/.test(w.message))).toBe(true);
+
+      const seasonOne = plan.rows.find((row) => row.entry.seasonNumber === 1);
+      const seasonTwo = plan.rows.find((row) => row.entry.seasonNumber === 2);
+      expect(seasonOne?.target?.id).toBe(breakingBadS1Id);
+      expect(seasonTwo?.target?.id).toBe(breakingBadS2Id);
+
+      expect(report).toMatchObject({ created: 5, ratings: 3 });
+
+      const [s1] = await db.select().from(userMedia).where(eq(userMedia.mediaId, breakingBadS1Id));
+      expect(s1).toMatchObject({ status: 'in_progress', repeats: 1 });
+      expect(s1?.startedAt).toBe('2020-01-05');
+      expect(s1?.finishedAt).toBeNull();
+
+      const [s2] = await db.select().from(userMedia).where(eq(userMedia.mediaId, breakingBadS2Id));
+      expect(s2).toMatchObject({ status: 'completed' });
+      expect(s2?.startedAt).toBe('2020-02-01');
+      expect(s2?.finishedAt).toBe('2020-02-03');
+
+      // The show rating landed on both seasons, each on its own media row.
+      const scores = await db
+        .select({ targetId: rating.targetId, score: rating.score })
+        .from(rating)
+        .where(eq(rating.userId, userId));
+      expect(
+        scores.filter(
+          (row) => row.targetId === breakingBadS1Id || row.targetId === breakingBadS2Id,
+        ),
+      ).toHaveLength(2);
+
+      // Season 1 is on episode 5 (1, 2 and 5 watched), so five parts are checked.
+      const checked = await db.execute(sql`
+        SELECT count(*)::int AS count FROM progress p
+        JOIN media_part mp ON mp.id = p.part_id
+        WHERE p.user_id = ${userId} AND mp.media_id = ${breakingBadS1Id}
+      `);
+      expect((checked[0] as { count: number }).count).toBe(5);
     });
   });
 });

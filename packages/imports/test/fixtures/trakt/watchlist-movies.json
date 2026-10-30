@@ -1,0 +1,24 @@
+[
+  {
+    "rank": 1,
+    "listed_at": "2026-01-04T10:00:00.000Z",
+    "notes": "watch with Ana",
+    "type": "movie",
+    "movie": {
+      "title": "Spirited Away",
+      "year": 2001,
+      "ids": { "trakt": 441, "slug": "spirited-away-2001", "imdb": "tt0245429", "tmdb": 129 }
+    }
+  },
+  {
+    "rank": 2,
+    "listed_at": "2026-01-05T10:00:00.000Z",
+    "notes": null,
+    "type": "movie",
+    "movie": {
+      "title": "The Matrix",
+      "year": 1999,
+      "ids": { "trakt": 481, "slug": "the-matrix-1999", "imdb": "tt0133093", "tmdb": 603 }
+    }
+  }
+]

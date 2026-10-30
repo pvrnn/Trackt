@@ -1,0 +1,41 @@
+[
+  {
+    "plays": 2,
+    "last_watched_at": "2020-01-07T20:00:00.000Z",
+    "show": {
+      "title": "Breaking Bad",
+      "year": 2008,
+      "aired_episodes": 62,
+      "ids": { "trakt": 1388, "slug": "breaking-bad", "imdb": "tt0903747", "tvdb": 81189, "tmdb": 1396 }
+    },
+    "seasons": [
+      {
+        "number": 1,
+        "episodes": [
+          { "number": 1, "plays": 2, "last_watched_at": "2020-01-05T20:00:00.000Z" },
+          { "number": 2, "plays": 2, "last_watched_at": "2020-01-06T20:00:00.000Z" },
+          { "number": 5, "plays": 2, "last_watched_at": "2020-01-07T20:00:00.000Z" }
+        ]
+      },
+      {
+        "number": 2,
+        "episodes": [
+          { "number": 1, "plays": 2, "last_watched_at": "2020-02-01T20:00:00.000Z" },
+          { "number": 2, "plays": 2, "last_watched_at": "2020-02-02T20:00:00.000Z" },
+          { "number": 3, "plays": 2, "last_watched_at": "2020-02-03T20:00:00.000Z" }
+        ]
+      }
+    ]
+  },
+  {
+    "plays": 1,
+    "last_watched_at": null,
+    "show": {
+      "title": "An Announced Show",
+      "year": 2026,
+      "aired_episodes": 0,
+      "ids": { "trakt": 700000, "slug": "an-announced-show", "tmdb": 999999 }
+    },
+    "seasons": [{ "number": 1, "episodes": [] }]
+  }
+]

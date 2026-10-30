@@ -61,6 +61,30 @@ export {
 } from './resolve.js';
 export { planImport, runImport, type ImportRun, type RunImportOptions } from './run.js';
 export { IMPORT_SOURCES, type ImportSourceDefinition } from './sources.js';
+export { mergeTraktRatings } from './trakt/adapter.js';
+export { createTraktClient, type TraktClient, type TraktClientOptions } from './trakt/client.js';
+export {
+  mapTraktMovie,
+  mapTraktSeason,
+  mapTraktWatchlistMovie,
+  readTraktScore,
+  type MapOptions as TraktMapOptions,
+  type TraktRow,
+} from './trakt/map.js';
+export type {
+  TraktIds,
+  TraktMovie,
+  TraktProgressEpisode,
+  TraktProgressSeason,
+  TraktRating,
+  TraktShow,
+  TraktShowProgress,
+  TraktWatchedEpisode,
+  TraktWatchedMovie,
+  TraktWatchedSeason,
+  TraktWatchedShow,
+  TraktWatchlistItem,
+} from './trakt/schemas.js';
 export {
   warning,
   type FetchedEntries,

@@ -1,0 +1,32 @@
+[
+  {
+    "plays": 2,
+    "last_watched_at": "2024-03-10T20:15:00.000Z",
+    "last_updated_at": "2024-03-11T08:00:00.000Z",
+    "movie": {
+      "title": "The Matrix",
+      "year": 1999,
+      "ids": { "trakt": 481, "slug": "the-matrix-1999", "imdb": "tt0133093", "tmdb": 603 }
+    }
+  },
+  {
+    "plays": 1,
+    "last_watched_at": "2025-01-02T22:00:00.000Z",
+    "last_updated_at": "2025-01-03T09:30:00.000Z",
+    "movie": {
+      "title": "Interstellar",
+      "year": 2014,
+      "ids": { "trakt": 104153, "slug": "interstellar-2014", "imdb": "tt0816692", "tmdb": 157336 }
+    }
+  },
+  {
+    "plays": 1,
+    "last_watched_at": "2023-07-18T19:45:00.000Z",
+    "last_updated_at": "2023-07-18T19:45:00.000Z",
+    "movie": {
+      "title": "An Obscure Film",
+      "year": 1999,
+      "ids": { "trakt": 900001, "slug": "an-obscure-film-1999" }
+    }
+  }
+]

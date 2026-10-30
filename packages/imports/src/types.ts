@@ -7,7 +7,7 @@ import type { FetchLike, PageFetcher } from './http/fetch.js';
  * (`scripts/*-scrape` + `apps/catalog`) — nothing here publishes media, and a
  * row the catalog does not carry is reported, never invented.
  */
-export type ImportSource = 'mal' | 'anilist' | 'letterboxd';
+export type ImportSource = 'mal' | 'anilist' | 'letterboxd' | 'trakt';
 
 /** The media kinds an import can target — the catalog's own vocabulary, not a source's. */
 export type ImportKind = MediaKind;
@@ -78,6 +78,8 @@ export function warning(
  */
 export interface ImportCredentials {
   malClientId?: string;
+  /** The Client ID of a Trakt API app; public profiles need nothing else. */
+  traktClientId?: string;
 }
 
 export interface FetchEntriesOptions {
