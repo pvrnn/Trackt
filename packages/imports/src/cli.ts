@@ -1,15 +1,16 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { eq, or } from 'drizzle-orm';
 import { createDb, users } from '@trackt/db';
 import { EnvValidationError, loadEnv } from '@trackt/shared';
-import { buildPlanReport, planReportCsv } from './report.js';
+import { buildPlanReport, planReportCsv, type PlanReport } from './report.js';
+import { replayImportReport } from './replay.js';
 import { runImport } from './run.js';
 import { IMPORT_SOURCES } from './sources.js';
 import type { ImportCredentials, ImportSource } from './types.js';
 
 /**
- * `pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich] [--report <file>]`
+ * `pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]`
  *
  * The first driver of the importer: the product surface (a wizard that enqueues
  * an `importer` job) is a later step, so the pipeline is exercised without
@@ -25,13 +26,15 @@ interface Args {
   enrich: boolean;
   /** Where the whole plan goes: JSON, or CSV when the path says so. */
   report: string | null;
+  /** Re-resolve a saved report instead of fetching: no network, no provider. */
+  fromReport: string | null;
 }
 
 const DEFAULT_SOURCE: ImportSource = 'mal';
 
 const USAGE =
   'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> ' +
-  '[--dry-run] [--overwrite] [--enrich] [--report <file>]';
+  '[--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]';
 
 function parseSource(value: string | undefined): ImportSource {
   const source = (value ?? DEFAULT_SOURCE) as ImportSource;
@@ -48,6 +51,7 @@ function parseArgs(argv: string[]): Args {
     overwrite: false,
     enrich: false,
     report: null,
+    fromReport: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -57,6 +61,9 @@ function parseArgs(argv: string[]): Args {
     else if (arg === '--overwrite') args.overwrite = true;
     else if (arg === '--enrich') args.enrich = true;
     else if (arg === '--report') args.report = argv[++i] ?? '';
+    else if (arg === '--from-report') args.fromReport = argv[++i] ?? '';
+    else if (arg?.startsWith('--from-report='))
+      args.fromReport = arg.slice('--from-report='.length);
     else if (arg?.startsWith('--report=')) args.report = arg.slice('--report='.length);
     else if (arg === '--source') args.source = parseSource(argv[++i]);
     else if (arg === '--user') args.user = argv[++i] ?? '';
@@ -66,8 +73,12 @@ function parseArgs(argv: string[]): Args {
     else if (arg?.startsWith('--profile=')) args.profile = arg.slice('--profile='.length);
     else throw new Error(`unknown argument "${arg}"\n${USAGE}`);
   }
-  if (!args.user || !args.profile) throw new Error(USAGE);
+  // A replay carries the profile in the report it reads.
+  if (!args.user || (!args.profile && !args.fromReport)) throw new Error(USAGE);
   if (args.report === '') throw new Error(`--report needs a path\n${USAGE}`);
+  if (args.fromReport === '') throw new Error(`--from-report needs a path\n${USAGE}`);
+  if (args.fromReport && args.enrich)
+    throw new Error(`--from-report has nothing to fetch\n${USAGE}`);
   return args;
 }
 
@@ -76,6 +87,23 @@ function credentialField(envName: string): keyof ImportCredentials {
   const [first, ...rest] = envName.toLowerCase().split('_');
   const camel = [first, ...rest.map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)];
   return camel.join('') as keyof ImportCredentials;
+}
+
+/** A saved plan, read back for `--from-report`; a wrong file fails by name, not by stack. */
+async function readReport(file: string): Promise<PlanReport> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readFile(file, 'utf8'));
+  } catch (error) {
+    throw new Error(
+      `cannot read the report at ${file}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const report = parsed as PlanReport;
+  if (!report || !Array.isArray(report.rows) || !(report.source in IMPORT_SOURCES)) {
+    throw new Error(`${file} is not an import report (run one with --report <file>)`);
+  }
+  return report;
 }
 
 function line(label: string, value: number | string): string {
@@ -88,7 +116,7 @@ async function main(): Promise<void> {
 
   const env = loadEnv();
   const credentials: ImportCredentials = {};
-  if (definition.credential) {
+  if (definition.credential && !args.fromReport) {
     const field = credentialField(definition.credential.env);
     const value = env[definition.credential.env as keyof typeof env];
     if (typeof value !== 'string' || !value) {
@@ -113,25 +141,39 @@ async function main(): Promise<void> {
       .limit(1);
     if (!user) throw new Error(`no local user matches "${args.user}"`);
 
+    const saved = args.fromReport ? await readReport(resolve(args.fromReport)) : null;
+    const source = saved?.source ?? args.source;
+    const profile = saved?.profile ?? args.profile;
+
     console.log(
-      `importing ${definition.label} "${args.profile}" into ${user.username ?? user.email}` +
-        ` (${args.dryRun ? 'dry run — nothing will be written' : 'applying'})`,
+      `importing ${IMPORT_SOURCES[source].label} "${profile}" into ${user.username ?? user.email}` +
+        ` (${args.dryRun ? 'dry run — nothing will be written' : 'applying'})` +
+        (saved ? ', re-matching the saved report — no provider request' : ''),
     );
 
-    const { plan, report } = await runImport(db, {
-      userId: user.id,
-      source: args.source,
-      profile: args.profile,
-      credentials,
-      dryRun: args.dryRun,
-      overwrite: args.overwrite,
-      enrichFilmPages: args.enrich,
-    });
+    const { plan, report } = saved
+      ? await replayImportReport(db, {
+          userId: user.id,
+          report: saved,
+          dryRun: args.dryRun,
+          overwrite: args.overwrite,
+        })
+      : await runImport(db, {
+          userId: user.id,
+          source,
+          profile,
+          credentials,
+          dryRun: args.dryRun,
+          overwrite: args.overwrite,
+          enrichFilmPages: args.enrich,
+        });
 
-    if (args.report) {
+    // A replay that actually writes refreshes the file it read, so the next
+    // replay starts from the current state rather than a stale one.
+    if (args.report || (saved && !args.dryRun)) {
       // Written before the console report is truncated: a run's unmatched rows
       // exist nowhere else once the process exits.
-      const file = resolve(args.report);
+      const file = resolve(args.report ?? args.fromReport!);
       const report = buildPlanReport(plan, { applied: !args.dryRun });
       await mkdir(dirname(file), { recursive: true });
       await writeFile(
@@ -142,7 +184,7 @@ async function main(): Promise<void> {
       console.log(`\nreport written to ${file}`);
     }
 
-    console.log(`\nplan (${args.source}:${args.profile})`);
+    console.log(`\nplan (${source}:${profile})`);
     console.log(line('rows', plan.summary.total));
     console.log(line('in catalog', plan.summary.matched));
     console.log(line('not in catalog', plan.summary.unmatched));

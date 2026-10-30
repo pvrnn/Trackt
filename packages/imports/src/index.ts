@@ -80,6 +80,12 @@ export {
 } from './plan.js';
 export { buildPlanReport, planReportCsv, type PlanReport, type PlanReportRow } from './report.js';
 export {
+  entryFromReportRow,
+  replayImportReport,
+  type ReplayOptions,
+  type ReplayRun,
+} from './replay.js';
+export {
   entryKey,
   findLoggedMediaIds,
   resolveImportEntries,
