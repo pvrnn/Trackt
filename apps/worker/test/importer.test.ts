@@ -81,7 +81,15 @@ const plan: ImportPlan = {
     },
   ],
   warnings: [],
-  summary: { total: 3, matched: 2, unmatched: 1, existing: 0, pending: 2, warnings: 0 },
+  summary: {
+    total: 3,
+    matched: 2,
+    unmatched: 1,
+    existing: 0,
+    pending: 2,
+    fromCatalog: 0,
+    warnings: 0,
+  },
 };
 
 const report: ImportReport = {

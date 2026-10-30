@@ -22,8 +22,8 @@ export interface PlanReportRow {
   notes: string | null;
   /** Whether this instance carries the work at all. */
   matched: boolean;
-  /** `external-id` is a fact, `title` is a fallback that matched, null is unmatched. */
-  matchedBy: 'external-id' | 'title' | null;
+  /** `external-id` is a fact, `title` a fallback, `catalog` a pull from the central catalog. */
+  matchedBy: 'external-id' | 'title' | 'catalog' | null;
   /** The catalog row's title, once matched — so a title match can be checked by eye. */
   mediaTitle: string | null;
   warnings: { code: string; message: string }[];

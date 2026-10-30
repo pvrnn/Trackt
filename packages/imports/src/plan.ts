@@ -9,10 +9,10 @@ import { warning, type ImportEntry, type ImportSource, type ImportWarning } from
  */
 export interface ImportPlanRow {
   entry: ImportEntry;
-  /** Null when the catalog does not carry this work (skipped, never invented). */
+  /** Null when neither this instance nor the central catalog carries the work. */
   target: ImportTarget | null;
   /** How the entry found its row; null when unmatched. */
-  matchedBy: 'external-id' | 'title' | null;
+  matchedBy: 'external-id' | 'title' | 'catalog' | null;
   /** The viewer already logs this work; left alone unless the run overwrites. */
   existing: boolean;
   /** Progress position the import will write, after clamping to what the catalog knows. */
@@ -32,6 +32,8 @@ export interface ImportPlan {
     existing: number;
     /** Matched and not yet logged: what a non-overwriting run writes. */
     pending: number;
+    /** Of `matched`, the rows the central catalog supplied (materialized by this run). */
+    fromCatalog: number;
     warnings: number;
   };
 }
@@ -122,6 +124,8 @@ export function buildImportPlan(input: BuildPlanInput): ImportPlan {
       unmatched: rows.length - matched,
       existing,
       pending: matched - existing,
+      fromCatalog: rows.filter((row) => row.target?.matchedBy === 'catalog' && !row.existing)
+        .length,
       warnings: warnings.length,
     },
   };

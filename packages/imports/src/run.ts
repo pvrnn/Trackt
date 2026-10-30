@@ -1,11 +1,12 @@
 import type { Db } from '@trackt/db';
 import { fetchAniListEntries } from './anilist/adapter.js';
 import { applyImportPlan, type ApplyOptions, type ImportReport } from './apply.js';
+import { lookupCatalog } from './catalog.js';
 import type { FetchLike, PageFetcher } from './http/fetch.js';
 import { fetchLetterboxdEntries } from './letterboxd/adapter.js';
 import { fetchMalEntries } from './mal/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
-import { findLoggedMediaIds, resolveImportEntries } from './resolve.js';
+import { entryKey, findLoggedMediaIds, resolveImportEntries } from './resolve.js';
 import { fetchTraktEntries } from './trakt/adapter.js';
 import type {
   FetchedEntries,
@@ -39,6 +40,19 @@ export interface RunImportOptions {
   requestSpacingMs?: number;
   /** Injected page transport for scrape sources (Letterboxd), so tests need no network. */
   fetcher?: PageFetcher;
+  /**
+   * The central catalog (ADR-0002). When set, rows this instance has never
+   * materialized are looked up there and (on a real run) inserted exactly as a
+   * search would — otherwise a profile full of unwatched-by-this-instance titles
+   * is reported as "not in catalog" when the catalog has them.
+   */
+  catalogUrl?: string;
+  /** Injected catalog transport, so tests need no network. */
+  catalogFetch?: typeof fetch;
+  catalogConcurrency?: number;
+  catalogTimeoutMs?: number;
+  /** Pause between two catalog lookups; the catalog allows 300 a minute. */
+  catalogSpacingMs?: number;
   /** Scrape sources: read each work's own page for its provider ids (one request per work). */
   enrichFilmPages?: boolean;
   maxEnrich?: number;
@@ -76,7 +90,26 @@ export async function planImport(db: Db, options: RunImportOptions): Promise<Imp
     ...(options.maxEnrich !== undefined ? { maxEnrich: options.maxEnrich } : {}),
   });
 
-  const { targets, warnings } = await resolveImportEntries(db, fetched.entries);
+  const local = await resolveImportEntries(db, fetched.entries);
+  const targets = local.targets;
+  const warnings = [...local.warnings];
+
+  if (options.catalogUrl) {
+    const missing = fetched.entries.filter((entry) => !targets.has(entryKey(entry)));
+    const catalog = await lookupCatalog(db, missing, {
+      catalogUrl: options.catalogUrl,
+      materialize: options.dryRun !== true,
+      ...(options.catalogFetch ? { fetchImpl: options.catalogFetch } : {}),
+      ...(options.catalogConcurrency !== undefined
+        ? { concurrency: options.catalogConcurrency }
+        : {}),
+      ...(options.catalogTimeoutMs !== undefined ? { timeoutMs: options.catalogTimeoutMs } : {}),
+      ...(options.catalogSpacingMs !== undefined ? { spacingMs: options.catalogSpacingMs } : {}),
+    });
+    for (const [key, target] of catalog.targets) targets.set(key, target);
+    warnings.push(...catalog.warnings);
+  }
+
   const loggedMediaIds = await findLoggedMediaIds(
     db,
     options.userId,

@@ -1,5 +1,6 @@
 import type { Db } from '@trackt/db';
 import { applyImportPlan, type ApplyOptions, type ImportReport } from './apply.js';
+import { lookupCatalog } from './catalog.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
 import { buildPlanReport, type PlanReport, type PlanReportRow } from './report.js';
 import { entryKey, findLoggedMediaIds, resolveImportEntries } from './resolve.js';
@@ -23,6 +24,11 @@ export interface ReplayOptions extends ApplyOptions {
   /** Re-resolve and stop. Nothing is written. */
   dryRun?: boolean;
   now?: Date;
+  /** The central catalog, as for a live run — a replay is where it pays most. */
+  catalogUrl?: string;
+  catalogFetch?: typeof fetch;
+  catalogConcurrency?: number;
+  catalogSpacingMs?: number;
 }
 
 export interface ReplayRun {
@@ -77,7 +83,25 @@ export async function replayImportReport(db: Db, options: ReplayOptions): Promis
     );
   }
 
-  const { targets, warnings } = await resolveImportEntries(db, entries);
+  const local = await resolveImportEntries(db, entries);
+  const targets = local.targets;
+  const warnings = [...local.warnings];
+
+  if (options.catalogUrl) {
+    const missing = entries.filter((entry) => !targets.has(entryKey(entry)));
+    const catalog = await lookupCatalog(db, missing, {
+      catalogUrl: options.catalogUrl,
+      materialize: options.dryRun !== true,
+      ...(options.catalogFetch ? { fetchImpl: options.catalogFetch } : {}),
+      ...(options.catalogConcurrency !== undefined
+        ? { concurrency: options.catalogConcurrency }
+        : {}),
+      ...(options.catalogSpacingMs !== undefined ? { spacingMs: options.catalogSpacingMs } : {}),
+    });
+    for (const [key, target] of catalog.targets) targets.set(key, target);
+    warnings.push(...catalog.warnings);
+  }
+
   const loggedMediaIds = await findLoggedMediaIds(
     db,
     options.userId,

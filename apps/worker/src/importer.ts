@@ -22,8 +22,8 @@ export type RunImportFn = typeof runImportImpl;
 
 export interface ImportProcessorDeps {
   db: Db;
-  /** Read for credentials only; the fetcher reads `IMPORT_FETCH_MODE` itself. */
-  env: ImportCredentialEnv;
+  /** Read for credentials and the catalog URL; the fetcher reads `IMPORT_FETCH_MODE`. */
+  env: ImportCredentialEnv & { CATALOG_URL?: string | undefined };
   runImport?: RunImportFn;
 }
 
@@ -67,6 +67,7 @@ export function createImportProcessor({
         credentials: credentialsFromEnv(env, data.source),
         ...(data.overwrite === undefined ? {} : { overwrite: data.overwrite }),
         ...(data.dryRun === undefined ? {} : { dryRun: data.dryRun }),
+        ...(env.CATALOG_URL ? { catalogUrl: env.CATALOG_URL } : {}),
         onProgress: report,
       });
       const result = toJobResult(run);

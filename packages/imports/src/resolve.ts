@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { media, userMedia, type Db } from '@trackt/db';
 import type { MediaKind } from '@trackt/shared';
 import { IMPORT_SOURCES, type ImportSourceDefinition } from './sources.js';
+import { normaliseTitle } from './titles.js';
 import { warning, type ImportEntry, type ImportSource, type ImportWarning } from './types.js';
 
 /**
@@ -22,8 +23,8 @@ export interface ImportTarget {
   partCount: number | null;
   /** Which season this row is (ADR-0003); null for whole-work kinds. */
   seasonNumber: number | null;
-  /** How the row was found — the fallback is guesses, and a report says how many. */
-  matchedBy: 'external-id' | 'title';
+  /** How the row was found — `title` is a guess, `catalog` came from the central catalog. */
+  matchedBy: 'external-id' | 'title' | 'catalog';
 }
 
 /**
@@ -38,16 +39,6 @@ export function entryKey(entry: ImportEntry): string {
 export interface ResolveResult {
   targets: Map<string, ImportTarget>;
   warnings: ImportWarning[];
-}
-
-/** Lowercase, accent-stripped, punctuation collapsed — the fallback's only equality. */
-function normaliseTitle(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
 }
 
 interface CandidateRow {

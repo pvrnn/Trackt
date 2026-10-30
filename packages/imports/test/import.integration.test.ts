@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -16,6 +16,8 @@ import {
 } from '@trackt/db';
 import { canonicalMediaId, canonicalSeriesSeasonId } from '@trackt/shared';
 import type { FetchLike } from '../src/http/fetch.js';
+import { replayImportReport } from '../src/replay.js';
+import type { PlanReport, PlanReportRow } from '../src/report.js';
 import { entryKey, resolveImportEntries } from '../src/resolve.js';
 import { planImport, runImport } from '../src/run.js';
 import { IMPORT_SOURCES } from '../src/sources.js';
@@ -694,6 +696,153 @@ describe.runIf(available)('account import (postgres)', () => {
         WHERE p.user_id = ${userId} AND mp.media_id = ${breakingBadS1Id}
       `);
       expect((checked[0] as { count: number }).count).toBe(5);
+    });
+  });
+
+  describe('central catalog lookup', () => {
+    const filmId = '3f7e1d3a-1a1f-5a0e-9a06-000000000042';
+    const film = {
+      id: filmId,
+      kind: 'movie',
+      title: 'Donkey Skin',
+      synonyms: ["Peau d'âne", 'Piel de asno'],
+      year: 1970,
+      status: 'ended',
+      genres: ['fantasy'],
+      partCount: null,
+      seasonNumber: null,
+      externalIds: { tmdb: 5590, imdb: 'tt0066207' },
+      metadata: {},
+      description: null,
+      coverUrl: null,
+      bannerUrl: null,
+      rank: 1,
+    };
+
+    // These rows are the point of the tests, so each starts without them: a
+    // materialized row outlives its test, and the local resolver would answer
+    // the next one before the catalog ever hears about it.
+    beforeEach(async () => {
+      await db
+        .delete(media)
+        .where(inArray(media.id, [filmId, '3f7e1d3a-1a1f-5a0e-9a06-000000000043']));
+    });
+
+    /** The catalog service, as `fetchCatalogSearch` reads it. */
+    const stubCatalog = (results: unknown[]): typeof fetch =>
+      (async () =>
+        ({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => ({ results }),
+        }) as unknown as Response) as unknown as typeof fetch;
+
+    const report = (rows: PlanReportRow[]): PlanReport => ({
+      source: 'letterboxd',
+      profile: 'someone',
+      generatedAt: NOW.toISOString(),
+      applied: false,
+      summary: {
+        total: rows.length,
+        matched: 0,
+        unmatched: rows.length,
+        existing: 0,
+        pending: 0,
+        fromCatalog: 0,
+        warnings: 0,
+      },
+      rows,
+    });
+
+    const filmRow = (overrides: Partial<PlanReportRow> = {}): PlanReportRow => ({
+      externalId: 'donkey-skin',
+      title: 'Donkey Skin',
+      year: 1970,
+      seasonNumber: null,
+      kind: 'movie',
+      status: 'completed',
+      score: 7,
+      progress: 0,
+      repeats: 0,
+      startedAt: null,
+      finishedAt: null,
+      notes: null,
+      matched: false,
+      matchedBy: null,
+      mediaTitle: null,
+      warnings: [],
+      ...overrides,
+    });
+
+    it('finds a work the instance has never materialized, and writes nothing on a preview', async () => {
+      const { plan } = await replayImportReport(db, {
+        userId,
+        report: report([filmRow()]),
+        dryRun: true,
+        now: NOW,
+        catalogUrl: 'http://catalog.test',
+        catalogFetch: stubCatalog([film]),
+      });
+
+      // An instance that only carries what it has served reports "not in catalog";
+      // the central catalog is the rest of the answer.
+      const [row] = plan.rows;
+      expect(row?.target).toMatchObject({ id: filmId, matchedBy: 'catalog', title: 'Donkey Skin' });
+      expect(plan.summary).toMatchObject({ matched: 1, fromCatalog: 1, pending: 1 });
+
+      const persisted = await db.select({ id: media.id }).from(media).where(eq(media.id, filmId));
+      expect(persisted).toHaveLength(0); // a preview is a preview
+    });
+
+    it('materializes the hit and logs it, exactly as a search would', async () => {
+      const { plan, report: written } = await replayImportReport(db, {
+        userId,
+        report: report([filmRow()]),
+        now: NOW,
+        catalogUrl: 'http://catalog.test',
+        catalogFetch: stubCatalog([film]),
+      });
+
+      expect(plan.summary).toMatchObject({ matched: 1, fromCatalog: 1 });
+      expect(written).toMatchObject({ created: 1, updated: 0 });
+
+      const [materialized] = await db
+        .select({ id: media.id, slug: media.slug, year: media.year })
+        .from(media)
+        .where(eq(media.id, filmId));
+      expect(materialized).toMatchObject({ slug: 'donkey-skin-1970', year: 1970 });
+
+      const [log] = await db
+        .select({ status: userMedia.status })
+        .from(userMedia)
+        .where(and(eq(userMedia.userId, userId), eq(userMedia.mediaId, filmId)));
+      expect(log?.status).toBe('completed');
+
+      // A second replay is a no-op: the row exists, the log exists.
+      const again = await replayImportReport(db, {
+        userId,
+        report: report([filmRow()]),
+        now: NOW,
+        catalogUrl: 'http://catalog.test',
+        catalogFetch: stubCatalog([film]),
+      });
+      expect(again.plan.summary).toMatchObject({ matched: 1, existing: 1, pending: 0 });
+    });
+
+    it('refuses two catalog works with the same title and year', async () => {
+      const twin = { ...film, id: '3f7e1d3a-1a1f-5a0e-9a06-000000000043', rank: 2 };
+      const { plan } = await replayImportReport(db, {
+        userId,
+        report: report([filmRow()]),
+        dryRun: true,
+        now: NOW,
+        catalogUrl: 'http://catalog.test',
+        catalogFetch: stubCatalog([film, twin]),
+      });
+
+      expect(plan.rows[0]?.target).toBeNull();
+      expect(plan.warnings.map((w) => w.code)).toContain('ambiguous-title-match');
     });
   });
 });

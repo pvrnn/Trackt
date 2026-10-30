@@ -28,13 +28,15 @@ interface Args {
   report: string | null;
   /** Re-resolve a saved report instead of fetching: no network, no provider. */
   fromReport: string | null;
+  /** Skip the central-catalog lookup (`CATALOG_URL`), for a strictly local run. */
+  noCatalog: boolean;
 }
 
 const DEFAULT_SOURCE: ImportSource = 'mal';
 
 const USAGE =
   'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> ' +
-  '[--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]';
+  '[--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>] [--no-catalog]';
 
 function parseSource(value: string | undefined): ImportSource {
   const source = (value ?? DEFAULT_SOURCE) as ImportSource;
@@ -52,6 +54,7 @@ function parseArgs(argv: string[]): Args {
     enrich: false,
     report: null,
     fromReport: null,
+    noCatalog: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -61,6 +64,7 @@ function parseArgs(argv: string[]): Args {
     else if (arg === '--overwrite') args.overwrite = true;
     else if (arg === '--enrich') args.enrich = true;
     else if (arg === '--report') args.report = argv[++i] ?? '';
+    else if (arg === '--no-catalog') args.noCatalog = true;
     else if (arg === '--from-report') args.fromReport = argv[++i] ?? '';
     else if (arg?.startsWith('--from-report='))
       args.fromReport = arg.slice('--from-report='.length);
@@ -151,14 +155,18 @@ async function main(): Promise<void> {
         (saved ? ', re-matching the saved report — no provider request' : ''),
     );
 
+    const catalogUrl = args.noCatalog ? undefined : env.CATALOG_URL;
+
     const { plan, report } = saved
       ? await replayImportReport(db, {
           userId: user.id,
           report: saved,
           dryRun: args.dryRun,
           overwrite: args.overwrite,
+          ...(catalogUrl ? { catalogUrl } : {}),
         })
       : await runImport(db, {
+          ...(catalogUrl ? { catalogUrl } : {}),
           userId: user.id,
           source,
           profile,
@@ -194,6 +202,9 @@ async function main(): Promise<void> {
 
     const byTitle = plan.rows.filter((row) => row.matchedBy === 'title').length;
     if (byTitle > 0) console.log(line('by title', byTitle));
+    if (plan.summary.fromCatalog > 0) {
+      console.log(line('from catalog', plan.summary.fromCatalog));
+    }
 
     if (report) {
       console.log('\nwritten');
@@ -208,7 +219,7 @@ async function main(): Promise<void> {
       console.log('\nwarnings');
       for (const w of plan.warnings.slice(0, 20)) {
         console.log(
-          `  [${w.code}] ${w.title ?? '—'} (${args.source} ${w.externalId ?? '—'}): ${w.message}`,
+          `  [${w.code}] ${w.title ?? '—'} (${source} ${w.externalId ?? '—'}): ${w.message}`,
         );
       }
       if (plan.warnings.length > 20) console.log(`  … ${plan.warnings.length - 20} more`);
@@ -218,7 +229,7 @@ async function main(): Promise<void> {
     if (unmatched.length > 0) {
       console.log('\nnot in this instance’s catalog (skipped)');
       for (const row of unmatched.slice(0, 30)) {
-        console.log(`  ${args.source} ${row.entry.externalId}  ${row.entry.title}`);
+        console.log(`  ${source} ${row.entry.externalId}  ${row.entry.title}`);
       }
       if (unmatched.length > 30) console.log(`  … ${unmatched.length - 30} more`);
     }

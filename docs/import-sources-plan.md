@@ -106,6 +106,41 @@ with the same title and year is a guess, and the importer does not guess. The
 plan row records `matchedBy: 'external-id' | 'title'` so a report can say how
 much of an import rested on the fallback.
 
+## The central catalog is part of resolution, not just of search
+
+An instance carries only the works it has served: a search materializes a hit
+once and never syncs again (ADR-0002), so a film library is routinely 90%
+"not in catalog" while the *catalog* holds nearly all of it — 2 530 of 2 682 for
+the first Letterboxd import run here. Local resolution sees none of those.
+
+So resolution has a second question for anything it could not place: **does the
+central catalog carry this work?** The importer asks `/v1/catalog/search` by
+title (kind-scoped), keeps a hit only on the same rules as the local fallback —
+normalised title or synonym equality, exact year, one hit — and on a real run
+materializes it with the *same* `buildProviderMediaRow`/`insertNewProviderMedia`
+federated search uses, then logs against it. A dry run asks and writes nothing;
+the plan reports `fromCatalog` so a preview says "2 245 of these come from the
+catalog" rather than pretending they are local.
+
+Two constraints shape it:
+
+- **The catalog is rate-limited** (300 requests a minute per IP) and thousands of
+  lookups is what an import is. The walk is serialised (250 ms between lookups by
+  default, `catalogConcurrency`/`catalogSpacingMs` to tune) and a `429` is waited
+  out with backoff, up to four attempts. A lookup that still fails is *reported*
+  (`partial-source`: "N of M lookups failed — re-run rather than trusting not in
+  catalog"), because silence there reads as "the catalog doesn't have it".
+- **Ambiguity is still refused.** `Fireworks` (1997), `The Return` (2003),
+  `The Odyssey` (2026), `Brothers` (2024), `Cobweb` (2023), `Beast` (2022),
+  `mother!` (2017) exist twice in the catalog with the same title and year; each
+  gets `ambiguous-title-match` and stays unmatched. Title+year is all Letterboxd
+  provides, and a coin flip is not a match.
+
+Because a run is a snapshot of the instance's `media` table, `--from-report
+<file>` re-resolves a saved report — same rows, same rules, no provider request
+at all — which is the cheap half of a re-run once an instance has materialized
+more of the catalog.
+
 ## Scraping, and where a browser is actually needed
 
 Letterboxd serves its grids to plain HTTP: `/films/`, `/watchlist/` and
