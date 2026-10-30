@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
   invalidateTracking,
-  partBlocks,
+  partLayout,
   progressUpTo,
   todayIso,
   trackingApi,
@@ -97,7 +97,7 @@ export default function MediaScreen() {
   const noun = partNoun(detail);
   /** Where the viewer is: the unbroken run from part 1 (`progressUpTo`). */
   const position = progressUpTo(watched);
-  const blocks = total !== null ? partBlocks(total, position) : [];
+  const layout = partLayout(detail, total, position);
   const doneWithAll = total !== null && position >= total;
 
   const setPosition = (upTo: number) => apply({ op: 'setProgress', id: detail.id, upTo });
@@ -214,12 +214,11 @@ export default function MediaScreen() {
 
         {hasParts ? (
           <PartsSection
-            detail={detail}
             noun={noun}
             total={total}
             position={position}
             watched={watched}
-            blocks={blocks}
+            partLayout={layout}
             openBlock={openBlock}
             onToggleBlock={(index) => setOpenBlock((current) => (current === index ? null : index))}
             onSetPosition={setPosition}

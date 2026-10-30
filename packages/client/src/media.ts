@@ -97,12 +97,24 @@ export function progressUpTo(watched: ReadonlySet<number>): number {
 }
 
 /**
- * How many parts one block covers (`Mobile Media.dc.html`, "VOLUMES, NOT
- * CHAPTERS"): 312 chapters becomes 8 rows of 40, each with its own count and
- * bar, so where you are in the whole work fits on one screen. Forty is the
- * mockup's number and roughly a manga volume.
+ * How many parts one block covers when the work has no volume count of its
+ * own (`Mobile Media.dc.html`, "VOLUMES, NOT CHAPTERS"): 312 chapters becomes 8
+ * rows of 40, each with its own count and bar, so where you are in the whole
+ * work fits on one screen. A block of forty is not a volume — see
+ * `volumeBlocks` for the print works that have one.
  */
 export const PART_BLOCK_SIZE = 40;
+
+/**
+ * The published volume count a provider stated, or null.
+ *
+ * AniList fills it for print works and nothing else does; the seed carries the
+ * total only, which is why a volume's chapter span is derived below.
+ */
+export function volumeCount(metadata: Record<string, unknown>): number | null {
+  const value = metadata.volumes;
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
+}
 
 /** One block of parts, with the viewer's position folded in. */
 export interface PartBlock {
@@ -118,6 +130,29 @@ export interface PartBlock {
   partial: boolean;
 }
 
+/** A 1-based run of parts: one block's or one volume's chapters. */
+export interface PartSpan {
+  from: number;
+  to: number;
+}
+
+/** Fold the viewer's position into spans: what each block has done, and its state. */
+function foldBlocks(spans: PartSpan[], position: number): PartBlock[] {
+  return spans.map(({ from, to }, offset) => {
+    const span = to - from + 1;
+    const done = Math.min(Math.max(position - from + 1, 0), span);
+    return {
+      index: offset + 1,
+      from,
+      to,
+      size: span,
+      done,
+      complete: done >= span,
+      partial: done > 0 && done < span,
+    };
+  });
+}
+
 /**
  * Chop a work into blocks, or return none when it is short enough to list part
  * by part. The threshold is the block size itself: a 26-episode season is 26
@@ -125,23 +160,67 @@ export interface PartBlock {
  */
 export function partBlocks(total: number, position: number, size = PART_BLOCK_SIZE): PartBlock[] {
   if (total <= size) return [];
-  const blocks: PartBlock[] = [];
-  for (let index = 1; (index - 1) * size < total; index++) {
-    const from = (index - 1) * size + 1;
-    const to = Math.min(total, index * size);
-    const span = to - from + 1;
-    const done = Math.min(Math.max(position - from + 1, 0), span);
-    blocks.push({
-      index,
-      from,
-      to,
-      size: span,
-      done,
-      complete: done >= span,
-      partial: done > 0 && done < span,
-    });
+  const spans: PartSpan[] = [];
+  for (let from = 1; from <= total; from += size) {
+    spans.push({ from, to: Math.min(total, from + size - 1) });
   }
-  return blocks;
+  return foldBlocks(spans, position);
+}
+
+/**
+ * The chapter span of each published volume.
+ *
+ * No provider publishes per-volume chapter counts — AniList carries the two
+ * totals and nothing between them — so a volume's chapters are the total spread
+ * as evenly as it divides: the count and the volume are real, a boundary may be
+ * off by a chapter. Null when the two totals cannot describe volumes at all
+ * (more volumes than chapters, or a single volume, which needs no map).
+ */
+export function volumeBounds(chapters: number, volumes: number): PartSpan[] | null {
+  if (volumes < 2 || chapters < volumes) return null;
+  const base = Math.floor(chapters / volumes);
+  const remainder = chapters % volumes;
+  const spans: PartSpan[] = [];
+  let from = 1;
+  for (let index = 0; index < volumes; index++) {
+    const to = from + base + (index < remainder ? 1 : 0) - 1;
+    spans.push({ from, to });
+    from = to + 1;
+  }
+  return spans;
+}
+
+/** The volumes of a print work as blocks, with the viewer's position folded in. */
+export function volumeBlocks(chapters: number, volumes: number, position: number): PartBlock[] {
+  const bounds = volumeBounds(chapters, volumes);
+  return bounds ? foldBlocks(bounds, position) : [];
+}
+
+/** How the parts of one work are grouped, and what to call the groups. */
+export interface PartLayout {
+  /** The volume count when the section is split by volume; null when it is not. */
+  volumes: number | null;
+  blocks: PartBlock[];
+}
+
+/**
+ * Group a work's parts the way the work is actually published: by volume when
+ * the catalog states a count, otherwise in blocks of forty. `volumes` doubles
+ * as the label switch — a null there means these blocks are not volumes and
+ * must not be named as one.
+ */
+export function partLayout(
+  detail: Pick<MediaDetail, 'kind' | 'metadata'>,
+  total: number | null,
+  position: number,
+): PartLayout {
+  const print = detail.kind === 'manga' || detail.kind === 'webtoon';
+  const volumes = print && total !== null ? volumeCount(detail.metadata) : null;
+  if (volumes !== null && total !== null) {
+    const blocks = volumeBlocks(total, volumes, position);
+    if (blocks.length > 0) return { volumes, blocks };
+  }
+  return { volumes: null, blocks: total !== null ? partBlocks(total, position) : [] };
 }
 
 /**
