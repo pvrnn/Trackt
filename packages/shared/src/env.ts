@@ -196,11 +196,11 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     // In production an unset CATALOG_URL stays unset — every central read then
     // degrades on its own (local-only search, genre-overlap relations, an empty
     // news feed). Defaulting to localhost there would just fail opaquely.
-    // NOTE: 'test' takes the dev fallback too, so an explicitly-empty
-    // CATALOG_URL still resolves to localhost:3002 in tests. See the caveat in
-    // CONTRIBUTING.md — apps/api's "no catalog configured" cases only pass when
-    // nothing is listening on that port.
-    CATALOG_URL: raw.CATALOG_URL ?? (isProduction ? undefined : DEV_DEFAULTS.CATALOG_URL),
+    // 'test' is treated the same way on purpose: a suite that passes an empty
+    // CATALOG_URL means "no central catalog", so it must not quietly talk to
+    // whatever catalog the developer has running.
+    CATALOG_URL:
+      raw.CATALOG_URL ?? (raw.NODE_ENV === 'development' ? DEV_DEFAULTS.CATALOG_URL : undefined),
     TMDB_API_KEY: tmdbApiKey,
   };
 }

@@ -89,7 +89,7 @@ CI runs exactly these. `pnpm format` fixes formatting. The Postgres-backed searc
 
 Two gotchas worth knowing before you debug a red run:
 
-- **Stop `pnpm dev` before `pnpm test`.** `loadEnv` applies its dev fallback (`CATALOG_URL=http://localhost:3002`) under `NODE_ENV=test` as well, so an explicitly-empty `CATALOG_URL` still resolves to localhost. `apps/api`'s "no catalog is configured" news tests therefore only pass when nothing is listening on 3002 — with a dev catalog up they fail against the live service, which is an environment artifact, not a regression.
+- **A suite that needs the central catalog states its URL.** `loadEnv` applies the development fallback (`CATALOG_URL=http://localhost:3002`) under `NODE_ENV=development` only — in `test`, unset and empty both mean _no central catalog_. The suites that pass `CATALOG_URL: ''` are therefore local-only whatever the developer has running on 3002, and one that wants a catalog (the news poller, the federated-search cases) points at its own stub. Before this was true, a `pnpm dev` catalog leaked live rows into the test databases and turned green suites red.
 - Migration `0003` creates an `immutable_array_to_string` SQL function outside drizzle's model — `drizzle-kit push`/`studio` won't know about it; always go through migrations.
 
 ## Making schema changes
