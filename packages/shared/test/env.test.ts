@@ -31,6 +31,16 @@ describe('loadEnv', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('defaults CATALOG_URL to the dev catalog only outside test and production', () => {
+    expect(loadEnv({}).CATALOG_URL).toBe('http://localhost:3002');
+    // '' is how a compose file or a test suite spells "no central catalog".
+    expect(loadEnv({ NODE_ENV: 'test', CATALOG_URL: '' }).CATALOG_URL).toBeUndefined();
+    expect(loadEnv({ NODE_ENV: 'test' }).CATALOG_URL).toBeUndefined();
+    expect(loadEnv({ NODE_ENV: 'test', CATALOG_URL: 'http://catalog.test' }).CATALOG_URL).toBe(
+      'http://catalog.test',
+    );
+  });
+
   it('coerces numeric variables', () => {
     const env = loadEnv({ PORT: '8080' });
     expect(env.PORT).toBe(8080);

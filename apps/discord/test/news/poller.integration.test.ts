@@ -89,7 +89,14 @@ describe.runIf(available)('pollNews (postgres)', () => {
   beforeAll(async () => {
     await runMigrations(TEST_DATABASE_URL);
     db = createDb(TEST_DATABASE_URL, { max: 1 });
-    const env = loadEnv({ NODE_ENV: 'test', APP_URL: 'https://trackt.example' });
+    // The catalog is a stubbed `fetch`, but the poller refuses to run at all
+    // without a base URL, so the suite states one instead of inheriting the
+    // development default.
+    const env = loadEnv({
+      NODE_ENV: 'test',
+      APP_URL: 'https://trackt.example',
+      CATALOG_URL: 'http://catalog.test',
+    });
     ctx = { db, env, logger: pino({ level: 'silent' }) };
   });
 

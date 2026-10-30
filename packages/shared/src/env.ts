@@ -48,6 +48,13 @@ const RawEnvSchema = z.object({
   CATALOG_FEEDBACK_TIMEOUT_MS: z.coerce.number().int().positive().default(4000),
   TMDB_API_KEY: z.string().optional(),
   /**
+   * MyAnimeList API client id, for importing a user's anime/manga list
+   * (`@trackt/imports`). Registered once at https://myanimelist.net/apiconfig;
+   * public lists are readable with the `X-MAL-CLIENT-ID` header alone, so no
+   * user OAuth token is involved.
+   */
+  MAL_CLIENT_ID: optionalString,
+  /**
    * Emergency override for feature flags (ADR-0011): `key=on|off|0-100,key=off`.
    * Parsed by `parseFlagOverrides`, which warns about what it cannot read.
    */
@@ -88,6 +95,8 @@ const HINTS: Record<string, string> = {
     'base URL of the central slim catalog service (ADR-0001); unset disables federated search',
   TMDB_API_KEY:
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
+  MAL_CLIENT_ID:
+    'optional — enables MyAnimeList list imports; create an API client at https://myanimelist.net/apiconfig and use its Client ID',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
   DISCORD_BOT_TOKEN:
     'optional — enables the Discord bot; Bot → Token at https://discord.com/developers/applications',
@@ -122,6 +131,7 @@ export interface Env {
   CATALOG_NEWS_TIMEOUT_MS: number;
   CATALOG_FEEDBACK_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
+  MAL_CLIENT_ID?: string | undefined;
   FEATURE_FLAGS?: string | undefined;
   FLAG_COUNTRY_HEADER?: string | undefined;
   FLAG_COUNTRY?: string | undefined;
@@ -196,11 +206,11 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     // In production an unset CATALOG_URL stays unset — every central read then
     // degrades on its own (local-only search, genre-overlap relations, an empty
     // news feed). Defaulting to localhost there would just fail opaquely.
-    // NOTE: 'test' takes the dev fallback too, so an explicitly-empty
-    // CATALOG_URL still resolves to localhost:3002 in tests. See the caveat in
-    // CONTRIBUTING.md — apps/api's "no catalog configured" cases only pass when
-    // nothing is listening on that port.
-    CATALOG_URL: raw.CATALOG_URL ?? (isProduction ? undefined : DEV_DEFAULTS.CATALOG_URL),
+    // 'test' is treated the same way on purpose: a suite that passes an empty
+    // CATALOG_URL means "no central catalog", so it must not quietly talk to
+    // whatever catalog the developer has running.
+    CATALOG_URL:
+      raw.CATALOG_URL ?? (raw.NODE_ENV === 'development' ? DEV_DEFAULTS.CATALOG_URL : undefined),
     TMDB_API_KEY: tmdbApiKey,
   };
 }

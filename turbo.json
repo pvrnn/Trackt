@@ -27,6 +27,7 @@
         "PORT",
         "LOG_LEVEL",
         "TMDB_API_KEY",
+        "MAL_CLIENT_ID",
         "UPLOADS_DIR",
         "DISCORD_BOT_TOKEN",
         "DISCORD_APPLICATION_ID",
