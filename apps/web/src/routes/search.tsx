@@ -71,12 +71,13 @@ function SearchPage() {
   const [input, setInput] = useState(q);
   const { status, results, hasMore, loadMore, loadingMore } = useMediaSearch(q, kind);
   // What the page shows before anything is typed: the instance's own catalog,
-  // narrowed by the same kind chips the results are. It is the one honest thing
-  // an empty search box can say, and it needs no query to say it.
+  // narrowed by the same kind chips the results are. It survives a query too
+  // short to run — there are no results to take its place, and a lone "keep
+  // typing" line would blank the page the user arrived on.
   const { data: showcase } = useShowcase(kind);
-  const browseItems = q ? [] : (showcase ?? []);
   const resultGroups = groupGameSearchResults(results);
   const tooShort = q.trim().length > 0 && q.trim().length < MIN_MEDIA_SEARCH_QUERY;
+  const browseItems = q && !tooShort ? [] : (showcase ?? []);
 
   // Infinite scroll: the sentinel sits past the grid and pulls the next batch
   // when it comes within 600px of the viewport, so the next batch is usually
@@ -210,39 +211,48 @@ function SearchPage() {
             </ToggleGroup.Root>
           </div>
 
-          {!q ? (
-            /* Nothing typed yet: the instance's own catalog, under the filter
-               chips above. No heading when the shelf is empty — a lone "On this
-               instance" over nothing reads as a load that failed. */
-            browseItems.length > 0 && (
-              <>
-                <h2 className="font-heading text-[32px] uppercase">
-                  {kind
-                    ? t('discover.browseKind', { kind: labels.kind(kind) })
-                    : t('discover.browse')}
-                </h2>
-                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                  {browseItems.map((item) => (
-                    <li key={item.id}>
-                      <Link to="/media/$slug" params={{ slug: item.slug }}>
-                        <CoverCard
-                          kind={item.kind}
-                          title={item.title}
-                          coverUrl={item.coverUrl ?? undefined}
-                          caption={
-                            <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
-                              <KindDot kind={item.kind} showLabel />
-                              {item.year !== null && <span>· {item.year}</span>}
-                            </span>
-                          }
-                        />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )
-          ) : (
+          {/* Says why the shelf below hasn't turned into results, without
+              taking the shelf away. */}
+          {tooShort && (
+            <p className="text-[15px] text-muted">
+              {t('discover.minQuery', { count: MIN_MEDIA_SEARCH_QUERY })}
+            </p>
+          )}
+
+          {/* Nothing typed yet (or not enough): the instance's own catalog,
+              under the filter chips above. No heading when the shelf is empty —
+              a lone "On this instance" over nothing reads as a load that
+              failed. */}
+          {browseItems.length > 0 && (
+            <>
+              <h2 className="font-heading text-[32px] uppercase">
+                {kind
+                  ? t('discover.browseKind', { kind: labels.kind(kind) })
+                  : t('discover.browse')}
+              </h2>
+              <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                {browseItems.map((item) => (
+                  <li key={item.id}>
+                    <Link to="/media/$slug" params={{ slug: item.slug }}>
+                      <CoverCard
+                        kind={item.kind}
+                        title={item.title}
+                        coverUrl={item.coverUrl ?? undefined}
+                        caption={
+                          <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
+                            <KindDot kind={item.kind} showLabel />
+                            {item.year !== null && <span>· {item.year}</span>}
+                          </span>
+                        }
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {q && !tooShort && (
             <>
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="font-heading text-[32px] uppercase">{t('discover.results')}</h2>
@@ -256,10 +266,6 @@ function SearchPage() {
               {status === 'error' ? (
                 <p role="alert" className="text-[15px] text-red-400">
                   {t('errors.searchFailed')}
-                </p>
-              ) : tooShort ? (
-                <p className="text-[15px] text-muted">
-                  {t('discover.minQuery', { count: MIN_MEDIA_SEARCH_QUERY })}
                 </p>
               ) : results.length === 0 && status === 'success' ? (
                 <p className="text-[15px] text-muted">
