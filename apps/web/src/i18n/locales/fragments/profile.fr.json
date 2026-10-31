@@ -38,6 +38,7 @@
   },
   "recent": {
     "title": "Récents",
+    "viewHistory": "VOIR L’HISTORIQUE →",
     "emptyOwn": "Ce que vous regardez et lisez, vos notes et vos changements de statut apparaissent ici.",
     "emptyPublic": "Aucun suivi public pour l’instant.",
     "rated": "Noté",

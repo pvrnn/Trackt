@@ -37,7 +37,13 @@
   "loading": "Chargement de {{scope}}…",
   "loadMore": "CHARGER PLUS",
   "loadingMore": "CHARGEMENT…",
-  "error": "Votre historique n’a pas pu se charger. L’API de l’instance est-elle joignable ?",
+  "error": "Votre historique n’a pas pu se charger. L’API de l’instance est-elle joignable ?",
+  "public": {
+    "error": "Impossible de charger l’historique de @{{username}}. L’API de l’instance est-elle joignable ?",
+    "emptyNothingBody": "@{{username}} n’a encore rien suivi.",
+    "emptyFilteredBody": "@{{username}} n’a rien dans {{scope}} qui corresponde à ce type et ce statut. Retirez l’un des deux pour élargir la recherche.",
+    "emptyWindowBody": "@{{username}} a un historique, mais pas dans cette période. Choisissez une autre année ci-dessus, ou TOUT LE TEMPS."
+  },
   "empty": {
     "nothingTitle": "Rien pour l’instant",
     "nothingBody": "Ajoutez un titre à votre suivi pour le retrouver ici, avec ses dates de début et de fin.",

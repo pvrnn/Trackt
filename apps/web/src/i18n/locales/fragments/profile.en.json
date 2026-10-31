@@ -38,6 +38,7 @@
   },
   "recent": {
     "title": "Recent",
+    "viewHistory": "SEE HISTORY →",
     "emptyOwn": "What you watch and read, your ratings, and status changes show up here.",
     "emptyPublic": "Nothing tracked publicly yet.",
     "rated": "Rated",

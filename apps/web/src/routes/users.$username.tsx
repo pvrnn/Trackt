@@ -6,6 +6,7 @@ import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
 import { FavouriteShelves } from '../components/profile/FavouriteShelves';
+import { NoSuchUser } from '../components/profile/NoSuchUser';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { Button, buttonClassName } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
@@ -82,7 +83,18 @@ function PublicProfilePage() {
               />
 
               <section className="flex flex-col gap-4">
-                <h2 className="font-heading text-[32px] uppercase">{t('profile.recent.title')}</h2>
+                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                  <h2 className="font-heading text-[32px] uppercase">
+                    {t('profile.recent.title')}
+                  </h2>
+                  <Link
+                    to="/users/$username/history"
+                    params={{ username: profile.user.username }}
+                    className="font-label text-xs font-semibold tracking-label text-dim hover:text-pink"
+                  >
+                    {t('profile.recent.viewHistory')}
+                  </Link>
+                </div>
                 {profile.activity.length > 0 ? (
                   <ul className="flex flex-col gap-2">
                     {profile.activity.map((entry, index) => (
@@ -235,25 +247,5 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
         </ConfirmDialog>
       )}
     </div>
-  );
-}
-
-function NoSuchUser({ username }: { username: string }) {
-  const { t } = useTranslation();
-  return (
-    <main className="mx-auto flex max-w-[760px] flex-col items-center gap-2 px-10 pt-20 pb-20 text-center">
-      <p className="font-heading text-[32px] text-faint uppercase">
-        {t('profile.public.notFoundTitle')}
-      </p>
-      <p className="max-w-[420px] text-sm text-muted">
-        {t('profile.public.notFoundBody', { username })}
-      </p>
-      <Link
-        to="/search"
-        className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
-      >
-        {t('profile.public.backToSearch')}
-      </Link>
-    </main>
   );
 }
