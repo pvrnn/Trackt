@@ -4,11 +4,15 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { users } from '@trackt/db';
 import {
   ApiErrorSchema,
+  HistoryPageSchema,
+  HistoryQuerySchema,
   PublicProfileSchema,
   UserSearchQuerySchema,
   UserSearchResultSchema,
+  decodeHistoryCursor,
 } from '@trackt/shared';
 import { countFriends, friendStateFor, loadFriendshipRow, searchUsers } from '../../lib/friends.js';
+import { loadHistory } from '../../lib/history.js';
 import { loadActivity, loadFavorites, loadProfileStats } from '../../lib/me.js';
 import { getSessionUser } from '../../lib/session.js';
 
@@ -108,6 +112,45 @@ export const userRoutes: FastifyPluginAsyncZod = async (app) => {
         friendState,
         friendCount,
       };
+    },
+  );
+
+  /**
+   * Someone else's history. Same posture as the profile beside it: a page that
+   * is reachable by handle is reachable anonymously (ADR-0006 point 3), and
+   * nothing here is gated on friendship. `visibleMediaSql` inside `loadHistory`
+   * still keeps pulled titles out of the answer.
+   */
+  app.get(
+    '/users/:username/history',
+    {
+      schema: {
+        tags: ['friends'],
+        params: z.object({ username: z.string().min(1) }),
+        querystring: HistoryQuerySchema,
+        response: {
+          200: HistoryPageSchema,
+          400: ApiErrorSchema,
+          404: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+
+      const [account] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.username, request.params.username.toLowerCase()));
+      if (!account) return reply.status(404).send({ error: 'user not found' });
+
+      const cursor = request.query.cursor ? decodeHistoryCursor(request.query.cursor) : null;
+      if (request.query.cursor && !cursor)
+        return reply.status(400).send({ error: 'invalid cursor' });
+
+      return loadHistory(db, account.id, request.query, cursor);
     },
   );
 };
