@@ -100,11 +100,43 @@ Trakt show yields one entry per season, and the catalog files one media row per
 season.
 
 Only if every key misses **and** the source declares `titleFallback` does it try
-the title: normalised (lowercase, accent-stripped, punctuation to single spaces)
-equality plus exact year, and only when exactly one local row matches — two rows
-with the same title and year is a guess, and the importer does not guess. The
-plan row records `matchedBy: 'external-id' | 'title'` so a report can say how
-much of an import rested on the fallback.
+the title, and it tries it as a **score** (`packages/imports/src/match.ts`)
+rather than an equality. Candidates are every row of the entry's kind within
+**±2 years** — providers date a film by their own release, so *Good Manners* is
+2017 on Letterboxd and 2018 in TMDB, and *The Raid* is a year out — and each is
+scored on three signals, averaged over the ones both sides state:
+
+- **title** (weight 0.6) — the lower of an edit-distance ratio over the
+  normalised titles and the share of words that found a partner (a word counts
+  if it is itself ≥0.8 similar). Character distance alone scores "Blade Runner"
+  against "Blade Runner 2049" at 82% and "The Grey" against "The Prey" at 88%;
+  the word term is what refuses both. Synonyms are scored the same way, so an
+  original-language title can carry a row an English title cannot.
+- **year** (weight 0.3) — 1 on the same year, 0.5 one year out, 0.25 two. A
+  perfect title therefore scores 1.00 same-year, ~0.83 one year out (a match)
+  and ~0.75 two years out (a refused near miss the report keeps).
+- **originCountry** (weight 0.1) — a tie-breaker, never a filter: only
+  Letterboxd's film pages and TMDB's metadata carry it, and a mismatch costs
+  weight rather than vetoing the row. This is what separates the two 2023
+  *Cobweb* films (KR and US) when the provider states a country.
+
+A candidate above **80%** is a match, and the highest score wins. Two candidates
+within 1% of each other are not a match: the score has to *separate* them, so
+that stays `ambiguous-title-match`, as it was under the old exact rule. A guessed
+title that is not identical (the title term below 1) also gets a
+`fuzzy-title-match` warning naming both titles and the score, and the plan row
+records `matchScore` beside `matchedBy: 'external-id' | 'title'` — a report can
+say how close each guess was. Unmatched rows record `closestScore`/`closestTitle`
+for the best row the rule *refused*, so "never had the work" (0.00–0.3) is
+distinguishable from "the catalog has it twice" (1.00) and from a near miss
+(0.75, `The School of Rock`) without re-running anything.
+
+Measured against the instance's 2 835 films and the 140 k-row catalog, replaying
+the saved `regelegorila` plan: exact-year-only left 280 rows unmatched; scoring
+titles brought that to 278; **the ±2-year window brings it to 152**, of which 152
+− 9 are genuinely absent and 9 are the same-title ties. Of the 126 rows the year
+window recovers, 125 carry the identical title and one is *School of Rock* → *The
+School of Rock* — which is what a release-convention gap should look like.
 
 ## The central catalog is part of resolution, not just of search
 
@@ -132,14 +164,46 @@ Two constraints shape it:
   catalog"), because silence there reads as "the catalog doesn't have it".
 - **Ambiguity is still refused.** `Fireworks` (1997), `The Return` (2003),
   `The Odyssey` (2026), `Brothers` (2024), `Cobweb` (2023), `Beast` (2022),
-  `mother!` (2017) exist twice in the catalog with the same title and year; each
-  gets `ambiguous-title-match` and stays unmatched. Title+year is all Letterboxd
-  provides, and a coin flip is not a match.
+  `mother!` (2017), `Aladdin` (1992) exist twice in the catalog with the same
+  title and year; each scores within the tie margin and gets
+  `ambiguous-title-match`. Title+year is all a Letterboxd entry provides, and a
+  coin flip is not a match — a source that states a country can break such a
+  tie, and one that does not stays unmatched.
 
 Because a run is a snapshot of the instance's `media` table, `--from-report
 <file>` re-resolves a saved report — same rows, same rules, no provider request
 at all — which is the cheap half of a re-run once an instance has materialized
 more of the catalog.
+
+## What the score cannot settle is stored, not logged
+
+An unresolved row used to end at a log line, which is a dead end: the only
+person who knows which *Cobweb* (2023) someone watched is the person who
+watched it. So every applied run writes its open questions to **`import_match`**
+(migration 0022), and a client can ask the viewer to answer them.
+
+- **What is stored**: one row per (user, source, entry key) with the provider row
+  (`title`, `year`, `status`, and the whole `entry` as JSON), the outcome
+  (`tie` when rows scored alike, `below-threshold` when one was close), the best
+  score, and `candidates` — up to five `{ id, title, year, score, origin }`,
+  where `origin` says whether the row is this instance's `media` or a central
+  catalog id (materialize-on-pick is the frontend's later step).
+- **What counts as uncertain**: a candidate above **0.5** (below that it is noise,
+  not a question) and within **0.15** of the best (0.98 next to 0.62 is one real
+  candidate and one word in common — a picker that shows both teaches people to
+  ignore it), or any tie inside the 1% margin.
+- **Lifecycle**: a run *replaces* the unresolved set for its (user, source) — a
+  re-run recomputes the plan, so yesterday's shortlist is stale by definition —
+  while rows the viewer already answered (`resolved_at`) survive, because the
+  answer outranks a later run's doubt.
+- **Read path**: `GET /v1/me/import/uncertain` (session) returns the viewer's
+  unanswered rows, closest call first. Answering them, and writing the log from
+  the stored `entry`, is the frontend's next step.
+
+On the `regelegorila` library this keeps **63** of its 152 unmatched rows: 9
+ties and 54 below-threshold shortlists. The other 89 scored under 0.5 against
+everything the instance and catalog carry — those are genuinely absent, and a
+picker with nothing to pick would be a dead end.
 
 ## Scraping, and where a browser is actually needed
 
