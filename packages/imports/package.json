@@ -17,7 +17,8 @@
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "import:mal": "tsx src/cli.ts"
+    "import": "tsx src/cli.ts",
+    "import:mal": "tsx src/cli.ts --source mal"
   },
   "dependencies": {
     "@trackt/db": "workspace:*",

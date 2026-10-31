@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { seasonOf, type HistoryEntry } from '@trackt/shared';
-import { HISTORY_GROUPINGS, dateRangeLabel, groupEntries, shortDate } from '../src/history.js';
+import {
+  HISTORY_GROUPINGS,
+  dateRangeLabel,
+  groupEntries,
+  historyKey,
+  shortDate,
+} from '../src/history.js';
 
 /**
  * The framework-free half of the history page: the quarter boundaries, the date
@@ -24,6 +30,16 @@ function entry(loggedOn: string, id = loggedOn): HistoryEntry {
     total: null,
   };
 }
+
+describe('historyKey', () => {
+  it('keys a handle apart from the viewer under the prefix invalidation clears', () => {
+    const mine = historyKey({ year: 2026, kind: 'anime' });
+    // `invalidateTracking` invalidates the bare `['history']` prefix, so the
+    // first element is the whole contract.
+    expect(mine[0]).toBe('history');
+    expect(mine).not.toEqual(historyKey({ year: 2026, kind: 'anime', username: 'paul' }));
+  });
+});
 
 describe('seasonOf', () => {
   it('splits the year into anime quarters, at the exact boundaries', () => {

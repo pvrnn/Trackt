@@ -52,9 +52,12 @@ export function ProfileHeader({
     : undefined;
   return (
     <div className="border-b border-divider">
-      <div className="mx-auto flex max-w-[1360px] items-end gap-8 px-10 pt-14 pb-10">
+      {/* Wraps rather than squeezes: the action column (EDIT PROFILE, IMPORT)
+          has to stay on screen on a narrow viewport, where the identity block
+          and it cannot share a line. */}
+      <div className="mx-auto flex max-w-[1360px] flex-wrap items-end gap-8 px-10 pt-14 pb-10">
         <Avatar name={user.username} src={user.image} size={120} />
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <h1 className="font-heading text-[56px] leading-none uppercase">{user.name}</h1>
           <p className="text-[15px] text-muted">
             {t('profile.header.memberSince', { username: user.username, date: joinedAt })}

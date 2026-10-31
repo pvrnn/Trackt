@@ -38,6 +38,12 @@
   "loadMore": "LOAD MORE",
   "loadingMore": "LOADING…",
   "error": "Your history failed to load. Is this instance’s API reachable?",
+  "public": {
+    "error": "Couldn’t load @{{username}}’s history. Is this instance’s API reachable?",
+    "emptyNothingBody": "@{{username}} hasn’t logged anything yet.",
+    "emptyFilteredBody": "@{{username}} has nothing in {{scope}} that matches this kind and status. Clear one of them to widen it.",
+    "emptyWindowBody": "@{{username}} has history, just not in this window. Pick another year above, or ALL TIME."
+  },
   "empty": {
     "nothingTitle": "Nothing yet",
     "nothingBody": "Log something and it lands here, with the dates you started and finished it.",

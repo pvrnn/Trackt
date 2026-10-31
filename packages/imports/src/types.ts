@@ -1,4 +1,5 @@
-import type { LogStatus } from '@trackt/shared';
+import type { ExternalIds, LogStatus, MediaKind } from '@trackt/shared';
+import type { FetchLike, PageFetcher } from './http/fetch.js';
 
 /**
  * Account imports: taking a user's list *off* another tracker and writing it
@@ -6,21 +7,24 @@ import type { LogStatus } from '@trackt/shared';
  * (`scripts/*-scrape` + `apps/catalog`) — nothing here publishes media, and a
  * row the catalog does not carry is reported, never invented.
  */
-export type ImportSource = 'mal';
+export type ImportSource = 'mal' | 'anilist' | 'letterboxd' | 'trakt';
 
-/** Which of MAL's two lists an entry came from. They are separate id namespaces. */
-export type ImportKind = 'anime' | 'manga';
+/** The media kinds an import can target — the catalog's own vocabulary, not a source's. */
+export type ImportKind = MediaKind;
 
 /** One provider row, already normalised into Trackt's vocabulary. */
 export interface ImportEntry {
   source: ImportSource;
   kind: ImportKind;
-  /** Provider id — the MAL anime id or manga id. */
-  externalId: number;
+  /** Provider id, stringified: MAL's numeric id, an AniList id, a Letterboxd slug. */
+  externalId: string;
   /** Provider title, for the report; never written to the catalog. */
   title: string;
+  year: number | null;
+  /** ADR-0003: a series row is one season, so a per-season source names which. */
+  seasonNumber: number | null;
   status: LogStatus;
-  /** 0–10, null when unscored. MAL's 0 means "not scored". */
+  /** 0–10, null when unscored. The mapper converts from the provider's scale. */
   score: number | null;
   /** Episodes or chapters the account says are seen. */
   progress: number;
@@ -29,6 +33,19 @@ export interface ImportEntry {
   startedAt: string | null;
   finishedAt: string | null;
   notes: string | null;
+  /**
+   * Pinned as a favourite by the provider (Letterboxd's diary "Like" column).
+   * Additive: an import sets one, and never clears one the viewer set.
+   */
+  favourite: boolean;
+  /** Provider ids harvested while fetching; the resolver walks these first. */
+  externalIds: ExternalIds;
+  /**
+   * Where the work is from, when the provider states it: ISO-3166 alpha-2 codes
+   * or the provider's own English names. Only a tie-breaker in the title
+   * match, never a filter, because most sources state nothing.
+   */
+  originCountry?: readonly string[];
 }
 
 export type ImportWarningCode =
@@ -43,19 +60,64 @@ export type ImportWarningCode =
   | 'volume-only-progress'
   | 'progress-clamped'
   /** Two local rows claim the same provider id. */
-  | 'duplicate-external-id';
+  | 'duplicate-external-id'
+  /** The title fallback found more than one local row that scores alike: an import does not guess. */
+  | 'ambiguous-title-match'
+  /** The title fallback matched an approximated title (not an identical one) — worth a glance. */
+  | 'fuzzy-title-match'
+  /** The provider row cannot be read at all (it names no work). */
+  | 'malformed-row'
+  /** One of the source's lists could not be read; the rest of the import stands. */
+  | 'partial-source';
 
 export interface ImportWarning {
   code: ImportWarningCode;
-  externalId: number | null;
+  externalId: string | null;
   title: string | null;
   message: string;
 }
 
 export function warning(
   code: ImportWarningCode,
-  row: { externalId: number | null; title: string | null },
+  row: { externalId: string | null; title: string | null },
   message: string,
 ): ImportWarning {
   return { code, externalId: row.externalId, title: row.title, message };
+}
+
+/**
+ * Credentials resolved from env by the caller (CLI, worker) — never read here, so
+ * a job carries what it needs and the pipeline stays testable.
+ */
+export interface ImportCredentials {
+  malClientId?: string;
+  /** The Client ID of a Trakt API app; public profiles need nothing else. */
+  traktClientId?: string;
+}
+
+export interface FetchEntriesOptions {
+  /** The provider username whose list is read. */
+  profile: string;
+  credentials: ImportCredentials;
+  /** Injected clock, so date rules are testable. */
+  now?: Date;
+  /** Injected transport, so tests need no network. */
+  fetch?: FetchLike;
+  baseUrl?: string;
+  requestSpacingMs?: number;
+  /** Injected page transport for the scrape sources, so tests need no network. */
+  fetcher?: PageFetcher;
+  /** Scrape sources: read each work's own page for its provider ids. */
+  enrichFilmPages?: boolean;
+  /** Hard cap on those per-work requests (default 200). */
+  maxEnrich?: number;
+}
+
+/** One source's fetch + map half: provider rows in, Trackt entries out. */
+export interface FetchedEntries {
+  entries: ImportEntry[];
+  /** Mapper warnings, keyed by `entryKey`. */
+  entryWarnings: Map<string, ImportWarning[]>;
+  /** Warnings for rows the mapper refused — no plan row exists to carry them. */
+  warnings: ImportWarning[];
 }

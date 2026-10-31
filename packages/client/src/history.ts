@@ -16,6 +16,11 @@ import { http, useIsAuthed } from './runtime.js';
  */
 
 export interface HistoryFilters {
+  /**
+   * Whose history: a handle reads someone else's (`/users/:username/history`,
+   * anonymous-readable); absent reads the viewer's own (`/me/history`).
+   */
+  username?: string | undefined;
   /** Undefined = all time. */
   year?: number | undefined;
   kind?: MediaKind | undefined;
@@ -23,7 +28,13 @@ export interface HistoryFilters {
 }
 
 export const historyKey = (filters: HistoryFilters) =>
-  ['history', filters.year ?? 'all', filters.kind, filters.status] as const;
+  [
+    'history',
+    filters.username ?? null,
+    filters.year ?? 'all',
+    filters.kind,
+    filters.status,
+  ] as const;
 
 export interface HistoryState {
   entries: HistoryEntry[];
@@ -48,9 +59,12 @@ const EMPTY_TOTALS: HistoryTotals = { titles: 0, completed: 0, episodes: 0, chap
 
 export function useHistory(filters: HistoryFilters): HistoryState {
   const isAuthed = useIsAuthed();
+  const { username } = filters;
+  // Someone else's history is public, so it is fetched signed out too; the
+  // viewer's own is not.
   const query = useInfiniteQuery({
     queryKey: historyKey(filters),
-    enabled: isAuthed,
+    enabled: username !== undefined || isAuthed,
     initialPageParam: undefined as string | undefined,
     // Switching year re-fetches; without this the whole page blanks between
     // the click and the response, including the year chips you clicked from.
@@ -61,7 +75,9 @@ export function useHistory(filters: HistoryFilters): HistoryState {
       if (filters.kind) searchParams.kind = filters.kind;
       if (filters.status) searchParams.status = filters.status;
       if (pageParam) searchParams.cursor = pageParam;
-      const json = await http().get('me/history', { searchParams, signal }).json();
+      const path =
+        username !== undefined ? `users/${encodeURIComponent(username)}/history` : 'me/history';
+      const json = await http().get(path, { searchParams, signal }).json();
       return HistoryPageSchema.parse(json);
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,

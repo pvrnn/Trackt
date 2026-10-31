@@ -7,6 +7,10 @@
  *
  * This is a heuristic: TMDB and AniList share no id, so a pair rests on a title
  * (or synonym) match plus release year, format and episode-count compatibility.
+ * A bare title match is not enough on its own — a translated synonym collides
+ * with an unrelated work often enough to matter (*Turning Red* ↔ a 2021 short
+ * called *Red*) — so a pair also needs one corroborating signal: the same year,
+ * matching counts, a matching season, or an overlapping synopsis.
  * Everything that does not clear that bar is reported as skipped, never deleted.
  */
 
@@ -197,16 +201,19 @@ export function pairSeeds(animeRows: SeedRow[], tmdbRows: SeedRow[]): PairingRes
     const viable: ScoredPair[] = [];
     const failed: { anime: SeedRow; reason: string }[] = [];
     for (const anime of candidates.values()) {
-      if (isDuplicate(tmdb, anime)) {
-        viable.push({ tmdb, anime, score: score(tmdb, anime), episodes: anime.partCount });
+      const evidence = isDuplicate(tmdb, anime) ? score(tmdb, anime) : null;
+      if (evidence !== null && evidence > 0) {
+        viable.push({ tmdb, anime, score: evidence, episodes: anime.partCount });
       } else {
         const delta = yearDelta(tmdb, anime);
         const reason =
           anime.kind !== 'anime'
             ? 'not an anime row'
-            : delta !== null && Math.abs(delta) > 1
-              ? `year differs by ${delta}`
-              : `format/episodes/evidence: ${String(anime.metadata.format)} ${String(anime.partCount)}eps vs ${String(tmdb.partCount)}`;
+            : evidence !== null
+              ? 'title matches, but nothing corroborates it (year, episodes, season, synopsis)'
+              : delta !== null && Math.abs(delta) > 1
+                ? `year differs by ${delta}`
+                : `format/episodes/evidence: ${String(anime.metadata.format)} ${String(anime.partCount)}eps vs ${String(tmdb.partCount)}`;
         failed.push({ anime, reason });
       }
     }

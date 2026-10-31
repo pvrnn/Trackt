@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildImportPlan } from '../src/plan.js';
-import { importKey, type ImportTarget } from '../src/resolve.js';
+import { entryKey, type ImportTarget } from '../src/resolve.js';
 import { warning, type ImportEntry } from '../src/types.js';
 
 const bebop: ImportTarget = {
@@ -8,20 +8,28 @@ const bebop: ImportTarget = {
   kind: 'anime',
   title: 'Cowboy Bebop',
   partCount: 26,
+  seasonNumber: 1,
+  matchedBy: 'external-id',
+  matchScore: null,
 };
 const berserk: ImportTarget = {
   id: '00000000-0000-0000-0000-00000000be15',
   kind: 'manga',
   title: 'Berserk',
   partCount: null,
+  seasonNumber: null,
+  matchedBy: 'external-id',
+  matchScore: null,
 };
 
 function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {
   return {
     source: 'mal',
     kind: 'anime',
-    externalId: 1,
+    externalId: '1',
     title: 'Cowboy Bebop',
+    year: null,
+    seasonNumber: null,
     status: 'in_progress',
     score: null,
     progress: 12,
@@ -29,6 +37,8 @@ function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {
     startedAt: null,
     finishedAt: null,
     notes: null,
+    favourite: false,
+    externalIds: { mal: 1 },
     ...overrides,
   };
 }
@@ -45,62 +55,87 @@ function plan(entries: ImportEntry[], targets: [string, ImportTarget][], logged:
 
 describe('buildImportPlan', () => {
   it('counts what it can and cannot map onto the instance', () => {
-    const result = plan(
-      [entry(), entry({ externalId: 999_999, title: 'Lost Media' })],
-      [[importKey('anime', 1), bebop]],
-    );
+    const found = entry();
+    const missing = entry({ externalId: '999999', title: 'Lost Media' });
+    const result = plan([found, missing], [[entryKey(found), bebop]]);
     expect(result.summary).toMatchObject({ total: 2, matched: 1, unmatched: 1, pending: 1 });
     expect(result.rows[1]?.target).toBeNull();
+    expect(result.rows[1]?.matchedBy).toBeNull();
+  });
+
+  it('records how the entry found its row', () => {
+    const found = entry();
+    const byTitle = entry({
+      externalId: '2',
+      title: 'Bebop',
+      year: 1998,
+      externalIds: { anilist: 2 },
+    });
+    const result = plan(
+      [found, byTitle],
+      [
+        [entryKey(found), bebop],
+        [entryKey(byTitle), { ...bebop, matchedBy: 'title' }],
+      ],
+    );
+    expect(result.rows.map((row) => row.matchedBy)).toEqual(['external-id', 'title']);
+    expect(result.summary.matched).toBe(2);
   });
 
   it('does not treat an already-logged work as pending', () => {
-    const result = plan([entry()], [[importKey('anime', 1), bebop]], [bebop.id]);
+    const found = entry();
+    const result = plan([found], [[entryKey(found), bebop]], [bebop.id]);
     expect(result.summary).toMatchObject({ matched: 1, existing: 1, pending: 0 });
   });
 
-  it('writes the catalog total for a completed work, not the provider count', () => {
+  it('keeps a per-season key apart from the show-wide one', () => {
+    const seasonOne = entry({ kind: 'series', externalId: '1396', seasonNumber: 1 });
+    const seasonTwo = entry({ kind: 'series', externalId: '1396', seasonNumber: 2 });
     const result = plan(
-      [entry({ status: 'completed', progress: 25 })],
-      [[importKey('anime', 1), bebop]],
+      [seasonOne, seasonTwo],
+      [[entryKey(seasonOne), { ...bebop, kind: 'series', seasonNumber: 1 }]],
     );
+    expect(result.rows[0]?.target).not.toBeNull();
+    expect(result.rows[0]?.target?.seasonNumber).toBe(1);
+    expect(result.rows[1]?.target).toBeNull();
+  });
+
+  it('writes the catalog total for a completed work, not the provider count', () => {
+    const found = entry({ status: 'completed', progress: 25 });
+    const result = plan([found], [[entryKey(found), bebop]]);
     expect(result.rows[0]?.upTo).toBe(26);
     expect(result.rows[0]?.warnings).toEqual([]);
   });
 
   it('clamps progress above the catalog total and says so', () => {
-    const result = plan([entry({ progress: 40 })], [[importKey('anime', 1), bebop]]);
+    const found = entry({ progress: 40 });
+    const result = plan([found], [[entryKey(found), bebop]]);
     expect(result.rows[0]?.upTo).toBe(26);
     expect(result.warnings.map((w) => w.code)).toEqual(['progress-clamped']);
   });
 
   it('keeps the provider count for a work with no stated total', () => {
-    const result = plan(
-      [entry({ kind: 'manga', externalId: 2, title: 'Berserk', progress: 380 })],
-      [[importKey('manga', 2), berserk]],
-    );
+    const found = entry({ kind: 'manga', externalId: '2', title: 'Berserk', progress: 380 });
+    const result = plan([found], [[entryKey(found), berserk]]);
     expect(result.rows[0]?.upTo).toBe(380);
   });
 
   it('writes no progress for a planned work', () => {
-    const result = plan(
-      [entry({ status: 'planned', progress: 3 })],
-      [[importKey('anime', 1), bebop]],
-    );
+    const found = entry({ status: 'planned', progress: 3 });
+    const result = plan([found], [[entryKey(found), bebop]]);
     expect(result.rows[0]?.upTo).toBe(0);
   });
 
   it('keeps mapper warnings attached to their row and in the total', () => {
+    const found = entry();
     const result = buildImportPlan({
       source: 'mal',
       profile: 'Kyoma__',
-      entries: [entry()],
-      targets: new Map([[importKey('anime', 1), bebop]]),
+      entries: [found],
+      targets: new Map([[entryKey(found), bebop]]),
       loggedMediaIds: new Set(),
       entryWarnings: new Map([
-        [
-          importKey('anime', 1),
-          [warning('partial-date', { externalId: 1, title: 'Cowboy Bebop' }, 'partial')],
-        ],
+        [entryKey(found), [warning('partial-date', { externalId: '1', title: 'x' }, 'partial')]],
       ]),
     });
     expect(result.rows[0]?.warnings).toHaveLength(1);
@@ -108,7 +143,8 @@ describe('buildImportPlan', () => {
   });
 
   it('counts a row warning once in the plan total', () => {
-    const result = plan([entry({ progress: 40 })], [[importKey('anime', 1), bebop]]);
+    const found = entry({ progress: 40 });
+    const result = plan([found], [[entryKey(found), bebop]]);
     expect(result.rows[0]?.warnings).toHaveLength(1);
     expect(result.warnings).toHaveLength(1);
   });

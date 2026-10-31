@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@trackt/db": "workspace:*",
+    "@trackt/imports": "workspace:*",
     "@trackt/shared": "workspace:*",
     "bullmq": "^5.79.3",
     "ioredis": "^5.11.1",

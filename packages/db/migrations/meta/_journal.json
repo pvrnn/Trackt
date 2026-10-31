@@ -155,6 +155,13 @@
       "when": 1793272078844,
       "tag": "0021_wide_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793476427045,
+      "tag": "0022_serious_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

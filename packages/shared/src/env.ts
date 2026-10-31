@@ -51,9 +51,34 @@ const RawEnvSchema = z.object({
    * MyAnimeList API client id, for importing a user's anime/manga list
    * (`@trackt/imports`). Registered once at https://myanimelist.net/apiconfig;
    * public lists are readable with the `X-MAL-CLIENT-ID` header alone, so no
-   * user OAuth token is involved.
+   * user OAuth token is involved. Other import sources take their own credential
+   * (see `TRAKT_CLIENT_ID`); most need none.
    */
   MAL_CLIENT_ID: optionalString,
+  /**
+   * Trakt API app Client ID, for importing a user's movies and watched series
+   * (per season, ADR-0003). Registered at https://trakt.tv/oauth/applications;
+   * public profiles need nothing else.
+   */
+  TRAKT_CLIENT_ID: optionalString,
+  /**
+   * How the scrape sources (Letterboxd) fetch pages: `http` (default), `browser`
+   * (always through Playwright) or `fallback` (plain HTTP, escalating to the
+   * browser when Cloudflare challenges). Read by the fetcher itself.
+   */
+  IMPORT_FETCH_MODE: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.enum(['http', 'browser', 'fallback']).optional(),
+  ),
+  /**
+   * Attach the browser fetcher to an already-running Chromium instead of
+   * launching one; read directly by the fetcher. Declared here so a bad URL fails
+   * at boot rather than mid-import.
+   */
+  PLAYWRIGHT_WS_ENDPOINT: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.url().optional(),
+  ),
   /**
    * Emergency override for feature flags (ADR-0011): `key=on|off|0-100,key=off`.
    * Parsed by `parseFlagOverrides`, which warns about what it cannot read.
@@ -97,6 +122,12 @@ const HINTS: Record<string, string> = {
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
   MAL_CLIENT_ID:
     'optional — enables MyAnimeList list imports; create an API client at https://myanimelist.net/apiconfig and use its Client ID',
+  TRAKT_CLIENT_ID:
+    'optional — enables Trakt list imports; create an API app at https://trakt.tv/oauth/applications and use its Client ID',
+  IMPORT_FETCH_MODE:
+    'optional — http|browser|fallback for the importers that scrape (Letterboxd); browser needs playwright installed',
+  PLAYWRIGHT_WS_ENDPOINT:
+    'optional — ws endpoint of a Chromium to attach to instead of launching one; read by the import browser fetcher',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
   DISCORD_BOT_TOKEN:
     'optional — enables the Discord bot; Bot → Token at https://discord.com/developers/applications',
@@ -132,6 +163,10 @@ export interface Env {
   CATALOG_FEEDBACK_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
   MAL_CLIENT_ID?: string | undefined;
+  TRAKT_CLIENT_ID?: string | undefined;
+  /** Chosen transport for the scrape sources; unset means `http` (the fetcher's own default). */
+  IMPORT_FETCH_MODE?: 'http' | 'browser' | 'fallback' | undefined;
+  PLAYWRIGHT_WS_ENDPOINT?: string | undefined;
   FEATURE_FLAGS?: string | undefined;
   FLAG_COUNTRY_HEADER?: string | undefined;
   FLAG_COUNTRY?: string | undefined;

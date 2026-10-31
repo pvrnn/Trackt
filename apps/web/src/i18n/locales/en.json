@@ -26,6 +26,7 @@
     "media": "{{title}} · Trackt",
     "list": "{{name}} · Trackt",
     "user": "{{name}} (@{{username}}) · Trackt",
+    "userHistory": "{{username}}’s history · Trackt",
     "newsArticle": "{{title}} · Trackt"
   },
   "locale": {

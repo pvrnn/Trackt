@@ -1,21 +1,17 @@
+import { ImportError } from '../errors.js';
+import type { FetchLike } from '../http/fetch.js';
 import { MalListResponseSchema, type MalListEntry } from './schemas.js';
 import type { ImportKind } from '../types.js';
 
-/** The slice of `fetch` this client uses, so a test can pass a stub. */
-export type FetchLike = (
-  url: string,
-  init: { headers: Record<string, string> },
-) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+export type { FetchLike } from '../http/fetch.js';
 
 export type MalErrorKind = 'auth' | 'not-found' | 'http' | 'malformed';
 
-export class MalApiError extends Error {
-  constructor(
-    message: string,
-    readonly kind: MalErrorKind,
-    readonly status: number | null,
-  ) {
-    super(message);
+export class MalApiError extends ImportError {
+  declare readonly kind: MalErrorKind;
+
+  constructor(message: string, kind: MalErrorKind, status: number | null) {
+    super(message, kind, status);
     this.name = 'MalApiError';
   }
 }
@@ -83,7 +79,13 @@ export function createMalClient(options: MalClientOptions): MalClient {
     maxPages = 40,
   } = options;
 
-  if (!clientId) throw new Error('a MyAnimeList client id is required (MAL_CLIENT_ID)');
+  if (!clientId) {
+    throw new ImportError(
+      'a MyAnimeList client id is required (MAL_CLIENT_ID)',
+      'credential',
+      null,
+    );
+  }
 
   async function fetchList(kind: ImportKind, username: string): Promise<MalListEntry[]> {
     const list = kind === 'anime' ? 'animelist' : 'mangalist';

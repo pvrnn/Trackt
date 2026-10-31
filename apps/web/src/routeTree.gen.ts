@@ -22,6 +22,7 @@ import { Route as UsersUsernameRouteImport } from './routes/users.$username'
 import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
 import { Route as ListsIdRouteImport } from './routes/lists_.$id'
+import { Route as UsersUsernameHistoryRouteImport } from './routes/users_.$username.history'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -88,6 +89,11 @@ const ListsIdRoute = ListsIdRouteImport.update({
   path: '/lists/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsersUsernameHistoryRoute = UsersUsernameHistoryRouteImport.update({
+  id: '/users_/$username/history',
+  path: '/users/$username/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/users/$username': typeof UsersUsernameRoute
+  '/users/$username/history': typeof UsersUsernameHistoryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/users/$username': typeof UsersUsernameRoute
+  '/users/$username/history': typeof UsersUsernameHistoryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
   '/users/$username': typeof UsersUsernameRoute
+  '/users_/$username/history': typeof UsersUsernameHistoryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/media/$slug'
     | '/news/$slug'
     | '/users/$username'
+    | '/users/$username/history'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/media/$slug'
     | '/news/$slug'
     | '/users/$username'
+    | '/users/$username/history'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/media/$slug'
     | '/news_/$slug'
     | '/users/$username'
+    | '/users_/$username/history'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   MediaSlugRoute: typeof MediaSlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
   UsersUsernameRoute: typeof UsersUsernameRoute
+  UsersUsernameHistoryRoute: typeof UsersUsernameHistoryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/users_/$username/history': {
+      id: '/users_/$username/history'
+      path: '/users/$username/history'
+      fullPath: '/users/$username/history'
+      preLoaderRoute: typeof UsersUsernameHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,6 +329,7 @@ const rootRouteChildren: RootRouteChildren = {
   MediaSlugRoute: MediaSlugRoute,
   NewsSlugRoute: NewsSlugRoute,
   UsersUsernameRoute: UsersUsernameRoute,
+  UsersUsernameHistoryRoute: UsersUsernameHistoryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

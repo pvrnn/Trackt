@@ -597,7 +597,7 @@ describe('the walk', () => {
     const fake = deps();
     const result = await walkImport(options({ maxRank: 2 }), fake.deps);
     assert.deepEqual(fake.queried, ['52991,5114'], 'one AniList request per 50 MAL ids');
-    assert.equal(fake.written.length, 1);
+    assert.equal(fake.written.length, 2, 'one write per page, plus the closing flush');
     const seed = fake.written[0]!;
     assert.ok(seed.catalog_media.some((row) => row.id === canonicalMediaId('anime', 154587)));
     assert.ok(seed.urls?.[canonicalMediaId('anime', 154587)] === 'https://anilist.co/anime/154587');
@@ -683,5 +683,101 @@ describe('the walk', () => {
       report: { sources: [], skipped: [], warnings: [] },
     };
     assert.deepEqual(mergeSeedFiles(a, b).urls, { x: 'u1', y: 'u2' });
+  });
+});
+
+describe('the enumeration walk', () => {
+  /** A client that answers one start-date window and the announced pass. */
+  function fakeAll() {
+    const windows: { lo: number; hi: number; type: string }[] = [];
+    const statuses: string[][] = [];
+    let pages = 0;
+    const client = createAniListClient({
+      spacingMs: 0,
+      fetchImpl: (async (_url: string, init: { body: string }) => {
+        const { query, variables } = JSON.parse(init.body) as {
+          query: string;
+          variables: { lo?: number; hi?: number; type?: string; status?: string[]; page: number };
+        };
+        pages++;
+        let media: AniListMedia[] = [];
+        if (query.includes('startDate_greater')) {
+          windows.push({ lo: variables.lo!, hi: variables.hi!, type: variables.type! });
+          // 2000 holds both fixtures, every other year is empty.
+          if (variables.lo === 2000 * 10000 - 1)
+            media = variables.page === 1 ? [frieren, fmab] : [];
+        } else {
+          statuses.push(variables.status ?? []);
+          media = variables.page === 1 ? [frieren] : [];
+        }
+        return new Response(
+          JSON.stringify({ data: { Page: { pageInfo: { hasNextPage: false }, media } } }),
+          { status: 200 },
+        );
+      }) as unknown as typeof fetch,
+    });
+    return {
+      client,
+      windows,
+      statuses,
+      get pages() {
+        return pages;
+      },
+    };
+  }
+
+  it('tiles the kind by start-date year, newest last, and stops on an empty page', async () => {
+    const fake = fakeAll();
+    const written: SeedFile[] = [];
+    const result = await walkImport(
+      {
+        ...parseFromAniListArgs(['--source', 'anilist-all']),
+        delayMs: 0,
+      },
+      {
+        client: fake.client,
+        fetchHtml: async () => '',
+        readSeed: async () => null,
+        writeSeed: async (_path: string, seed: SeedFile) => {
+          written.push(seed);
+        },
+        log: () => {},
+        now: () => Date.UTC(2026, 9, 30),
+      },
+    );
+
+    const los = fake.windows.map((window) => window.lo);
+    assert.deepEqual(
+      los,
+      [...los].sort((a, b) => a - b),
+      'windows are walked in ascending order',
+    );
+    assert.equal(los[0], 1917 * 10000 - 1, 'the first window starts at the earliest dated work');
+    assert.deepEqual(fake.statuses, [['NOT_YET_RELEASED']], 'announced works get their own pass');
+    assert.ok(
+      result.seed.catalog_media.some((row) => row.id === canonicalMediaId('anime', 154587)),
+      'the works a window answers with are imported',
+    );
+    assert.equal(result.requests, fake.pages);
+  });
+
+  it('stops once the cap is reached instead of walking every window', async () => {
+    const fake = fakeAll();
+    await walkImport(
+      { ...parseFromAniListArgs(['--source', 'anilist-all', '--max-rank', '1']), delayMs: 0 },
+      {
+        client: fake.client,
+        fetchHtml: async () => '',
+        readSeed: async () => null,
+        writeSeed: async () => {},
+        log: () => {},
+        now: () => Date.UTC(2026, 9, 30),
+      },
+    );
+    assert.equal(
+      fake.windows.at(-1)!.lo,
+      2000 * 10000 - 1,
+      'stopped after the window that filled the cap, not at the last year',
+    );
   });
 });

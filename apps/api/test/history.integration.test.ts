@@ -63,6 +63,10 @@ describe.runIf(available)('me/history (postgres)', () => {
   let db: Db;
   let cookie: string;
   let userId: string;
+  let username: string;
+  /** A second account, so the public route can be shown to scope by subject. */
+  let otherId: string;
+  let otherUsername: string;
 
   /** One log row, dated by hand. `null` dates mean "no evidence" — a watchlist row. */
   async function log(
@@ -70,10 +74,11 @@ describe.runIf(available)('me/history (postgres)', () => {
     status: 'planned' | 'in_progress' | 'completed' | 'dropped' | 'paused',
     startedAt: string | null,
     finishedAt: string | null,
+    owner = userId,
   ): Promise<void> {
     await db
       .insert(userMedia)
-      .values({ userId, mediaId, status, startedAt, finishedAt })
+      .values({ userId: owner, mediaId, status, startedAt, finishedAt })
       .onConflictDoUpdate({
         target: [userMedia.userId, userMedia.mediaId],
         set: { status, startedAt, finishedAt },
@@ -122,12 +127,13 @@ describe.runIf(available)('me/history (postgres)', () => {
     app = await buildApp({ env, db, auth: createAuth(db, env) });
 
     const stamp = Date.now();
+    username = `histor${stamp}`.slice(0, 20);
     const signUp = await app.inject({
       method: 'POST',
       url: '/api/auth/sign-up/email',
       payload: {
         name: 'History Tester',
-        username: `histor${stamp}`.slice(0, 20),
+        username,
         email: `history-${stamp}@example.com`,
         password: 'a-strong-password-1',
       },
@@ -137,6 +143,24 @@ describe.runIf(available)('me/history (postgres)', () => {
     cookie = (signUp.headers['set-cookie'] as string[] | string | undefined)
       ?.toString()
       .split(';')[0] as string;
+
+    otherUsername = `autres${stamp}`.slice(0, 20);
+    const otherSignUp = await app.inject({
+      method: 'POST',
+      url: '/api/auth/sign-up/email',
+      payload: {
+        name: 'Other Tester',
+        username: otherUsername,
+        email: `other-${stamp}@example.com`,
+        password: 'a-strong-password-1',
+      },
+    });
+    expect(otherSignUp.statusCode).toBe(200);
+    otherId = otherSignUp.json().user.id;
+    // One manga, completed in a year the first account has nothing in — so a
+    // leaked row would show up as an extra year as well as an extra title.
+    // (The first account has this work on its watchlist, which never lists.)
+    await log(onePieceId, 'completed', '2024-05-01', '2024-05-01', otherId);
 
     // Bebop spans New Year: started 2025, finished 2026.
     await log(bebopId, 'completed', '2025-12-20', '2026-01-11');
@@ -275,6 +299,63 @@ describe.runIf(available)('me/history (postgres)', () => {
   it('401s without a cookie', async () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/me/history' });
     expect(response.statusCode).toBe(401);
+  });
+
+  /**
+   * The public half: `/users/:username/history` is the same read with the
+   * subject taken from the URL instead of the session (ADR-0006 point 3 —
+   * a profile reachable by handle is reachable anonymously).
+   */
+  describe('users/:username/history', () => {
+    const publicPage = (handle: string, query = '', headers: Record<string, string> = {}) =>
+      app.inject({
+        method: 'GET',
+        url: `/api/v1/users/${encodeURIComponent(handle)}/history${query}`,
+        headers,
+      });
+
+    it('serves a handle’s rows anonymously, and only that handle’s', async () => {
+      const response = await publicPage(otherUsername);
+      expect(response.statusCode, response.body).toBe(200);
+      const page: HistoryPage = response.json();
+      expect(page.entries.map((entry) => entry.id)).toEqual([onePieceId]);
+      expect(page.years).toEqual([{ year: 2024, count: 1 }]);
+      expect(page.totals).toMatchObject({ titles: 1, completed: 1 });
+
+      // …and the viewer's own page is untouched by the second account: it logs
+      // one row of its own for this work, but as a watchlist entry.
+      const mine = await history();
+      expect(mine.entries.map((entry) => entry.id)).not.toContain(onePieceId);
+      expect(mine.years.map((year) => year.year)).toEqual([2026]);
+    });
+
+    it('reads the subject from the URL, never from the session', async () => {
+      const page: HistoryPage = (await publicPage(otherUsername, '', { cookie })).json();
+      expect(page.entries.map((entry) => entry.id)).toEqual([onePieceId]);
+    });
+
+    it('filters and pages exactly like the own page', async () => {
+      expect((await publicPage(otherUsername, '?year=2024')).statusCode).toBe(200);
+      const empty: HistoryPage = (await publicPage(otherUsername, '?year=2026')).json();
+      expect(empty.entries).toEqual([]);
+      // The year facet ignores the year filter, so the picker still offers 2024.
+      expect(empty.years).toEqual([{ year: 2024, count: 1 }]);
+    });
+
+    it('matches the handle case-insensitively', async () => {
+      const response = await publicPage(otherUsername.toUpperCase());
+      expect(response.statusCode, response.body).toBe(200);
+    });
+
+    it('404s on a handle nobody answers to', async () => {
+      const response = await publicPage('nobody-here-at-all');
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('400s on a tampered cursor', async () => {
+      const response = await publicPage(otherUsername, '?cursor=not-base64!!');
+      expect(response.statusCode).toBe(400);
+    });
   });
 });
 

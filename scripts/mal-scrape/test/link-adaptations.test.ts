@@ -60,6 +60,19 @@ describe('the pairs the seeds leave unlinked', () => {
       [],
     );
   });
+
+  it('ignores titles that normalise to nothing, and announcements', () => {
+    // "&" and "○" both normalise to the empty string, which would put them in one
+    // bucket purely for having no letters.
+    assert.deepEqual(unlinkedPairs([anime({ title: '○' }), manga({ title: '&' })], []), []);
+    assert.deepEqual(
+      unlinkedPairs(
+        [anime({ title: '(Title to be Announced)' }), manga({ title: '(Title to be Announced)' })],
+        [],
+      ),
+      [],
+    );
+  });
 });
 
 describe('the edge a pair earns', () => {

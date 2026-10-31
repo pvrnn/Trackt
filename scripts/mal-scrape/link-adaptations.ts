@@ -59,6 +59,9 @@ export function normaliseTitle(value: string): string {
 
 const SEED_DIR = resolve('apps/catalog/seed');
 
+/** AniList rows that are a slot, not a work: pairing them asserts nothing. */
+const PLACEHOLDER_TITLE = /^(title to be announced|untitled|tba)$/;
+
 export type Pair = { anime: SeedRow; manga: SeedRow };
 
 /** Anime/manga rows that share a title and year but no edge. */
@@ -69,7 +72,11 @@ export function unlinkedPairs(rows: SeedRow[], edges: SeedRelation[]): Pair[] {
 
   const buckets = new Map<string, SeedRow[]>();
   for (const row of rows) {
-    const key = `${normaliseTitle(row.title)}|${row.year ?? ''}`;
+    const title = normaliseTitle(row.title);
+    // A title that normalises to nothing ("&", "○") would put every such row in
+    // one bucket and pair unrelated works; a placeholder identifies no work either.
+    if (!title || PLACEHOLDER_TITLE.test(title)) continue;
+    const key = `${title}|${row.year ?? ''}`;
     const bucket = buckets.get(key);
     if (bucket) bucket.push(row);
     else buckets.set(key, [row]);

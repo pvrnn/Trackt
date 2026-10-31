@@ -22,6 +22,7 @@ export * from './friends.js';
 export * from './history.js';
 export * from './home.js';
 export * from './http.js';
+export * from './imports.js';
 export * from './kinds.js';
 export * from './lists.js';
 export * from './markdown.js';

@@ -1,22 +1,20 @@
 import { Redis } from 'ioredis';
 import pino from 'pino';
-import { EnvValidationError, loadEnv } from '@trackt/shared';
+import { Worker } from 'bullmq';
+import { createDb } from '@trackt/db';
+import type { ImportJobData, ImportJobResult } from '@trackt/imports';
+import { EnvValidationError, QUEUES, loadEnv } from '@trackt/shared';
+import { createImportProcessor } from './importer.js';
 
 /**
- * Background jobs (PRD §6): importers, notifications (not yet built). Catalog
- * population moved off this worker: search now queries the central catalog
- * live from the API's request path and materializes hits on first sight
- * (ADR-0002) — this process no longer mirrors the whole catalog on a
- * schedule, and runs no jobs at all today. The open Redis connection below is
- * what keeps this process alive for docker/entrypoint.sh's liveness check
- * until a real job lands on it.
+ * Background jobs (PRD §6). One queue is real today: `importer` runs an account
+ * import off the request path (the API's `POST /v1/me/import` produces it). The
+ * schedules this process used to register (`metadata-refresh`, then
+ * `catalog-sync-repeat`) are retired with the central-catalog pivot (ADR-0002);
+ * catalog population is the catalog service's own `db:seed`, not this worker.
  *
- * This file used to unregister the schedulers of two retired jobs
- * (`metadata-refresh`'s crons, then `catalog-sync-repeat`) on every boot, to
- * stop them firing on self-hosted Redis volumes that survived an upgrade.
- * Removed: the project is pre-launch, so no such instance exists. Reinstate
- * that cleanup — for whichever queue — only once a released version has
- * actually registered a scheduler in the wild.
+ * Reinstate scheduler cleanup — for whichever queue — only once a released
+ * version has actually registered a scheduler in the wild.
  */
 
 let env;
@@ -44,17 +42,21 @@ connection.on('error', (error) => {
   logger.warn({ err: error }, 'redis connection error (retrying)');
 });
 
+// An import writes log rows, so this process needs the database too — and one
+// pool of two is plenty for a job that is one loop of single-row writes.
+const db = createDb(env.DATABASE_URL, { max: 2 });
+
 /**
- * Boot-time Redis calls hang forever when Redis is down (ioredis retries
- * indefinitely), so "worker started" would never log and the hang is silent
- * apart from the error listener above. Fail fast instead — the orchestrator
- * restarts the container.
+ * Boot-time dependency calls hang forever when the dependency is down (ioredis
+ * retries indefinitely, postgres-js queues), so "worker started" would never log
+ * and the hang would be silent. Fail fast instead — the orchestrator restarts
+ * the container.
  */
 async function withBootTimeout<T>(work: Promise<T>, label: string): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(
-      () => reject(new Error(`${label} timed out after 30s — is Redis reachable?`)),
+      () => reject(new Error(`${label} timed out after 30s — is the service reachable?`)),
       30_000,
     );
   });
@@ -66,21 +68,54 @@ async function withBootTimeout<T>(work: Promise<T>, label: string): Promise<T> {
 }
 
 try {
-  // Nothing to register yet, so this is purely the liveness assertion: prove
-  // Redis is actually reachable rather than letting ioredis retry silently
-  // behind a "worker started" log.
   await withBootTimeout(connection.ping(), 'redis connectivity check');
+  await withBootTimeout(db.execute('select 1'), 'database connectivity check');
 } catch (error) {
   logger.error({ err: error }, 'worker boot failed');
   process.exit(1);
 }
 
+const processor = createImportProcessor({ db, env });
+const worker = new Worker<ImportJobData, ImportJobResult>(QUEUES.importer, processor, {
+  connection,
+  // An import is a scrape of somebody's profile: two at once is rude to the
+  // provider and doubles the chance of being challenged.
+  concurrency: 1,
+});
+
+worker.on('completed', (job, result) => {
+  logger.info(
+    {
+      job: job.id,
+      source: result?.plan.source,
+      profile: result?.plan.profile,
+      created: result?.report?.created,
+      total: result?.plan.total,
+    },
+    'import completed',
+  );
+});
+worker.on('failed', (job, error) => {
+  logger.error({ job: job?.id, err: error }, 'import failed');
+});
+worker.on('error', (error) => {
+  logger.warn({ err: error }, 'worker error');
+});
+
 logger.info('worker started');
 
 const shutdown = async (signal: string) => {
   logger.info(`received ${signal}, shutting down`);
-  connection.disconnect();
-  process.exit(0);
+  try {
+    // Lets the running import finish rather than dropping it mid-loop.
+    await worker.close();
+  } catch (error) {
+    logger.error({ err: error }, 'error closing the worker');
+  } finally {
+    await db.$client.end().catch(() => undefined);
+    connection.disconnect();
+    process.exit(0);
+  }
 };
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('SIGINT', () => void shutdown('SIGINT'));

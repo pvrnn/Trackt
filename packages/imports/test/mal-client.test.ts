@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ImportError } from '../src/errors.js';
 import { createMalClient, MalApiError, type FetchLike } from '../src/mal/client.js';
 
 function entry(id: number) {
@@ -79,7 +80,17 @@ describe('createMalClient', () => {
     });
   });
 
-  it('requires a client id', () => {
-    expect(() => createMalClient({ clientId: '' })).toThrow(/client id/i);
+  it('reports a missing client id as a credential problem, not a bare error', () => {
+    const error = (() => {
+      try {
+        createMalClient({ clientId: '' });
+        return null;
+      } catch (caught) {
+        return caught;
+      }
+    })();
+    expect(error).toBeInstanceOf(ImportError);
+    expect(error).toMatchObject({ kind: 'credential' });
+    expect((error as Error).message).toMatch(/client id/i);
   });
 });

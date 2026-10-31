@@ -29,6 +29,13 @@ services:
       FLAG_COUNTRY_HEADER: ${FLAG_COUNTRY_HEADER:-}
       FLAG_COUNTRY: ${FLAG_COUNTRY:-}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
+      # Imports (PRD §6): MAL_CLIENT_ID and TRAKT_CLIENT_ID enable those sources,
+      # IMPORT_FETCH_MODE opts the scrape sources into a browser (not installed in
+      # this image — see .env.example).
+      MAL_CLIENT_ID: ${MAL_CLIENT_ID:-}
+      TRAKT_CLIENT_ID: ${TRAKT_CLIENT_ID:-}
+      IMPORT_FETCH_MODE: ${IMPORT_FETCH_MODE:-}
+      PLAYWRIGHT_WS_ENDPOINT: ${PLAYWRIGHT_WS_ENDPOINT:-}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       DISCORD_APPLICATION_ID: ${DISCORD_APPLICATION_ID:-}
       UPLOADS_DIR: /app/data/uploads

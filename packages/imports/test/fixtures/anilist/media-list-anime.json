@@ -1,0 +1,348 @@
+{
+  "data": {
+    "MediaListCollection": {
+      "lists": [
+        {
+          "name": "Completed",
+          "entries": [
+            {
+              "id": 3729222,
+              "mediaId": 1575,
+              "status": "COMPLETED",
+              "score": 100,
+              "progress": 25,
+              "repeat": 10,
+              "notes": null,
+              "startedAt": {
+                "year": 2009,
+                "month": 1,
+                "day": 1
+              },
+              "completedAt": {
+                "year": 2009,
+                "month": 1,
+                "day": 1
+              },
+              "media": {
+                "id": 1575,
+                "idMal": 1575,
+                "episodes": 25,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2006,
+                "title": {
+                  "romaji": "Code Geass: Hangyaku no Lelouch",
+                  "english": "Code Geass: Lelouch of the Rebellion"
+                }
+              }
+            },
+            {
+              "id": 4029162,
+              "mediaId": 19815,
+              "status": "COMPLETED",
+              "score": 41,
+              "progress": 12,
+              "repeat": 0,
+              "notes": "Didn't seem particularly good. dropped (2014-07-14, giving it a rewatch because of a deal between myself and Jadelyn)",
+              "startedAt": {
+                "year": 2014,
+                "month": 7,
+                "day": 14
+              },
+              "completedAt": {
+                "year": 2014,
+                "month": 7,
+                "day": 14
+              },
+              "media": {
+                "id": 19815,
+                "idMal": 19815,
+                "episodes": 12,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2014,
+                "title": {
+                  "romaji": "No Game No Life",
+                  "english": "No Game, No Life"
+                }
+              }
+            },
+            {
+              "id": 12667746,
+              "mediaId": 21014,
+              "status": "COMPLETED",
+              "score": 52,
+              "progress": 1,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": 2016,
+                "month": 8,
+                "day": 14
+              },
+              "completedAt": {
+                "year": 2016,
+                "month": 8,
+                "day": 14
+              },
+              "media": {
+                "id": 21014,
+                "idMal": null,
+                "episodes": 1,
+                "chapters": null,
+                "format": "SPECIAL",
+                "seasonYear": 2014,
+                "title": {
+                  "romaji": "Minami no Shima no Dera-chan",
+                  "english": "Dera-chan of the Southern Island"
+                }
+              }
+            },
+            {
+              "id": 3729223,
+              "mediaId": 6746,
+              "status": "COMPLETED",
+              "score": 97,
+              "progress": 24,
+              "repeat": 4,
+              "notes": null,
+              "startedAt": {
+                "year": 2010,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": 2010,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 6746,
+                "idMal": 6746,
+                "episodes": 24,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2010,
+                "title": {
+                  "romaji": "Durarara!!",
+                  "english": "Durarara!!"
+                }
+              }
+            },
+            {
+              "id": 3729224,
+              "mediaId": 14467,
+              "status": "COMPLETED",
+              "score": 62,
+              "progress": 13,
+              "repeat": 1,
+              "notes": null,
+              "startedAt": {
+                "year": 2014,
+                "month": 4,
+                "day": 6
+              },
+              "completedAt": {
+                "year": 2014,
+                "month": 4,
+                "day": 7
+              },
+              "media": {
+                "id": 14467,
+                "idMal": 14467,
+                "episodes": 13,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2012,
+                "title": {
+                  "romaji": "K",
+                  "english": "K"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Watching",
+          "entries": [
+            {
+              "id": 7253599,
+              "mediaId": 4654,
+              "status": "CURRENT",
+              "score": 0,
+              "progress": 22,
+              "repeat": 0,
+              "notes": "dled",
+              "startedAt": {
+                "year": 2022,
+                "month": 4,
+                "day": 13
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 4654,
+                "idMal": 4654,
+                "episodes": 24,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2008,
+                "title": {
+                  "romaji": "Toaru Majutsu no Index",
+                  "english": "A Certain Magical Index"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Planning",
+          "entries": [
+            {
+              "id": 4206160,
+              "mediaId": 2025,
+              "status": "PLANNING",
+              "score": 0,
+              "progress": 0,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 2025,
+                "idMal": 2025,
+                "episodes": 25,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2007,
+                "title": {
+                  "romaji": "DARKER THAN BLACK: Kuro no Keiyakusha",
+                  "english": "Darker than Black"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dropped",
+          "entries": [
+            {
+              "id": 4384850,
+              "mediaId": 5682,
+              "status": "DROPPED",
+              "score": 0,
+              "progress": 18,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": 2022,
+                "month": 9,
+                "day": 3
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 5682,
+                "idMal": 5682,
+                "episodes": 26,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2009,
+                "title": {
+                  "romaji": "Phantom: Requiem for the Phantom",
+                  "english": "Phantom: Requiem for the Phantom"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Paused",
+          "entries": [
+            {
+              "id": 4115044,
+              "mediaId": 202,
+              "status": "PAUSED",
+              "score": 0,
+              "progress": 3,
+              "repeat": 0,
+              "notes": null,
+              "startedAt": {
+                "year": 2014,
+                "month": 1,
+                "day": 21
+              },
+              "completedAt": {
+                "year": null,
+                "month": null,
+                "day": null
+              },
+              "media": {
+                "id": 202,
+                "idMal": 202,
+                "episodes": 26,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2003,
+                "title": {
+                  "romaji": "Wolf's Rain",
+                  "english": "Wolf's Rain"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rewatching",
+          "entries": [
+            {
+              "id": 464388063,
+              "mediaId": 187869,
+              "status": "REPEATING",
+              "score": 100,
+              "progress": 11,
+              "repeat": 2,
+              "notes": null,
+              "startedAt": {
+                "year": 2026,
+                "month": 4,
+                "day": 10
+              },
+              "completedAt": {
+                "year": 2026,
+                "month": 6,
+                "day": 26
+              },
+              "media": {
+                "id": 187869,
+                "idMal": 61186,
+                "episodes": 12,
+                "chapters": null,
+                "format": "TV",
+                "seasonYear": 2026,
+                "title": {
+                  "romaji": "Kamiina Botan, Yoeru Sugata wa Yuri no Hana",
+                  "english": "Botan Kamiina Fully Blossoms When Drunk"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

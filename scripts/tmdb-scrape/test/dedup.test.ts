@@ -196,6 +196,23 @@ describe('the pairing', () => {
     assert.deepEqual(pairs, []);
     assert.deepEqual(skipped, []);
   });
+
+  it('refuses a pair whose only evidence is a title, the year a year off', () => {
+    // Pixar's "Turning Red" (2022) against a 2021 short named "Red": the Spanish
+    // synonyms collide, both are animated films, and the year tolerance lets it
+    // through — but nothing else agrees, and folding one into the other deletes a
+    // real film.
+    const short = row({ id: 'short', title: 'Red', year: 2021 });
+    const turningRed = movie({
+      id: 'tmdb-1',
+      title: 'Turning Red',
+      synonyms: ['Red'],
+      year: 2022,
+    });
+    const { pairs, skipped } = pairSeeds([short], [turningRed]);
+    assert.deepEqual(pairs, []);
+    assert.match(skipped[0]!.candidates[0]!.reason, /nothing corroborates/);
+  });
 });
 
 describe('the rows a merge rewrites', () => {

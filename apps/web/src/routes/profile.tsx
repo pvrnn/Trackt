@@ -18,6 +18,7 @@ import { FeedbackDialog } from '../components/feedback/FeedbackDialog';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { FavouriteShelves } from '../components/profile/FavouriteShelves';
+import { ImportDialog } from '../components/profile/ImportDialog';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { AddFriendDialog } from '../components/social/AddFriendDialog';
 import { Avatar } from '../components/ui/Avatar';
@@ -52,6 +53,7 @@ function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [addingFriend, setAddingFriend] = useState(false);
   const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
 
@@ -108,6 +110,13 @@ function ProfilePage() {
                     className="cursor-pointer rounded-full border border-glass-border bg-glass px-6 py-[11px] text-[13px] font-bold tracking-btn text-muted transition hover:border-pink hover:text-pink"
                   >
                     {t('profile.action.feedback')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImporting(true)}
+                    className="cursor-pointer rounded-full border border-glass-border bg-glass px-6 py-[11px] text-[13px] font-bold tracking-btn text-muted transition hover:border-pink hover:text-pink"
+                  >
+                    {t('profile.action.import')}
                   </button>
                   <button
                     type="button"
@@ -225,6 +234,7 @@ function ProfilePage() {
             )}
             {addingFriend && <AddFriendDialog onClose={() => setAddingFriend(false)} />}
             {sendingFeedback && <FeedbackDialog onClose={() => setSendingFeedback(false)} />}
+            {importing && <ImportDialog onClose={() => setImporting(false)} />}
           </>
         )}
       </div>

@@ -14,6 +14,9 @@
  *   through `idMal_in`. The set and order stay exactly MAL's top 10000.
  * - `--source anilist` walks AniList's own `Page(media: {sort})`, no MAL at all.
  *   Note the API caps a score-sorted walk at 5000 entries.
+ * - `--source anilist-all` enumerates everything of one kind by walking start-date
+ *   year windows: the sorted walk hits a page-depth cap and MAL's ranking only
+ *   covers ranked works, so windows are the only way to reach the whole set.
  *
  * Relation targets are written as rows too. The catalog's edge table has FKs on
  * both ends and `POST /v1/admin/relations` rejects an unknown endpoint, so an
@@ -28,6 +31,8 @@ import {
   createAniListClient,
   mediaByMalIdsQuery,
   mediaBySortQuery,
+  mediaByStartDateQuery,
+  mediaByStatusQuery,
   mediaFields,
   type AniListDate,
   type AniListMedia,
@@ -710,8 +715,13 @@ Source:
                           no detail pages) and resolve them via AniList (default)
   --source anilist       walk AniList's own ranking; no MAL involved (capped at
                          5000 entries, so it cannot reach a top 10k on its own)
+  --source anilist-all   enumerate everything of the kind: start-date year
+                         windows (the sorted walk cannot page past 5000, and the
+                         MAL list only ranks part of its set)
   --sort <MediaSort>     with --source anilist (default SCORE_DESC)
-  --max-rank <n>         stop after this rank (default 10000)
+  --max-rank <n>         stop after this rank (default 10000); with
+                         --source anilist-all, the cap on works imported
+                         (default: no cap)
   --from-rank <n>        start at this rank (default 1)
   --types <list>         AniList formats to keep, comma-separated
                          (default tv,movie,ova,ona,special,tv_short; manga:
@@ -732,6 +742,7 @@ Output:
 Politeness:
   --delay <ms>           gap between AniList requests (default 2000; the API
                          reports a 30 requests/minute limit)
+  --write-every <n>      pages between seed rewrites (default 1)
 
   --help                 this text
 
@@ -743,7 +754,7 @@ export const DEFAULT_TYPES = ['tv', 'movie', 'ova', 'ona', 'special', 'tv_short'
 export const DEFAULT_MANGA_TYPES = ['manga', 'one_shot'];
 
 export interface FromAniListOptions {
-  source: 'mal-ranking' | 'anilist';
+  source: 'mal-ranking' | 'anilist' | 'anilist-all';
   /** Which AniList namespace the walk resolves: anime or manga. */
   kind: 'anime' | 'manga';
   sort: string;
@@ -759,6 +770,8 @@ export interface FromAniListOptions {
   catalogUrl?: string;
   token?: string;
   delayMs: number;
+  /** Pages between seed writes; 1 keeps a crash within one page of the data. */
+  writeEvery: number;
   help: boolean;
 }
 
@@ -776,6 +789,7 @@ export function parseFromAniListArgs(argv: string[]): FromAniListOptions {
     withBanner: true,
     publish: false,
     delayMs: 2000,
+    writeEvery: 1,
     help: false,
   };
   const flags = new Set([
@@ -786,6 +800,7 @@ export function parseFromAniListArgs(argv: string[]): FromAniListOptions {
     '--publish',
     '--help',
   ]);
+  let maxRankGiven = false;
   const valued: Record<string, (value: string) => void> = {
     '--kind': (value) => {
       if (value !== 'anime' && value !== 'manga')
@@ -795,13 +810,16 @@ export function parseFromAniListArgs(argv: string[]): FromAniListOptions {
       options.out = `apps/catalog/seed/top-${value}-anilist.json`;
     },
     '--source': (value) => {
-      if (value !== 'mal-ranking' && value !== 'anilist') {
-        throw new Error("--source must be 'mal-ranking' or 'anilist'");
+      if (value !== 'mal-ranking' && value !== 'anilist' && value !== 'anilist-all') {
+        throw new Error("--source must be 'mal-ranking', 'anilist' or 'anilist-all'");
       }
       options.source = value;
     },
     '--sort': (value) => (options.sort = value.toUpperCase()),
-    '--max-rank': (value) => (options.maxRank = Number(value)),
+    '--max-rank': (value) => {
+      options.maxRank = Number(value);
+      maxRankGiven = true;
+    },
     '--from-rank': (value) => (options.fromRank = Number(value)),
     '--types': (value) =>
       (options.types = new Set(
@@ -815,6 +833,7 @@ export function parseFromAniListArgs(argv: string[]): FromAniListOptions {
     '--catalog-url': (value) => (options.catalogUrl = value),
     '--token': (value) => (options.token = value),
     '--delay': (value) => (options.delayMs = Number(value)),
+    '--write-every': (value) => (options.writeEvery = Number(value)),
   };
 
   for (let index = 0; index < argv.length; index++) {
@@ -838,12 +857,20 @@ export function parseFromAniListArgs(argv: string[]): FromAniListOptions {
   if (!Number.isInteger(options.maxRank) || options.maxRank < 1) {
     throw new Error('--max-rank must be a positive integer');
   }
+  // A ranking walk needs a depth; an enumeration has a natural end, so an
+  // unsaid depth means "everything" rather than the ranking default.
+  if (options.source === 'anilist-all' && !maxRankGiven) {
+    options.maxRank = Number.MAX_SAFE_INTEGER;
+  }
   if (!Number.isInteger(options.fromRank) || options.fromRank < 1) {
     throw new Error('--from-rank must be a positive integer');
   }
   if (options.fromRank > options.maxRank) throw new Error('--from-rank is past --max-rank');
   if (!Number.isFinite(options.delayMs) || options.delayMs < 0) {
     throw new Error('--delay must be a non-negative number of milliseconds');
+  }
+  if (!Number.isInteger(options.writeEvery) || options.writeEvery < 1) {
+    throw new Error('--write-every must be a positive integer');
   }
   return options;
 }
@@ -954,6 +981,92 @@ async function walkAniListRanking(
   return pages;
 }
 
+/** The earliest year AniList dates a work to; earlier windows would only burn requests. */
+const FIRST_START_YEAR = 1917;
+
+/**
+ * Enumerate a whole namespace by tiling it with start-date windows.
+ *
+ * `--source anilist` cannot see past page 100 and the MAL ranking only reaches
+ * ranked works, so neither walks the catalogue. A year per window does: no year
+ * holds more than a few thousand works, and every work with a start date falls in
+ * exactly one window. Announced works carry no date at all, so a last pass by
+ * status collects them.
+ */
+async function walkAniListAll(
+  options: FromAniListOptions,
+  client: NonNullable<WalkDeps['client']>,
+  deps: Required<Pick<WalkDeps, 'log' | 'now'>>,
+  onPage: (items: AniListMedia[]) => Promise<void>,
+  shouldStop: () => boolean,
+): Promise<number> {
+  const fields = mediaFields({ withDescription: options.withDescription });
+  const type = options.kind === 'manga' ? 'MANGA' : 'ANIME';
+  const perPage = ANILIST_MAX_PER_PAGE;
+  const lastYear = new Date(deps.now()).getUTCFullYear() + 1;
+  let pages = 0;
+
+  /** One query, walked until it answers empty; `pageInfo` is unusable here (it caps at 5000). */
+  const drain = async (
+    query: string,
+    variables: Record<string, unknown>,
+    label: string,
+  ): Promise<boolean> => {
+    let works = 0;
+    let overflowed = false;
+    for (let page = 1; page <= 100; page++) {
+      const envelope = await client.query<{ Page: AniListPage<AniListMedia> }>(query, {
+        ...variables,
+        page,
+        perPage,
+      });
+      const items = envelope.data?.Page.media ?? [];
+      pages++;
+      if (items.length === 0) break;
+      await onPage(items);
+      works += items.length;
+      if (items.length < perPage || shouldStop()) break;
+      // Page 100 with a full page means the window holds more than the API will
+      // page through: the caller splits it or the tail is silently lost.
+      if (page === 100) overflowed = true;
+    }
+    deps.log(`${label}: ${works} works${overflowed ? ' (window too wide)' : ''}`);
+    return overflowed;
+  };
+
+  const byStartDate = mediaByStartDateQuery(fields);
+  for (let year = FIRST_START_YEAR; year <= lastYear && !shouldStop(); year++) {
+    // The bounds sit just outside the year (`YYYY0000 - 1` … `(YYYY+1)0000 - 1`).
+    // `YYYY1231` as a bound would drop every work dated December 31: the lower
+    // bound of the next year excludes it and this year's upper bound excludes it
+    // too.
+    const wide = await drain(
+      byStartDate,
+      { lo: year * 10000 - 1, hi: (year + 1) * 10000 - 1, type },
+      `started ${year}`,
+    );
+    if (!wide) continue;
+    // A year can hold more than the API will page through, so it is walked again
+    // a month at a time. January reaches back to the year-only dates so they are
+    // not left in the gap below the first month.
+    for (let month = 1; month <= 12 && !shouldStop(); month++) {
+      await drain(
+        byStartDate,
+        {
+          lo: month === 1 ? year * 10000 - 1 : year * 10000 + (month - 1) * 100 + 99,
+          hi: year * 10000 + month * 100 + 99,
+          type,
+        },
+        `started ${year}-${String(month).padStart(2, '0')}`,
+      );
+    }
+  }
+  if (!shouldStop()) {
+    await drain(mediaByStatusQuery(fields), { status: ['NOT_YET_RELEASED'], type }, 'announced');
+  }
+  return pages;
+}
+
 export async function walkImport(
   options: FromAniListOptions,
   deps: WalkDeps = {},
@@ -991,6 +1104,7 @@ export async function walkImport(
   let imported = 0;
   let skipped = 0;
   let pages = 0;
+  let merged = 0;
 
   const onPage = async (items: AniListMedia[]) => {
     const kept = items.filter(
@@ -1021,13 +1135,28 @@ export async function walkImport(
     });
     assignSeasonNumbers(folded);
     seed = folded;
-    await writeSeed(options.out, seed);
+    // An enumeration rewrites the whole file hundreds of times; at six figures
+    // that serialisation costs more than the requests it protects.
+    merged++;
+    if (merged % options.writeEvery === 0) await writeSeed(options.out, seed);
   };
 
+  const kindRows = () => seed.catalog_media.filter((row) => row.kind === options.kind).length;
   pages =
     options.source === 'anilist'
       ? await walkAniListRanking(options, client, { log, now }, onPage)
-      : await walkMalRanking(options, client, { fetchHtml, log, now }, onPage);
+      : options.source === 'anilist-all'
+        ? await walkAniListAll(
+            options,
+            client,
+            { log, now },
+            onPage,
+            () => kindRows() >= options.maxRank,
+          )
+        : await walkMalRanking(options, client, { fetchHtml, log, now }, onPage);
+
+  // A batched write leaves the tail of the walk on disk only here.
+  await writeSeed(options.out, seed);
 
   log(
     `${pages} pages: ${imported} works imported, ${skipped} skipped | ` +

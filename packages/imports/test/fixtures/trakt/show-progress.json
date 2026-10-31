@@ -1,0 +1,34 @@
+{
+  "aired": 10,
+  "completed": 6,
+  "last_watched_at": "2020-02-03T20:00:00.000Z",
+  "reset_at": null,
+  "seasons": [
+    {
+      "number": 1,
+      "title": "Season 1",
+      "aired": 7,
+      "completed": 3,
+      "episodes": [
+        { "number": 1, "completed": true, "last_watched_at": "2020-01-05T20:00:00.000Z" },
+        { "number": 2, "completed": true, "last_watched_at": "2020-01-06T20:00:00.000Z" },
+        { "number": 3, "completed": false, "last_watched_at": null },
+        { "number": 4, "completed": false, "last_watched_at": null },
+        { "number": 5, "completed": true, "last_watched_at": "2020-01-07T20:00:00.000Z" },
+        { "number": 6, "completed": false, "last_watched_at": null },
+        { "number": 7, "completed": false, "last_watched_at": null }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Season 2",
+      "aired": 3,
+      "completed": 3,
+      "episodes": [
+        { "number": 1, "completed": true, "last_watched_at": "2020-02-01T20:00:00.000Z" },
+        { "number": 2, "completed": true, "last_watched_at": "2020-02-02T20:00:00.000Z" },
+        { "number": 3, "completed": true, "last_watched_at": "2020-02-03T20:00:00.000Z" }
+      ]
+    }
+  ]
+}

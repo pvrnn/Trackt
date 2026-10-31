@@ -60,6 +60,79 @@ through `idMal_in`, 50 at a time. That is 400 requests for the whole top 10000,
 versus 10200 for the HTML scraper, and the API's 30 requests/minute is what sets
 the pace (`--delay`, default 2000 ms).
 
+### Everything AniList has: `--source anilist-all`
+
+Both walks above stop well short of the provider's catalogue, and neither can be
+pushed further:
+
+- MAL's ranking **ranks ~23,050 anime** and paginates to ~30,650 entries; past
+  the ranked set the rank column renders `–` and the parser drops the row. The
+  unranked tail is not worth having either — sampled pages at limit 24000 resolve
+  to 29 of 31 music videos, and at 30500 to 49 of 50 one-episode OVAs.
+- A sorted AniList walk stops at page 100 (`Page depth exceeds maximum allowed`),
+  i.e. 5,000 works. `pageInfo.total` is no help in sizing anything: it is capped
+  at 5,000 and reports the cap for any non-empty filter.
+
+```sh
+# every anime AniList dates, no popularity floor
+pnpm scrape:anilist --source anilist-all
+
+# the same for manga; the seed grows by two orders of magnitude over the ranking
+pnpm scrape:anilist --source anilist-all --kind manga
+```
+
+The walk tiles the namespace with **start-date year windows** (`startDate_greater`
+/ `startDate_lesser`, sorted by id) and pages each one until it answers empty.
+Every work with a start date falls in exactly one window, and no year holds more
+than 5,000 works — except in manga, where recent years overflow the depth cap, so
+a year that comes back full at page 100 is walked again a month at a time (the
+lower bound reaches back to `YYYY0099`, which puts a year-only date in January
+rather than between two windows). Works in `NOT_YET_RELEASED` carry no date at
+all, so a last pass by status collects them.
+
+Sizing, measured on a full walk (2026-10): **19,806 anime** in trackable formats
+(music videos aside) against the 16,553 the MAL ranking reaches at its ceiling,
+and **129,994 manga** in `MANGA`/`ONE_SHOT` alone — 536 requests / 18 min for
+anime, 3,960 requests / 2h12m for manga, whose recent years hold ~8,000 works
+each. Manhwa are still refused — no identity provider, so no canonical id
+(ADR-0001).
+
+### Pruning the long tail: `pnpm prune:seeds`
+
+An enumeration is not a ranking, and manga shows the difference: of those 129,994
+rows, 66,929 carry **no MAL id at all** (web manga, doujin, self-published — the
+provider indexes about 500 a week), 21,385 are one-shots, and 77% have no score.
+A catalogue that offers all of it makes search compete with works nobody has
+ever rated.
+
+```sh
+pnpm prune:seeds              # dry run: what the floor would remove
+pnpm prune:seeds --apply      # rewrite both AniList seeds, backups *.pre-prune.bak
+```
+
+The floor, applied to manga rows only (anime is untouched):
+
+- a manga row with **no MAL id** is dropped — MAL's absence is the proxy for
+  "nobody outside the provider has indexed it", and before this source existed the
+  catalogue had no way to reach it either;
+- a **one-shot** is kept only at a provider score of 60 or above, because a
+  one-chapter work with no score is indistinguishable from spam. Every other
+  manga format keeps its row whatever it scores: a chapter count is not evidence
+  of quality. `--one-shot-min-score <n>` moves the bar, `--keep-unmatched-mal`
+  switches the id rule off.
+
+Edges whose endpoint the floor removes go with it, computed across both seeds at
+once (an edge may point into the other file), so the graph stays closed and
+publishable. Measured effect: 72,732 rows and 9,498 edges removed, leaving
+**19,806 anime** and **58,402 manga** — the one-shot cut alone keeps 1,170 of
+21,385. Run it after any `--source anilist-all` walk, before `db:seed:all`.
+
+`--max-rank` caps the number of works this source imports (default: no cap), and
+`--write-every <n>` writes the seed every n pages instead of after each one: at six
+figures the whole file is 150 MB, and re-serialising it per page costs more than
+the requests it protects. The trade-off is that a crash loses up to n pages of
+progress instead of one.
+
 Two things this does that the MAL path cannot:
 
 - **Relation targets are rows.** The catalog's edge table has foreign keys on
