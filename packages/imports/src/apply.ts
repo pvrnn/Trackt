@@ -1,6 +1,14 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { rating, setProgressUpTo, userMedia, type Db } from '@trackt/db';
+import { and, eq, isNull, sql } from 'drizzle-orm';
+import {
+  importMatch,
+  rating,
+  setProgressUpTo,
+  userMedia,
+  type Db,
+  type ImportMatchCandidate,
+} from '@trackt/db';
 import type { ImportPlan, ImportPlanRow } from './plan.js';
+import { entryKey } from './resolve.js';
 import type { ImportSource, ImportWarning } from './types.js';
 
 export interface ApplyOptions {
@@ -31,6 +39,8 @@ export interface ImportReport {
   ratings: number;
   /** Works pinned as favourites (never a removal: a favourite is the viewer's). */
   favourites: number;
+  /** Rows the score could not settle, stored for a picker (see `import_match`). */
+  uncertain: number;
   warnings: ImportWarning[];
   /** Provider rows this instance's catalog does not carry, skipped. */
   unmatched: { externalId: string; title: string }[];
@@ -146,6 +156,7 @@ export async function applyImportPlan(
     favourites: 0,
     warnings: plan.warnings,
     unmatched: [],
+    uncertain: 0,
   };
 
   let done = 0;
@@ -169,5 +180,64 @@ export async function applyImportPlan(
     options.onProgress?.(done, plan.rows.length);
   }
 
+  report.uncertain = await recordUncertainMatches(db, userId, plan);
   return report;
+}
+
+/**
+ * Keep the rows the score could not settle, for a picker to ask about.
+ *
+ * The unresolved set is replaced, not appended to: a re-run recomputes the plan,
+ * so a shortlist from a previous run is stale by definition. Rows the viewer has
+ * already answered are left alone (`resolved_at`), which is also why the insert
+ * is `onConflictDoNothing` — a conflict here means "already decided", and the
+ * answer outranks a later run's doubt.
+ */
+export async function recordUncertainMatches(
+  db: Db,
+  userId: string,
+  plan: ImportPlan,
+): Promise<number> {
+  await db
+    .delete(importMatch)
+    .where(
+      and(
+        eq(importMatch.userId, userId),
+        eq(importMatch.source, plan.source),
+        isNull(importMatch.resolvedAt),
+      ),
+    );
+
+  const rows = [];
+  for (const row of plan.rows) {
+    if (row.target !== null || row.uncertain === null) continue;
+    const [best] = row.uncertain.candidates;
+    if (!best) continue;
+    rows.push({
+      userId,
+      source: plan.source,
+      externalId: row.entry.externalId,
+      entryKey: entryKey(row.entry),
+      kind: row.entry.kind,
+      title: row.entry.title,
+      year: row.entry.year,
+      seasonNumber: row.entry.seasonNumber,
+      status: row.entry.status,
+      outcome: row.uncertain.outcome,
+      bestScore: best.score,
+      candidates: row.uncertain.candidates as ImportMatchCandidate[],
+      entry: row.entry as unknown as Record<string, unknown>,
+    });
+  }
+  if (rows.length === 0) return 0;
+
+  // Postgres caps a statement's parameters; a shortlist set is small, but the
+  // chunk keeps a pathological import from failing at the last step.
+  for (let index = 0; index < rows.length; index += 100) {
+    await db
+      .insert(importMatch)
+      .values(rows.slice(index, index + 100))
+      .onConflictDoNothing();
+  }
+  return rows.length;
 }

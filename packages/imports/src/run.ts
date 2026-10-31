@@ -8,6 +8,7 @@ import { fetchMalEntries } from './mal/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
 import { entryKey, findLoggedMediaIds, resolveImportEntries } from './resolve.js';
 import { fetchTraktEntries } from './trakt/adapter.js';
+import { mergeUncertain } from './uncertain.js';
 import type {
   FetchedEntries,
   FetchEntriesOptions,
@@ -93,6 +94,7 @@ export async function planImport(db: Db, options: RunImportOptions): Promise<Imp
   const local = await resolveImportEntries(db, fetched.entries);
   const targets = local.targets;
   const warnings = [...local.warnings];
+  const uncertain = new Map(local.uncertain);
 
   if (options.catalogUrl) {
     const missing = fetched.entries.filter((entry) => !targets.has(entryKey(entry)));
@@ -108,6 +110,11 @@ export async function planImport(db: Db, options: RunImportOptions): Promise<Imp
     });
     for (const [key, target] of catalog.targets) targets.set(key, target);
     warnings.push(...catalog.warnings);
+    // Both resolvers score on the same scale; the shortlist is the union.
+    for (const [key, matches] of catalog.uncertain) {
+      const merged = mergeUncertain(uncertain.get(key), matches);
+      if (merged) uncertain.set(key, merged);
+    }
   }
 
   const loggedMediaIds = await findLoggedMediaIds(
@@ -124,6 +131,7 @@ export async function planImport(db: Db, options: RunImportOptions): Promise<Imp
     loggedMediaIds,
     entryWarnings: fetched.entryWarnings,
     warnings: [...warnings, ...fetched.warnings],
+    uncertain,
   });
 }
 

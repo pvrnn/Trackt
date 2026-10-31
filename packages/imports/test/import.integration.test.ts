@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createDb,
   favorite,
+  importMatch,
   media,
   mediaPart,
   progress,
@@ -16,7 +17,10 @@ import {
   type Db,
 } from '@trackt/db';
 import { canonicalMediaId, canonicalSeriesSeasonId } from '@trackt/shared';
+import { recordUncertainMatches } from '../src/apply.js';
 import type { FetchLike } from '../src/http/fetch.js';
+import { MATCH_THRESHOLD } from '../src/match.js';
+import { buildImportPlan } from '../src/plan.js';
 import { replayImportReport } from '../src/replay.js';
 import type { PlanReport, PlanReportRow } from '../src/report.js';
 import { entryKey, resolveImportEntries } from '../src/resolve.js';
@@ -534,6 +538,310 @@ describe.runIf(available)('account import (postgres)', () => {
       expect(warnings).toEqual([]);
     });
 
+    /**
+     * The two-2023-films case, end to end: `/media/cobweb-2023` is Kim Jee-woon's
+     * (KR) and the second row is Samuel Bodin's (US). A provider that states no
+     * country leaves the call a coin flip; one that does state it decides.
+     */
+    it('breaks a same-title tie on the provider’s country, and only then', async () => {
+      const ids = ['00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000b2'];
+      await db
+        .insert(media)
+        .values([
+          {
+            id: ids[0]!,
+            kind: 'movie' as const,
+            title: 'Cobweb Tie',
+            slug: 'cobweb-tie-kr',
+            year: 2023,
+            externalIds: {},
+            metadata: { originCountry: ['KR'] },
+          },
+          {
+            id: ids[1]!,
+            kind: 'movie' as const,
+            title: 'Cobweb Tie',
+            slug: 'cobweb-tie-us',
+            year: 2023,
+            externalIds: {},
+            metadata: { originCountry: ['US'] },
+          },
+        ])
+        .onConflictDoNothing();
+
+      try {
+        const withFallback: Record<ImportSource, ImportSourceDefinition> = {
+          ...IMPORT_SOURCES,
+          letterboxd: { ...IMPORT_SOURCES.letterboxd, titleFallback: true },
+        };
+        const korean = entry({
+          source: 'letterboxd',
+          kind: 'movie',
+          externalId: 'cobweb-tie-kr',
+          title: 'Cobweb Tie',
+          year: 2023,
+          originCountry: ['South Korea'],
+          externalIds: {},
+        });
+        const silent = entry({
+          source: 'letterboxd',
+          kind: 'movie',
+          externalId: 'cobweb-tie-unknown',
+          title: 'Cobweb Tie',
+          year: 2023,
+          externalIds: {},
+        });
+
+        const { targets, warnings, uncertain } = await resolveImportEntries(
+          db,
+          [korean, silent],
+          withFallback,
+        );
+
+        expect(targets.get(entryKey(korean))).toMatchObject({
+          id: ids[0]!,
+          matchedBy: 'title',
+          matchScore: 1,
+        });
+        // No country on either side is not evidence: the tie stands.
+        expect(targets.has(entryKey(silent))).toBe(false);
+        expect(warnings.map((w) => w.code)).toEqual(['ambiguous-title-match']);
+
+        // …and both rows are kept, because only the viewer knows which one.
+        const shortlist = uncertain.get(entryKey(silent));
+        expect(shortlist?.outcome).toBe('tie');
+        expect(shortlist?.candidates.map((candidate) => candidate.id).sort()).toEqual(
+          [...ids].sort(),
+        );
+        expect(shortlist?.candidates.every((candidate) => candidate.score > 0.9)).toBe(true);
+        expect(shortlist?.candidates.every((candidate) => candidate.origin === 'local')).toBe(true);
+      } finally {
+        await db.delete(media).where(inArray(media.id, ids));
+      }
+    });
+
+    /**
+     * A word off in a long title is evidence, not noise: 7 of 8 words agree, so
+     * the row matches — and the warning is what a person checks afterwards.
+     */
+    it('matches a title one word off when the title is long, and flags it', async () => {
+      const id = '00000000-0000-4000-8000-0000000000c1';
+      await db
+        .insert(media)
+        .values({
+          id,
+          kind: 'movie' as const,
+          title: 'A Very Long Title About Nothing At All',
+          slug: 'a-very-long-title-about-nothing-at-all',
+          year: 2024,
+          externalIds: {},
+        })
+        .onConflictDoNothing();
+
+      try {
+        const withFallback: Record<ImportSource, ImportSourceDefinition> = {
+          ...IMPORT_SOURCES,
+          letterboxd: { ...IMPORT_SOURCES.letterboxd, titleFallback: true },
+        };
+        const near = entry({
+          source: 'letterboxd',
+          kind: 'movie',
+          externalId: 'a-very-long-title',
+          title: 'A Very Long Title About Something At All',
+          year: 2024,
+          externalIds: {},
+        });
+
+        const { targets, warnings } = await resolveImportEntries(db, [near], withFallback);
+
+        const target = targets.get(entryKey(near));
+        expect(target).toMatchObject({ id, matchedBy: 'title' });
+        expect(target?.matchScore).toBeGreaterThan(0.8);
+        expect(target?.matchScore).toBeLessThan(1);
+        expect(warnings.map((w) => w.code)).toEqual(['fuzzy-title-match']);
+      } finally {
+        await db.delete(media).where(inArray(media.id, [id]));
+      }
+    });
+
+    /**
+     * The real case: Letterboxd dates Good Manners 2017, TMDB (and so this
+     * instance) 2018. A year is a release convention, not identity, so one year
+     * apart matches; two years apart is a near miss the report keeps.
+     */
+    it('matches across a one-year disagreement, and refuses two', async () => {
+      const id = '00000000-0000-4000-8000-0000000000d1';
+      await db
+        .insert(media)
+        .values({
+          id,
+          kind: 'movie' as const,
+          title: 'Good Manners Year',
+          slug: 'good-manners-year',
+          year: 2018,
+          externalIds: {},
+        })
+        .onConflictDoNothing();
+
+      try {
+        const withFallback: Record<ImportSource, ImportSourceDefinition> = {
+          ...IMPORT_SOURCES,
+          letterboxd: { ...IMPORT_SOURCES.letterboxd, titleFallback: true },
+        };
+        const one = entry({
+          source: 'letterboxd',
+          kind: 'movie',
+          externalId: 'good-manners-year',
+          title: 'Good Manners Year',
+          year: 2017,
+          externalIds: {},
+        });
+        const two = entry({
+          source: 'letterboxd',
+          kind: 'movie',
+          externalId: 'good-manners-year-2',
+          title: 'Good Manners Year',
+          year: 2016,
+          externalIds: {},
+        });
+
+        const { targets, uncertain, warnings } = await resolveImportEntries(
+          db,
+          [one, two],
+          withFallback,
+        );
+
+        const matched = targets.get(entryKey(one));
+        expect(matched).toMatchObject({ id, matchedBy: 'title' });
+        // ~0.83: the year costs the confidence, the identical title carries it.
+        expect(matched?.matchScore).toBeGreaterThan(MATCH_THRESHOLD);
+        expect(matched?.matchScore).toBeLessThan(0.9);
+        // An identical title is not a "fuzzy" one, whatever the year says.
+        expect(warnings).toEqual([]);
+
+        expect(targets.has(entryKey(two))).toBe(false);
+        const shortlist = uncertain.get(entryKey(two));
+        expect(shortlist?.outcome).toBe('below-threshold');
+        expect(shortlist?.candidates[0]?.score).toBeLessThan(MATCH_THRESHOLD);
+        expect(shortlist?.candidates[0]?.score).toBeGreaterThan(0.6);
+        expect(shortlist?.candidates[0]?.id).toBe(id);
+      } finally {
+        await db.delete(media).where(inArray(media.id, [id]));
+      }
+    });
+
+    it('stores the shortlist a picker needs, and clears it on the next run', async () => {
+      const id = '00000000-0000-4000-8000-0000000000e1';
+      await db
+        .insert(media)
+        .values({
+          id,
+          kind: 'movie' as const,
+          title: 'Almost Chosen',
+          slug: 'almost-chosen',
+          year: 2018,
+          externalIds: {},
+        })
+        .onConflictDoNothing();
+
+      try {
+        const near = entry({
+          source: 'letterboxd',
+          kind: 'movie',
+          externalId: 'almost-chosen',
+          title: 'Almost Chosen Film',
+          year: 2018,
+          externalIds: {},
+        });
+        const withFallback: Record<ImportSource, ImportSourceDefinition> = {
+          ...IMPORT_SOURCES,
+          letterboxd: { ...IMPORT_SOURCES.letterboxd, titleFallback: true },
+        };
+        const { uncertain } = await resolveImportEntries(db, [near], withFallback);
+
+        const plan = buildImportPlan({
+          source: 'letterboxd',
+          profile: 'someone',
+          entries: [near],
+          targets: new Map(),
+          loggedMediaIds: new Set(),
+          uncertain,
+        });
+
+        expect(await recordUncertainMatches(db, userId, plan)).toBe(1);
+        const [stored] = await db
+          .select()
+          .from(importMatch)
+          .where(and(eq(importMatch.userId, userId), eq(importMatch.entryKey, entryKey(near))));
+        expect(stored).toMatchObject({
+          source: 'letterboxd',
+          externalId: 'almost-chosen',
+          outcome: 'below-threshold',
+          title: 'Almost Chosen Film',
+          year: 2018,
+        });
+        expect(stored!.bestScore).toBeGreaterThan(0.5);
+        expect(stored!.bestScore).toBeLessThan(MATCH_THRESHOLD);
+        expect(stored!.candidates[0]).toMatchObject({ id, origin: 'local' });
+        // The entry rides along, so answering the pick later needs no provider.
+        expect(stored!.entry).toMatchObject({ externalId: 'almost-chosen', status: 'in_progress' });
+
+        // A run that resolves everything replaces the set instead of appending.
+        const clean = buildImportPlan({
+          source: 'letterboxd',
+          profile: 'someone',
+          entries: [near],
+          targets: new Map([
+            [
+              entryKey(near),
+              {
+                id,
+                kind: 'movie' as const,
+                title: 'Almost Chosen',
+                partCount: null,
+                seasonNumber: null,
+                matchedBy: 'title' as const,
+                matchScore: 1,
+              },
+            ],
+          ]),
+          loggedMediaIds: new Set(),
+        });
+        expect(await recordUncertainMatches(db, userId, clean)).toBe(0);
+        expect(
+          await db
+            .select({ id: importMatch.id })
+            .from(importMatch)
+            .where(and(eq(importMatch.userId, userId), eq(importMatch.source, 'letterboxd'))),
+        ).toEqual([]);
+      } finally {
+        await db.delete(importMatch).where(eq(importMatch.userId, userId));
+        await db.delete(media).where(inArray(media.id, [id]));
+      }
+    });
+
+    it('keeps the closest rejected row, so “absent” and “nearly” differ', async () => {
+      const withFallback: Record<ImportSource, ImportSourceDefinition> = {
+        ...IMPORT_SOURCES,
+        anilist: { ...IMPORT_SOURCES.anilist, titleFallback: true },
+      };
+      const grey = entry({
+        externalId: '424246',
+        title: 'Frieren Beyond Journeys',
+        year: 2023,
+        externalIds: { anilist: 424246 },
+      });
+
+      const { targets, uncertain } = await resolveImportEntries(db, [grey], withFallback);
+
+      expect(targets.has(entryKey(grey))).toBe(false);
+      const shortlist = uncertain.get(entryKey(grey));
+      expect(shortlist).toBeDefined();
+      expect(shortlist!.candidates[0]!.score).toBeLessThan(MATCH_THRESHOLD);
+      expect(shortlist!.candidates[0]!.title).toContain('Frieren');
+      expect(shortlist!.candidates[0]!.origin).toBe('local');
+    });
+
     it('refuses a title two local rows answer to', async () => {
       const twins = [
         '00000000-0000-4000-8000-0000000000a1',
@@ -755,6 +1063,7 @@ describe.runIf(available)('account import (postgres)', () => {
         favourites: 0,
         warnings: 0,
       },
+      warnings: [],
       rows,
     });
 
@@ -774,6 +1083,10 @@ describe.runIf(available)('account import (postgres)', () => {
       favourite: false,
       matched: false,
       matchedBy: null,
+      matchScore: null,
+      closestScore: null,
+      closestTitle: null,
+      originCountry: null,
       mediaTitle: null,
       warnings: [],
       ...overrides,
@@ -870,6 +1183,7 @@ describe.runIf(available)('account import (postgres)', () => {
         profile: 'someone',
         generatedAt: NOW.toISOString(),
         applied: false,
+        warnings: [],
         summary: {
           total: 1,
           matched: 0,
@@ -897,6 +1211,10 @@ describe.runIf(available)('account import (postgres)', () => {
             favourite: true,
             matched: false,
             matchedBy: null,
+            matchScore: null,
+            closestScore: null,
+            closestTitle: null,
+            originCountry: null,
             mediaTitle: null,
             warnings: [],
           },

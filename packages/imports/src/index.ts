@@ -43,6 +43,9 @@ export {
   ImportSourceSchema,
   ImportWarningSchema,
   MAX_JOB_UNMATCHED,
+  UncertainCandidateSchema,
+  UncertainMatchListSchema,
+  UncertainMatchSchema,
   credentialsFromEnv,
   importJobId,
   toJobResult,
@@ -53,6 +56,7 @@ export {
   type ImportPlanSummary,
   type ImportRequest,
   type ImportUnmatchedEntry,
+  type UncertainMatchList,
 } from './job.js';
 export {
   mapLetterboxdEntry,
@@ -94,6 +98,12 @@ export {
 } from './resolve.js';
 export { planImport, runImport, type ImportRun, type RunImportOptions } from './run.js';
 export { IMPORT_SOURCES, type ImportSourceDefinition } from './sources.js';
+export {
+  MAX_UNCERTAIN_CANDIDATES,
+  UNCERTAIN_FLOOR,
+  type UncertainCandidate,
+  type UncertainMatch,
+} from './uncertain.js';
 export { mergeTraktRatings } from './trakt/adapter.js';
 export { createTraktClient, type TraktClient, type TraktClientOptions } from './trakt/client.js';
 export {

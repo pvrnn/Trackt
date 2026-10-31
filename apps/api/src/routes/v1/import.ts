@@ -1,5 +1,7 @@
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { importMatch } from '@trackt/db';
 import { ApiErrorSchema, MediaKindSchema } from '@trackt/shared';
 import {
   IMPORT_SOURCES,
@@ -7,6 +9,7 @@ import {
   ImportJobDataSchema,
   ImportJobResultSchema,
   ImportRequestSchema,
+  UncertainMatchListSchema,
   credentialsFromEnv,
   importJobId,
   type ImportJobData,
@@ -203,6 +206,59 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
       return reply
         .status(202)
         .send({ jobId: job.id ?? jobId, state: normalizeState(await job.getState()) });
+    },
+  );
+
+  /**
+   * What the imports could not settle: a work that scored in the uncertain band,
+   * or several rows that scored alike (see `import_match`). The pipeline stores
+   * them; a client asks the viewer which row it is and writes the log from the
+   * `entry` the row carries.
+   */
+  app.get(
+    '/me/import/uncertain',
+    {
+      schema: {
+        tags: ['imports'],
+        response: {
+          200: UncertainMatchListSchema,
+          401: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const user = await getSessionUser(app, request);
+      if (!user) return reply.status(401).send({ error: 'authentication required' });
+
+      const rows = await db
+        .select()
+        .from(importMatch)
+        .where(and(eq(importMatch.userId, user.id), isNull(importMatch.resolvedAt)))
+        // Closest call first: that is the one worth answering.
+        .orderBy(desc(importMatch.bestScore), desc(importMatch.createdAt))
+        .limit(200);
+
+      return {
+        matches: rows.map((row) => ({
+          id: row.id,
+          // The column is text (a new source must not need a migration); the
+          // contract is the registry's closed set.
+          source: row.source as ImportSource,
+          externalId: row.externalId,
+          kind: row.kind,
+          title: row.title,
+          year: row.year,
+          seasonNumber: row.seasonNumber,
+          status: row.status,
+          outcome: row.outcome,
+          bestScore: row.bestScore,
+          candidates: row.candidates,
+          createdAt: row.createdAt.toISOString(),
+        })),
+      };
     },
   );
 

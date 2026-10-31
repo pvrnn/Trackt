@@ -132,6 +132,7 @@ export async function fetchLetterboxdEntries(
           const links = await client.fetchFilmLinks(row.slug);
           row.tmdb = links.tmdb;
           row.imdb = links.imdb;
+          row.countries = links.countries;
         } catch {
           // A film page that refuses is not a failed import: the resolver's
           // title fallback still has a title and a year.

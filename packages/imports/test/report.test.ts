@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildPlanReport, planReportCsv } from '../src/report.js';
-import { buildImportPlan } from '../src/plan.js';
-import type { ImportEntry } from '../src/types.js';
+import { buildImportPlan, type BuildPlanInput } from '../src/plan.js';
+import { warning, type ImportEntry } from '../src/types.js';
 import type { ImportTarget } from '../src/resolve.js';
 
 /**
@@ -40,9 +40,10 @@ const target: ImportTarget = {
   partCount: null,
   seasonNumber: null,
   matchedBy: 'title',
+  matchScore: 1,
 };
 
-function plan() {
+function plan(overrides: Partial<BuildPlanInput> = {}) {
   return buildImportPlan({
     source: 'letterboxd',
     profile: 'someone',
@@ -52,6 +53,7 @@ function plan() {
     ],
     targets: new Map([['letterboxd:movie:solaris-1972', target]]),
     loggedMediaIds: new Set(),
+    ...overrides,
   });
 }
 
@@ -67,6 +69,35 @@ describe('plan report', () => {
     });
     expect(report.rows[1]).toMatchObject({ matched: false, matchedBy: null, mediaTitle: null });
     expect(report).toMatchObject({ source: 'letterboxd', profile: 'someone', applied: false });
+  });
+
+  it('keeps the plan’s warnings, so a report can say why a row is unmatched', () => {
+    const report = buildPlanReport(
+      plan({
+        warnings: [
+          warning(
+            'ambiguous-title-match',
+            { externalId: 'cobweb-2023-1', title: 'Cobweb' },
+            '"Cobweb" (2023) matches two rows alike — left unmatched',
+          ),
+        ],
+      }),
+      { now: NOW },
+    );
+    expect(report.warnings).toEqual([
+      {
+        code: 'ambiguous-title-match',
+        message: '"Cobweb" (2023) matches two rows alike — left unmatched',
+      },
+    ]);
+  });
+
+  it('records how close a guessed match was, in the file and in the CSV', () => {
+    const report = buildPlanReport(plan(), { now: NOW });
+    expect(report.rows[0]).toMatchObject({ matchedBy: 'title', matchScore: 1 });
+    expect(report.rows[1]?.matchScore).toBeNull();
+    expect(planReportCsv(report).trimEnd().split('\n')[0]).toContain('match_score');
+    expect(planReportCsv(report).split('\n')[1]).toContain('1.00');
   });
 
   it('writes a CSV whose commas and quotes stay inside their cell', () => {

@@ -24,6 +24,10 @@ const row: PlanReportRow = {
   favourite: true,
   matched: false,
   matchedBy: null,
+  matchScore: null,
+  closestScore: null,
+  closestTitle: null,
+  originCountry: null,
   mediaTitle: null,
   warnings: [{ code: 'partial-date', message: 'start date "1970" is not a full day' }],
 };

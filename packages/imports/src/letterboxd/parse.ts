@@ -35,6 +35,12 @@ export interface DiaryItem {
 export interface FilmLinks {
   tmdb: string | null;
   imdb: string | null;
+  /**
+   * Where the film is from, as Letterboxd words it ("South Korea", "United
+   * States"). Names, not ISO codes: the match compares them to the catalog's
+   * codes, which is the only place the two vocabularies have to meet.
+   */
+  countries: string[];
 }
 
 const MONTHS: Record<string, number> = {
@@ -167,14 +173,25 @@ export function parseDiary(html: string): DiaryItem[] {
 }
 
 /**
- * The TMDB and IMDb ids a film page links to. This is the only way in: the
- * `/json/` endpoint is behind Cloudflare, the page is not.
+ * The TMDB and IMDb ids a film page links to, plus its countries. This is the
+ * only way in: the `/json/` endpoint is behind Cloudflare, the page is not.
  */
 export function parseFilmLinks(html: string): FilmLinks {
   return {
     tmdb: /themoviedb\.org\/movie\/(\d+)/.exec(html)?.[1] ?? null,
     imdb: /imdb\.com\/title\/(tt\d+)/.exec(html)?.[1] ?? null,
+    countries: parseCountries(html),
   };
+}
+
+/** `href="/films/country/south-korea/"` links carry the printable country name. */
+function parseCountries(html: string): string[] {
+  const found = new Set<string>();
+  for (const match of html.matchAll(/href="\/films\/country\/[^"/]+\/"[^>]*>([^<]*)</g)) {
+    const name = (match[1] ?? '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+    if (name) found.add(name);
+  }
+  return [...found];
 }
 
 /** Whether the page's pagination has an "Older" link. */

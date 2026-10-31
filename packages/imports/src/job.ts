@@ -138,6 +138,8 @@ export const ImportReportSchema = z.object({
   withProgress: z.number(),
   ratings: z.number(),
   favourites: z.number(),
+  /** Rows stored for a picker (see `import_match`). */
+  uncertain: z.number(),
   warnings: z.array(ImportWarningSchema),
   unmatched: z.array(z.object({ externalId: z.string(), title: z.string() })),
 });
@@ -164,6 +166,37 @@ export const ImportJobResultSchema = z.object({
     truncated: z.boolean(),
   }),
 });
+
+/** Rows an import could not settle, as a picker reads them (see `import_match`). */
+export const UncertainCandidateSchema = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  year: z.number().int().nullable(),
+  score: z.number().min(0).max(1),
+  origin: z.enum(['local', 'catalog']),
+});
+
+export const UncertainMatchSchema = z.object({
+  id: z.uuid(),
+  source: ImportSourceSchema,
+  externalId: z.string(),
+  kind: z.string(),
+  title: z.string(),
+  year: z.number().int().nullable(),
+  seasonNumber: z.number().int().nullable(),
+  status: z.string(),
+  /** `tie` when several rows scored alike, `below-threshold` when one was close. */
+  outcome: z.enum(['tie', 'below-threshold']),
+  bestScore: z.number().min(0).max(1),
+  candidates: z.array(UncertainCandidateSchema),
+  createdAt: z.iso.datetime(),
+});
+
+export const UncertainMatchListSchema = z.object({
+  matches: z.array(UncertainMatchSchema),
+});
+
+export type UncertainMatchList = z.infer<typeof UncertainMatchListSchema>;
 
 /** The env var each credential field is filled from. */
 const CREDENTIAL_FIELDS = {

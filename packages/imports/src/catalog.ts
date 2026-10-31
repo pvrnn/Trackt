@@ -1,5 +1,7 @@
 import { buildProviderMediaRow, insertNewProviderMedia, type Db } from '@trackt/db';
 import { fetchCatalogSearch, type CatalogSearchHit } from '@trackt/shared';
+import { MAX_YEAR_GAP, chooseMatch, countriesOf, rankMatches } from './match.js';
+import { uncertainFrom, type UncertainMatch } from './uncertain.js';
 import { entryKey, type ImportTarget } from './resolve.js';
 import { normaliseTitle } from './titles.js';
 import { warning, type ImportEntry, type ImportWarning } from './types.js';
@@ -47,6 +49,8 @@ export interface CatalogLookupResult {
   /** Entries the catalog carries, as plan targets. */
   targets: Map<string, ImportTarget>;
   warnings: ImportWarning[];
+  /** Per entry the catalog could not settle, its shortlist of hits. */
+  uncertain: Map<string, UncertainMatch>;
   /** Entries asked about. */
   looked: number;
   /** Entries whose lookup failed (rate limit, outage, malformed answer). */
@@ -58,6 +62,8 @@ export interface CatalogLookupResult {
 export interface CatalogMatch {
   entry: ImportEntry;
   hit: CatalogSearchHit;
+  /** 0–1: how close the title call was, carried into the report. */
+  matchScore: number;
 }
 
 const DEFAULTS = {
@@ -73,12 +79,20 @@ function isEligible(entry: ImportEntry): boolean {
   return entry.year !== null && normaliseTitle(entry.title).length > 0;
 }
 
-function hitMatches(entry: ImportEntry, hit: CatalogSearchHit): boolean {
-  if (hit.kind !== entry.kind) return false;
-  if (entry.seasonNumber !== null && hit.seasonNumber !== entry.seasonNumber) return false;
-  if (hit.year !== entry.year) return false;
-  const wanted = normaliseTitle(entry.title);
-  return [hit.title, ...hit.synonyms].some((title) => normaliseTitle(title) === wanted);
+/**
+ * Hits the score can even consider: same kind, same season when the source
+ * names one, and within two years — providers date a film by their own release,
+ * so the year is scored rather than required.
+ */
+function eligibleHits(entry: ImportEntry, hits: readonly CatalogSearchHit[]): CatalogSearchHit[] {
+  return hits.filter(
+    (hit) =>
+      hit.kind === entry.kind &&
+      (entry.seasonNumber === null || hit.seasonNumber === entry.seasonNumber) &&
+      hit.year !== null &&
+      entry.year !== null &&
+      Math.abs(hit.year - entry.year) <= MAX_YEAR_GAP,
+  );
 }
 
 /** `fetchCatalogSearch` throws with the status in its message; 429 is the one worth retrying. */
@@ -113,12 +127,14 @@ async function mapLimit<T, R>(
 export interface CatalogSearchOutcome {
   matches: CatalogMatch[];
   warnings: ImportWarning[];
+  /** Per entry the score could not settle, the catalog rows that came close. */
+  uncertain: Map<string, UncertainMatch>;
   looked: number;
   failed: number;
 }
 
 /**
- * Ask the catalog about each entry and keep the unique title+year answers. No
+ * Ask the catalog about each entry and keep the answers the score accepted. No
  * database, no writes — which is what makes a preview a preview.
  */
 export async function findCatalogMatches(
@@ -159,7 +175,7 @@ export async function findCatalogMatches(
           timeoutMs,
           fetchImpl,
         });
-        return results.filter((hit) => hitMatches(entry, hit));
+        return eligibleHits(entry, results);
       } catch (error) {
         if (isRateLimited(error) && attempt < maxAttempts) {
           await sleep(1000 * attempt * attempt);
@@ -172,21 +188,55 @@ export async function findCatalogMatches(
   });
 
   const matches: CatalogMatch[] = [];
+  const uncertain = new Map<string, UncertainMatch>();
   for (const [index, hits] of answers.entries()) {
     const entry = candidates[index]!;
-    const [hit] = hits;
-    if (!hit) continue;
-    if (hits.length > 1) {
+    const subject = {
+      title: entry.title,
+      year: entry.year,
+      originCountry: entry.originCountry,
+    };
+    const ranked = hits.map((hit) => ({
+      hit,
+      id: hit.id,
+      title: hit.title,
+      year: hit.year,
+      synonyms: hit.synonyms,
+      // The slim contract forwards the provider metadata verbatim, so a TMDB
+      // movie carries its ISO-3166 codes here too.
+      originCountry: countriesOf(hit.metadata?.['originCountry']),
+    }));
+    const decision = rankMatches(subject, ranked);
+    const decided = chooseMatch(subject, ranked);
+    if (!decided) {
+      const shortlist = uncertainFrom(decision, 'catalog', false);
+      if (shortlist) uncertain.set(entryKey(entry), shortlist);
+      continue;
+    }
+    if (decided.ambiguous) {
+      const shortlist = uncertainFrom(decision, 'catalog', true);
+      if (shortlist) uncertain.set(entryKey(entry), shortlist);
+      const [first, second] = decided.ranked;
       warnings.push(
         warning(
           'ambiguous-title-match',
           { externalId: entry.externalId, title: entry.title },
-          `the catalog carries ${hits.length} works titled "${entry.title}" (${entry.year}) — left unmatched rather than guessed`,
+          `the catalog carries "${first!.candidate.title}" and "${second!.candidate.title}" for "${entry.title}" (${entry.year}) alike — left unmatched rather than guessed`,
         ),
       );
       continue;
     }
-    matches.push({ entry, hit });
+    const { candidate, score } = decided.best;
+    matches.push({ entry, hit: candidate.hit, matchScore: score.score });
+    if (score.title < 1) {
+      warnings.push(
+        warning(
+          'fuzzy-title-match',
+          { externalId: entry.externalId, title: entry.title },
+          `"${entry.title}" (${entry.year}) matched the catalog's "${candidate.title}" at ${Math.round(score.score * 100)}% on title — worth a glance`,
+        ),
+      );
+    }
   }
 
   if (failed > 0) {
@@ -199,7 +249,7 @@ export async function findCatalogMatches(
     );
   }
 
-  return { matches, warnings, looked: candidates.length, failed };
+  return { matches, warnings, uncertain, looked: candidates.length, failed };
 }
 
 export async function lookupCatalog(
@@ -207,15 +257,19 @@ export async function lookupCatalog(
   entries: ImportEntry[],
   options: CatalogLookupOptions,
 ): Promise<CatalogLookupResult> {
-  const { matches, warnings, looked, failed } = await findCatalogMatches(entries, options);
+  const { matches, warnings, uncertain, looked, failed } = await findCatalogMatches(
+    entries,
+    options,
+  );
   const targets = new Map<string, ImportTarget>();
 
-  if (matches.length === 0) return { targets, warnings, looked, failed, found: 0 };
+  if (matches.length === 0) return { targets, warnings, uncertain, looked, failed, found: 0 };
 
   if (!options.materialize) {
     // A preview must not write, but it must still say what the run would bring in.
-    for (const { entry, hit } of matches) targets.set(entryKey(entry), targetFrom(hit, hit.id));
-    return { targets, warnings, looked, failed, found: targets.size };
+    for (const { entry, hit, matchScore } of matches)
+      targets.set(entryKey(entry), targetFrom(hit, hit.id, matchScore));
+    return { targets, warnings, uncertain, looked, failed, found: targets.size };
   }
 
   const persisted = await insertNewProviderMedia(
@@ -224,18 +278,18 @@ export async function lookupCatalog(
   );
   const byId = new Map(persisted.map((row) => [row.id, row]));
 
-  for (const { entry, hit } of matches) {
+  for (const { entry, hit, matchScore } of matches) {
     // A row the instance already carried under another slug comes back by id;
     // one missing from the answer was skipped by the insert, so it is not ours.
     const row = byId.get(hit.id);
     if (!row) continue;
-    targets.set(entryKey(entry), targetFrom(hit, row.id));
+    targets.set(entryKey(entry), targetFrom(hit, row.id, matchScore));
   }
 
-  return { targets, warnings, looked, failed, found: targets.size };
+  return { targets, warnings, uncertain, looked, failed, found: targets.size };
 }
 
-function targetFrom(hit: CatalogSearchHit, id: string): ImportTarget {
+function targetFrom(hit: CatalogSearchHit, id: string, matchScore: number): ImportTarget {
   return {
     id,
     kind: hit.kind,
@@ -243,5 +297,6 @@ function targetFrom(hit: CatalogSearchHit, id: string): ImportTarget {
     partCount: hit.partCount,
     seasonNumber: hit.seasonNumber,
     matchedBy: 'catalog',
+    matchScore,
   };
 }

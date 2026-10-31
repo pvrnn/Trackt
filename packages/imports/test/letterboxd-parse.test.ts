@@ -118,11 +118,28 @@ describe('parseFilmLinks', () => {
     expect(parseFilmLinks(fixture('film-page.html'))).toEqual({
       tmdb: '791523',
       imdb: 'tt2056785',
+      countries: [],
     });
   });
 
   it('reports a missing link as null', () => {
-    expect(parseFilmLinks('<html><body></body></html>')).toEqual({ tmdb: null, imdb: null });
+    expect(parseFilmLinks('<html><body></body></html>')).toEqual({
+      tmdb: null,
+      imdb: null,
+      countries: [],
+    });
+  });
+
+  // The match compares these names to the catalog's ISO codes, so they are kept
+  // as printed rather than guessed at here.
+  it('reads the countries the details panel links to', () => {
+    const html =
+      '<div class="text-sluglist">' +
+      '<a href="/films/country/south-korea/" class="text-slug"> South Korea </a>' +
+      '<a href="/films/country/japan/" class="text-slug"> Japan </a>' +
+      '<a href="/films/country/south-korea/" class="text-slug"> South Korea </a>' +
+      '</div>';
+    expect(parseFilmLinks(html).countries).toEqual(['South Korea', 'Japan']);
   });
 });
 

@@ -138,6 +138,7 @@ describe('createLetterboxdClient', () => {
     expect(await createLetterboxdClient({ fetcher }).fetchFilmLinks('wildwood-2026')).toEqual({
       tmdb: '791523',
       imdb: 'tt2056785',
+      countries: [],
     });
   });
 

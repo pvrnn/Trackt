@@ -84,6 +84,7 @@ const result: ImportJobResult = {
     withProgress: 1,
     ratings: 0,
     favourites: 0,
+    uncertain: 0,
     warnings: [],
     unmatched: [],
   },

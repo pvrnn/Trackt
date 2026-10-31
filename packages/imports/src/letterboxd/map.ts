@@ -30,6 +30,8 @@ export interface LetterboxdRawEntry {
   /** Harvested from the film page when enrichment ran. */
   tmdb?: string | null;
   imdb?: string | null;
+  /** Letterboxd's country names for the film, when the page was read. */
+  countries?: string[];
 }
 
 export interface MapOptions {
@@ -110,6 +112,7 @@ export function mapLetterboxdEntry(
         ...(raw.tmdb ? { tmdb: raw.tmdb } : {}),
         ...(raw.imdb ? { imdb: raw.imdb } : {}),
       },
+      ...(raw.countries?.length ? { originCountry: raw.countries } : {}),
     },
     warnings,
   };

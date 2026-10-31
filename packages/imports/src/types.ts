@@ -40,6 +40,12 @@ export interface ImportEntry {
   favourite: boolean;
   /** Provider ids harvested while fetching; the resolver walks these first. */
   externalIds: ExternalIds;
+  /**
+   * Where the work is from, when the provider states it: ISO-3166 alpha-2 codes
+   * or the provider's own English names. Only a tie-breaker in the title
+   * match, never a filter, because most sources state nothing.
+   */
+  originCountry?: readonly string[];
 }
 
 export type ImportWarningCode =
@@ -55,8 +61,10 @@ export type ImportWarningCode =
   | 'progress-clamped'
   /** Two local rows claim the same provider id. */
   | 'duplicate-external-id'
-  /** The title fallback found more than one local row: an import does not guess. */
+  /** The title fallback found more than one local row that scores alike: an import does not guess. */
   | 'ambiguous-title-match'
+  /** The title fallback matched an approximated title (not an identical one) — worth a glance. */
+  | 'fuzzy-title-match'
   /** The provider row cannot be read at all (it names no work). */
   | 'malformed-row'
   /** One of the source's lists could not be read; the rest of the import stands. */

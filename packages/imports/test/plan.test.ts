@@ -10,6 +10,7 @@ const bebop: ImportTarget = {
   partCount: 26,
   seasonNumber: 1,
   matchedBy: 'external-id',
+  matchScore: null,
 };
 const berserk: ImportTarget = {
   id: '00000000-0000-0000-0000-00000000be15',
@@ -18,6 +19,7 @@ const berserk: ImportTarget = {
   partCount: null,
   seasonNumber: null,
   matchedBy: 'external-id',
+  matchScore: null,
 };
 
 function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {

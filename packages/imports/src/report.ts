@@ -5,6 +5,11 @@ import type { ImportSource } from './types.js';
  * A plan, flattened for a file. The pipeline itself keeps nothing about a run —
  * an unmatched row writes no row anywhere — so a report is the only durable
  * record of what an import saw and what it did with it.
+ *
+ * It carries the plan's *warnings* and each guess's *score* for the same
+ * reason: "not in the catalog" and "two rows scored alike" are different
+ * answers, and a file that cannot tell them apart sends someone hunting for a
+ * title the instance already carries.
  */
 
 export interface PlanReportRow {
@@ -26,6 +31,16 @@ export interface PlanReportRow {
   matched: boolean;
   /** `external-id` is a fact, `title` a fallback, `catalog` a pull from the central catalog. */
   matchedBy: 'external-id' | 'title' | 'catalog' | null;
+  /** 0–1 when the row was guessed by title; null when an id pinned it. */
+  matchScore: number | null;
+  /** Unmatched only: how close the best rejected candidate came, and its title. */
+  closestScore: number | null;
+  closestTitle: string | null;
+  /**
+   * What the provider said about where the work is from, kept so a replay
+   * matches as well as the run that wrote it (a country can break a tie).
+   */
+  originCountry: string[] | null;
   /** The catalog row's title, once matched — so a title match can be checked by eye. */
   mediaTitle: string | null;
   warnings: { code: string; message: string }[];
@@ -39,6 +54,8 @@ export interface PlanReport {
   /** False for a dry run: the rows were planned, not written. */
   applied: boolean;
   summary: ImportPlan['summary'];
+  /** Plan-level warnings — ambiguous matches, partial sources, capped lookups. */
+  warnings: { code: string; message: string }[];
   rows: PlanReportRow[];
 }
 
@@ -54,6 +71,7 @@ export function buildPlanReport(plan: ImportPlan, options: BuildReportOptions = 
     generatedAt: (options.now ?? new Date()).toISOString(),
     applied: options.applied ?? false,
     summary: plan.summary,
+    warnings: plan.warnings.map((w) => ({ code: w.code, message: w.message })),
     rows: plan.rows.map((row) => ({
       externalId: row.entry.externalId,
       title: row.entry.title,
@@ -70,6 +88,10 @@ export function buildPlanReport(plan: ImportPlan, options: BuildReportOptions = 
       favourite: row.entry.favourite,
       matched: row.target !== null,
       matchedBy: row.matchedBy,
+      matchScore: row.matchScore,
+      closestScore: row.uncertain?.candidates[0]?.score ?? null,
+      closestTitle: row.uncertain?.candidates[0]?.title ?? null,
+      originCountry: row.entry.originCountry ? [...row.entry.originCountry] : null,
       mediaTitle: row.target?.title ?? null,
       warnings: row.warnings.map((w) => ({ code: w.code, message: w.message })),
     })),
@@ -94,6 +116,9 @@ const CSV_COLUMNS: { header: string; value: (row: PlanReportRow) => string | num
   { header: 'favourite', value: (row) => (row.favourite ? 'yes' : 'no') },
   { header: 'matched', value: (row) => (row.matched ? 'yes' : 'no') },
   { header: 'matched_by', value: (row) => row.matchedBy },
+  { header: 'match_score', value: (row) => row.matchScore?.toFixed(2) ?? null },
+  { header: 'closest_score', value: (row) => row.closestScore?.toFixed(2) ?? null },
+  { header: 'closest_title', value: (row) => row.closestTitle },
   { header: 'media_title', value: (row) => row.mediaTitle },
   { header: 'started_at', value: (row) => row.startedAt },
   { header: 'finished_at', value: (row) => row.finishedAt },

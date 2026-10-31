@@ -1,5 +1,6 @@
 import { PART_KIND_BY_MEDIA } from '@trackt/shared';
 import { entryKey, type ImportTarget } from './resolve.js';
+import type { UncertainMatch } from './uncertain.js';
 import { warning, type ImportEntry, type ImportSource, type ImportWarning } from './types.js';
 
 /**
@@ -13,6 +14,14 @@ export interface ImportPlanRow {
   target: ImportTarget | null;
   /** How the entry found its row; null when unmatched. */
   matchedBy: 'external-id' | 'title' | 'catalog' | null;
+  /** 0–1 when the row was guessed by title, null when an id pinned it. */
+  matchScore: number | null;
+  /**
+   * Unmatched only: what the score could not settle — a shortlist above
+   * `UNCERTAIN_FLOOR`, or the rows that tied. Stored for a picker, and its top
+   * candidate is what the report calls the near miss.
+   */
+  uncertain: UncertainMatch | null;
   /** The viewer already logs this work; left alone unless the run overwrites. */
   existing: boolean;
   /** Progress position the import will write, after clamping to what the catalog knows. */
@@ -51,6 +60,8 @@ export interface BuildPlanInput {
   entryWarnings?: Map<string, ImportWarning[]>;
   /** Warnings resolution produced (duplicate provider ids, ambiguous titles). */
   warnings?: ImportWarning[];
+  /** Per entry, the shortlist the score could not settle (see `ImportPlanRow.uncertain`). */
+  uncertain?: Map<string, UncertainMatch>;
 }
 
 /**
@@ -123,6 +134,8 @@ export function buildImportPlan(input: BuildPlanInput): ImportPlan {
       entry,
       target,
       matchedBy: target?.matchedBy ?? null,
+      matchScore: target?.matchScore ?? null,
+      uncertain: target ? null : (input.uncertain?.get(key) ?? null),
       existing: isExisting,
       upTo,
       warnings: rowWarnings,

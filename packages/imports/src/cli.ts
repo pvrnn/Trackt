@@ -199,6 +199,8 @@ async function main(): Promise<void> {
     console.log(line('already logged', plan.summary.existing));
     console.log(line('pending', plan.summary.pending));
     console.log(line('warnings', plan.summary.warnings));
+    const uncertain = plan.rows.filter((row) => row.uncertain !== null).length;
+    if (uncertain > 0) console.log(line('uncertain', uncertain));
 
     const byTitle = plan.rows.filter((row) => row.matchedBy === 'title').length;
     if (byTitle > 0) console.log(line('by title', byTitle));
@@ -216,6 +218,7 @@ async function main(): Promise<void> {
       console.log(line('skipped (log)', report.skippedExisting));
       console.log(line('with progress', report.withProgress));
       console.log(line('with score', report.ratings));
+      if (report.uncertain > 0) console.log(line('uncertain', report.uncertain));
       if (report.favourites > 0) console.log(line('favourites', report.favourites));
     }
 

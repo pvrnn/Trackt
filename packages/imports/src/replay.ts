@@ -5,6 +5,7 @@ import { buildImportPlan, type ImportPlan } from './plan.js';
 import { buildPlanReport, type PlanReport, type PlanReportRow } from './report.js';
 import { entryKey, findLoggedMediaIds, resolveImportEntries } from './resolve.js';
 import type { ImportEntry, ImportSource, ImportWarning, ImportWarningCode } from './types.js';
+import { mergeUncertain } from './uncertain.js';
 
 /**
  * Re-resolve a saved report against the catalog as it is *now*, with no network
@@ -59,6 +60,7 @@ export function entryFromReportRow(row: PlanReportRow, source: ImportSource): Im
     // A report keeps no provider ids: a row that matched on one already did, and
     // one that did not has only a title and a year to be matched on again.
     externalIds: {},
+    ...(row.originCountry?.length ? { originCountry: row.originCountry } : {}),
   };
 }
 
@@ -87,6 +89,7 @@ export async function replayImportReport(db: Db, options: ReplayOptions): Promis
   const local = await resolveImportEntries(db, entries);
   const targets = local.targets;
   const warnings = [...local.warnings];
+  const uncertain = new Map(local.uncertain);
 
   if (options.catalogUrl) {
     const missing = entries.filter((entry) => !targets.has(entryKey(entry)));
@@ -101,6 +104,10 @@ export async function replayImportReport(db: Db, options: ReplayOptions): Promis
     });
     for (const [key, target] of catalog.targets) targets.set(key, target);
     warnings.push(...catalog.warnings);
+    for (const [key, matches] of catalog.uncertain) {
+      const merged = mergeUncertain(uncertain.get(key), matches);
+      if (merged) uncertain.set(key, merged);
+    }
   }
 
   const loggedMediaIds = await findLoggedMediaIds(
@@ -117,6 +124,7 @@ export async function replayImportReport(db: Db, options: ReplayOptions): Promis
     loggedMediaIds,
     entryWarnings,
     warnings,
+    uncertain,
   });
 
   const snapshot = buildPlanReport(plan, {
