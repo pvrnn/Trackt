@@ -33,6 +33,11 @@ export interface ImportEntry {
   startedAt: string | null;
   finishedAt: string | null;
   notes: string | null;
+  /**
+   * Pinned as a favourite by the provider (Letterboxd's diary "Like" column).
+   * Additive: an import sets one, and never clears one the viewer set.
+   */
+  favourite: boolean;
   /** Provider ids harvested while fetching; the resolver walks these first. */
   externalIds: ExternalIds;
 }

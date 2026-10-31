@@ -34,6 +34,7 @@ const entry = (externalId: string): ImportEntry => ({
   startedAt: null,
   finishedAt: null,
   notes: null,
+  favourite: false,
   externalIds: {},
 });
 
@@ -88,6 +89,7 @@ const plan: ImportPlan = {
     existing: 0,
     pending: 2,
     fromCatalog: 0,
+    favourites: 0,
     warnings: 0,
   },
 };
@@ -100,6 +102,7 @@ const report: ImportReport = {
   skippedExisting: 0,
   withProgress: 2,
   ratings: 0,
+  favourites: 0,
   warnings: [],
   unmatched: [{ externalId: '2', title: 'Title 2' }],
 };

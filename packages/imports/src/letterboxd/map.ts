@@ -105,6 +105,7 @@ export function mapLetterboxdEntry(
       startedAt,
       finishedAt,
       notes: null,
+      favourite: raw.liked,
       externalIds: {
         ...(raw.tmdb ? { tmdb: raw.tmdb } : {}),
         ...(raw.imdb ? { imdb: raw.imdb } : {}),

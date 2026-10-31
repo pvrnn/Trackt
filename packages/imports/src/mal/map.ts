@@ -117,6 +117,8 @@ export function mapMalEntry(
       startedAt,
       finishedAt,
       notes: status.comments?.trim() ? status.comments.trim() : null,
+      // No provider on this source states a favourite.
+      favourite: false,
       externalIds: { mal: node.id },
     },
     warnings,

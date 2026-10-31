@@ -1,9 +1,10 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createDb,
+  favorite,
   media,
   mediaPart,
   progress,
@@ -267,6 +268,7 @@ function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {
     startedAt: null,
     finishedAt: null,
     notes: null,
+    favourite: false,
     externalIds: { anilist: 900100 },
     ...overrides,
   };
@@ -750,6 +752,7 @@ describe.runIf(available)('account import (postgres)', () => {
         existing: 0,
         pending: 0,
         fromCatalog: 0,
+        favourites: 0,
         warnings: 0,
       },
       rows,
@@ -768,6 +771,7 @@ describe.runIf(available)('account import (postgres)', () => {
       startedAt: null,
       finishedAt: null,
       notes: null,
+      favourite: false,
       matched: false,
       matchedBy: null,
       mediaTitle: null,
@@ -844,5 +848,70 @@ describe.runIf(available)('account import (postgres)', () => {
       expect(plan.rows[0]?.target).toBeNull();
       expect(plan.warnings.map((w) => w.code)).toContain('ambiguous-title-match');
     });
+  });
+
+  it('pins a liked work as a favourite, even when the log already exists', async () => {
+    // Any seeded film will do: the subject is the pin, not the work.
+    const [film] = await db
+      .select({ id: media.id, title: media.title, year: media.year })
+      .from(media)
+      .where(and(eq(media.kind, 'movie'), isNotNull(media.year)))
+      .limit(1);
+    if (!film) throw new Error('the fixture seed carries no movie');
+
+    // A log the viewer already had, with no favourite: the provider's like is
+    // still theirs to give, so the import writes it without overwriting.
+    await db.insert(userMedia).values({ userId, mediaId: film.id, status: 'completed' });
+
+    const runs = await replayImportReport(db, {
+      userId,
+      report: {
+        source: 'letterboxd',
+        profile: 'someone',
+        generatedAt: NOW.toISOString(),
+        applied: false,
+        summary: {
+          total: 1,
+          matched: 0,
+          unmatched: 1,
+          existing: 0,
+          pending: 0,
+          fromCatalog: 0,
+          favourites: 0,
+          warnings: 0,
+        },
+        rows: [
+          {
+            externalId: film.id,
+            title: film.title,
+            year: film.year,
+            seasonNumber: null,
+            kind: 'movie',
+            status: 'completed',
+            score: 7,
+            progress: 0,
+            repeats: 0,
+            startedAt: null,
+            finishedAt: null,
+            notes: null,
+            favourite: true,
+            matched: false,
+            matchedBy: null,
+            mediaTitle: null,
+            warnings: [],
+          },
+        ],
+      },
+      now: NOW,
+    });
+
+    expect(runs.plan.summary).toMatchObject({ favourites: 1, existing: 1, pending: 0 });
+    expect(runs.report).toMatchObject({ favourites: 1, created: 0, skippedExisting: 1 });
+
+    const pinned = await db
+      .select({ position: favorite.position })
+      .from(favorite)
+      .where(and(eq(favorite.userId, userId), eq(favorite.mediaId, film.id)));
+    expect(pinned).toHaveLength(1); // idempotent: no second row, no second position
   });
 });

@@ -55,6 +55,7 @@ export function entryFromReportRow(row: PlanReportRow, source: ImportSource): Im
     startedAt: row.startedAt,
     finishedAt: row.finishedAt,
     notes: row.notes,
+    favourite: row.favourite,
     // A report keeps no provider ids: a row that matched on one already did, and
     // one that did not has only a title and a year to be matched on again.
     externalIds: {},

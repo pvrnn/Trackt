@@ -127,6 +127,8 @@ export function mapAniListEntry(
       startedAt,
       finishedAt,
       notes: raw.notes?.trim() ? raw.notes.trim() : null,
+      // No provider on this source states a favourite.
+      favourite: false,
       externalIds: { anilist: media.id, ...(media.idMal ? { mal: media.idMal } : {}) },
     },
     warnings,

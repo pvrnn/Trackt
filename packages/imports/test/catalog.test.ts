@@ -41,6 +41,7 @@ const entry = (overrides: Partial<ImportEntry> = {}): ImportEntry => ({
   startedAt: null,
   finishedAt: null,
   notes: null,
+  favourite: false,
   externalIds: {},
   ...overrides,
 });

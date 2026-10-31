@@ -205,6 +205,9 @@ async function main(): Promise<void> {
     if (plan.summary.fromCatalog > 0) {
       console.log(line('from catalog', plan.summary.fromCatalog));
     }
+    if (plan.summary.favourites > 0) {
+      console.log(line('favourites', plan.summary.favourites));
+    }
 
     if (report) {
       console.log('\nwritten');
@@ -213,6 +216,7 @@ async function main(): Promise<void> {
       console.log(line('skipped (log)', report.skippedExisting));
       console.log(line('with progress', report.withProgress));
       console.log(line('with score', report.ratings));
+      if (report.favourites > 0) console.log(line('favourites', report.favourites));
     }
 
     if (plan.warnings.length > 0) {

@@ -35,6 +35,7 @@ function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {
     startedAt: null,
     finishedAt: null,
     notes: null,
+    favourite: false,
     externalIds: { mal: 1 },
     ...overrides,
   };

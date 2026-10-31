@@ -34,6 +34,8 @@ export interface ImportPlan {
     pending: number;
     /** Of `matched`, the rows the central catalog supplied (materialized by this run). */
     fromCatalog: number;
+    /** Matched rows the provider pinned as a favourite — written even when already logged. */
+    favourites: number;
     warnings: number;
   };
 }
@@ -83,14 +85,33 @@ function progressFor(entry: ImportEntry, target: ImportTarget, warnings: ImportW
   return entry.progress;
 }
 
+/**
+ * A work with no parts is seen in one sitting, so its two log dates are one
+ * day: a provider that states only one of them states the other too. Sources
+ * that already say so stay untouched, and a part-carrying work (a season, a
+ * manga) keeps whatever the provider published — a run of episodes really can
+ * span weeks.
+ *
+ * This lives in the plan rather than in each mapper because the preview reads
+ * it: a preview that showed a film starting today and never finishing would be
+ * describing a log the run does not write.
+ */
+export function datesForTarget(entry: ImportEntry, target: ImportTarget): ImportEntry {
+  if (PART_KIND_BY_MEDIA[target.kind] !== null) return entry;
+  const day = entry.startedAt ?? entry.finishedAt;
+  if (!day || (entry.startedAt !== null && entry.finishedAt !== null)) return entry;
+  return { ...entry, startedAt: day, finishedAt: day };
+}
+
 export function buildImportPlan(input: BuildPlanInput): ImportPlan {
   const rows: ImportPlanRow[] = [];
   let matched = 0;
   let existing = 0;
 
-  for (const entry of input.entries) {
-    const key = entryKey(entry);
+  for (const rawEntry of input.entries) {
+    const key = entryKey(rawEntry);
     const target = input.targets.get(key) ?? null;
+    const entry = target ? datesForTarget(rawEntry, target) : rawEntry;
     const rowWarnings = [...(input.entryWarnings?.get(key) ?? [])];
     const isExisting = target ? input.loggedMediaIds.has(target.id) : false;
 
@@ -126,6 +147,7 @@ export function buildImportPlan(input: BuildPlanInput): ImportPlan {
       pending: matched - existing,
       fromCatalog: rows.filter((row) => row.target?.matchedBy === 'catalog' && !row.existing)
         .length,
+      favourites: rows.filter((row) => row.target !== null && row.entry.favourite).length,
       warnings: warnings.length,
     },
   };

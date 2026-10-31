@@ -106,4 +106,25 @@ describe('mapLetterboxdEntry', () => {
     expect(entry).toBeNull();
     expect(warnings[0]?.code).toBe('malformed-row');
   });
+
+  it("carries Letterboxd's like as a favourite", () => {
+    const { entry } = mapLetterboxdEntry(raw({ liked: true }), { now: NOW });
+    expect(entry?.favourite).toBe(true);
+    expect(mapLetterboxdEntry(raw(), { now: NOW }).entry?.favourite).toBe(false);
+  });
+
+  it('gives a film one day for both dates, from its latest viewing', () => {
+    const viewings = [
+      { watchedOn: '2024-03-01', rating: 6, rewatch: false },
+      { watchedOn: '2026-05-09', rating: 9, rewatch: true },
+    ];
+    // No grid rating: the diary's latest viewing is then the score.
+    const { entry } = mapLetterboxdEntry(raw({ rating: null, viewings }), { now: NOW });
+    expect(entry).toMatchObject({
+      startedAt: '2026-05-09',
+      finishedAt: '2026-05-09',
+      repeats: 1,
+      score: 9,
+    });
+  });
 });

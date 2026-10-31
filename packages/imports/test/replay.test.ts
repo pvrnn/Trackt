@@ -21,6 +21,7 @@ const row: PlanReportRow = {
   startedAt: '2026-01-02',
   finishedAt: '2026-01-02',
   notes: 'never again',
+  favourite: true,
   matched: false,
   matchedBy: null,
   mediaTitle: null,

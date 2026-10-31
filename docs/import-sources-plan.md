@@ -191,6 +191,22 @@ therefore the realistic default for this source, not an emergency lever.
   `themoviedb.org/movie/<id>` and `imdb.com/title/<tt…>` links, which is the whole
   enrichment path — one request per film, hence opt-in and capped.
 
+## What a provider says about a film, and what it does not
+
+Two rules came out of importing a real Letterboxd library:
+
+- **A film is seen in one sitting, so its two log dates are one day.** It is a
+  plan rule (`datesForTarget`), not a mapper habit: any part-less work whose
+  provider states one date gets both, so no source can import a film that starts
+  today and never finishes. A part-carrying work keeps whatever it published —
+  a season really can span weeks.
+- **Letterboxd's diary "Like" column is a favourite.** `favourite` is on
+  `ImportEntry` (every source states it; only Letterboxd has one), and the apply
+  writes the pin *outside* the existing-log check: a log the viewer already had
+  still gains the like their profile carried, the insert is idempotent, and an
+  import never clears a favourite. Rank is appended within the kind, exactly as
+  `PUT /v1/media/:id/favorite` does. On the sample library: 813 favourites.
+
 ## The worker
 
 `QUEUES.importer` carries one job type, declared once in

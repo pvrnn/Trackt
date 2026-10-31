@@ -27,6 +27,7 @@ function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {
     startedAt: '2026-01-02',
     finishedAt: '2026-01-02',
     notes: null,
+    favourite: false,
     externalIds: {},
     ...overrides,
   };

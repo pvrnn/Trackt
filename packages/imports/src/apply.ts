@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { rating, setProgressUpTo, userMedia, type Db } from '@trackt/db';
 import type { ImportPlan, ImportPlanRow } from './plan.js';
 import type { ImportSource, ImportWarning } from './types.js';
@@ -29,6 +29,8 @@ export interface ImportReport {
   withProgress: number;
   /** Scores written. */
   ratings: number;
+  /** Works pinned as favourites (never a removal: a favourite is the viewer's). */
+  favourites: number;
   warnings: ImportWarning[];
   /** Provider rows this instance's catalog does not carry, skipped. */
   unmatched: { externalId: string; title: string }[];
@@ -51,6 +53,21 @@ async function writeLogRow(
   const target = row.target;
   if (!target) return 'skipped';
   const { entry } = row;
+
+  // Favourites sit outside the existing-log check: a log the viewer already had
+  // still gains the favourite their provider's list carried, and the insert is
+  // idempotent. Rank is appended within the kind, as the API's own pin does.
+  if (entry.favourite) {
+    await db.execute(sql`
+      INSERT INTO favorite (user_id, media_id, kind, position)
+      VALUES (
+        ${userId}, ${target.id}, ${target.kind},
+        COALESCE((SELECT max(position) + 1 FROM favorite
+                  WHERE user_id = ${userId} AND kind = ${target.kind}), 1)
+      )
+      ON CONFLICT (user_id, media_id) DO NOTHING
+    `);
+  }
 
   if (row.existing && !overwrite) return 'skipped';
 
@@ -126,6 +143,7 @@ export async function applyImportPlan(
     skippedExisting: 0,
     withProgress: 0,
     ratings: 0,
+    favourites: 0,
     warnings: plan.warnings,
     unmatched: [],
   };
@@ -135,6 +153,7 @@ export async function applyImportPlan(
     if (row.target === null) {
       report.unmatched.push({ externalId: row.entry.externalId, title: row.entry.title });
     } else {
+      if (row.entry.favourite) report.favourites += 1;
       const outcome = await writeLogRow(db, userId, row, overwrite);
       if (outcome === 'skipped') {
         report.skippedExisting += 1;

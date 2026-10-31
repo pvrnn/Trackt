@@ -72,6 +72,10 @@ export interface ImportPlanSummary {
   unmatched: number;
   existing: number;
   pending: number;
+  /** Of `matched`, the rows the central catalog supplied. */
+  fromCatalog: number;
+  /** Matched rows the provider pinned as a favourite. */
+  favourites: number;
   warnings: number;
   /** Entries that only matched through the title + year fallback. */
   matchedByTitle: number;
@@ -107,6 +111,8 @@ export function toJobResult(run: ImportRun): ImportJobResult {
       unmatched: plan.summary.unmatched,
       existing: plan.summary.existing,
       pending: plan.summary.pending,
+      fromCatalog: plan.summary.fromCatalog,
+      favourites: plan.summary.favourites,
       warnings: plan.summary.warnings,
       matchedByTitle: plan.rows.filter((row) => row.matchedBy === 'title').length,
     },
@@ -131,6 +137,7 @@ export const ImportReportSchema = z.object({
   skippedExisting: z.number(),
   withProgress: z.number(),
   ratings: z.number(),
+  favourites: z.number(),
   warnings: z.array(ImportWarningSchema),
   unmatched: z.array(z.object({ externalId: z.string(), title: z.string() })),
 });
@@ -143,6 +150,8 @@ export const ImportPlanSummarySchema = z.object({
   unmatched: z.number(),
   existing: z.number(),
   pending: z.number(),
+  fromCatalog: z.number(),
+  favourites: z.number(),
   warnings: z.number(),
   matchedByTitle: z.number(),
 });

@@ -20,6 +20,8 @@ export interface PlanReportRow {
   startedAt: string | null;
   finishedAt: string | null;
   notes: string | null;
+  /** The provider pinned it (Letterboxd's diary "Like"). */
+  favourite: boolean;
   /** Whether this instance carries the work at all. */
   matched: boolean;
   /** `external-id` is a fact, `title` a fallback, `catalog` a pull from the central catalog. */
@@ -65,6 +67,7 @@ export function buildPlanReport(plan: ImportPlan, options: BuildReportOptions = 
       startedAt: row.entry.startedAt,
       finishedAt: row.entry.finishedAt,
       notes: row.entry.notes,
+      favourite: row.entry.favourite,
       matched: row.target !== null,
       matchedBy: row.matchedBy,
       mediaTitle: row.target?.title ?? null,
@@ -88,6 +91,7 @@ const CSV_COLUMNS: { header: string; value: (row: PlanReportRow) => string | num
   { header: 'status', value: (row) => row.status },
   { header: 'score', value: (row) => row.score },
   { header: 'progress', value: (row) => row.progress },
+  { header: 'favourite', value: (row) => (row.favourite ? 'yes' : 'no') },
   { header: 'matched', value: (row) => (row.matched ? 'yes' : 'no') },
   { header: 'matched_by', value: (row) => row.matchedBy },
   { header: 'media_title', value: (row) => row.mediaTitle },

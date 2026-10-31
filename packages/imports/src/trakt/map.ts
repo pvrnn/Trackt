@@ -119,6 +119,8 @@ export function mapTraktMovie(
       startedAt: dates.startedAt,
       finishedAt: dates.startedAt,
       notes: null,
+      // No provider on this source states a favourite.
+      favourite: false,
       externalIds: externalIdsFor(movie?.ids),
     },
     warnings,
@@ -227,6 +229,8 @@ export function mapTraktSeason(
       startedAt: dates.startedAt,
       finishedAt: dates.finishedAt,
       notes: null,
+      // No provider on this source states a favourite.
+      favourite: false,
       externalIds: externalIdsFor(work?.ids),
     },
     warnings,
@@ -263,6 +267,8 @@ export function mapTraktWatchlistMovie(raw: TraktWatchlistItem): {
       startedAt: null,
       finishedAt: null,
       notes: raw.notes?.trim() ? raw.notes.trim() : null,
+      // No provider on this source states a favourite.
+      favourite: false,
       externalIds: externalIdsFor(movie?.ids),
     },
     warnings: [],
