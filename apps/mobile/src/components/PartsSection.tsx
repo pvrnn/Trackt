@@ -1,5 +1,5 @@
 import { firstUnwatched, partWindow } from '@trackt/client';
-import type { partBlocks } from '@trackt/client';
+import type { PartLayout } from '@trackt/client';
 import type { MediaDetail } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -32,37 +32,38 @@ export function partNoun(detail: MediaDetail): {
 /**
  * The parts, at whatever scale the work is.
  *
- * Short work: every part, as a row. Long work: blocks of forty, and a six-row
- * window inside the one you open — the design's "never the whole volume, never
- * the whole work". An unknown count (an airing season) has no scale to block
- * up, so it gets the window around the position and nothing else.
+ * Short work: every part, as a row. Long work: its volumes when the catalog
+ * states a count, otherwise blocks of forty, and a six-row window inside the one
+ * you open — the design's "never the whole volume, never the whole work". An
+ * unknown count (an airing season) has no scale to block up, so it gets the
+ * window around the position and nothing else.
  *
  * Every row writes the position: tapping part 140 marks everything to it,
  * tapping a part already done sets the position to one below, which is how an
  * overshoot is corrected without a dialog.
  */
 export function PartsSection({
-  detail,
   noun,
   total,
   position,
   watched,
-  blocks,
+  partLayout,
   openBlock,
   onToggleBlock,
   onSetPosition,
 }: {
-  detail: MediaDetail;
   noun: { singular: string; plural: string; prefix: string };
   total: number | null;
   position: number;
   watched: ReadonlySet<number>;
-  blocks: ReturnType<typeof partBlocks>;
+  partLayout: PartLayout;
   openBlock: number | null;
   onToggleBlock: (index: number) => void;
   onSetPosition: (upTo: number) => void;
 }) {
-  const volumes = detail.kind === 'manga' || detail.kind === 'webtoon';
+  const { blocks, volumes } = partLayout;
+  /** Whether the blocks are volumes, which is the only thing that may name them so. */
+  const volumed = volumes !== null;
   const { t } = useTranslation();
   const next = firstUnwatched(watched, total ?? position + 1);
 
@@ -100,11 +101,10 @@ export function PartsSection({
     );
   }
 
-  // The block you are in is the one that opens, until you say otherwise.
-  const current = Math.min(
-    blocks.length,
-    Math.max(1, Math.ceil(Math.max(position, 1) / blocks[0]!.size)),
-  );
+  // The block you are in is the one that opens, until you say otherwise. Found
+  // by its span rather than by dividing: volumes are not all the same length.
+  const current =
+    blocks.find((block) => position >= block.from && position <= block.to)?.index ?? 1;
   const activeIndex = openBlock ?? current;
   const active = blocks.find((block) => block.index === activeIndex) ?? blocks[0]!;
   const window = partWindow(active.from, active.to, position);
@@ -113,11 +113,11 @@ export function PartsSection({
   return (
     <View style={[gutter, styles.parts]}>
       <View style={styles.partsHead}>
-        <SectionTitle title={volumes ? t('media.parts.volumes') : noun.plural} />
+        <SectionTitle title={volumed ? t('media.parts.volumes') : noun.plural} />
         <Text style={[type.eyebrow, text.dim]}>
           {t('media.parts.blockCount', {
             count: blocks.length,
-            unit: volumes ? t('media.parts.volumesUnit') : t('media.parts.blocksUnit'),
+            unit: volumed ? t('media.parts.volumesUnit') : t('media.parts.blocksUnit'),
           })}{' '}
           · {total} {noun.plural.toUpperCase()}
         </Text>
@@ -129,12 +129,12 @@ export function PartsSection({
             key={block.index}
             block={block}
             label={
-              volumes
+              volumed
                 ? t('media.volume', { number: block.index })
                 : `${noun.plural} ${block.from}–${block.to}`
             }
             rangeLabel={
-              volumes
+              volumed
                 ? `${noun.prefix} ${block.from}–${block.to}`
                 : `${block.size} ${noun.plural.toUpperCase()}`
             }
@@ -146,7 +146,7 @@ export function PartsSection({
 
       <View style={styles.windowHead}>
         <Text style={[type.section, text.fg]}>
-          {(volumes
+          {(volumed
             ? t('media.volume', { number: active.index })
             : `${noun.plural} ${active.from}–${active.to}`
           ).toUpperCase()}
@@ -156,7 +156,7 @@ export function PartsSection({
       </View>
       <View style={styles.rows}>{window.map(row)}</View>
       <Text style={[type.eyebrow, text.faint]}>
-        {t(volumes ? 'media.browseNote.volume' : 'media.browseNote.block')}
+        {t(volumed ? 'media.browseNote.volume' : 'media.browseNote.block')}
       </Text>
     </View>
   );

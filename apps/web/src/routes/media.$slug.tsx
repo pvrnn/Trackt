@@ -33,7 +33,7 @@ import {
   todayIso,
   firstUnwatched,
   invalidateTracking,
-  partBlocks,
+  partLayout,
   partWindow,
   partsUpTo,
   progressUpTo,
@@ -86,6 +86,43 @@ function groupRelations(relations: MediaDetail['relations']) {
   return MEDIA_RELATION_LABELS.map(
     (label) => [label, relations.filter((item) => item.relation === label)] as const,
   ).filter(([, items]) => items.length > 0);
+}
+
+/** The pair a work nearly always has one of each: rendered two-up. */
+const PAIRED_RELATIONS = new Set<MediaRelationLabel>(['prequel', 'sequel']);
+
+/** One relation group's covers: three across, or one per row inside a paired cell. */
+function RelationCards({
+  kind,
+  items,
+  inColumn = false,
+}: {
+  kind: MediaDetail['kind'];
+  items: MediaDetail['relations'];
+  /** The pair above already splits the sidebar, so covers keep their own width. */
+  inColumn?: boolean;
+}) {
+  return (
+    <div className={clsx('grid gap-3', inColumn ? 'grid-cols-1' : 'grid-cols-3')}>
+      {items.map((item) => (
+        <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
+          <div className="relative">
+            <CoverCard
+              kind={item.kind}
+              title={item.title}
+              coverUrl={item.coverUrl ?? undefined}
+              caption={item.kind === kind ? undefined : <KindDot kind={item.kind} showLabel />}
+            />
+            {item.seasonNumber !== null && (
+              <span className="absolute top-2.5 left-2.5 rounded-full bg-ink/80 px-2.5 py-0.5 font-display text-sm text-pink">
+                S{item.seasonNumber}
+              </span>
+            )}
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 function partNoun(detail: MediaDetail) {
@@ -259,9 +296,13 @@ function MediaPage() {
   const doneLabel = labels.trackingVerb(detail.kind);
   /** The highest part with everything before it seen: what a position means. */
   const position = progressUpTo(watchedSet);
-  /** Blocks of forty, or none when the work is short enough to list part by part. */
-  const blocks = total !== null ? partBlocks(total, position) : [];
-  const volumes = detail.kind === 'manga' || detail.kind === 'webtoon';
+  /** Volumes when the catalog states a count, else blocks of forty — never both. */
+  const layout = partLayout(detail, total, position);
+  const blocks = layout.blocks;
+  /** Whether the blocks are volumes, which is the only thing that may name them so. */
+  const volumed = layout.volumes !== null;
+  /** Print works count chapters; everything else with parts counts episodes. */
+  const print = detail.kind === 'manga' || detail.kind === 'webtoon';
   // The block you are in is the one that opens, until you say otherwise.
   const activeBlock = blocks.find((block) => block.index === openBlock) ??
     blocks.find((block) => position >= block.from && position <= block.to) ??
@@ -317,6 +358,8 @@ function MediaPage() {
         };
 
   const relationGroups = groupRelations(detail.relations);
+  const neighbourGroups = relationGroups.filter(([label]) => PAIRED_RELATIONS.has(label));
+  const otherGroups = relationGroups.filter(([label]) => !PAIRED_RELATIONS.has(label));
   /** Upstream records for the external row: the ids are also the redirect targets. */
   const external = externalProfiles(detail.kind, detail.externalIds, detail.metadata);
   /** '04 JAN → 11 FEB' when the log has dates; null offers to add them. */
@@ -612,7 +655,7 @@ function MediaPage() {
             <>
               <ProgressCard
                 unitLabel={
-                  volumes ? t('media.progressUnit.chapters') : t('media.progressUnit.episodes')
+                  print ? t('media.progressUnit.chapters') : t('media.progressUnit.episodes')
                 }
                 total={total}
                 position={position}
@@ -628,7 +671,7 @@ function MediaPage() {
                         key={block.index}
                         block={block}
                         label={
-                          volumes
+                          volumed
                             ? t('media.volume', { number: block.index })
                             : t('media.partsRange', { unit: units, from: block.from, to: block.to })
                         }
@@ -643,7 +686,7 @@ function MediaPage() {
 
                   <div className="mt-2 flex items-center gap-4">
                     <h3 className="font-heading text-xl uppercase">
-                      {volumes
+                      {volumed
                         ? t('media.volume', { number: activeBlock.index })
                         : t('media.partsRange', {
                             unit: units,
@@ -656,7 +699,7 @@ function MediaPage() {
                   </div>
                   <div className="flex flex-col gap-2">{windowRows.map(partRow)}</div>
                   <p className="font-label text-[11px] leading-relaxed tracking-label text-faint">
-                    {volumes ? t('media.browseNote.volume') : t('media.browseNote.block')}
+                    {volumed ? t('media.browseNote.volume') : t('media.browseNote.block')}
                   </p>
                 </>
               ) : (
@@ -748,32 +791,24 @@ function MediaPage() {
               away from it. Renders nothing when there is nothing to show. */}
           <MediaNews mediaId={detail.id} />
 
-          {relationGroups.map(([label, items]) => (
+          {/* Prequel and sequel side by side rather than stacked: a work rarely
+              has more than one of each. Same three-up cell size as the other
+              groups, so the covers don't grow. */}
+          {neighbourGroups.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {neighbourGroups.map(([label, items]) => (
+                <section key={label} className="flex min-w-0 flex-col gap-3.5">
+                  <h2 className="font-heading text-2xl uppercase">{t(RELATION_HEADINGS[label])}</h2>
+                  <RelationCards kind={detail.kind} items={items} inColumn />
+                </section>
+              ))}
+            </div>
+          )}
+
+          {otherGroups.map(([label, items]) => (
             <section key={label} className="flex flex-col gap-3.5">
               <h2 className="font-heading text-2xl uppercase">{t(RELATION_HEADINGS[label])}</h2>
-              <div className="grid grid-cols-3 gap-3">
-                {items.map((item) => (
-                  <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
-                    <div className="relative">
-                      <CoverCard
-                        kind={item.kind}
-                        title={item.title}
-                        coverUrl={item.coverUrl ?? undefined}
-                        caption={
-                          item.kind === detail.kind ? undefined : (
-                            <KindDot kind={item.kind} showLabel />
-                          )
-                        }
-                      />
-                      {item.seasonNumber !== null && (
-                        <span className="absolute top-2.5 left-2.5 rounded-full bg-ink/80 px-2.5 py-0.5 font-display text-sm text-pink">
-                          S{item.seasonNumber}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <RelationCards kind={detail.kind} items={items} />
             </section>
           ))}
 

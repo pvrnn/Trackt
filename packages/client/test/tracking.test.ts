@@ -5,11 +5,15 @@ import {
   PART_BLOCK_SIZE,
   firstUnwatched,
   partBlocks,
+  partLayout,
   partWindow,
   partsUpTo,
   progressUpTo,
   stampedDates,
   validateLogDates,
+  volumeBounds,
+  volumeBlocks,
+  volumeCount,
 } from '../src/media.js';
 
 describe('firstUnwatched', () => {
@@ -82,7 +86,7 @@ describe('partBlocks', () => {
 
   it('folds the position into each block: done, complete, partial', () => {
     const blocks = partBlocks(312, 112);
-    // 112 read: volumes 1-2 finished, volume 3 part-way, the rest untouched.
+    // 112 read: blocks 1-2 finished, block 3 part-way, the rest untouched.
     expect(blocks[1]).toMatchObject({ done: 40, complete: true, partial: false });
     expect(blocks[2]).toMatchObject({ done: 32, complete: false, partial: true });
     expect(blocks[3]).toMatchObject({ done: 0, complete: false, partial: false });
@@ -91,6 +95,87 @@ describe('partBlocks', () => {
   it('is all-empty at position zero and all-complete at the end', () => {
     expect(partBlocks(312, 0).every((block) => block.done === 0)).toBe(true);
     expect(partBlocks(312, 312).every((block) => block.complete)).toBe(true);
+  });
+});
+
+describe('volumeCount', () => {
+  it('reads the provider total off the metadata', () => {
+    expect(volumeCount({ volumes: 5 })).toBe(5);
+  });
+
+  it('refuses anything that is not a positive whole volume count', () => {
+    expect(volumeCount({})).toBeNull();
+    expect(volumeCount({ volumes: null })).toBeNull();
+    expect(volumeCount({ volumes: 0 })).toBeNull();
+    expect(volumeCount({ volumes: '5' })).toBeNull();
+    expect(volumeCount({ volumes: 5.5 })).toBeNull();
+  });
+});
+
+describe('volumeBounds', () => {
+  it('splits a work into the volumes it was published in', () => {
+    // Ping Pong: 55 chapters in 5 volumes.
+    expect(volumeBounds(55, 5)).toEqual([
+      { from: 1, to: 11 },
+      { from: 12, to: 22 },
+      { from: 23, to: 33 },
+      { from: 34, to: 44 },
+      { from: 45, to: 55 },
+    ]);
+  });
+
+  it('gives the leading volumes the remainder rather than a short last one', () => {
+    const bounds = volumeBounds(47, 6)!;
+    expect(bounds.map((b) => b.to - b.from + 1)).toEqual([8, 8, 8, 8, 8, 7]);
+    expect(bounds.at(-1)).toEqual({ from: 41, to: 47 });
+  });
+
+  it('declines when the totals cannot describe volumes', () => {
+    // More volumes than chapters, or a single volume, has no map worth drawing.
+    expect(volumeBounds(3, 5)).toBeNull();
+    expect(volumeBounds(55, 1)).toBeNull();
+  });
+});
+
+describe('volumeBlocks', () => {
+  it('is the volumes with the position folded in', () => {
+    const blocks = volumeBlocks(55, 5, 23);
+    expect(blocks).toHaveLength(5);
+    expect(blocks[1]).toMatchObject({ done: 11, complete: true, partial: false });
+    expect(blocks[2]).toMatchObject({ done: 1, complete: false, partial: true });
+    expect(blocks[3]).toMatchObject({ done: 0, complete: false, partial: false });
+  });
+
+  it('is empty when the volume count says nothing', () => {
+    expect(volumeBlocks(55, 1, 0)).toEqual([]);
+  });
+});
+
+describe('partLayout', () => {
+  const manga = (metadata: Record<string, unknown>) =>
+    ({ kind: 'manga', metadata }) as Parameters<typeof partLayout>[0];
+
+  it('groups a print work by the volume count its catalog row states', () => {
+    expect(partLayout(manga({ volumes: 5 }), 55, 12)).toMatchObject({ volumes: 5 });
+    expect(partLayout(manga({ volumes: 5 }), 55, 12).blocks.map((b) => b.index)).toEqual([
+      1, 2, 3, 4, 5,
+    ]);
+  });
+
+  it('falls back to blocks of forty when no volume count is carried', () => {
+    // A webtoon or a one-volume manga: a block of forty is not a volume.
+    const layout = partLayout(manga({}), 312, 0);
+    expect(layout.volumes).toBeNull();
+    expect(layout.blocks).toHaveLength(8);
+  });
+
+  it('never reads a volume count off a work that has no volumes', () => {
+    const anime = { kind: 'anime', metadata: { volumes: 5 } } as Parameters<typeof partLayout>[0];
+    expect(partLayout(anime, 312, 0)).toMatchObject({ volumes: null });
+  });
+
+  it('has no blocks while the count is unknown', () => {
+    expect(partLayout(manga({ volumes: 5 }), null, 7)).toEqual({ volumes: null, blocks: [] });
   });
 });
 

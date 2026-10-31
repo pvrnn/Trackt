@@ -12,6 +12,7 @@ import {
 } from 'react';
 import type { SearchResult, UserSearchResult } from '@trackt/shared';
 import {
+  MIN_MEDIA_SEARCH_QUERY,
   coverGradient,
   gameSearchContext,
   useUserSearch,
@@ -25,11 +26,12 @@ import { KindDot } from '../ui/KindDot';
 /**
  * Both endpoints sit behind a 60 req/min per-IP limit, and a settled keystroke
  * costs one request each, hence 250 ms rather than the 200 ms used elsewhere,
- * and a two-character gate. `users/search` already refuses shorter queries;
- * matching it here keeps the two sections appearing together.
+ * and the same three-character gate `/search` applies (`users/search` refuses
+ * shorter queries itself; matching it here keeps the two sections appearing
+ * together, and keeps Enter from landing on a page that says "keep typing").
  */
 const DEBOUNCE_MS = 250;
-const MIN_QUERY = 2;
+const MIN_QUERY = MIN_MEDIA_SEARCH_QUERY;
 
 /** Client-side caps: the panel is a shortcut, `/search` is the full grid. */
 const MEDIA_LIMIT = 6;

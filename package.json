@@ -30,6 +30,7 @@
     "scrape:tmdb:series": "node scripts/tmdb-scrape/series.ts",
     "dedup:tmdb": "node scripts/tmdb-scrape/dedup.ts",
     "link:adaptations": "node scripts/mal-scrape/link-adaptations.ts",
+    "import:mal": "pnpm --filter @trackt/imports import:mal",
     "test:scripts": "node --test \"scripts/*/test/*.test.ts\""
   },
   "devDependencies": {
