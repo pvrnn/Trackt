@@ -36,7 +36,7 @@ export const AniListListEntrySchema = z.object({
   mediaId: z.number().int(),
   /** `CURRENT`, `COMPLETED`, `PLANNING`, `DROPPED`, `PAUSED`, `REPEATING`. */
   status: z.string(),
-  /** 0–100; 0 means "not scored". */
+  /** 0–100 whatever the account's own score format; 0 means "not scored". */
   score: z.number().nullish(),
   progress: z.number().nullish(),
   repeat: z.number().nullish(),

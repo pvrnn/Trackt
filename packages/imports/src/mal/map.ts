@@ -1,36 +1,71 @@
 import type { LogStatus } from '@trackt/shared';
-import { applyDateRules, readFullDate } from '../dates.js';
-import { warning, type ImportEntry, type ImportKind, type ImportWarning } from '../types.js';
-import type { MalListEntry, MalListStatus } from './schemas.js';
+import { applyDateRules, dateFromParts } from '../dates.js';
+import { warning, type ImportEntry, type ImportWarning } from '../types.js';
+import type { MalListRow } from './schemas.js';
 
 /**
- * MAL's words to ours. Deliberately a closed map rather than a fallback: an
- * unknown status is skipped with a warning, because guessing at "reading" vs
- * "in_progress" is how a whole list lands in the wrong bucket.
+ * MAL numbers its list statuses rather than naming them, and the same numbers
+ * mean watching/reading to each kind. Deliberately a closed map rather than a
+ * fallback: an unknown number is skipped with a warning, because guessing at
+ * "on hold" vs "dropped" is how a whole list lands in the wrong bucket.
  */
-const STATUS_BY_MAL: Partial<Record<ImportKind, Record<string, LogStatus>>> = {
-  anime: {
-    watching: 'in_progress',
-    completed: 'completed',
-    on_hold: 'paused',
-    dropped: 'dropped',
-    plan_to_watch: 'planned',
-  },
-  manga: {
-    reading: 'in_progress',
-    completed: 'completed',
-    on_hold: 'paused',
-    dropped: 'dropped',
-    plan_to_read: 'planned',
-  },
+const STATUS_BY_MAL: Record<number, LogStatus> = {
+  1: 'in_progress',
+  2: 'completed',
+  3: 'paused',
+  4: 'dropped',
+  6: 'planned',
 };
 
+/** MAL states `DD-MM-YY`; the two-digit year is a person's lifetime, not a century. */
+const MAL_DAY = /^(\d{1,2})-(\d{1,2})-(\d{2})$/;
+
+function malDayToIso(value: string): string | null {
+  const match = MAL_DAY.exec(value.trim());
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const short = Number(match[3]);
+  return dateFromParts({
+    year: short >= 70 ? 1900 + short : 2000 + short,
+    month,
+    day,
+  });
+}
+
+function readListDate(
+  value: string | null,
+  row: { externalId: string | null; title: string | null },
+  field: 'start' | 'finish',
+  warnings: ImportWarning[],
+): string | null {
+  if (!value) return null;
+  const iso = malDayToIso(value);
+  if (!iso) {
+    warnings.push(
+      warning(
+        'partial-date',
+        row,
+        `${field} date "${value}" is not a day MAL can state (DD-MM-YY) — a log date is a day, so it was left blank`,
+      ),
+    );
+    return null;
+  }
+  return iso;
+}
+
+/** The work's own year, from the start date MAL prints beside the title. */
+function releaseYear(releasedOn: string | null): number | null {
+  if (!releasedOn) return null;
+  const iso = malDayToIso(releasedOn);
+  return iso ? Number(iso.slice(0, 4)) : null;
+}
+
 function readScore(
-  status: MalListStatus,
+  score: number,
   row: { externalId: string | null; title: string | null },
   warnings: ImportWarning[],
 ): number | null {
-  const score = status.score ?? 0;
   // MAL's 0 is its "not scored" sentinel, not a rating of zero.
   if (score === 0) return null;
   if (!Number.isInteger(score) || score < 0 || score > 10) {
@@ -42,84 +77,77 @@ function readScore(
   return score;
 }
 
-function wholeCount(value: number | null | undefined): number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+function wholeCount(value: number): number {
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
 }
 
 export interface MapOptions {
   /** Injected so the future-date rule is testable. */
   now?: Date;
+  /** The profile pins this work as a favourite. */
+  favourite?: boolean;
 }
 
 /**
- * One MAL row → one import entry, or nothing when the row cannot be read.
- * Every departure from the source is recorded as a warning rather than
- * silently corrected.
+ * One MAL list row → one import entry, or nothing when the row cannot be read.
+ * Every departure from the source is recorded as a warning rather than silently
+ * corrected.
  */
 export function mapMalEntry(
-  kind: ImportKind,
-  raw: MalListEntry,
+  raw: MalListRow,
   options: MapOptions = {},
 ): { entry: ImportEntry | null; warnings: ImportWarning[] } {
-  const { node, list_status: status } = raw;
-  const externalId = String(node.id);
-  const row = { externalId, title: node.title };
+  const row = { externalId: raw.externalId, title: raw.title };
   const warnings: ImportWarning[] = [];
 
-  const mapped = STATUS_BY_MAL[kind]?.[status.status];
+  const mapped = STATUS_BY_MAL[raw.status];
   if (!mapped) {
     warnings.push(
-      warning('unknown-status', row, `unknown ${kind} status "${status.status}" — row skipped`),
+      warning('unknown-status', row, `unknown ${raw.kind} status ${raw.status} — row skipped`),
     );
     return { entry: null, warnings };
   }
 
-  const score = readScore(status, row, warnings);
   const { startedAt, finishedAt } = applyDateRules(
-    readFullDate(status.start_date, row, 'start', warnings),
-    readFullDate(status.finish_date, row, 'finish', warnings),
+    readListDate(raw.startedOn, row, 'start', warnings),
+    readListDate(raw.finishedOn, row, 'finish', warnings),
     row,
     options.now ?? new Date(),
     warnings,
   );
 
-  const progress = wholeCount(
-    kind === 'anime' ? status.num_episodes_watched : status.num_chapters_read,
-  );
-  if (kind === 'manga' && progress === 0 && wholeCount(status.num_volumes_read) > 0) {
+  const progress = wholeCount(raw.progress);
+  if (raw.kind === 'manga' && progress === 0 && wholeCount(raw.volumesRead) > 0) {
     // Volume-only tracking cannot be turned into chapters: the catalog carries a
     // volume count but no per-volume chapter boundaries (see ROADMAP).
     warnings.push(
       warning(
         'volume-only-progress',
         row,
-        `only ${status.num_volumes_read} volume(s) read — chapter progress left at 0`,
+        `only ${raw.volumesRead} volume(s) read — chapter progress left at 0`,
       ),
     );
   }
 
-  const repeats = wholeCount(
-    kind === 'anime' ? status.num_times_rewatched : status.num_times_reread,
-  );
-
   return {
     entry: {
       source: 'mal',
-      kind,
-      externalId,
-      title: node.title,
-      year: null,
+      kind: raw.kind,
+      externalId: raw.externalId,
+      title: raw.title,
+      year: releaseYear(raw.releasedOn),
       seasonNumber: null,
       status: mapped,
-      score,
+      score: readScore(raw.score, row, warnings),
       progress,
-      repeats,
+      // The page says only "currently rewatching", never how many runs came
+      // before; one completed run is what that flag means.
+      repeats: raw.repeating ? 1 : 0,
       startedAt,
       finishedAt,
-      notes: status.comments?.trim() ? status.comments.trim() : null,
-      // No provider on this source states a favourite.
-      favourite: false,
-      externalIds: { mal: node.id },
+      notes: raw.notes?.trim() ? raw.notes.trim() : null,
+      favourite: options.favourite === true,
+      externalIds: { mal: Number(raw.externalId) },
     },
     warnings,
   };

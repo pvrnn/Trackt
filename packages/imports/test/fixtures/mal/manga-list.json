@@ -1,0 +1,39 @@
+[
+  {
+    "status": 1,
+    "score": 0,
+    "tags": "",
+    "is_rereading": 0,
+    "num_read_chapters": 76,
+    "num_read_volumes": 0,
+    "created_at": 1756462610,
+    "manga_title": "After God",
+    "manga_english": "After God",
+    "manga_num_chapters": 0,
+    "manga_num_volumes": 0,
+    "manga_id": 143991,
+    "start_date_string": null,
+    "finish_date_string": null,
+    "manga_start_date_string": "10-08-21",
+    "manga_media_type_string": "Manga",
+    "notes": ""
+  },
+  {
+    "status": 2,
+    "score": 9,
+    "tags": "",
+    "is_rereading": 0,
+    "num_read_chapters": 99,
+    "num_read_volumes": 9,
+    "manga_title": "Yotsuba&!",
+    "manga_english": "Yotsuba&!",
+    "manga_num_chapters": 120,
+    "manga_num_volumes": 16,
+    "manga_id": 104,
+    "start_date_string": "01-09-20",
+    "finish_date_string": "03-10-20",
+    "manga_start_date_string": "21-03-03",
+    "manga_media_type_string": "Manga",
+    "notes": ""
+  }
+]

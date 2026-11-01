@@ -28,7 +28,7 @@ export interface RunImportOptions {
   source: ImportSource;
   /** The provider username whose list is imported. */
   profile: string;
-  /** Source credentials resolved from env by the caller (CLI/worker): `malClientId`, `traktClientId`. */
+  /** Source credentials resolved from env by the caller (CLI/worker): `traktClientId`. */
   credentials: ImportCredentials;
   /** Build the plan and stop. Nothing is written. */
   dryRun?: boolean;

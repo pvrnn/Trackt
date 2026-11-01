@@ -182,9 +182,9 @@ describe('import routes', () => {
   });
 
   it('refuses a source whose credential is unset, naming the variable', async () => {
-    const response = await post({ source: 'mal', profile: 'alice' });
+    const response = await post({ source: 'trakt', profile: 'alice' });
     expect(response.statusCode).toBe(409);
-    expect(response.json().error).toContain('MAL_CLIENT_ID');
+    expect(response.json().error).toContain('TRAKT_CLIENT_ID');
   });
 
   it('enqueues a job and answers 202 with its id and state', async () => {
@@ -308,12 +308,17 @@ describe('GET /v1/me/import/sources', () => {
     expect(byId.get('anilist')).toMatchObject({ available: true, requiresBrowser: false });
     expect(byId.get('anilist')?.reason).toBeUndefined();
 
-    // No MAL_CLIENT_ID in a test env: reported by variable name, never a value.
-    expect(byId.get('mal')).toMatchObject({ available: false });
-    expect(byId.get('mal')?.reason).toContain('MAL_CLIENT_ID');
+    // MAL needs no credential and answers plain HTTP; its browser path is an
+    // option, not a requirement.
+    expect(byId.get('mal')).toMatchObject({
+      available: true,
+      access: 'scrape',
+      requiresBrowser: true,
+    });
+    expect(byId.get('mal')?.reason).toBeUndefined();
     expect(byId.get('trakt')?.reason).toContain('TRAKT_CLIENT_ID');
 
-    // A scrape source with the default transport is not runnable either.
+    // A scrape source that plain HTTP is refused for is not runnable either.
     expect(byId.get('letterboxd')).toMatchObject({ available: false, requiresBrowser: true });
     expect(byId.get('letterboxd')?.reason).toContain('IMPORT_FETCH_MODE');
 
@@ -326,7 +331,7 @@ describe('GET /v1/me/import/sources', () => {
         NODE_ENV: 'test',
         LOG_LEVEL: 'error',
         IMPORT_FETCH_MODE: 'fallback',
-        MAL_CLIENT_ID: 'a-client-id',
+        TRAKT_CLIENT_ID: 'a-client-id',
       }),
       true,
     );

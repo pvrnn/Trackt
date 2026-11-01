@@ -68,7 +68,9 @@ export type ImportWarningCode =
   /** The provider row cannot be read at all (it names no work). */
   | 'malformed-row'
   /** One of the source's lists could not be read; the rest of the import stands. */
-  | 'partial-source';
+  | 'partial-source'
+  /** A work is pinned as a favourite but is on no list, so there is no log row to pin it to. */
+  | 'favourite-not-listed';
 
 export interface ImportWarning {
   code: ImportWarningCode;
@@ -90,7 +92,6 @@ export function warning(
  * a job carries what it needs and the pipeline stays testable.
  */
 export interface ImportCredentials {
-  malClientId?: string;
   /** The Client ID of a Trakt API app; public profiles need nothing else. */
   traktClientId?: string;
 }

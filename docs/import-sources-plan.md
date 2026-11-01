@@ -7,7 +7,7 @@ the MyAnimeList importer shipped in `@trackt/imports` (ROADMAP "Done").
 
 | Source | Access | Kinds | Identity we join on | Credential |
 | --- | --- | --- | --- | --- |
-| MyAnimeList | API v2, `X-MAL-CLIENT-ID` | anime, manga | `external_ids.mal` | `MAL_CLIENT_ID` |
+| MyAnimeList | HTML pages + their `load.json` (scrape, browser optional) | anime, manga | `external_ids.mal`, else title+year | none |
 | AniList | GraphQL, no auth | anime, manga | `external_ids.anilist` | none |
 | Letterboxd | HTML scrape | movie | `external_ids.tmdb` / `.imdb`, else title+year | none |
 | Trakt | API v2, `trakt-api-key` | movie, series (per season) | `external_ids.tmdb` (+ `season_number`) | `TRAKT_CLIENT_ID` |
@@ -67,7 +67,9 @@ interface ImportEntry {
 ```
 
 Score is normalised **in the mapper**, never downstream: MAL 0–10 as-is, AniList
-0–100 ÷ 10, Letterboxd 0.5–5 stars × 2, Trakt 1–10 as-is.
+0–100 ÷ 10 (asked for as `score(format: POINT_100)` — the bare field is in the
+account's own format, so a POINT_10 account answers 1–10), Letterboxd 0.5–5
+stars × 2, Trakt 1–10 as-is.
 
 ### The source registry
 
@@ -254,6 +256,32 @@ therefore the realistic default for this source, not an emergency lever.
 - `/film/<slug>/` (200 through the browser) carries both
   `themoviedb.org/movie/<id>` and `imdb.com/title/<tt…>` links, which is the whole
   enrichment path — one request per film, hence opt-in and capped.
+
+### MyAnimeList, measured (2026-11-01)
+
+MAL was the one source that shipped on its documented API (`X-MAL-CLIENT-ID`),
+which needs a registered client id and does not expose favourites. Its own pages
+carry both, so the source now reads them and needs no credential.
+
+- `/animelist/<user>?status=7` prints the first 300 rows in a `data-items`
+  attribute (HTML-escaped JSON) and pages the rest in from
+  `/animelist/<user>/load.json?status=7&offset=<n>` — 300 rows a page, an empty
+  array past the end. The page's 300 are **not** the endpoint's first 300: they
+  are a re-sorted subset (19 of Kyoma__'s 300 were not in `load.json`'s first
+  page), so the client pages the endpoint from 0 and dedupes by id rather than
+  trusting the page for page one.
+- A row carries the numeric status (1 watching/reading, 2 completed, 3 on hold,
+  4 dropped, 6 plan), the score (0 = unscored), episode/chapter progress, the
+  comment, the two log dates as MAL prints them (`DD-MM-YY`) and the work's own
+  start date — the year the title fallback needs.
+- `/profile/<user>/favorites` is server-rendered too: `<h5>Anime</h5>` /
+  `<h5>Manga</h5>` sections of `.boxlist` items linking to `/anime/<id>/…`, with
+  `TV ･ 2006` beside the title. Characters and people are separate sections and
+  are not works. A favourite the lists do not carry has no status to import, so
+  it is warned about (`favourite-not-listed`) rather than guessed at.
+- Plain HTTP answers all of it; `IMPORT_FETCH_MODE=browser` also works because
+  the browser fetcher now returns a JSON endpoint's body instead of the markup
+  of Chromium's JSON viewer.
 
 ## What a provider says about a film, and what it does not
 

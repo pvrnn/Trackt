@@ -27,7 +27,6 @@
         "PORT",
         "LOG_LEVEL",
         "TMDB_API_KEY",
-        "MAL_CLIENT_ID",
         "TRAKT_CLIENT_ID",
         "IMPORT_FETCH_MODE",
         "PLAYWRIGHT_WS_ENDPOINT",

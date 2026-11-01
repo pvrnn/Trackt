@@ -47,6 +47,8 @@ describe('createAniListClient', () => {
     expect(body.variables).toEqual({ userName: 'taluun', type: 'ANIME' });
     expect(body.query).toContain('MediaListCollection');
     expect(body.query).toContain('startedAt');
+    // One scale for every account: the bare field is in the user's own format.
+    expect(body.query).toContain('score(format: POINT_100)');
 
     // 10 of the fixture's entries live across six lists.
     expect(entries).toHaveLength(10);

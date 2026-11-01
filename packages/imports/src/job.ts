@@ -200,7 +200,6 @@ export type UncertainMatchList = z.infer<typeof UncertainMatchListSchema>;
 
 /** The env var each credential field is filled from. */
 const CREDENTIAL_FIELDS = {
-  MAL_CLIENT_ID: 'malClientId',
   TRAKT_CLIENT_ID: 'traktClientId',
 } as const;
 
