@@ -86,7 +86,7 @@ function parseArgs(argv: string[]): Args {
   return args;
 }
 
-/** `MAL_CLIENT_ID` → `malClientId`: the `ImportCredentials` field an env var fills. */
+/** `TRAKT_CLIENT_ID` → `traktClientId`: the `ImportCredentials` field an env var fills. */
 function credentialField(envName: string): keyof ImportCredentials {
   const [first, ...rest] = envName.toLowerCase().split('_');
   const camel = [first, ...rest.map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)];

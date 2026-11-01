@@ -188,13 +188,13 @@ describe('createImportProcessor', () => {
   it('fails a credential-less source with the credential kind, naming the variable', async () => {
     const { runImport, seen } = stubRun();
     const processor = createImportProcessor({ db, env: {}, runImport });
-    const job = fakeJob({ ...validJob, source: 'mal' });
+    const job = fakeJob({ ...validJob, source: 'trakt' });
 
     const error = await processor(job).catch((thrown: unknown) => thrown);
 
     expect(error).toBeInstanceOf(ImportError);
     expect((error as ImportError).kind).toBe('credential');
-    expect((error as ImportError).message).toContain('MAL_CLIENT_ID');
+    expect((error as ImportError).message).toContain('TRAKT_CLIENT_ID');
     // The API reports the kind from the job's progress; the pipeline never ran.
     expect(job.updates.at(-1)).toMatchObject({ errorKind: 'credential' });
     expect(seen).toHaveLength(0);
@@ -204,13 +204,22 @@ describe('createImportProcessor', () => {
     const { runImport, seen } = stubRun();
     const processor = createImportProcessor({
       db,
-      env: { MAL_CLIENT_ID: 'mal-client' },
+      env: { TRAKT_CLIENT_ID: 'trakt-client' },
       runImport,
     });
 
+    await processor(fakeJob({ ...validJob, source: 'trakt' }));
+
+    expect(seen[0]?.credentials).toEqual({ traktClientId: 'trakt-client' });
+  });
+
+  it('runs a source that needs no credential at all', async () => {
+    const { runImport, seen } = stubRun();
+    const processor = createImportProcessor({ db, env: {}, runImport });
+
     await processor(fakeJob({ ...validJob, source: 'mal' }));
 
-    expect(seen[0]?.credentials).toEqual({ malClientId: 'mal-client' });
+    expect(seen[0]?.credentials).toEqual({});
   });
 
   it('rejects a job with an unknown source', async () => {

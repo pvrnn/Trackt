@@ -99,18 +99,20 @@ function sourceStatus(
     label: definition.label,
     kinds: [...definition.kinds],
     access: definition.access,
-    requiresBrowser: definition.browser === true,
+    requiresBrowser: definition.browser !== undefined,
   };
 
   if (credentialError !== null) {
     return { ...base, available: false, reason: credentialError };
   }
-  if (definition.browser && (env.IMPORT_FETCH_MODE ?? 'http') === 'http') {
+  // Only a source HTTP is known to be refused for is blocked on the mode; one
+  // that offers a browser path as an option still runs without it.
+  if (definition.browser === 'required' && (env.IMPORT_FETCH_MODE ?? 'http') === 'http') {
     return {
       ...base,
       available: false,
       reason:
-        'IMPORT_FETCH_MODE=browser or fallback is required for this source (it may sit behind a Cloudflare challenge)',
+        'IMPORT_FETCH_MODE=browser or fallback is required for this source (it sits behind a Cloudflare challenge)',
     };
   }
   return { ...base, available: true };

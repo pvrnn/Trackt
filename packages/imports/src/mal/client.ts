@@ -1,135 +1,173 @@
 import { ImportError } from '../errors.js';
-import type { FetchLike } from '../http/fetch.js';
-import { MalListResponseSchema, type MalListEntry } from './schemas.js';
+import { looksLikeChallenge, type PageFetcher } from '../http/fetch.js';
 import type { ImportKind } from '../types.js';
+import { parseFavorites, type FavoritesPage } from './parse.js';
+import {
+  MalAnimeRowSchema,
+  MalMangaRowSchema,
+  fromAnimeRow,
+  fromMangaRow,
+  type MalListRow,
+} from './schemas.js';
 
-export type { FetchLike } from '../http/fetch.js';
+/**
+ * MyAnimeList's list pages. The visible page prints the first 300 rows and then
+ * pages the rest in from `/animelist/<user>/load.json`; the client reads that
+ * endpoint, because it is the only complete read — the page's own 300 are a
+ * re-sorted subset, not the endpoint's first page.
+ *
+ * The client takes a `PageFetcher`, not a `fetch`: whether the pages arrive over
+ * plain HTTP or through a browser is the operator's choice, and the parser
+ * cannot tell.
+ */
 
-export type MalErrorKind = 'auth' | 'not-found' | 'http' | 'malformed';
-
-export class MalApiError extends ImportError {
-  declare readonly kind: MalErrorKind;
-
-  constructor(message: string, kind: MalErrorKind, status: number | null) {
-    super(message, kind, status);
-    this.name = 'MalApiError';
-  }
-}
+const DEFAULT_BASE_URL = 'https://myanimelist.net';
+const DEFAULT_MAX_PAGES = 100;
 
 export interface MalClientOptions {
-  /**
-   * The API client id from https://myanimelist.net/apiconfig. Sent as
-   * `X-MAL-CLIENT-ID`, which the user-list endpoints accept in place of an OAuth
-   * token — so a *public* list needs no user authorisation at all.
-   */
-  clientId: string;
-  fetch?: FetchLike;
+  fetcher: PageFetcher;
   baseUrl?: string;
-  /** MAL caps the user-list endpoints at 1000. */
-  pageSize?: number;
-  /** MAL allows 3 requests/second; two lists are two requests, but keep it polite. */
+  /** Politeness delay between pages; the fetcher spaces its own requests too. */
   requestSpacingMs?: number;
-  /** A far-future loop guard: someone with 40k entries still finishes, a bad cursor does not. */
+  /** A runaway-loop guard: a 10 000-row list is 34 pages at MAL's page size. */
   maxPages?: number;
 }
 
 export interface MalClient {
-  /** Every entry of one public list, following `paging.next`. */
-  fetchList(kind: ImportKind, username: string): Promise<MalListEntry[]>;
+  /** Every row of one list, whatever its status (MAL's `status=7`). */
+  fetchList(kind: ImportKind, user: string): Promise<MalListRow[]>;
+  /** The anime and manga the profile pins, plus whether the sections were found. */
+  fetchFavorites(user: string): Promise<FavoritesPage>;
 }
 
-const DEFAULT_BASE_URL = 'https://api.myanimelist.net/v2';
+export class MalError extends ImportError {
+  declare readonly kind: 'not-found' | 'private' | 'http' | 'malformed';
+
+  constructor(message: string, kind: MalError['kind'], status: number | null) {
+    super(message, kind, status);
+    this.name = 'MalError';
+  }
+}
 
 function sleep(ms: number): Promise<void> {
   return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
 }
 
-function errorForStatus(status: number, username: string): MalApiError {
-  if (status === 404) {
-    return new MalApiError(`MyAnimeList has no user "${username}"`, 'not-found', status);
-  }
-  // MAL answers 403 for a missing/blocked client id and 401 for an expired token;
-  // both are "this import cannot run until someone fixes credentials".
-  if (status === 401 || status === 403) {
-    return new MalApiError(
-      status === 403
-        ? 'MyAnimeList rejected the request (403) — check MAL_CLIENT_ID, and that the list is public'
-        : 'MyAnimeList rejected the credentials (401)',
-      'auth',
-      status,
-    );
-  }
-  return new MalApiError(
-    status === 400
-      ? // MAL answers 400 rather than 403 for a client id it cannot validate.
-        'MyAnimeList answered 400 — check MAL_CLIENT_ID, and that the profile name is spelled as it appears on the site'
-      : `MyAnimeList answered ${status}`,
-    'http',
-    status,
-  );
-}
-
 export function createMalClient(options: MalClientOptions): MalClient {
   const {
-    clientId,
-    fetch = globalThis.fetch as unknown as FetchLike,
+    fetcher,
     baseUrl = DEFAULT_BASE_URL,
-    pageSize = 1000,
-    requestSpacingMs = 400,
-    maxPages = 40,
+    requestSpacingMs = 0,
+    maxPages = DEFAULT_MAX_PAGES,
   } = options;
 
-  if (!clientId) {
-    throw new ImportError(
-      'a MyAnimeList client id is required (MAL_CLIENT_ID)',
-      'credential',
-      null,
-    );
+  function errorForStatus(status: number, user: string): MalError {
+    if (status === 404) {
+      return new MalError(`MyAnimeList has no user "${user}"`, 'not-found', status);
+    }
+    // MAL answers 400 for a list it will not serve — most often an unknown name.
+    if (status === 400) {
+      return new MalError(
+        `MyAnimeList would not serve the list of "${user}" — check the profile name, ` +
+          `and that the list is public`,
+        'not-found',
+        status,
+      );
+    }
+    if (status === 403) {
+      return new MalError(
+        `MyAnimeList refused the list of "${user}" (403) — a private list cannot be imported`,
+        'private',
+        status,
+      );
+    }
+    return new MalError(`MyAnimeList answered ${status}`, 'http', status);
   }
 
-  async function fetchList(kind: ImportKind, username: string): Promise<MalListEntry[]> {
+  async function read(url: string, user: string): Promise<string> {
+    const response = await fetcher.get(url);
+    if (looksLikeChallenge(response.status, response.body)) {
+      throw new MalError(
+        `MyAnimeList answered with a Cloudflare challenge (${response.status}) — run the import ` +
+          `with IMPORT_FETCH_MODE=browser and a browser installed ` +
+          `(pnpm add -w playwright && pnpm exec playwright install chromium)`,
+        'http',
+        response.status,
+      );
+    }
+    if (response.status !== 200) throw errorForStatus(response.status, user);
+    return response.body;
+  }
+
+  function parsePage(kind: ImportKind, body: string, user: string, url: string): MalListRow[] {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      throw new MalError(
+        `MyAnimeList did not answer "${user}" with a list (${url}) — the list may be private, ` +
+          `or the endpoint has changed`,
+        'malformed',
+        null,
+      );
+    }
+
+    const bad = (issue: string | undefined) =>
+      new MalError(
+        `unexpected MyAnimeList list row: ${issue ?? 'invalid shape'}`,
+        'malformed',
+        null,
+      );
+
+    if (kind === 'anime') {
+      const rows = MalAnimeRowSchema.array().safeParse(parsed);
+      if (!rows.success) throw bad(rows.error.issues[0]?.message);
+      return rows.data.map(fromAnimeRow);
+    }
+    const rows = MalMangaRowSchema.array().safeParse(parsed);
+    if (!rows.success) throw bad(rows.error.issues[0]?.message);
+    return rows.data.map(fromMangaRow);
+  }
+
+  async function fetchList(kind: ImportKind, user: string): Promise<MalListRow[]> {
     const list = kind === 'anime' ? 'animelist' : 'mangalist';
-    const entries: MalListEntry[] = [];
+    const rows: MalListRow[] = [];
+    const seen = new Set<string>();
+    let offset = 0;
 
     for (let page = 0; page < maxPages; page++) {
       if (page > 0) await sleep(requestSpacingMs);
-      const offset = entries.length;
       const url =
-        `${baseUrl}/users/${encodeURIComponent(username)}/${list}` +
-        `?fields=list_status&nsfw=true&limit=${pageSize}&offset=${offset}`;
+        `${baseUrl}/${list}/${encodeURIComponent(user)}/load.json` + `?status=7&offset=${offset}`;
+      const items = parsePage(kind, await read(url, user), user, url);
+      // The last page is the empty one, which MAL keeps answering — so an empty
+      // page is the only end-of-list signal the endpoint gives.
+      if (items.length === 0) return rows;
 
-      let response: Awaited<ReturnType<FetchLike>>;
-      try {
-        response = await fetch(url, { headers: { 'X-MAL-CLIENT-ID': clientId } });
-      } catch (error) {
-        throw new MalApiError(
-          `could not reach MyAnimeList: ${error instanceof Error ? error.message : String(error)}`,
-          'http',
-          null,
-        );
+      let added = 0;
+      for (const item of items) {
+        if (seen.has(item.externalId)) continue;
+        seen.add(item.externalId);
+        rows.push(item);
+        added += 1;
       }
-      if (!response.ok) throw errorForStatus(response.status, username);
-
-      const parsed = MalListResponseSchema.safeParse(await response.json());
-      if (!parsed.success) {
-        throw new MalApiError(
-          `unexpected MyAnimeList response: ${parsed.error.issues[0]?.message ?? 'invalid shape'}`,
-          'malformed',
-          response.status,
-        );
-      }
-
-      entries.push(...parsed.data.data);
-      const next = parsed.data.paging?.next;
-      if (!next || parsed.data.data.length < pageSize) return entries;
+      offset += items.length;
+      // A page of nothing new means the endpoint is repeating itself; asking
+      // again would loop forever.
+      if (added === 0) return rows;
     }
 
-    throw new MalApiError(
-      `MyAnimeList kept paging past ${maxPages} pages — refusing to loop`,
-      'malformed',
+    throw new MalError(
+      `MyAnimeList kept paging "${user}" past ${maxPages} pages — refusing to loop instead of truncating`,
+      'http',
       null,
     );
   }
 
-  return { fetchList };
+  async function fetchFavorites(user: string): Promise<FavoritesPage> {
+    const url = `${baseUrl}/profile/${encodeURIComponent(user)}/favorites`;
+    return parseFavorites(await read(url, user));
+  }
+
+  return { fetchList, fetchFavorites };
 }

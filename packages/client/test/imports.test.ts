@@ -75,12 +75,12 @@ describe('ImportSourcesSchema', () => {
           access: 'api',
           requiresBrowser: false,
           available: false,
-          reason: 'MAL_CLIENT_ID is not set on this instance',
+          reason: 'TRAKT_CLIENT_ID is not set on this instance',
         },
       ],
     });
     expect(parsed.sources[0]?.available).toBe(false);
-    expect(parsed.sources[0]?.reason).toContain('MAL_CLIENT_ID');
+    expect(parsed.sources[0]?.reason).toContain('TRAKT_CLIENT_ID');
   });
 
   it('reads the empty list the 404 degrades to', () => {

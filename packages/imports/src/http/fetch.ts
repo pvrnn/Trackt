@@ -117,11 +117,17 @@ export function createHttpFetcher(options: HttpFetcherOptions = {}): PageFetcher
   return { get };
 }
 
+interface BrowserResponse {
+  status(): number;
+  headers(): Record<string, string>;
+  text(): Promise<string>;
+}
+
 interface BrowserPage {
   goto(
     url: string,
     options: { waitUntil: 'domcontentloaded'; timeout: number },
-  ): Promise<{ status(): number } | null>;
+  ): Promise<BrowserResponse | null>;
   content(): Promise<string>;
   close(): Promise<void>;
 }
@@ -203,8 +209,19 @@ export function createBrowserFetcher(options: BrowserFetcherOptions = {}): Dispo
     const { context } = await ensureSession();
     const page = await context.newPage();
     try {
-      const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-      return { status: response?.status() ?? 0, body: await page.content() };
+      const response = await page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout: timeoutMs,
+      });
+      const status = response?.status() ?? 0;
+      const contentType = response?.headers()['content-type'] ?? '';
+      // Chromium wraps a JSON body in its own viewer, so `content()` is markup
+      // around the payload. A scrape source that reads an endpoint wants the
+      // body it asked for, not the viewer.
+      if (response && /json/i.test(contentType)) {
+        return { status, body: await response.text() };
+      }
+      return { status, body: await page.content() };
     } catch (error) {
       throw new ImportError(
         `the browser could not load ${url}: ${describe(error)}`,

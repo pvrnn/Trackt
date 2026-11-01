@@ -48,23 +48,16 @@ const RawEnvSchema = z.object({
   CATALOG_FEEDBACK_TIMEOUT_MS: z.coerce.number().int().positive().default(4000),
   TMDB_API_KEY: z.string().optional(),
   /**
-   * MyAnimeList API client id, for importing a user's anime/manga list
-   * (`@trackt/imports`). Registered once at https://myanimelist.net/apiconfig;
-   * public lists are readable with the `X-MAL-CLIENT-ID` header alone, so no
-   * user OAuth token is involved. Other import sources take their own credential
-   * (see `TRAKT_CLIENT_ID`); most need none.
-   */
-  MAL_CLIENT_ID: optionalString,
-  /**
    * Trakt API app Client ID, for importing a user's movies and watched series
    * (per season, ADR-0003). Registered at https://trakt.tv/oauth/applications;
    * public profiles need nothing else.
    */
   TRAKT_CLIENT_ID: optionalString,
   /**
-   * How the scrape sources (Letterboxd) fetch pages: `http` (default), `browser`
-   * (always through Playwright) or `fallback` (plain HTTP, escalating to the
-   * browser when Cloudflare challenges). Read by the fetcher itself.
+   * How the scrape sources (Letterboxd, MyAnimeList) fetch pages: `http`
+   * (default), `browser` (always through Playwright) or `fallback` (plain HTTP,
+   * escalating to the browser when Cloudflare challenges). Read by the fetcher
+   * itself.
    */
   IMPORT_FETCH_MODE: z.preprocess(
     (value) => (value === '' ? undefined : value),
@@ -120,12 +113,10 @@ const HINTS: Record<string, string> = {
     'base URL of the central slim catalog service (ADR-0001); unset disables federated search',
   TMDB_API_KEY:
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
-  MAL_CLIENT_ID:
-    'optional — enables MyAnimeList list imports; create an API client at https://myanimelist.net/apiconfig and use its Client ID',
   TRAKT_CLIENT_ID:
     'optional — enables Trakt list imports; create an API app at https://trakt.tv/oauth/applications and use its Client ID',
   IMPORT_FETCH_MODE:
-    'optional — http|browser|fallback for the importers that scrape (Letterboxd); browser needs playwright installed',
+    'optional — http|browser|fallback for the importers that scrape (Letterboxd, MyAnimeList); browser needs playwright installed',
   PLAYWRIGHT_WS_ENDPOINT:
     'optional — ws endpoint of a Chromium to attach to instead of launching one; read by the import browser fetcher',
   APP_URL: 'the public URL of this instance, e.g. https://trackt.example.com',
@@ -162,7 +153,6 @@ export interface Env {
   CATALOG_NEWS_TIMEOUT_MS: number;
   CATALOG_FEEDBACK_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
-  MAL_CLIENT_ID?: string | undefined;
   TRAKT_CLIENT_ID?: string | undefined;
   /** Chosen transport for the scrape sources; unset means `http` (the fetcher's own default). */
   IMPORT_FETCH_MODE?: 'http' | 'browser' | 'fallback' | undefined;

@@ -19,7 +19,9 @@ const LIST_QUERY = `query ($userName: String, $type: MediaType) {
       entries {
         mediaId
         status
-        score
+        # Without the argument this is the account's own format — 1–10 for a
+        # POINT_10 user — so the mapper would divide a 0–100 number by 10 twice.
+        score(format: POINT_100)
         progress
         repeat
         notes

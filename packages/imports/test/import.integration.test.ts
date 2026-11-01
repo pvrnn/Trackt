@@ -18,7 +18,7 @@ import {
 } from '@trackt/db';
 import { canonicalMediaId, canonicalSeriesSeasonId } from '@trackt/shared';
 import { recordUncertainMatches } from '../src/apply.js';
-import type { FetchLike } from '../src/http/fetch.js';
+import type { FetchLike, PageFetcher } from '../src/http/fetch.js';
 import { MATCH_THRESHOLD } from '../src/match.js';
 import { buildImportPlan } from '../src/plan.js';
 import { replayImportReport } from '../src/replay.js';
@@ -73,62 +73,91 @@ const breakingBadS1Id = canonicalSeriesSeasonId(1396, 1); // 7 episodes
 const breakingBadS2Id = canonicalSeriesSeasonId(1396, 2); // 13 episodes
 
 /**
- * A MAL list as the API would hand it over: two rows the seed carries, one it
- * does not, and one with a partial date to exercise the mapper's warning path.
+ * A MAL list as `/load.json` hands it over: two rows the seed carries, one it
+ * does not, the client's own dates in MAL's `DD-MM-YY`, and a rewatch flag.
  */
-const MAL_ANIME = {
-  data: [
-    {
-      node: { id: 1, title: 'Cowboy Bebop' },
-      list_status: {
-        status: 'completed',
-        score: 8,
-        num_episodes_watched: 26,
-        num_times_rewatched: 1,
-        start_date: '2019-04-01',
-        finish_date: '2019-04-12',
-        comments: '  the movie was better  ',
-      },
-    },
-    {
-      node: { id: 52991, title: 'Sousou no Frieren' },
-      list_status: {
-        status: 'watching',
-        score: 0,
-        num_episodes_watched: 12,
-        start_date: '2024-01',
-      },
-    },
-    {
-      node: { id: 999_999, title: 'A Show This Instance Does Not Have' },
-      list_status: { status: 'plan_to_watch', num_episodes_watched: 0 },
-    },
-  ],
-  paging: {},
-};
+const MAL_ANIME = [
+  {
+    anime_id: 1,
+    anime_title: 'Cowboy Bebop',
+    status: 2,
+    score: 8,
+    num_watched_episodes: 26,
+    is_rewatching: 1,
+    start_date_string: '01-04-19',
+    finish_date_string: '12-04-19',
+    anime_start_date_string: '03-04-98',
+    notes: '  the movie was better  ',
+  },
+  {
+    anime_id: 52991,
+    anime_title: 'Sousou no Frieren',
+    status: 1,
+    score: 0,
+    num_watched_episodes: 12,
+    is_rewatching: 0,
+    start_date_string: null,
+    finish_date_string: null,
+    anime_start_date_string: '29-09-23',
+    notes: '',
+  },
+  {
+    anime_id: 999_999,
+    anime_title: 'A Show This Instance Does Not Have',
+    status: 6,
+    score: 0,
+    num_watched_episodes: 0,
+    is_rewatching: 0,
+    start_date_string: null,
+    finish_date_string: null,
+    anime_start_date_string: '01-01-30',
+    notes: '',
+  },
+];
 
-const MAL_MANGA = {
-  data: [
-    {
-      node: { id: 25, title: 'Fullmetal Alchemist' },
-      list_status: {
-        status: 'reading',
-        score: 9,
-        num_chapters_read: 10,
-        num_volumes_read: 1,
-        num_times_reread: 0,
-      },
-    },
-  ],
-  paging: {},
-};
+const MAL_MANGA = [
+  {
+    manga_id: 25,
+    manga_title: 'Fullmetal Alchemist',
+    status: 1,
+    score: 9,
+    num_read_chapters: 10,
+    num_read_volumes: 1,
+    is_rereading: 0,
+    start_date_string: null,
+    finish_date_string: null,
+    manga_start_date_string: '06-07-01',
+    notes: '',
+  },
+];
 
-function stubMal(): FetchLike {
-  return async (url) => ({
-    ok: true,
-    status: 200,
-    json: async () => (url.includes('/mangalist') ? MAL_MANGA : MAL_ANIME),
-  });
+/** Bebop is on the list; NHK ni Youkoso! is pinned but on neither list. */
+const MAL_FAVORITES = `
+  <h5>Anime</h5>
+  <div class="boxlist-container anime mb16">
+    <div class="boxlist col-4">
+      <div class="di-tc va-t pl8 data">
+        <div class="title"><a href="https://myanimelist.net/anime/1/Cowboy_Bebop">Cowboy Bebop</a></div>
+        <div class="di-ib mt4 fn-grey2">TV ･ 1998</div>
+      </div>
+    </div>
+    <div class="boxlist col-4">
+      <div class="di-tc va-t pl8 data">
+        <div class="title"><a href="https://myanimelist.net/anime/1210/NHK_ni_Youkoso">NHK ni Youkoso!</a></div>
+        <div class="di-ib mt4 fn-grey2">TV ･ 2006</div>
+      </div>
+    </div>
+  </div>`;
+
+function stubMal(): PageFetcher {
+  return {
+    async get(url) {
+      if (url.includes('/favorites')) return { status: 200, body: MAL_FAVORITES };
+      const first = url.includes('offset=0');
+      const rows = url.includes('/animelist/') ? MAL_ANIME : MAL_MANGA;
+      return { status: 200, body: first ? JSON.stringify(rows) : '[]' };
+    },
+  };
 }
 
 interface AniListRowOptions {
@@ -291,12 +320,14 @@ describe.runIf(available)('account import (postgres)', () => {
     // The seed re-creates rows; import state from an earlier run must not leak.
     await db.delete(progress);
     await db.delete(rating);
+    await db.delete(favorite);
     await db.delete(userMedia);
   });
 
   beforeEach(async () => {
     await db.delete(progress);
     await db.delete(rating);
+    await db.delete(favorite);
     await db.delete(userMedia);
     const [user] = await db
       .insert(users)
@@ -315,8 +346,8 @@ describe.runIf(available)('account import (postgres)', () => {
       userId,
       source: 'mal',
       profile: 'Kyoma__',
-      credentials: { malClientId: 'test-client' },
-      fetch: stubMal(),
+      credentials: {},
+      fetcher: stubMal(),
       requestSpacingMs: 0,
       now: NOW,
       ...overrides,
@@ -328,16 +359,17 @@ describe.runIf(available)('account import (postgres)', () => {
         userId,
         source: 'mal',
         profile: 'Kyoma__',
-        credentials: { malClientId: 'test-client' },
-        fetch: stubMal(),
+        credentials: {},
+        fetcher: stubMal(),
         requestSpacingMs: 0,
         now: NOW,
       });
 
       expect(plan.summary).toMatchObject({ total: 4, matched: 3, unmatched: 1, existing: 0 });
       expect(plan.rows.find((row) => row.entry.externalId === '999999')?.target).toBeNull();
-      // The partial MAL date is dropped, not guessed at.
-      expect(plan.warnings.map((w) => w.code)).toContain('partial-date');
+      // A favourite with no list row is reported, not invented.
+      expect(plan.warnings.map((w) => w.code)).toContain('favourite-not-listed');
+      expect(plan.summary.favourites).toBe(1);
       expect(
         plan.rows.every((row) => row.matchedBy === 'external-id' || row.matchedBy === null),
       ).toBe(true);
@@ -345,7 +377,13 @@ describe.runIf(available)('account import (postgres)', () => {
 
     it('writes status, dates, notes, score and progress, and skips unmatched rows', async () => {
       const { report } = await runMal();
-      expect(report).toMatchObject({ created: 3, updated: 0, skippedExisting: 0, ratings: 2 });
+      expect(report).toMatchObject({
+        created: 3,
+        updated: 0,
+        skippedExisting: 0,
+        ratings: 2,
+        favourites: 1,
+      });
       expect(report?.unmatched).toEqual([
         { externalId: '999999', title: 'A Show This Instance Does Not Have' },
       ]);
@@ -368,6 +406,10 @@ describe.runIf(available)('account import (postgres)', () => {
 
       const [fma] = await db.select().from(userMedia).where(eq(userMedia.mediaId, fmaMangaId));
       expect(fma?.status).toBe('in_progress');
+
+      // The profile's pin lands on the row the list already carried.
+      const pins = await db.select().from(favorite).where(eq(favorite.userId, userId));
+      expect(pins.map((pin) => pin.mediaId)).toEqual([bebopId]);
     });
 
     it('checks in every part of a completed work and the position for a partial one', async () => {

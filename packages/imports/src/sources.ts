@@ -15,8 +15,13 @@ export interface ImportSourceDefinition {
   joinKeys: readonly string[];
   credential: { env: string; hint: string } | null;
   access: 'api' | 'scrape';
-  /** Scrape sources may need a real browser (Cloudflare); see http/fetch.ts. */
-  browser?: boolean;
+  /**
+   * The source may need a real browser (Cloudflare); see http/fetch.ts.
+   * `required` means plain HTTP is known to be refused, so the API reports the
+   * source unavailable until a browser is configured; `optional` means the pages
+   * answer HTTP but the browser is there for the day they stop.
+   */
+  browser?: 'required' | 'optional';
   /** Last resort: strict normalised title + exact year, unique match only. */
   titleFallback: boolean;
 }
@@ -27,14 +32,12 @@ export const IMPORT_SOURCES: Record<ImportSource, ImportSourceDefinition> = {
     label: 'MyAnimeList',
     kinds: ['anime', 'manga'],
     joinKeys: ['mal'],
-    credential: {
-      env: 'MAL_CLIENT_ID',
-      hint:
-        'create an API client at https://myanimelist.net/apiconfig and export its Client ID ' +
-        '(public lists need nothing else).',
-    },
-    access: 'api',
-    titleFallback: false,
+    credential: null,
+    access: 'scrape',
+    browser: 'optional',
+    // The seeds carry a MAL id for most rows, but the lists are public pages: a
+    // work materialized from TMDB or an older seed has no MAL id to join on.
+    titleFallback: true,
   },
   anilist: {
     id: 'anilist',
@@ -52,7 +55,7 @@ export const IMPORT_SOURCES: Record<ImportSource, ImportSourceDefinition> = {
     joinKeys: ['tmdb', 'imdb'],
     credential: null,
     access: 'scrape',
-    browser: true,
+    browser: 'required',
     titleFallback: true,
   },
   trakt: {

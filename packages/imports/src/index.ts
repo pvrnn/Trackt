@@ -72,9 +72,10 @@ export {
   type FilmLinks,
   type PosterItem,
 } from './letterboxd/parse.js';
-export { createMalClient, MalApiError, type MalClient } from './mal/client.js';
+export { createMalClient, MalError, type MalClient, type MalClientOptions } from './mal/client.js';
 export { mapMalEntry, type MapOptions } from './mal/map.js';
-export type { MalListEntry, MalListStatus } from './mal/schemas.js';
+export { parseFavorites, type FavoritesPage } from './mal/parse.js';
+export type { MalFavorite, MalListRow } from './mal/schemas.js';
 export {
   buildImportPlan,
   unmatchedTitles,
