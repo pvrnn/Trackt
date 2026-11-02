@@ -100,6 +100,15 @@ export {
 export { planImport, runImport, type ImportRun, type RunImportOptions } from './run.js';
 export { IMPORT_SOURCES, type ImportSourceDefinition } from './sources.js';
 export {
+  createSteamClient,
+  readSteamProfile,
+  type SteamClient,
+  type SteamClientOptions,
+  type SteamProfileRef,
+} from './steam/client.js';
+export { mapSteamGame, type SteamMapOptions } from './steam/map.js';
+export type { SteamOwnedGame } from './steam/schemas.js';
+export {
   MAX_UNCERTAIN_CANDIDATES,
   UNCERTAIN_FLOOR,
   type UncertainCandidate,

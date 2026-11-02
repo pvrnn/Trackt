@@ -201,6 +201,7 @@ export type UncertainMatchList = z.infer<typeof UncertainMatchListSchema>;
 /** The env var each credential field is filled from. */
 const CREDENTIAL_FIELDS = {
   TRAKT_CLIENT_ID: 'traktClientId',
+  STEAM_API_KEY: 'steamApiKey',
 } as const;
 
 /** The slice of the environment credentials are read from: `loadEnv()` and `process.env` both fit. */

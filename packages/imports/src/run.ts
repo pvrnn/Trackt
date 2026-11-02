@@ -7,6 +7,7 @@ import { fetchLetterboxdEntries } from './letterboxd/adapter.js';
 import { fetchMalEntries } from './mal/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
 import { entryKey, findLoggedMediaIds, resolveImportEntries } from './resolve.js';
+import { fetchSteamEntries } from './steam/adapter.js';
 import { fetchTraktEntries } from './trakt/adapter.js';
 import { mergeUncertain } from './uncertain.js';
 import type {
@@ -73,6 +74,7 @@ const ADAPTERS: Record<ImportSource, (options: FetchEntriesOptions) => Promise<F
   anilist: fetchAniListEntries,
   letterboxd: fetchLetterboxdEntries,
   trakt: fetchTraktEntries,
+  steam: fetchSteamEntries,
 };
 
 /** Fetch a source's lists and work out what the import would do. Reads, never writes. */

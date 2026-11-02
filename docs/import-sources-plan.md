@@ -11,6 +11,7 @@ the MyAnimeList importer shipped in `@trackt/imports` (ROADMAP "Done").
 | AniList | GraphQL, no auth | anime, manga | `external_ids.anilist` | none |
 | Letterboxd | HTML scrape | movie | `external_ids.tmdb` / `.imdb`, else title+year | none |
 | Trakt | API v2, `trakt-api-key` | movie, series (per season) | `external_ids.tmdb` (+ `season_number`) | `TRAKT_CLIENT_ID` |
+| Steam | Web API v1, keyed | game | `external_ids.steam`, else title | `STEAM_API_KEY` |
 
 Everything runs through one pipeline — fetch → map → resolve → plan → apply — and one
 CLI (`pnpm import -- --source <id> --user <email|uuid> --profile <name>`), plus an
@@ -40,6 +41,59 @@ machine on 2026-10-30 (plain `fetch`, browser user-agent).
   exports or Cloudflare-gated HTML; Backloggd renders client-side with no
   server-side grid. Backloggd (games) is the one worth revisiting, with a
   browser, if game imports matter.
+
+## Steam: keyed, because the public page is gone
+
+Probed 2026-11-01 from this machine. **Steam's community game list no longer
+answers anonymously**: `/profiles/<id>/games`, with or without `xml=1`, with or
+without a cookie jar, `302`s to `/login` — for a profile whose game details are
+public, and for Gabe Newell's. The old scraper in every "export my Steam
+library" tool is dead, and no browser helps, because it is a login and not a
+challenge.
+
+What is left is `IPlayerService/GetOwnedGames`, and it needs a key (401 without
+one). The key is the **instance's**, not the viewer's: one free key from
+<https://steamcommunity.com/dev/apikey> reads every profile whose game details
+are public, so the wizard still asks for a profile and never for a password. Two
+things stay open without a key, which is why they were checked and then not
+used:
+
+- `ISteamUser/ResolveVanityURL` — needs the key, and is how a vanity name
+  becomes a SteamID64 (a SteamID64 or a pasted profile URL costs no request).
+- `IWishlistService/GetWishlist` — **open, no key**, answers
+  `{appid, priority, date_added}` and nothing else. A wishlist row would arrive
+  with no title, and this importer does not invent titles, so the wishlist is
+  not read; give it a name source and it becomes a cheap `planned` list.
+- `ISteamApps/GetAppList/v2` (a bulk appid → name table) is gone (404), and
+  `store.steampowered.com/api/appdetails` is one request per app against a
+  200-per-five-minutes limit — so nothing here resolves an appid to a name
+  except `GetOwnedGames` itself, with `include_appinfo`.
+
+### What a Steam library says, and what it does not
+
+`GetOwnedGames` states `appid`, `name`, `playtime_forever` (minutes),
+`playtime_2weeks` and `rtime_last_played`. It states **no status and no
+completion**: Steam has no "finished" flag, and achievements would cost one
+request per game. The mapper therefore reads the only real signal:
+
+| Steam says | Trackt writes |
+| --- | --- |
+| played in the last two weeks | `in_progress` |
+| played at all | `completed` (what Letterboxd's "watched" gets) |
+| owned, never launched | `planned` — a backlog is a plan |
+
+`rtime_last_played` becomes the row's day, and a row with no timestamp keeps no
+date rather than an invented one (ADR-0007). `GetOwnedGames` also states no
+release year, so a row the catalog has no appid for is matched on its title
+alone: `match.ts` scores it, and two same-name rows stay
+`ambiguous-title-match` instead of becoming a guess. That is the real limit of
+this source today — the IGDB scrape writes `external_ids.steam` for 1 180 of the
+seed's 1 961 games (60%), and every game outside that set has to win on its name.
+
+Failures a viewer can act on are separated: an empty `{"response": {}}` means
+game details are private (Steam's own settings URL is in the message), a `42`
+from `ResolveVanityURL` means no such profile, and an app Steam no longer names
+is a `malformed-row` warning naming its appid rather than a row titled `12345`.
 
 ## The pipeline, generalised
 
@@ -150,11 +204,21 @@ the first Letterboxd import run here. Local resolution sees none of those.
 So resolution has a second question for anything it could not place: **does the
 central catalog carry this work?** The importer asks `/v1/catalog/search` by
 title (kind-scoped), keeps a hit only on the same rules as the local fallback —
-normalised title or synonym equality, exact year, one hit — and on a real run
-materializes it with the *same* `buildProviderMediaRow`/`insertNewProviderMedia`
+normalised title or synonym equality, a year within ±2, one hit — and on a real
+run materializes it with the *same* `buildProviderMediaRow`/`insertNewProviderMedia`
 federated search uses, then logs against it. A dry run asks and writes nothing;
 the plan reports `fromCatalog` so a preview says "2 245 of these come from the
 catalog" rather than pretending they are local.
+
+A source that states **no year at all** needed one change here. The lookup used
+to skip those rows outright ("nothing to pin it"), which was invisible while
+every source published years — and is wrong for Steam, whose `GetOwnedGames`
+never does: it left 78 of a 92-game library "not in catalog" while the catalog
+held most of them. The rule is not relaxed, it is moved: a yearless row reaches
+a hit only when that row already carries the **same** normalised title (or a
+synonym), and the usual 1% tie rule still refuses the two *Prey* rows (2006,
+2017). Measured on the same profile: 14 placed before, **62 after** (48 of them
+pulled from the catalog), 30 genuinely absent.
 
 Two constraints shape it:
 
@@ -351,7 +415,10 @@ interface ImportJobData {
 ## Testing
 
 - Every mapper and parser is unit-tested against **fixtures** captured from the
-  live service (JSON bodies, HTML pages) — no network in `pnpm test`.
+  live service (JSON bodies, HTML pages) — no network in `pnpm test`. The two
+  sources that could not be run while they were built (Trakt, Steam) have
+  fixtures **hand-written from the documented shapes** instead, which is a stated
+  limit of those tests rather than a hidden one.
 - The resolver's new joins (key priority, season matching, title fallback,
   ambiguity refusal) are integration-tested against the database, with the
   existing self-skip rule when Docker is absent.

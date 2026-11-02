@@ -1051,6 +1051,91 @@ describe.runIf(available)('account import (postgres)', () => {
     });
   });
 
+  describe('Steam', () => {
+    // The seed catalog carries no game, so the test states the one row Steam
+    // joins on: a canonical game id with IGDB's appid for ELDEN RING.
+    const eldenRingId = canonicalMediaId('game', 119133);
+    const owned = (overrides: Record<string, unknown>) => ({
+      appid: 1245620,
+      name: 'ELDEN RING',
+      playtime_forever: 9100,
+      rtime_last_played: 1709251200,
+      ...overrides,
+    });
+
+    const stubSteam = (games: object[]) =>
+      (async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          url.includes('GetOwnedGames')
+            ? { response: { game_count: games.length, games } }
+            : { response: { steamid: '76561198138699994', success: 1 } },
+      })) as FetchLike;
+
+    beforeAll(async () => {
+      await db
+        .insert(media)
+        .values({
+          id: eldenRingId,
+          kind: 'game',
+          title: 'ELDEN RING',
+          slug: 'elden-ring',
+          synonyms: [],
+          genres: [],
+          year: 2022,
+          externalIds: { igdb: 119133, steam: 1245620 },
+          source: 'provider',
+          moderation: 'verified',
+        })
+        .onConflictDoNothing();
+    });
+
+    it('joins an owned game on its appid, and reads playtime as the log status', async () => {
+      const { plan, report } = await runImport(db, {
+        userId,
+        source: 'steam',
+        profile: 'https://steamcommunity.com/profiles/76561198138699994/',
+        credentials: { steamApiKey: 'test-key' },
+        fetch: stubSteam([
+          owned({}),
+          owned({ appid: 999999, name: 'A Game This Instance Does Not Have', playtime_forever: 0 }),
+        ]),
+        requestSpacingMs: 0,
+        now: NOW,
+      });
+
+      expect(plan.summary).toMatchObject({ total: 2, matched: 1, unmatched: 1 });
+      expect(plan.rows.find((row) => row.entry.externalId === '1245620')?.target?.id).toBe(
+        eldenRingId,
+      );
+      expect(plan.rows.find((row) => row.entry.externalId === '1245620')?.matchedBy).toBe(
+        'external-id',
+      );
+      expect(report).toMatchObject({ created: 1 });
+
+      const [log] = await db.select().from(userMedia).where(eq(userMedia.mediaId, eldenRingId));
+      expect(log).toMatchObject({ status: 'completed', finishedAt: '2024-03-01' });
+      // A whole-work import dates its one day from both ends (see datesForTarget).
+      expect(log?.startedAt).toBe('2024-03-01');
+    });
+
+    it('is idempotent: a second run writes nothing new', async () => {
+      const options = {
+        userId,
+        source: 'steam' as const,
+        profile: '76561198138699994',
+        credentials: { steamApiKey: 'test-key' },
+        fetch: stubSteam([owned({})]),
+        requestSpacingMs: 0,
+        now: NOW,
+      };
+      await runImport(db, options);
+      const second = await runImport(db, options);
+      expect(second.report).toMatchObject({ created: 0, skippedExisting: 1 });
+    });
+  });
+
   describe('central catalog lookup', () => {
     const filmId = '3f7e1d3a-1a1f-5a0e-9a06-000000000042';
     const film = {
