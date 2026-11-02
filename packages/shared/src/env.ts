@@ -54,6 +54,12 @@ const RawEnvSchema = z.object({
    */
   TRAKT_CLIENT_ID: optionalString,
   /**
+   * Steam Web API key, for importing a user's game library. Created at
+   * https://steamcommunity.com/dev/apikey; it reads any profile whose game
+   * details are public, so one key covers every viewer of the instance.
+   */
+  STEAM_API_KEY: optionalString,
+  /**
    * How the scrape sources (Letterboxd, MyAnimeList) fetch pages: `http`
    * (default), `browser` (always through Playwright) or `fallback` (plain HTTP,
    * escalating to the browser when Cloudflare challenges). Read by the fetcher
@@ -115,6 +121,8 @@ const HINTS: Record<string, string> = {
     'optional — reserved for future per-instance enrichment (ADR-0001); free key at https://www.themoviedb.org/settings/api',
   TRAKT_CLIENT_ID:
     'optional — enables Trakt list imports; create an API app at https://trakt.tv/oauth/applications and use its Client ID',
+  STEAM_API_KEY:
+    'optional — enables Steam library imports; create a Web API key at https://steamcommunity.com/dev/apikey',
   IMPORT_FETCH_MODE:
     'optional — http|browser|fallback for the importers that scrape (Letterboxd, MyAnimeList); browser needs playwright installed',
   PLAYWRIGHT_WS_ENDPOINT:
@@ -154,6 +162,8 @@ export interface Env {
   CATALOG_FEEDBACK_TIMEOUT_MS: number;
   TMDB_API_KEY?: string | undefined;
   TRAKT_CLIENT_ID?: string | undefined;
+  /** Steam Web API key; unset disables the Steam import source. */
+  STEAM_API_KEY?: string | undefined;
   /** Chosen transport for the scrape sources; unset means `http` (the fetcher's own default). */
   IMPORT_FETCH_MODE?: 'http' | 'browser' | 'fallback' | undefined;
   PLAYWRIGHT_WS_ENDPOINT?: string | undefined;

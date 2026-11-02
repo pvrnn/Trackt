@@ -110,13 +110,81 @@ describe('central catalog lookup', () => {
     expect(outcome.warnings.map((w) => w.code)).toContain('ambiguous-title-match');
   });
 
-  it('never asks about a row with no year to pin it', async () => {
+  it('asks about a yearless row, but only accepts an exact title', async () => {
+    // Steam's GetOwnedGames states no year at all, so a year is not evidence the
+    // source withheld: the title has to be the same string instead.
+    const outcome = await findCatalogMatches(
+      [entry({ source: 'steam', kind: 'game', year: null })],
+      {
+        catalogUrl: 'http://catalog.test',
+        fetchImpl: stub([
+          () =>
+            ok([
+              hit({ kind: 'game' }),
+              hit({ id: 'other', kind: 'game', title: 'Donkey Skin 2', year: 1975 }),
+            ]),
+        ]),
+        spacingMs: 0,
+      },
+    );
+
+    expect(outcome.looked).toBe(1);
+    expect(outcome.matches).toHaveLength(1);
+    expect(outcome.matches[0]?.hit.title).toBe('Donkey Skin');
+  });
+
+  it('refuses a near title for a yearless row, which has nothing to corroborate it', async () => {
+    const outcome = await findCatalogMatches(
+      [entry({ source: 'steam', kind: 'game', year: null, title: 'Donkey Ski' })],
+      {
+        catalogUrl: 'http://catalog.test',
+        fetchImpl: stub([() => ok([hit({ kind: 'game' })])]),
+        spacingMs: 0,
+      },
+    );
+
+    expect(outcome.looked).toBe(1);
+    expect(outcome.matches).toHaveLength(0);
+  });
+
+  it('refuses two catalog rows answering to a yearless title', async () => {
+    const outcome = await findCatalogMatches(
+      [entry({ source: 'steam', kind: 'game', year: null, title: 'Prey' })],
+      {
+        catalogUrl: 'http://catalog.test',
+        fetchImpl: stub([
+          () =>
+            ok([
+              hit({
+                id: '3f7e1d3a-1a1f-5a0e-9a06-000000000006',
+                kind: 'game',
+                title: 'Prey',
+                year: 2006,
+              }),
+              hit({
+                id: '3f7e1d3a-1a1f-5a0e-9a06-000000000017',
+                kind: 'game',
+                title: 'Prey',
+                year: 2017,
+              }),
+            ]),
+        ]),
+        spacingMs: 0,
+      },
+    );
+
+    expect(outcome.matches).toHaveLength(0);
+    expect(outcome.warnings.map((warning) => warning.code)).toContain('ambiguous-title-match');
+    expect(outcome.uncertain.size).toBe(1);
+  });
+
+  it('never asks about a row with no title at all', async () => {
     let asked = 0;
     const counting = (async () => {
       asked += 1;
       return ok([]);
     }) as unknown as typeof fetch;
-    const outcome = await findCatalogMatches([entry({ year: null })], {
+    const outcome = await findCatalogMatches([entry({ title: '   ' })], {
       catalogUrl: 'http://catalog.test',
       fetchImpl: counting,
       spacingMs: 0,

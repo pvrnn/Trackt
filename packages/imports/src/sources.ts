@@ -73,4 +73,22 @@ export const IMPORT_SOURCES: Record<ImportSource, ImportSourceDefinition> = {
     access: 'api',
     titleFallback: false,
   },
+  steam: {
+    id: 'steam',
+    label: 'Steam',
+    // Games are whole works (no parts, `play` verb), so one owned app is one row.
+    kinds: ['game'],
+    joinKeys: ['steam'],
+    credential: {
+      env: 'STEAM_API_KEY',
+      hint:
+        'create a Web API key at https://steamcommunity.com/dev/apikey — it reads any profile ' +
+        'whose game details are public, so one key serves the whole instance',
+    },
+    access: 'api',
+    // Most game seeds carry the appid IGDB states (60% of the current one), but
+    // a Steam-exclusive or a re-release may not, and GetOwnedGames states no
+    // year to separate two rows of the same name.
+    titleFallback: true,
+  },
 };

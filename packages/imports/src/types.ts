@@ -7,7 +7,7 @@ import type { FetchLike, PageFetcher } from './http/fetch.js';
  * (`scripts/*-scrape` + `apps/catalog`) — nothing here publishes media, and a
  * row the catalog does not carry is reported, never invented.
  */
-export type ImportSource = 'mal' | 'anilist' | 'letterboxd' | 'trakt';
+export type ImportSource = 'mal' | 'anilist' | 'letterboxd' | 'trakt' | 'steam';
 
 /** The media kinds an import can target — the catalog's own vocabulary, not a source's. */
 export type ImportKind = MediaKind;
@@ -94,6 +94,8 @@ export function warning(
 export interface ImportCredentials {
   /** The Client ID of a Trakt API app; public profiles need nothing else. */
   traktClientId?: string;
+  /** A Steam Web API key; it reads any profile whose game details are public. */
+  steamApiKey?: string;
 }
 
 export interface FetchEntriesOptions {

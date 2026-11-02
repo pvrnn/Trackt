@@ -76,23 +76,43 @@ const DEFAULTS = {
 
 /** Only works the catalog can file the same way the instance does. */
 function isEligible(entry: ImportEntry): boolean {
-  return entry.year !== null && normaliseTitle(entry.title).length > 0;
+  return normaliseTitle(entry.title).length > 0;
+}
+
+/** The titles a catalog row answers to, normalised: its own and its synonyms. */
+function normalisedTitles(hit: CatalogSearchHit): Set<string> {
+  return new Set(
+    [hit.title, ...(hit.synonyms ?? [])].map(normaliseTitle).filter((title) => title.length > 0),
+  );
 }
 
 /**
  * Hits the score can even consider: same kind, same season when the source
- * names one, and within two years — providers date a film by their own release,
+ * names one, and within two years — providers date a work by their own release,
  * so the year is scored rather than required.
+ *
+ * A source that states no year has nothing to corroborate an approximate title:
+ * `GetOwnedGames` publishes none, so a Steam row only reaches a hit that already
+ * carries that exact title (or a synonym). The tie rule still refuses the two
+ * rows that answer to it, which is what keeps the two *Prey* (2006, 2017) apart.
  */
 function eligibleHits(entry: ImportEntry, hits: readonly CatalogSearchHit[]): CatalogSearchHit[] {
-  return hits.filter(
+  const sameWork = hits.filter(
     (hit) =>
       hit.kind === entry.kind &&
-      (entry.seasonNumber === null || hit.seasonNumber === entry.seasonNumber) &&
-      hit.year !== null &&
-      entry.year !== null &&
-      Math.abs(hit.year - entry.year) <= MAX_YEAR_GAP,
+      (entry.seasonNumber === null || hit.seasonNumber === entry.seasonNumber),
   );
+  const year = entry.year;
+  if (year === null) {
+    const wanted = normaliseTitle(entry.title);
+    return sameWork.filter((hit) => normalisedTitles(hit).has(wanted));
+  }
+  return sameWork.filter((hit) => hit.year !== null && Math.abs(hit.year - year) <= MAX_YEAR_GAP);
+}
+
+/** ` (2017)`, or nothing when the source never stated a year. */
+function statedYear(entry: ImportEntry): string {
+  return entry.year === null ? '' : ` (${entry.year})`;
 }
 
 /** `fetchCatalogSearch` throws with the status in its message; 429 is the one worth retrying. */
@@ -221,7 +241,7 @@ export async function findCatalogMatches(
         warning(
           'ambiguous-title-match',
           { externalId: entry.externalId, title: entry.title },
-          `the catalog carries "${first!.candidate.title}" and "${second!.candidate.title}" for "${entry.title}" (${entry.year}) alike — left unmatched rather than guessed`,
+          `the catalog carries "${first!.candidate.title}" and "${second!.candidate.title}" for "${entry.title}"${statedYear(entry)} alike — left unmatched rather than guessed`,
         ),
       );
       continue;
@@ -233,7 +253,7 @@ export async function findCatalogMatches(
         warning(
           'fuzzy-title-match',
           { externalId: entry.externalId, title: entry.title },
-          `"${entry.title}" (${entry.year}) matched the catalog's "${candidate.title}" at ${Math.round(score.score * 100)}% on title — worth a glance`,
+          `"${entry.title}"${statedYear(entry)} matched the catalog's "${candidate.title}" at ${Math.round(score.score * 100)}% on title — worth a glance`,
         ),
       );
     }

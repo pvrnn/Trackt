@@ -99,6 +99,7 @@
         "anilist": "anilist.co/user/username",
         "letterboxd": "letterboxd.com/username",
         "trakt": "trakt.tv/users/username",
+        "steam": "steamcommunity.com/id/name or steamID64",
         "other": "username"
       }
     },

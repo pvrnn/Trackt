@@ -10,7 +10,7 @@ import { IMPORT_SOURCES } from './sources.js';
 import type { ImportCredentials, ImportSource } from './types.js';
 
 /**
- * `pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]`
+ * `pnpm import -- --source <mal|anilist|letterboxd|trakt|steam> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]`
  *
  * The first driver of the importer: the product surface (a wizard that enqueues
  * an `importer` job) is a later step, so the pipeline is exercised without
@@ -35,7 +35,7 @@ interface Args {
 const DEFAULT_SOURCE: ImportSource = 'mal';
 
 const USAGE =
-  'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt> --user <email|uuid> --profile <name> ' +
+  'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt|steam> --user <email|uuid> --profile <name> ' +
   '[--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>] [--no-catalog]';
 
 function parseSource(value: string | undefined): ImportSource {

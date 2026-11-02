@@ -1,0 +1,36 @@
+{
+  "response": {
+    "game_count": 4,
+    "games": [
+      {
+        "appid": 1145360,
+        "name": "Hades",
+        "playtime_forever": 4560,
+        "playtime_2weeks": 120,
+        "img_icon_url": "9b96d31d9b7d0a2b1e6b1c0e9f1a2b3c4d5e6f70",
+        "has_community_visible_stats": true,
+        "rtime_last_played": 1761900000
+      },
+      {
+        "appid": 1245620,
+        "name": "ELDEN RING",
+        "playtime_forever": 9100,
+        "img_icon_url": "f1c0e9f1a2b3c4d5e6f709b96d31d9b7d0a2b1e6",
+        "has_community_visible_stats": true,
+        "rtime_last_played": 1709251200
+      },
+      {
+        "appid": 292030,
+        "name": "The Witcher 3: Wild Hunt",
+        "playtime_forever": 2200,
+        "img_icon_url": "1e6b1c0e9f1a2b3c4d5e6f709b96d31d9b7d0a2b1",
+        "has_community_visible_stats": true
+      },
+      {
+        "appid": 632470,
+        "playtime_forever": 0,
+        "img_icon_url": "0a2b1e6b1c0e9f1a2b3c4d5e6f709b96d31d9b7d0"
+      }
+    ]
+  }
+}

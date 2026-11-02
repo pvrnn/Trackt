@@ -28,6 +28,7 @@
         "LOG_LEVEL",
         "TMDB_API_KEY",
         "TRAKT_CLIENT_ID",
+        "STEAM_API_KEY",
         "IMPORT_FETCH_MODE",
         "PLAYWRIGHT_WS_ENDPOINT",
         "UPLOADS_DIR",

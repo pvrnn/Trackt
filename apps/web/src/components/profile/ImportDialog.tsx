@@ -33,6 +33,7 @@ const PLACEHOLDER_KEY = {
   anilist: 'profile.import.choose.placeholder.anilist',
   letterboxd: 'profile.import.choose.placeholder.letterboxd',
   trakt: 'profile.import.choose.placeholder.trakt',
+  steam: 'profile.import.choose.placeholder.steam',
 } as const;
 type PlaceholderKey =
   | (typeof PLACEHOLDER_KEY)[keyof typeof PLACEHOLDER_KEY]

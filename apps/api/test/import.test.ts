@@ -302,7 +302,13 @@ describe('GET /v1/me/import/sources', () => {
       requiresBrowser: boolean;
       kinds: string[];
     }[];
-    expect(sources.map((source) => source.id)).toEqual(['mal', 'anilist', 'letterboxd', 'trakt']);
+    expect(sources.map((source) => source.id)).toEqual([
+      'mal',
+      'anilist',
+      'letterboxd',
+      'trakt',
+      'steam',
+    ]);
 
     const byId = new Map(sources.map((source) => [source.id, source]));
     expect(byId.get('anilist')).toMatchObject({ available: true, requiresBrowser: false });
@@ -318,6 +324,16 @@ describe('GET /v1/me/import/sources', () => {
     expect(byId.get('mal')?.reason).toBeUndefined();
     expect(byId.get('trakt')?.reason).toContain('TRAKT_CLIENT_ID');
 
+    // Steam is a keyed API with nothing to scrape, so a missing key is its only
+    // reason to be unavailable.
+    expect(byId.get('steam')).toMatchObject({
+      available: false,
+      access: 'api',
+      requiresBrowser: false,
+      kinds: ['game'],
+    });
+    expect(byId.get('steam')?.reason).toContain('STEAM_API_KEY');
+
     // A scrape source that plain HTTP is refused for is not runnable either.
     expect(byId.get('letterboxd')).toMatchObject({ available: false, requiresBrowser: true });
     expect(byId.get('letterboxd')?.reason).toContain('IMPORT_FETCH_MODE');
@@ -332,6 +348,7 @@ describe('GET /v1/me/import/sources', () => {
         LOG_LEVEL: 'error',
         IMPORT_FETCH_MODE: 'fallback',
         TRAKT_CLIENT_ID: 'a-client-id',
+        STEAM_API_KEY: 'a-steam-key',
       }),
       true,
     );
@@ -341,8 +358,10 @@ describe('GET /v1/me/import/sources', () => {
 
     expect(byId.get('letterboxd')).toMatchObject({ available: true });
     expect(byId.get('mal')).toMatchObject({ available: true });
-    // The credential value never leaves the process.
+    expect(byId.get('steam')).toMatchObject({ available: true });
+    // The credential values never leave the process.
     expect(response.body).not.toContain('a-client-id');
+    expect(response.body).not.toContain('a-steam-key');
 
     await app.close();
   });
