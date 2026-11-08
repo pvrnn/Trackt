@@ -20,7 +20,7 @@ import {
 } from '@trackt/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToListSheet } from '../../../src/components/AddToListSheet';
@@ -34,11 +34,11 @@ import { PartsSection, partNoun } from '../../../src/components/PartsSection';
 import { ProgressCard } from '../../../src/components/ProgressCard';
 import { RatingSheet } from '../../../src/components/RatingSheet';
 import { StatusSheet } from '../../../src/components/StatusSheet';
+import { Synopsis } from '../../../src/components/Synopsis';
 import { EMPTY_VIEWER, patchViewer, trackingPatch } from '../../../src/lib/offline';
 import type { TrackingWrite } from '../../../src/lib/offline';
 import { useViewerMutation } from '../../../src/lib/tracking';
-import { gutter, space, text } from '../../../src/theme/tokens';
-import { type } from '../../../src/theme/typography';
+import { gutter, space } from '../../../src/theme/tokens';
 
 /** Which sheet is up, if any. One at a time — they are all modal. */
 type OpenSheet = 'status' | 'rating' | 'list' | null;
@@ -207,9 +207,7 @@ export default function MediaScreen() {
             />
           ) : null}
 
-          {detail.description ? (
-            <Text style={[type.body, text.muted]}>{detail.description}</Text>
-          ) : null}
+          {detail.description ? <Synopsis key={detail.id} text={detail.description} /> : null}
         </View>
 
         {hasParts ? (

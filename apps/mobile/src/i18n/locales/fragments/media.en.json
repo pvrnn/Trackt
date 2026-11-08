@@ -148,5 +148,9 @@
     "blocksUnit": "BLOCKS",
     "blockCount": "{{count}} {{unit}}",
     "aroundYou": " · AROUND YOU"
+  },
+  "synopsis": {
+    "expand": "DISPLAY MORE",
+    "collapse": "DISPLAY LESS"
   }
 }
