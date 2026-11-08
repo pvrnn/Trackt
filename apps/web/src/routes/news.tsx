@@ -8,6 +8,7 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
 import { NewsCard } from '../components/news/NewsCard';
 import { Chip } from '../components/ui/Chip';
+import { DatePicker } from '../components/ui/DatePicker';
 import { useOptionalSession } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
 import { useNewsFeed } from '@trackt/client';
@@ -126,28 +127,16 @@ function NewsPage() {
               </Chip>
             ))}
             <span aria-hidden className="mx-1 h-5 w-px bg-glass-border-strong" />
-            <label className="flex items-center gap-2 rounded-full border border-glass-border-strong bg-glass px-3.5 py-1.5">
-              <span className="font-label text-[10px] font-bold tracking-label text-dim">
-                {t('news.from')}
-              </span>
-              <input
-                type="date"
-                value={from ?? ''}
-                onChange={(event) => setSearch({ from: event.target.value || undefined })}
-                className="bg-transparent font-label text-xs text-fg [color-scheme:dark] outline-none"
-              />
-            </label>
-            <label className="flex items-center gap-2 rounded-full border border-glass-border-strong bg-glass px-3.5 py-1.5">
-              <span className="font-label text-[10px] font-bold tracking-label text-dim">
-                {t('news.to')}
-              </span>
-              <input
-                type="date"
-                value={to ?? ''}
-                onChange={(event) => setSearch({ to: event.target.value || undefined })}
-                className="bg-transparent font-label text-xs text-fg [color-scheme:dark] outline-none"
-              />
-            </label>
+            <DatePicker
+              label={t('news.from')}
+              value={from ?? ''}
+              onChange={(value) => setSearch({ from: value || undefined })}
+            />
+            <DatePicker
+              label={t('news.to')}
+              value={to ?? ''}
+              onChange={(value) => setSearch({ to: value || undefined })}
+            />
             {(from || to) && (
               <button
                 type="button"

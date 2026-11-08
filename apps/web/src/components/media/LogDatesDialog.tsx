@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LOG_DATE_FLOOR, type LogDates } from '@trackt/shared';
 import { todayIso, validateLogDates } from '@trackt/client';
 import { Button } from '../ui/Button';
+import { DateRangePicker, type DateRange } from '../ui/DateRangePicker';
 import { Modal, ModalTitle } from '../ui/Modal';
 
 /**
@@ -26,8 +27,10 @@ export interface LogDatesDialogProps {
 
 export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesDialogProps) {
   const { t } = useTranslation();
-  const [startedAt, setStartedAt] = useState(dates.startedAt ?? '');
-  const [finishedAt, setFinishedAt] = useState(dates.finishedAt ?? '');
+  const [range, setRange] = useState<DateRange>({
+    startedAt: dates.startedAt ?? '',
+    finishedAt: dates.finishedAt ?? '',
+  });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -47,7 +50,10 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const next: LogDates = { startedAt: startedAt || null, finishedAt: finishedAt || null };
+    const next: LogDates = {
+      startedAt: range.startedAt || null,
+      finishedAt: range.finishedAt || null,
+    };
     const problem = validateLogDates(next, todayIso());
     if (problem) {
       setError(problemText(problem));
@@ -72,14 +78,7 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
           <p className="text-sm text-muted">{mediaTitle}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <DateField label={t('media.dates.started')} value={startedAt} onChange={setStartedAt} />
-          <DateField
-            label={t('media.dates.finished')}
-            value={finishedAt}
-            onChange={setFinishedAt}
-          />
-        </div>
+        <DateRangePicker value={range} onChange={setRange} min={LOG_DATE_FLOOR} max={todayIso()} />
         <p className="text-[13px] text-dim">{t('media.dates.help')}</p>
 
         {error && (
@@ -93,8 +92,7 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
             type="button"
             variant="ghost"
             onClick={() => {
-              setStartedAt('');
-              setFinishedAt('');
+              setRange({ startedAt: '', finishedAt: '' });
               setError(null);
             }}
           >
@@ -106,34 +104,5 @@ export function LogDatesDialog({ dates, mediaTitle, onSave, onClose }: LogDatesD
         </div>
       </form>
     </Modal>
-  );
-}
-
-/**
- * A native date input in the news feed's FROM/TO pill treatment.
- * `[color-scheme:dark]` is load-bearing: without it the browser paints a white
- * picker panel on the ink background.
- */
-function DateField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="flex items-center gap-2 rounded-full border border-glass-border-strong bg-glass px-3.5 py-2">
-      <span className="font-label text-[10px] font-bold tracking-label text-dim">{label}</span>
-      <input
-        type="date"
-        value={value}
-        max={todayIso()}
-        min={LOG_DATE_FLOOR}
-        onChange={(event) => onChange(event.target.value)}
-        className="bg-transparent font-label text-xs text-fg [color-scheme:dark] outline-none"
-      />
-    </label>
   );
 }

@@ -229,6 +229,17 @@
   },
   "date": {
     "from": "FROM {{date}}",
-    "until": "UNTIL {{date}}"
+    "until": "UNTIL {{date}}",
+    "picker": {
+      "pick": "Pick a date",
+      "start": "Start date",
+      "end": "End date",
+      "format": "DD/MM/YYYY",
+      "open": "Open calendar",
+      "today": "TODAY",
+      "clear": "CLEAR",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month"
+    }
   }
 }
