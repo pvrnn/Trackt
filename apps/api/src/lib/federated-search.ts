@@ -38,6 +38,7 @@ async function searchCentralSafe(
   try {
     const response = await fetchCatalogSearch(catalogUrl, query.q, {
       kind: query.kind,
+      year: query.year,
       limit: query.limit,
       timeoutMs: options.timeoutMs,
       fetchImpl: options.fetchImpl,

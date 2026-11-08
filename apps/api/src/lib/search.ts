@@ -38,7 +38,7 @@ const derivativeFormatSql = sql.join(
  */
 export async function searchLocalMedia(
   db: Db,
-  { q, kind, limit }: SearchQuery,
+  { q, kind, year, limit }: SearchQuery,
 ): Promise<LocalSearchResult[]> {
   const rows = await db.execute(sql`
     SELECT scored.*,
@@ -71,6 +71,7 @@ export async function searchLocalMedia(
              OR immutable_unaccent(lower(title)) LIKE '%' || immutable_unaccent(lower(${q})) || '%'
              OR immutable_unaccent(lower(immutable_array_to_string(synonyms, ' '))) LIKE '%' || immutable_unaccent(lower(${q})) || '%')
         AND (${kind ?? null}::media_kind IS NULL OR kind = ${kind ?? null}::media_kind)
+        AND (${year ?? null}::int IS NULL OR year = ${year ?? null}::int)
         AND ${visibleMediaSql()}
     ) scored
     ORDER BY rank DESC, title ASC, id ASC

@@ -169,9 +169,11 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
    *
    * `?kind=` narrows it to one kind and drops the round-robin: a caller that
    * asked for series wants a screenful of series, not five of them and nineteen
-   * others. Still anonymous and still the same for every caller, so the cache
-   * directive stays `public` — an edge cache keys a CDN entry on the query
-   * string, so each kind is cached apart.
+   * others. `?year=` narrows it to one release year — Discover's year pill
+   * applies to the browse shelf as well as to results, or it would look dead
+   * until something was typed. Still anonymous and still the same for every
+   * caller, so the cache directive stays `public` — an edge cache keys a CDN
+   * entry on the query string, so each kind and year is cached apart.
    *
    * Registered before `/media/:idOrSlug` so `showcase` can't be read as a slug.
    */
@@ -181,7 +183,11 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: {
         tags: ['catalog'],
-        querystring: z.object({ kind: MediaKindSchema.optional() }),
+        querystring: z.object({
+          kind: MediaKindSchema.optional(),
+          /** Narrows the shelf to one release year (Discover's year filter). */
+          year: z.coerce.number().int().min(1800).max(2200).optional(),
+        }),
         response: {
           200: z.array(SearchResultSchema),
           503: ApiErrorSchema,
@@ -191,7 +197,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
-      const { kind } = request.query;
+      const { kind, year } = request.query;
 
       const rows = await db.execute(sql`
         WITH visible AS (
@@ -199,6 +205,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
           FROM media
           WHERE deleted_at IS NULL AND moderation = 'verified'
             ${kind ? sql`AND kind = ${kind}` : sql``}
+            ${year ? sql`AND year = ${year}` : sql``}
         ),
         one_per_title AS (
           -- A series is one media *per season* (ADR-0003), so "Breaking Bad"

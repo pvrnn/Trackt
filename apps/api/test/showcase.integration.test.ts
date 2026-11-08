@@ -127,6 +127,40 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
     }
   });
 
+  it('narrows to one release year when asked', async () => {
+    const ids = {
+      hit: '9a4a2a5b-6f04-46b4-9a01-0000000000a1',
+      miss: '9a4a2a5b-6f04-46b4-9a01-0000000000a2',
+    };
+    await db.insert(media).values([
+      {
+        id: ids.hit,
+        kind: 'movie',
+        title: 'Year Probe Seventies',
+        slug: 'year-probe-seventies',
+        year: 1977,
+        source: 'provider',
+        moderation: 'verified',
+      },
+      {
+        id: ids.miss,
+        kind: 'movie',
+        title: 'Year Probe Eighties',
+        slug: 'year-probe-eighties',
+        year: 1985,
+        source: 'provider',
+        moderation: 'verified',
+      },
+    ]);
+    try {
+      const { statusCode, rows } = await showcase('?year=1977');
+      expect(statusCode).toBe(200);
+      expect(rows.map((row) => row.title)).toEqual(['Year Probe Seventies']);
+    } finally {
+      await db.delete(media).where(inArray(media.id, [ids.hit, ids.miss]));
+    }
+  });
+
   it('sorts titles that have real artwork ahead of ones that do not', async () => {
     const { rows } = await showcase();
     const byKind = new Map<string, Row[]>();

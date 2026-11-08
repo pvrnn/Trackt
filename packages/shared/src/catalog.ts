@@ -70,6 +70,8 @@ export type CatalogVersion = z.infer<typeof CatalogVersionSchema>;
 export const CatalogSearchQuerySchema = z.object({
   q: z.string().min(1).max(200),
   kind: MediaKindSchema.optional(),
+  /** Optional release-year filter, mirroring the instance-side query. */
+  year: z.coerce.number().int().min(1800).max(2200).optional(),
   // Instances may request the ranked prefix needed to page across their local
   // and central catalogs before merging the two result streams.
   limit: z.coerce.number().int().min(1).max(1051).default(20),

@@ -48,10 +48,12 @@ interface MediaSearchPage {
  * serves them, so a later batch can legitimately contain a row an earlier one
  * already carried.
  */
-export function useMediaSearch(query: string, kind?: MediaKind): MediaSearchState {
+export function useMediaSearch(query: string, kind?: MediaKind, year?: number): MediaSearchState {
   const q = query.trim();
   const result = useInfiniteQuery({
-    queryKey: ['search', q, kind],
+    // No `year` element when the filter is off, so the key stays byte-identical
+    // to the nav typeahead's and Enter on its results is a cache hit.
+    queryKey: year ? ['search', q, kind, year] : ['search', q, kind],
     enabled: q.length >= MIN_MEDIA_SEARCH_QUERY,
     placeholderData: keepPreviousData,
     initialPageParam: 0,
@@ -62,6 +64,7 @@ export function useMediaSearch(query: string, kind?: MediaKind): MediaSearchStat
         offset: String(pageParam),
       };
       if (kind) searchParams.kind = kind;
+      if (year) searchParams.year = String(year);
       const response = await http().get('search', { searchParams, signal });
       const page = SearchResultSchema.array().parse(await response.json());
       return {

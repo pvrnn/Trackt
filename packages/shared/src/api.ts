@@ -20,6 +20,8 @@ export const SearchQuerySchema = z.object({
   q: z.string().min(1).max(200),
   /** Optional filter — search is cross-kind by default. */
   kind: MediaKindSchema.optional(),
+  /** Optional release-year filter; a hit with no year never matches one. */
+  year: z.coerce.number().int().min(1800).max(2200).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
   /** Number of ranked results to skip; bounded to keep federated prefix scans finite. */
   offset: z.coerce.number().int().min(0).max(1000).default(0),

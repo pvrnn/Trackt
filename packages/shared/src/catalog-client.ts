@@ -55,6 +55,7 @@ function parseItems<T>(
 
 export interface FetchCatalogSearchOptions {
   kind?: string;
+  year?: number;
   limit?: number;
   timeoutMs: number;
   fetchImpl?: typeof fetch;
@@ -71,10 +72,11 @@ export async function fetchCatalogSearch(
   query: string,
   options: FetchCatalogSearchOptions,
 ): Promise<FetchCatalogSearchResult> {
-  const { kind, limit, timeoutMs, fetchImpl = fetch } = options;
+  const { kind, year, limit, timeoutMs, fetchImpl = fetch } = options;
   const url = new URL('/v1/catalog/search', catalogUrl);
   url.searchParams.set('q', query);
   if (kind) url.searchParams.set('kind', kind);
+  if (year) url.searchParams.set('year', String(year));
   if (limit) url.searchParams.set('limit', String(limit));
 
   const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });

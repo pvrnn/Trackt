@@ -47,19 +47,27 @@ export function useMediaDetail(slug: string) {
  * serves `verified` rows only and reads no session.
  *
  * `kind` narrows the sample to one kind (the shelf follows the filter chips);
- * the unfiltered call is the same one the band makes.
+ * the unfiltered call is the same one the band makes. `year` narrows it to one
+ * release year, so Discover's year filter applies to the shelf as well as to
+ * results.
  *
  * A failure is not worth surfacing here: a band is decoration above the fold
  * on a marketing page, and a browse shelf is a suggestion. `data ?? []` lets
  * the caller treat "failed" and "this instance has an empty catalog" as one
  * state, which is what both have a fallback for.
  */
-export function useShowcase(kind?: MediaKind) {
+export function useShowcase(kind?: MediaKind, year?: number) {
   return useQuery({
-    queryKey: ['showcase', kind ?? 'all'],
+    queryKey: ['showcase', kind ?? 'all', year ?? 'all'],
     queryFn: async ({ signal }): Promise<SearchResult[]> => {
+      const searchParams: Record<string, string> = {};
+      if (kind) searchParams.kind = kind;
+      if (year) searchParams.year = String(year);
       const json = await http()
-        .get('media/showcase', { signal, searchParams: kind ? { kind } : undefined })
+        .get('media/showcase', {
+          signal,
+          searchParams: Object.keys(searchParams).length > 0 ? searchParams : undefined,
+        })
         .json();
       return SearchResultSchema.array().parse(json);
     },

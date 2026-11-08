@@ -8,6 +8,7 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
 import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
+import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
 import {
@@ -21,6 +22,32 @@ import {
 export interface SearchParams {
   q?: string;
   kind?: MediaKind;
+  year?: number;
+}
+
+/**
+ * Oldest year the picker offers. The catalog's silent-era films sit above it,
+ * and a bound keeps a hand-typed `?year=` from asking for a nonsense century.
+ */
+const YEAR_FLOOR = 1900;
+
+/**
+ * Every year from next year (announced releases) down to `YEAR_FLOOR`, newest
+ * first. Static rather than a facet of what this instance holds: a fresh
+ * self-host has materialized almost nothing, and the central catalog answers
+ * for the years it hasn't.
+ */
+const SELECTABLE_YEARS: number[] = (() => {
+  const newest = new Date().getUTCFullYear() + 1;
+  return Array.from({ length: newest - YEAR_FLOOR + 1 }, (_, index) => newest - index);
+})();
+
+/** A URL value that is an integer inside the picker's own range, else no filter. */
+function parseYear(value: unknown): number | undefined {
+  const year = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return Number.isInteger(year) && year >= YEAR_FLOOR && year <= SELECTABLE_YEARS[0]!
+    ? year
+    : undefined;
 }
 
 export const Route = createFileRoute('/search')({
@@ -28,6 +55,7 @@ export const Route = createFileRoute('/search')({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     kind: MEDIA_KINDS.includes(search.kind as MediaKind) ? (search.kind as MediaKind) : undefined,
+    year: parseYear(search.year),
   }),
   component: SearchPage,
 });
@@ -67,17 +95,32 @@ function SearchPage() {
   const labels = useLabels();
   const navigate = useNavigate({ from: Route.fullPath });
   const { isPending, navUser } = useAuthedPage();
-  const { q = '', kind } = Route.useSearch();
+  const { q = '', kind, year } = Route.useSearch();
   const [input, setInput] = useState(q);
-  const { status, results, hasMore, loadMore, loadingMore } = useMediaSearch(q, kind);
+  const { status, results, hasMore, loadMore, loadingMore } = useMediaSearch(q, kind, year);
   // What the page shows before anything is typed: the instance's own catalog,
-  // narrowed by the same kind chips the results are. It survives a query too
-  // short to run — there are no results to take its place, and a lone "keep
-  // typing" line would blank the page the user arrived on.
-  const { data: showcase } = useShowcase(kind);
+  // narrowed by the same kind chips and year the results are. It survives a
+  // query too short to run — there are no results to take its place, and a lone
+  // "keep typing" line would blank the page the user arrived on.
+  const { data: showcase, isPending: showcasePending } = useShowcase(kind, year);
   const resultGroups = groupGameSearchResults(results);
   const tooShort = q.trim().length > 0 && q.trim().length < MIN_MEDIA_SEARCH_QUERY;
   const browseItems = q && !tooShort ? [] : (showcase ?? []);
+  const yearItems: SelectItem[] = [
+    { value: '', label: t('discover.anyYear') },
+    ...SELECTABLE_YEARS.map((value) => ({ value: String(value), label: String(value) })),
+  ];
+  const emptyMessage = kind
+    ? year
+      ? t('discover.emptyInKindYear', {
+          query: q,
+          kind: labels.kind(kind).toLowerCase(),
+          year,
+        })
+      : t('discover.emptyInKind', { query: q, kind: labels.kind(kind).toLowerCase() })
+    : year
+      ? t('discover.emptyInYear', { query: q, year })
+      : t('discover.empty', { query: q });
 
   // Infinite scroll: the sentinel sits past the grid and pulls the next batch
   // when it comes within 600px of the viewport, so the next batch is usually
@@ -176,39 +219,58 @@ function SearchPage() {
               {/* No ⌘K hint: the shortcut focuses the nav pill, and this field
                   is already focused on arrival. */}
             </label>
-            <ToggleGroup.Root
-              type="single"
-              aria-label={t('discover.filterAria')}
-              value={kind ?? ALL_KINDS}
-              onValueChange={(value) => {
-                // Radix emits '' when the active item is pressed again; a filter
-                // row has no "nothing selected" state, so ignore it.
-                if (!value) return;
-                navigate({
-                  search: (previous) => ({
-                    ...previous,
-                    kind: value === ALL_KINDS ? undefined : (value as MediaKind),
-                  }),
-                });
-              }}
-              className="flex flex-wrap gap-2.5"
-            >
-              {/* `aria-pressed={undefined}` drops Chip's own toggle semantics:
-                  ToggleGroup supplies role="radio" + aria-checked here, and a
-                  radio that is also aria-pressed is invalid ARIA. */}
-              <ToggleGroup.Item value={ALL_KINDS} asChild>
-                <Chip selected={kind === undefined} aria-pressed={undefined}>
-                  {t('common.all')}
-                </Chip>
-              </ToggleGroup.Item>
-              {MEDIA_KINDS.map((value) => (
-                <ToggleGroup.Item key={value} value={value} asChild>
-                  <Chip selected={kind === value} aria-pressed={undefined}>
-                    {labels.kind(value)}
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
+              <ToggleGroup.Root
+                type="single"
+                aria-label={t('discover.filterAria')}
+                value={kind ?? ALL_KINDS}
+                onValueChange={(value) => {
+                  // Radix emits '' when the active item is pressed again; a filter
+                  // row has no "nothing selected" state, so ignore it.
+                  if (!value) return;
+                  navigate({
+                    search: (previous) => ({
+                      ...previous,
+                      kind: value === ALL_KINDS ? undefined : (value as MediaKind),
+                    }),
+                  });
+                }}
+                className="flex flex-wrap gap-2.5"
+              >
+                {/* `aria-pressed={undefined}` drops Chip's own toggle semantics:
+                    ToggleGroup supplies role="radio" + aria-checked here, and a
+                    radio that is also aria-pressed is invalid ARIA. */}
+                <ToggleGroup.Item value={ALL_KINDS} asChild>
+                  <Chip selected={kind === undefined} aria-pressed={undefined}>
+                    {t('common.all')}
                   </Chip>
                 </ToggleGroup.Item>
-              ))}
-            </ToggleGroup.Root>
+                {MEDIA_KINDS.map((value) => (
+                  <ToggleGroup.Item key={value} value={value} asChild>
+                    <Chip selected={kind === value} aria-pressed={undefined}>
+                      {labels.kind(value)}
+                    </Chip>
+                  </ToggleGroup.Item>
+                ))}
+              </ToggleGroup.Root>
+              <Select
+                variant="pill"
+                caption={t('discover.year')}
+                aria-label={t('discover.yearAria')}
+                className="py-2 pr-3 pl-4"
+                items={yearItems}
+                value={year === undefined ? '' : String(year)}
+                selected={year !== undefined}
+                onChange={(value) =>
+                  navigate({
+                    search: (previous) => ({
+                      ...previous,
+                      year: value ? Number(value) : undefined,
+                    }),
+                  })
+                }
+              />
+            </div>
           </div>
 
           {/* Says why the shelf below hasn't turned into results, without
@@ -222,8 +284,9 @@ function SearchPage() {
           {/* Nothing typed yet (or not enough): the instance's own catalog,
               under the filter chips above. No heading when the shelf is empty —
               a lone "On this instance" over nothing reads as a load that
-              failed. */}
-          {browseItems.length > 0 && (
+              failed — but a filter that matches nothing says so, or the chip
+              and year pill look like they did nothing. */}
+          {browseItems.length > 0 ? (
             <>
               <h2 className="font-heading text-[32px] uppercase">
                 {kind
@@ -250,6 +313,12 @@ function SearchPage() {
                 ))}
               </ul>
             </>
+          ) : (
+            !showcasePending &&
+            (kind !== undefined || year !== undefined) &&
+            (!q || tooShort) && (
+              <p className="text-[15px] text-muted">{t('discover.browseEmpty')}</p>
+            )
           )}
 
           {q && !tooShort && (
@@ -268,14 +337,7 @@ function SearchPage() {
                   {t('errors.searchFailed')}
                 </p>
               ) : results.length === 0 && status === 'success' ? (
-                <p className="text-[15px] text-muted">
-                  {kind
-                    ? t('discover.emptyInKind', {
-                        query: q,
-                        kind: labels.kind(kind).toLowerCase(),
-                      })
-                    : t('discover.empty', { query: q })}
-                </p>
+                <p className="text-[15px] text-muted">{emptyMessage}</p>
               ) : (
                 <>
                   <ul
