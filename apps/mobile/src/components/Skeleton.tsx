@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -61,6 +62,35 @@ export function SkeletonRows({ count = 3 }: { count?: number }) {
   );
 }
 
+/**
+ * The Discover grid before its tiles: a cover block with the two caption lines
+ * beneath, measured to the same columns the real grid uses. Nine fill the fold
+ * under the fixed header; `count={3}` is the same shape for a page still on its
+ * way at the foot of the list.
+ */
+export function SearchSkeleton({ columns = 3, count = 9 }: { columns?: number; count?: number }) {
+  const { t } = useTranslation();
+  const { width } = useWindowDimensions();
+  const size = Math.floor((width - layout.gutter * 2 - space.md * (columns - 1)) / columns);
+  return (
+    <View accessible accessibilityLabel={t('common.loading')} style={styles.grid}>
+      {Array.from({ length: count }, (_, index) => (
+        <View key={index} style={{ width: size }}>
+          <Skeleton
+            style={{
+              width: size,
+              height: Math.round((size * 3) / 2),
+              borderRadius: radius.cover,
+            }}
+          />
+          <Skeleton style={styles.gridLine} />
+          <Skeleton style={styles.gridLineShort} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   block: {
     backgroundColor: surface.glassWell,
@@ -68,6 +98,24 @@ const styles = StyleSheet.create({
   },
   rows: {
     gap: space.sm,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: space.md,
+    rowGap: space.lg,
+  },
+  gridLine: {
+    height: 12,
+    width: '85%',
+    marginTop: space.sm,
+    borderRadius: 6,
+  },
+  gridLineShort: {
+    height: 8,
+    width: '40%',
+    marginTop: space.xs,
+    borderRadius: 4,
   },
   row: {
     height: 72,

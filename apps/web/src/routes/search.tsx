@@ -13,8 +13,10 @@ import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
 import {
   MIN_MEDIA_SEARCH_QUERY,
+  SELECTABLE_YEARS,
   gameSearchContext,
   groupGameSearchResults,
+  isSelectableYear,
   useMediaSearch,
   useShowcase,
 } from '@trackt/client';
@@ -26,28 +28,12 @@ export interface SearchParams {
 }
 
 /**
- * Oldest year the picker offers. The catalog's silent-era films sit above it,
- * and a bound keeps a hand-typed `?year=` from asking for a nonsense century.
+ * A URL value that names a year the picker offers, else no filter. The range
+ * lives in `@trackt/client` because the mobile year pill offers the same one.
  */
-const YEAR_FLOOR = 1900;
-
-/**
- * Every year from next year (announced releases) down to `YEAR_FLOOR`, newest
- * first. Static rather than a facet of what this instance holds: a fresh
- * self-host has materialized almost nothing, and the central catalog answers
- * for the years it hasn't.
- */
-const SELECTABLE_YEARS: number[] = (() => {
-  const newest = new Date().getUTCFullYear() + 1;
-  return Array.from({ length: newest - YEAR_FLOOR + 1 }, (_, index) => newest - index);
-})();
-
-/** A URL value that is an integer inside the picker's own range, else no filter. */
 function parseYear(value: unknown): number | undefined {
   const year = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
-  return Number.isInteger(year) && year >= YEAR_FLOOR && year <= SELECTABLE_YEARS[0]!
-    ? year
-    : undefined;
+  return isSelectableYear(year) ? year : undefined;
 }
 
 export const Route = createFileRoute('/search')({

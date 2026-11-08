@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, {
   runOnJS,
@@ -267,7 +275,26 @@ function FilterMenu({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { height } = useWindowDimensions();
   const { mounted, panelStyle } = useDisclosure(open);
+  const list = useRef<ScrollView>(null);
+
+  // Re-keyed on every open so the fresh ScrollView can scroll the current choice
+  // into view: a menu that stays mounted fires `onContentSizeChange` once and
+  // never again, and the year pill carries a century of rows whose selection is
+  // rarely near the top. Closing does not re-key, so the exit animation keeps
+  // its scroll position.
+  const [generation, setGeneration] = useState(0);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setGeneration((value) => value + 1);
+  }
+
+  const selected = rows.findIndex((row) => row.selected);
+  // A long list cannot run off the bottom of the screen; the panel grows with
+  // its rows until this cap and scrolls after it.
+  const maxHeight = Math.max(layout.touchTarget * 3, height - anchor.top - space.xxl);
 
   return (
     <Modal transparent visible={mounted} animationType="none" onRequestClose={onClose}>
@@ -285,25 +312,42 @@ function FilterMenu({
           panelStyle,
         ]}
       >
-        {rows.map((row) => (
-          <Pressable
-            key={row.key}
-            accessibilityRole="button"
-            accessibilityState={{ selected: row.selected }}
-            onPress={() => onSelect(row.key)}
-            style={({ pressed }) => [
-              styles.filterOption,
-              row.selected && highlight === 'row' && styles.filterOptionSelected,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Text style={[type.eyebrow, styles.filterOptionLabel, row.selected ? text.pink : null]}>
-              {row.label.toUpperCase()}
-            </Text>
-            {row.count ? <Text style={styles.summary}>{row.count.toUpperCase()}</Text> : null}
-            {row.selected ? <Icon name="check" color={color.pink} size={14} /> : null}
-          </Pressable>
-        ))}
+        <ScrollView
+          key={generation}
+          ref={list}
+          bounces={false}
+          showsVerticalScrollIndicator
+          style={{ maxHeight }}
+          onContentSizeChange={() => {
+            if (selected <= 0) return;
+            list.current?.scrollTo({
+              y: Math.max(0, (selected - 1) * layout.touchTarget),
+              animated: false,
+            });
+          }}
+        >
+          {rows.map((row) => (
+            <Pressable
+              key={row.key}
+              accessibilityRole="button"
+              accessibilityState={{ selected: row.selected }}
+              onPress={() => onSelect(row.key)}
+              style={({ pressed }) => [
+                styles.filterOption,
+                row.selected && highlight === 'row' && styles.filterOptionSelected,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text
+                style={[type.eyebrow, styles.filterOptionLabel, row.selected ? text.pink : null]}
+              >
+                {row.label.toUpperCase()}
+              </Text>
+              {row.count ? <Text style={styles.summary}>{row.count.toUpperCase()}</Text> : null}
+              {row.selected ? <Icon name="check" color={color.pink} size={14} /> : null}
+            </Pressable>
+          ))}
+        </ScrollView>
       </Animated.View>
     </Modal>
   );

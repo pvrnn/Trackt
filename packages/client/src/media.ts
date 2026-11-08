@@ -59,6 +59,12 @@ export interface ShowcaseState {
   /** Every batch loaded so far, in shelf order. The band only ever reads the first. */
   data: SearchResult[];
   isPending: boolean;
+  /**
+   * The rows on screen belong to a previously selected kind/year while this
+   * one loads (`keepPreviousData`). False for a background refetch of the key
+   * already shown, which is why a shelf that is merely stale keeps its covers.
+   */
+  isPlaceholder: boolean;
   /** Whether the endpoint holds another batch past the ones loaded. */
   hasMore: boolean;
   /** Appends the next batch; a no-op once `hasMore` is false or one is in flight. */
@@ -124,6 +130,7 @@ export function useShowcase(kind?: MediaKind, year?: number): ShowcaseState {
   return {
     data: (result.data?.pages ?? []).flatMap((page) => page.rows),
     isPending: result.isPending,
+    isPlaceholder: result.isPlaceholderData,
     hasMore: hasNextPage,
     loadMore,
     loadingMore: isFetchingNextPage,
