@@ -98,8 +98,7 @@
     "released": "RELEASED",
     "genres": "GENRES",
     "alsoKnownAs": "ALSO KNOWN AS",
-    "external": "EXTERNAL",
-    "source": "SOURCE"
+    "external": "EXTERNAL"
   },
   "youMightLike": "You might also like",
   "relation": {
