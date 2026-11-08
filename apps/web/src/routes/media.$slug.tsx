@@ -372,11 +372,10 @@ function MediaPage() {
     (typeof detail.metadata.igdbStatus === 'string'
       ? detail.metadata.igdbStatus.toUpperCase()
       : null);
-  /** Kind · year · genres, one line, which is why there is no GENRES section. */
+  /** Kind · year, one line; the genres are tags of their own in the details. */
   const metaLine = [
     labels.kindSingular(detail.kind),
     detail.year !== null ? String(detail.year) : null,
-    detail.genres.length > 0 ? detail.genres.slice(0, 3).join(', ').toUpperCase() : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -395,7 +394,23 @@ function MediaPage() {
       t('media.details.released'),
       detail.releaseDate ?? (detail.year !== null ? String(detail.year) : 'N/A'),
     ],
-    [t('media.details.genres'), detail.genres.length > 0 ? detail.genres.join(', ') : 'N/A'],
+    [
+      t('media.details.genres'),
+      detail.genres.length > 0 ? (
+        <span className="flex flex-wrap justify-end gap-1.5">
+          {detail.genres.map((genre) => (
+            <span
+              key={genre}
+              className="rounded-full border border-glass-border bg-glass px-2.5 py-1 font-label text-[10px] font-semibold tracking-label text-muted"
+            >
+              {genre.toUpperCase()}
+            </span>
+          ))}
+        </span>
+      ) : (
+        'N/A'
+      ),
+    ],
     ...(detail.synonyms.length > 0
       ? ([[t('media.details.alsoKnownAs'), detail.synonyms.join(' · ')]] as [string, string][])
       : []),
@@ -472,8 +487,7 @@ function MediaPage() {
           />
 
           <div className="flex min-w-0 flex-1 flex-col gap-4">
-            {/* Kind, year and genres on one line, which is why there is no
-                separate GENRES section any more. */}
+            {/* Kind and year on one line; genres carry tags of their own. */}
             <div className="flex flex-wrap items-center gap-2.5">
               <KindDot kind={detail.kind} />
               <span className="font-label text-xs tracking-label text-muted">{metaLine}</span>
@@ -769,7 +783,7 @@ function MediaPage() {
                   <span className="shrink-0 font-label text-[11px] tracking-label text-dim">
                     {key}
                   </span>
-                  <span className="text-right text-[13px]">{value}</span>
+                  <span className="min-w-0 flex-1 text-right text-[13px]">{value}</span>
                 </div>
               ))}
             </div>
