@@ -150,7 +150,7 @@
     "aroundYou": " · AROUND YOU"
   },
   "synopsis": {
-    "expand": "DISPLAY MORE",
-    "collapse": "DISPLAY LESS"
+    "expand": "SHOW MORE",
+    "collapse": "SHOW LESS"
   }
 }
