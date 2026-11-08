@@ -51,7 +51,7 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
 
-      const { q, kind, limit } = request.query;
+      const { q, kind, year, limit } = request.query;
       const rows = await db.execute(sql`
         SELECT scored.*,
                scored.tier
@@ -86,6 +86,7 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
                  OR immutable_unaccent(lower(title)) LIKE '%' || immutable_unaccent(lower(${q})) || '%'
                  OR immutable_unaccent(lower(immutable_array_to_string(synonyms, ' '))) LIKE '%' || immutable_unaccent(lower(${q})) || '%')
             AND (${kind ?? null}::text IS NULL OR kind = ${kind ?? null}::text)
+            AND (${year ?? null}::int IS NULL OR year = ${year ?? null}::int)
         ) scored
         ORDER BY rank DESC, title ASC, id ASC
         LIMIT ${limit}

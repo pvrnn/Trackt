@@ -2,7 +2,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
-import { SHOWCASE_LIMIT, SHOWCASE_PER_KIND, SearchResultSchema, loadEnv } from '@trackt/shared';
+import { SHOWCASE_LIMIT, SHOWCASE_MAX_OFFSET, SearchResultSchema, loadEnv } from '@trackt/shared';
 import { buildApp, type App } from '../src/app.js';
 
 /**
@@ -101,10 +101,11 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
     expect(new Set(leading).size).toBe(leading.length);
   });
 
-  it("narrows to one kind when asked, and drops the band's five-per-kind spread", async () => {
-    // The seed carries three distinct series titles, all inside the band's
-    // per-kind depth — too few to tell the two behaviours apart, so pad it.
-    const padded = Array.from({ length: SHOWCASE_PER_KIND + 2 }, (_, index) => ({
+  it('narrows to one kind when asked, and lets that kind fill a whole page', async () => {
+    // The seed carries three distinct series titles — too few to fill a page,
+    // and too few to tell the round-robin apart from a single-kind shelf, so
+    // pad it past the batch size.
+    const padded = Array.from({ length: SHOWCASE_LIMIT + 2 }, (_, index) => ({
       kind: 'series' as const,
       title: `Bulk Series ${index}`,
       slug: `bulk-series-${index}`,
@@ -114,9 +115,9 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
       const { statusCode, rows } = await showcase('?kind=series');
       expect(statusCode).toBe(200);
       expect(new Set(rows.map((row) => row.kind))).toEqual(new Set(['series']));
-      // Beyond the round-robin depth: the caller asked for a screenful of one
-      // kind, and the band's five would have left the grid half empty.
-      expect(rows.length).toBeGreaterThan(SHOWCASE_PER_KIND);
+      // Interleaving across kinds would have left the grid a fifth full; the
+      // caller asked for a screenful of one kind.
+      expect(rows.length).toBe(SHOWCASE_LIMIT);
     } finally {
       await db.delete(media).where(
         inArray(
@@ -124,6 +125,71 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
           padded.map((row) => row.slug),
         ),
       );
+    }
+  });
+
+  it('continues the same order when paged, and says when the shelf runs out', async () => {
+    const padded = Array.from({ length: SHOWCASE_LIMIT + 4 }, (_, index) => ({
+      kind: 'series' as const,
+      title: `Paged Series ${index}`,
+      slug: `paged-series-${index}`,
+    }));
+    await db.insert(media).values(padded);
+    try {
+      const first = await showcase('?kind=series');
+      expect((first.headers as Record<string, string>)['x-has-more']).toBe('true');
+      expect(first.rows.length).toBe(SHOWCASE_LIMIT);
+
+      const second = await showcase(`?kind=series&offset=${SHOWCASE_LIMIT}`);
+      expect(second.rows.length).toBeGreaterThan(0);
+      // A total order means a page cannot repeat a row an earlier one carried.
+      const firstIds = new Set(first.rows.map((row) => row.id));
+      expect(second.rows.filter((row) => firstIds.has(row.id))).toEqual([]);
+
+      const past = await showcase(`?kind=series&offset=${SHOWCASE_LIMIT + second.rows.length}`);
+      expect(past.rows).toEqual([]);
+      expect((past.headers as Record<string, string>)['x-has-more']).toBe('false');
+    } finally {
+      await db.delete(media).where(
+        inArray(
+          media.slug,
+          padded.map((row) => row.slug),
+        ),
+      );
+    }
+  });
+
+  it('narrows to one release year when asked', async () => {
+    const ids = {
+      hit: '9a4a2a5b-6f04-46b4-9a01-0000000000a1',
+      miss: '9a4a2a5b-6f04-46b4-9a01-0000000000a2',
+    };
+    await db.insert(media).values([
+      {
+        id: ids.hit,
+        kind: 'movie',
+        title: 'Year Probe Seventies',
+        slug: 'year-probe-seventies',
+        year: 1977,
+        source: 'provider',
+        moderation: 'verified',
+      },
+      {
+        id: ids.miss,
+        kind: 'movie',
+        title: 'Year Probe Eighties',
+        slug: 'year-probe-eighties',
+        year: 1985,
+        source: 'provider',
+        moderation: 'verified',
+      },
+    ]);
+    try {
+      const { statusCode, rows } = await showcase('?year=1977');
+      expect(statusCode).toBe(200);
+      expect(rows.map((row) => row.title)).toEqual(['Year Probe Seventies']);
+    } finally {
+      await db.delete(media).where(inArray(media.id, [ids.hit, ids.miss]));
     }
   });
 
@@ -168,6 +234,14 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
         .set({ moderation: 'unverified', deletedAt: null })
         .where(eq(media.id, webtoonId));
     }
+  });
+
+  it('refuses an offset past the ceiling instead of walking the catalog', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/media/showcase?offset=${SHOWCASE_MAX_OFFSET + 1}`,
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   it('is cacheable — it varies by nothing', async () => {

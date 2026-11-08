@@ -125,6 +125,13 @@ describe.runIf(available)('GET /v1/catalog/search (postgres)', () => {
     expect(results).toEqual([]);
   });
 
+  it('filters by release year', async () => {
+    const { results } = await search('q=matrix&year=1998');
+    expect(results).toEqual([]);
+    const { results: exact } = await search('q=matrix&year=1999');
+    expect(exact.map((r) => (r as { id: string }).id)).toEqual([matrixId]);
+  });
+
   it('respects the limit', async () => {
     const { results } = await search('q=a&limit=1');
     expect(results.length).toBeLessThanOrEqual(1);

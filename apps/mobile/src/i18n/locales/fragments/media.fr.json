@@ -98,8 +98,7 @@
     "released": "SORTIE",
     "genres": "GENRES",
     "alsoKnownAs": "AUSSI CONNU SOUS",
-    "external": "EXTERNE",
-    "source": "SOURCE"
+    "external": "EXTERNE"
   },
   "youMightLike": "Vous aimerez peut-être aussi",
   "relation": {
@@ -149,5 +148,9 @@
     "blocksUnit": "BLOCS",
     "blockCount": "{{count}} {{unit}}",
     "aroundYou": " · AUTOUR DE VOUS"
+  },
+  "synopsis": {
+    "expand": "AFFICHER PLUS",
+    "collapse": "AFFICHER MOINS"
   }
 }

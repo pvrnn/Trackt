@@ -8,7 +8,7 @@ import {
   MediaDetailSchema,
   MediaKindSchema,
   SHOWCASE_LIMIT,
-  SHOWCASE_PER_KIND,
+  SHOWCASE_MAX_OFFSET,
   SearchResultSchema,
   fetchCatalogSearch,
   type MediaDetail,
@@ -155,23 +155,33 @@ async function loadViewer(db: Db, userId: string, mediaId: string): Promise<View
 
 export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
   /**
-   * A sample of what this instance actually carries: the landing page's cover
+   * A page of what this instance actually carries: the landing page's cover
    * band, and the Discover page's shelf when nothing has been typed yet.
    * Anonymous and viewer-independent by construction: it serves `verified` rows
    * only, so there is no session to read and nothing that varies per caller —
    * which is what makes it safe to cache at the edge.
    *
-   * Kinds are round-robined rather than taken in one ranked run, so the band
-   * shows the breadth (series, anime, webtoons, and games) that the pitch above
-   * it claims, instead of 24 rows of whichever kind the instance has most of.
-   * Titles with real artwork sort first — this is the one surface where a
-   * generated gradient is a visible downgrade.
+   * Kinds are round-robined rather than taken in one ranked run, so the first
+   * page shows the breadth (series, anime, webtoons, and games) that the pitch
+   * above it claims, instead of 24 rows of whichever kind the instance has
+   * most of. Titles with real artwork sort first — this is the one surface
+   * where a generated gradient is a visible downgrade.
+   *
+   * `?offset=` continues that same order past the first page, so Discover's
+   * shelf can be scrolled rather than paged; `x-has-more` says whether a calling
+   * client should ask again. The order is a total one (`kind_rank`, then kind),
+   * so consecutive pages cannot repeat or skip a row. The round-robin is only
+   * interleaved while every kind still has rows at that depth — deep into a
+   * catalog with one huge kind, that kind's tail is what remains, which is the
+   * same order a single ranked run would have produced.
    *
    * `?kind=` narrows it to one kind and drops the round-robin: a caller that
    * asked for series wants a screenful of series, not five of them and nineteen
-   * others. Still anonymous and still the same for every caller, so the cache
-   * directive stays `public` — an edge cache keys a CDN entry on the query
-   * string, so each kind is cached apart.
+   * others. `?year=` narrows it to one release year — Discover's year pill
+   * applies to the browse shelf as well as to results, or it would look dead
+   * until something was typed. Still anonymous and still the same for every
+   * caller, so the cache directive stays `public` — an edge cache keys a CDN
+   * entry on the query string, so each kind, year and offset is cached apart.
    *
    * Registered before `/media/:idOrSlug` so `showcase` can't be read as a slug.
    */
@@ -181,7 +191,13 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: {
         tags: ['catalog'],
-        querystring: z.object({ kind: MediaKindSchema.optional() }),
+        querystring: z.object({
+          kind: MediaKindSchema.optional(),
+          /** Narrows the shelf to one release year (Discover's year filter). */
+          year: z.coerce.number().int().min(1800).max(2200).optional(),
+          /** Batches already read, in the same order the first one came in. */
+          offset: z.coerce.number().int().min(0).max(SHOWCASE_MAX_OFFSET).default(0),
+        }),
         response: {
           200: z.array(SearchResultSchema),
           503: ApiErrorSchema,
@@ -191,7 +207,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
-      const { kind } = request.query;
+      const { kind, year, offset } = request.query;
 
       const rows = await db.execute(sql`
         WITH visible AS (
@@ -199,6 +215,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
           FROM media
           WHERE deleted_at IS NULL AND moderation = 'verified'
             ${kind ? sql`AND kind = ${kind}` : sql``}
+            ${year ? sql`AND year = ${year}` : sql``}
         ),
         one_per_title AS (
           -- A series is one media *per season* (ADR-0003), so "Breaking Bad"
@@ -220,16 +237,22 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         )
         SELECT id, slug, kind, title, year, status, season_number, cover_url, description
         FROM ranked
-        WHERE kind_rank <= ${kind ? SHOWCASE_LIMIT : SHOWCASE_PER_KIND}
         ORDER BY kind_rank, kind
-        LIMIT ${SHOWCASE_LIMIT}
+        LIMIT ${SHOWCASE_LIMIT + 1}
+        OFFSET ${offset}
       `);
+
+      // One row past the batch is how "there is another page" is known without a
+      // second count over a table this endpoint exists to sample.
+      const page = [...rows];
+      const hasMore = page.length > SHOWCASE_LIMIT;
 
       // Anonymous and identical for everyone, so it may sit in a shared cache.
       // Short enough that a freshly populated catalog shows up promptly.
       reply.header('cache-control', 'public, max-age=300');
+      reply.header('x-has-more', String(hasMore));
 
-      return [...rows].map((row): SearchResult => ({
+      return page.slice(0, SHOWCASE_LIMIT).map((row): SearchResult => ({
         id: row.id as string,
         slug: row.slug as string,
         kind: row.kind as SearchResult['kind'],

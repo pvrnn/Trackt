@@ -98,8 +98,7 @@
     "released": "RELEASED",
     "genres": "GENRES",
     "alsoKnownAs": "ALSO KNOWN AS",
-    "external": "EXTERNAL",
-    "source": "SOURCE"
+    "external": "EXTERNAL"
   },
   "youMightLike": "You might also like",
   "relation": {
@@ -149,5 +148,9 @@
     "blocksUnit": "BLOCKS",
     "blockCount": "{{count}} {{unit}}",
     "aroundYou": " · AROUND YOU"
+  },
+  "synopsis": {
+    "expand": "SHOW MORE",
+    "collapse": "SHOW LESS"
   }
 }

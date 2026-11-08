@@ -229,6 +229,17 @@
   },
   "date": {
     "from": "DEPUIS {{date}}",
-    "until": "JUSQU’AU {{date}}"
+    "until": "JUSQU’AU {{date}}",
+    "picker": {
+      "pick": "Choisir une date",
+      "start": "Date de début",
+      "end": "Date de fin",
+      "format": "JJ/MM/AAAA",
+      "open": "Ouvrir le calendrier",
+      "today": "AUJOURD’HUI",
+      "clear": "EFFACER",
+      "previousMonth": "Mois précédent",
+      "nextMonth": "Mois suivant"
+    }
   }
 }

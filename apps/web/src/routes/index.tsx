@@ -136,8 +136,7 @@ function Hero() {
  * and the copy above it already says what Trackt tracks.
  */
 function CoverStrip() {
-  const { data, isPending } = useShowcase();
-  const showcase = data ?? [];
+  const { data: showcase, isPending } = useShowcase();
 
   // Nothing until the catalog answers. The band is client-fetched (the SSR
   // process sits *behind* the API in the monolith and has no route back to

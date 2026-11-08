@@ -42,7 +42,7 @@ export function Modal({
         <Dialog.Content aria-describedby={undefined} asChild>
           <GlassCard
             as="section"
-            className="dialog-content fixed top-1/2 left-1/2 z-30 max-h-[88vh] w-[calc(100%-3rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto bg-ink/90 p-7"
+            className="dialog-content fixed top-1/2 left-1/2 z-30 max-h-[88vh] w-[calc(100%-3rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto bg-ink/90 p-7 outline-none"
           >
             {children}
           </GlassCard>

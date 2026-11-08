@@ -1,6 +1,6 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
@@ -8,12 +8,15 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { CoverCard } from '../components/media/CoverCard';
 import { Chip } from '../components/ui/Chip';
 import { KindDot } from '../components/ui/KindDot';
+import { Select, type SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
 import {
   MIN_MEDIA_SEARCH_QUERY,
+  SELECTABLE_YEARS,
   gameSearchContext,
   groupGameSearchResults,
+  isSelectableYear,
   useMediaSearch,
   useShowcase,
 } from '@trackt/client';
@@ -21,6 +24,16 @@ import {
 export interface SearchParams {
   q?: string;
   kind?: MediaKind;
+  year?: number;
+}
+
+/**
+ * A URL value that names a year the picker offers, else no filter. The range
+ * lives in `@trackt/client` because the mobile year pill offers the same one.
+ */
+function parseYear(value: unknown): number | undefined {
+  const year = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return isSelectableYear(year) ? year : undefined;
 }
 
 export const Route = createFileRoute('/search')({
@@ -28,6 +41,7 @@ export const Route = createFileRoute('/search')({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     kind: MEDIA_KINDS.includes(search.kind as MediaKind) ? (search.kind as MediaKind) : undefined,
+    year: parseYear(search.year),
   }),
   component: SearchPage,
 });
@@ -62,47 +76,100 @@ function insertedCount(prev: string, next: string): number {
   return next.length - prefix - suffix;
 }
 
-function SearchPage() {
-  const { t } = useTranslation();
-  const labels = useLabels();
-  const navigate = useNavigate({ from: Route.fullPath });
-  const { isPending, navUser } = useAuthedPage();
-  const { q = '', kind } = Route.useSearch();
-  const [input, setInput] = useState(q);
-  const { status, results, hasMore, loadMore, loadingMore } = useMediaSearch(q, kind);
-  // What the page shows before anything is typed: the instance's own catalog,
-  // narrowed by the same kind chips the results are. It survives a query too
-  // short to run — there are no results to take its place, and a lone "keep
-  // typing" line would blank the page the user arrived on.
-  const { data: showcase } = useShowcase(kind);
-  const resultGroups = groupGameSearchResults(results);
-  const tooShort = q.trim().length > 0 && q.trim().length < MIN_MEDIA_SEARCH_QUERY;
-  const browseItems = q && !tooShort ? [] : (showcase ?? []);
-
-  // Infinite scroll: the sentinel sits past the grid and pulls the next batch
-  // when it comes within 600px of the viewport, so the next batch is usually
-  // there before the last row is. Re-observing after every batch is deliberate
-  // — an IntersectionObserver only reports *changes*, so a sentinel that stays
-  // in view across a batch would never fire again and the grid would stall one
-  // screen short of the fold; `loadingMore` is in the deps for the batch that
-  // appended nothing new (a deduplicated overlap), which `results.length` misses.
-  const sentinel = useRef<HTMLDivElement>(null);
-  const loadMoreRef = useRef(loadMore);
+/**
+ * Pulls the next batch when the sentinel `ref` comes within 600px of the
+ * viewport, so the batch is usually there before the last row is.
+ *
+ * `reobserve` is the trap: an IntersectionObserver only reports *changes*, so a
+ * sentinel that stays in view across a batch would never fire again and the grid
+ * would stall one screen short of the fold. Each caller passes something that
+ * moves with every batch — the rows loaded, and whether one is in flight for a
+ * batch that appended nothing new (a deduplicated overlap), which a row count
+ * alone misses. Re-attaching when the list stops being rendered is the other
+ * half: `enabled` drops to false and the observer disconnects rather than
+ * watching a detached node.
+ */
+function useLoadMoreSentinel(
+  ref: RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+  reobserve: string,
+  loadMore: () => void,
+): void {
+  const latest = useRef(loadMore);
   useEffect(() => {
-    loadMoreRef.current = loadMore;
+    latest.current = loadMore;
   });
   useEffect(() => {
-    const node = sentinel.current;
-    if (!node || !hasMore || status !== 'success') return;
+    const node = ref.current;
+    if (!node || !enabled) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) loadMoreRef.current();
+        if (entries.some((entry) => entry.isIntersecting)) latest.current();
       },
       { rootMargin: '600px 0px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [hasMore, status, results.length, loadingMore]);
+  }, [enabled, reobserve, ref]);
+}
+
+function SearchPage() {
+  const { t } = useTranslation();
+  const labels = useLabels();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { isPending, navUser } = useAuthedPage();
+  const { q = '', kind, year } = Route.useSearch();
+  const [input, setInput] = useState(q);
+  const { status, results, hasMore, loadMore, loadingMore } = useMediaSearch(q, kind, year);
+  // What the page shows before anything is typed: the instance's own catalog,
+  // narrowed by the same kind chips and year the results are. It survives a
+  // query too short to run — there are no results to take its place, and a lone
+  // "keep typing" line would blank the page the user arrived on.
+  const {
+    data: showcase,
+    isPending: showcasePending,
+    hasMore: showcaseMore,
+    loadMore: loadShowcase,
+    loadingMore: showcaseLoadingMore,
+  } = useShowcase(kind, year);
+  const resultGroups = groupGameSearchResults(results);
+  const tooShort = q.trim().length > 0 && q.trim().length < MIN_MEDIA_SEARCH_QUERY;
+  const browsing = !q || tooShort;
+  const browseItems = browsing ? showcase : [];
+
+  const yearItems: SelectItem[] = [
+    { value: '', label: t('discover.anyYear') },
+    ...SELECTABLE_YEARS.map((value) => ({ value: String(value), label: String(value) })),
+  ];
+  const emptyMessage = kind
+    ? year
+      ? t('discover.emptyInKindYear', {
+          query: q,
+          kind: labels.kind(kind).toLowerCase(),
+          year,
+        })
+      : t('discover.emptyInKind', { query: q, kind: labels.kind(kind).toLowerCase() })
+    : year
+      ? t('discover.emptyInYear', { query: q, year })
+      : t('discover.empty', { query: q });
+
+  // Infinite scroll on both grids: the results, and the shelf the page shows
+  // before anything is typed. Only one of the two is rendered at a time, so the
+  // observers never compete for the fold.
+  const sentinel = useRef<HTMLDivElement>(null);
+  const shelfSentinel = useRef<HTMLDivElement>(null);
+  useLoadMoreSentinel(
+    sentinel,
+    q !== '' && !tooShort && status === 'success' && hasMore,
+    `${results.length}:${loadingMore}`,
+    loadMore,
+  );
+  useLoadMoreSentinel(
+    shelfSentinel,
+    browsing && browseItems.length > 0 && showcaseMore,
+    `${browseItems.length}:${showcaseLoadingMore}`,
+    loadShowcase,
+  );
 
   // `?q=` also changes without this field: the nav search submits to this page
   // while it is already mounted (no remount on a search-param change), and
@@ -176,39 +243,58 @@ function SearchPage() {
               {/* No ⌘K hint: the shortcut focuses the nav pill, and this field
                   is already focused on arrival. */}
             </label>
-            <ToggleGroup.Root
-              type="single"
-              aria-label={t('discover.filterAria')}
-              value={kind ?? ALL_KINDS}
-              onValueChange={(value) => {
-                // Radix emits '' when the active item is pressed again; a filter
-                // row has no "nothing selected" state, so ignore it.
-                if (!value) return;
-                navigate({
-                  search: (previous) => ({
-                    ...previous,
-                    kind: value === ALL_KINDS ? undefined : (value as MediaKind),
-                  }),
-                });
-              }}
-              className="flex flex-wrap gap-2.5"
-            >
-              {/* `aria-pressed={undefined}` drops Chip's own toggle semantics:
-                  ToggleGroup supplies role="radio" + aria-checked here, and a
-                  radio that is also aria-pressed is invalid ARIA. */}
-              <ToggleGroup.Item value={ALL_KINDS} asChild>
-                <Chip selected={kind === undefined} aria-pressed={undefined}>
-                  {t('common.all')}
-                </Chip>
-              </ToggleGroup.Item>
-              {MEDIA_KINDS.map((value) => (
-                <ToggleGroup.Item key={value} value={value} asChild>
-                  <Chip selected={kind === value} aria-pressed={undefined}>
-                    {labels.kind(value)}
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
+              <ToggleGroup.Root
+                type="single"
+                aria-label={t('discover.filterAria')}
+                value={kind ?? ALL_KINDS}
+                onValueChange={(value) => {
+                  // Radix emits '' when the active item is pressed again; a filter
+                  // row has no "nothing selected" state, so ignore it.
+                  if (!value) return;
+                  navigate({
+                    search: (previous) => ({
+                      ...previous,
+                      kind: value === ALL_KINDS ? undefined : (value as MediaKind),
+                    }),
+                  });
+                }}
+                className="flex flex-wrap gap-2.5"
+              >
+                {/* `aria-pressed={undefined}` drops Chip's own toggle semantics:
+                    ToggleGroup supplies role="radio" + aria-checked here, and a
+                    radio that is also aria-pressed is invalid ARIA. */}
+                <ToggleGroup.Item value={ALL_KINDS} asChild>
+                  <Chip selected={kind === undefined} aria-pressed={undefined}>
+                    {t('common.all')}
                   </Chip>
                 </ToggleGroup.Item>
-              ))}
-            </ToggleGroup.Root>
+                {MEDIA_KINDS.map((value) => (
+                  <ToggleGroup.Item key={value} value={value} asChild>
+                    <Chip selected={kind === value} aria-pressed={undefined}>
+                      {labels.kind(value)}
+                    </Chip>
+                  </ToggleGroup.Item>
+                ))}
+              </ToggleGroup.Root>
+              <Select
+                variant="pill"
+                caption={t('discover.year')}
+                aria-label={t('discover.yearAria')}
+                className="py-2 pr-3 pl-4"
+                items={yearItems}
+                value={year === undefined ? '' : String(year)}
+                selected={year !== undefined}
+                onChange={(value) =>
+                  navigate({
+                    search: (previous) => ({
+                      ...previous,
+                      year: value ? Number(value) : undefined,
+                    }),
+                  })
+                }
+              />
+            </div>
           </div>
 
           {/* Says why the shelf below hasn't turned into results, without
@@ -222,8 +308,9 @@ function SearchPage() {
           {/* Nothing typed yet (or not enough): the instance's own catalog,
               under the filter chips above. No heading when the shelf is empty —
               a lone "On this instance" over nothing reads as a load that
-              failed. */}
-          {browseItems.length > 0 && (
+              failed — but a filter that matches nothing says so, or the chip
+              and year pill look like they did nothing. */}
+          {browseItems.length > 0 ? (
             <>
               <h2 className="font-heading text-[32px] uppercase">
                 {kind
@@ -249,7 +336,23 @@ function SearchPage() {
                   </li>
                 ))}
               </ul>
+              {/* The shelf pages the same way the results do: scrolling past
+                  what this instance shows first asks for the next batch of the
+                  same round-robin order. */}
+              <div ref={shelfSentinel} aria-hidden="true" className="h-px" />
+              <p
+                role="status"
+                className="min-h-5 text-center font-label text-[12px] tracking-label text-dim"
+              >
+                {showcaseLoadingMore ? t('discover.loadingMore') : ''}
+              </p>
             </>
+          ) : (
+            !showcasePending &&
+            (kind !== undefined || year !== undefined) &&
+            (!q || tooShort) && (
+              <p className="text-[15px] text-muted">{t('discover.browseEmpty')}</p>
+            )
           )}
 
           {q && !tooShort && (
@@ -268,14 +371,7 @@ function SearchPage() {
                   {t('errors.searchFailed')}
                 </p>
               ) : results.length === 0 && status === 'success' ? (
-                <p className="text-[15px] text-muted">
-                  {kind
-                    ? t('discover.emptyInKind', {
-                        query: q,
-                        kind: labels.kind(kind).toLowerCase(),
-                      })
-                    : t('discover.empty', { query: q })}
-                </p>
+                <p className="text-[15px] text-muted">{emptyMessage}</p>
               ) : (
                 <>
                   <ul
@@ -367,10 +463,10 @@ function SearchPage() {
                       );
                     })}
                   </ul>
-                  {/* The sentinel the scroll observer watches, then the only
-                      thing a short grid says about more: a batch on its way.
-                      Nothing is rendered at the end of the list, because the
-                      count above already says how many are showing. */}
+                  {/* The results grid's sentinel, then the only thing a short
+                      grid says about more: a batch on its way. Nothing is
+                      rendered at the end of the list, because the count above
+                      already says how many are showing. */}
                   <div ref={sentinel} aria-hidden="true" className="h-px" />
                   <p
                     role="status"

@@ -17,9 +17,10 @@ import { Sheet, SheetError, useSheetController } from './Sheet';
  *
  * Status changes and check-ins stamp these server-side; this is the correction,
  * and the only way to record when you actually watched something you are
- * logging after the fact. Web asks for two `YYYY-MM-DD` strings; here each date
- * is the platform's own picker, bounded to `[LOG_DATE_FLOOR, today]` so the
- * two errors a typed field invites cannot be expressed at all.
+ * logging after the fact. Web picks the span from one calendar over a
+ * start → stop field; here each date is the platform's own picker, bounded to
+ * `[LOG_DATE_FLOOR, today]` so the two errors a typed field invites cannot be
+ * expressed at all.
  *
  * The third error still can: a finish date before a start date. That check —
  * and the bounds, which iOS honours but Android's dialog only clamps — is

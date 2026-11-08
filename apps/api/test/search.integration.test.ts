@@ -299,6 +299,15 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
     for (const result of results) expect((result as { kind: string }).kind).toBe('movie');
   });
 
+  it('filters by release year', async () => {
+    const { results } = await search('q=Breaking%20Bad&year=2008');
+    expect(results.length).toBeGreaterThan(0);
+    for (const result of results) expect((result as { year: number }).year).toBe(2008);
+
+    const { results: none } = await search('q=Breaking%20Bad&year=1950');
+    expect(none).toEqual([]);
+  });
+
   it('respects the limit', async () => {
     const { results } = await search('q=a&limit=2');
     expect(results.length).toBeLessThanOrEqual(2);
@@ -658,6 +667,19 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
     // The local row stays exactly as it was: soft-deleted, not overwritten.
     const [row] = await db.select().from(media).where(eq(media.id, softDeletedId));
     expect(row?.deletedAt).not.toBeNull();
+  });
+
+  it('forwards the year filter to the central catalog', async () => {
+    let seen: string | null = null;
+    server = catalogStub((params) => {
+      seen = params.get('year');
+      return { results: [] };
+    });
+    app = await buildAppWithCatalog(await listen(server));
+
+    const response = await app.inject({ method: 'GET', url: '/api/v1/search?q=Neon&year=1999' });
+    expect(response.statusCode).toBe(200);
+    expect(seen).toBe('1999');
   });
 
   it('degrades to local-only results when the central catalog errors', async () => {

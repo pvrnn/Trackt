@@ -61,6 +61,12 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: env.NODE_ENV === 'production' ? [env.APP_URL] : true,
     credentials: true,
+    // Both paged reads say "there is another batch" in `x-has-more`, and a
+    // cross-origin browser can only read a header this exposes. Our own clients
+    // are same-origin (a native client ignores CORS), so this is for anyone
+    // else pointing a browser at the API — the failure it prevents is silent:
+    // `headers.get()` answers null and the list just stops.
+    exposedHeaders: ['x-has-more'],
   });
 
   // Blunt per-IP abuse guard; health probes stay exempt. Search gets a tighter

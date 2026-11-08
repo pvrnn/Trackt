@@ -3,9 +3,13 @@
   "searchPlaceholder": "Search titles…",
   "searchAria": "search titles",
   "filterAria": "filter by kind",
+  "year": "YEAR",
+  "yearAria": "filter by year",
+  "anyYear": "Any year",
   "results": "Results",
   "browse": "On this instance",
   "browseKind": "{{kind}} on this instance",
+  "browseEmpty": "Nothing on this instance matches this filter.",
   "resultCount_one": "{{count}} TITLE",
   "resultCount_other": "{{count}} TITLES",
   "minQuery": "Type at least {{count}} characters to search.",
@@ -31,6 +35,8 @@
   "loadingMore": "Loading more…",
   "empty": "Nothing on this instance matches “{{query}}”.",
   "emptyInKind": "Nothing on this instance matches “{{query}}” in {{kind}}.",
+  "emptyInYear": "Nothing on this instance matches “{{query}}” from {{year}}.",
+  "emptyInKindYear": "Nothing on this instance matches “{{query}}” in {{kind}} from {{year}}.",
   "missingTitle": "Can’t find it?",
   "missingBody": "The catalog fills in over time: titles are added to the central catalog and reach every instance from there. Write a request to ask for one to be added."
 }

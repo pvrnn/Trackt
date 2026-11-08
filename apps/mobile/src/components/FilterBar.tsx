@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import type { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, {
   runOnJS,
@@ -70,6 +79,12 @@ export function FilterBar({
   const [open, setOpen] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<Anchor>({ top: 0, left: 0, width: 0 });
   const row = useRef<View>(null);
+  // The row's window rect and each pill's layout inside it. An open menu's
+  // modal covers the row, so a tap meant for another pill arrives at the
+  // backdrop; these are what let it be routed to the pill under the finger
+  // instead of only dismissing.
+  const rowRect = useRef<LayoutRectangle | null>(null);
+  const pillRects = useRef<Record<string, LayoutRectangle>>({});
 
   const close = () => {
     const current = filters.find((filter) => filter.key === open);
@@ -80,9 +95,39 @@ export function FilterBar({
   /** Menus hang off the pill row, so the row is measured in window space. */
   const openMenu = (key: string) => {
     row.current?.measureInWindow((x, y, width, height) => {
+      rowRect.current = { x, y, width, height };
       setAnchor({ top: y + height + space.xs, left: x, width });
       setOpen(key);
     });
+  };
+
+  /**
+   * A backdrop tap on another pill switches straight to its menu. Without this
+   * the modal eats the tap: the first one closes the open menu and the second
+   * opens the next, which reads as a dead control. Tapping the open pill still
+   * closes it, and anything else is a plain dismiss.
+   */
+  const pressBackdrop = (event: GestureResponderEvent) => {
+    const { pageX, pageY } = event.nativeEvent;
+    const rail = rowRect.current;
+    const hit = rail
+      ? filters.find((filter) => {
+          const pill = pillRects.current[filter.key];
+          if (!pill) return false;
+          return (
+            pageX >= rail.x + pill.x &&
+            pageX <= rail.x + pill.x + pill.width &&
+            pageY >= rail.y + pill.y &&
+            pageY <= rail.y + pill.y + pill.height
+          );
+        })
+      : undefined;
+    if (hit && hit.key !== open) {
+      filters.find((filter) => filter.key === open)?.onClose?.();
+      openMenu(hit.key);
+      return;
+    }
+    close();
   };
 
   return (
@@ -97,6 +142,9 @@ export function FilterBar({
             variant={variant}
             open={open === filter.key}
             disabled={filter.disabled ?? false}
+            onLayout={(event) => {
+              pillRects.current[filter.key] = event.nativeEvent.layout;
+            }}
             onPress={() => (open === filter.key ? close() : openMenu(filter.key))}
           />
         ))}
@@ -117,6 +165,7 @@ export function FilterBar({
             filter.onSelect(key);
             if (!filter.stayOpen) setOpen(null);
           }}
+          onBackdropPress={pressBackdrop}
           onClose={close}
         />
       ))}
@@ -186,6 +235,7 @@ function FilterPill({
   variant,
   open,
   disabled,
+  onLayout,
   onPress,
 }: {
   icon: IconName;
@@ -194,6 +244,7 @@ function FilterPill({
   variant: 'pills' | 'columns';
   open: boolean;
   disabled: boolean;
+  onLayout: (event: LayoutChangeEvent) => void;
   onPress: () => void;
 }) {
   const { caretStyle } = useDisclosure(open);
@@ -206,6 +257,7 @@ function FilterPill({
         accessibilityLabel={caption ? `${caption}: ${label}` : label}
         accessibilityState={{ expanded: open, disabled }}
         disabled={disabled}
+        onLayout={onLayout}
         onPress={onPress}
         style={({ pressed }) => [
           styles.filterCell,
@@ -235,6 +287,7 @@ function FilterPill({
       accessibilityState={{ expanded: open, disabled }}
       disabled={disabled}
       hitSlop={{ top: space.sm, bottom: space.sm }}
+      onLayout={onLayout}
       onPress={onPress}
       style={({ pressed }) => [styles.filterPill, { opacity: disabled ? 0.4 : pressed ? 0.7 : 1 }]}
     >
@@ -257,6 +310,7 @@ function FilterMenu({
   rows,
   highlight,
   onSelect,
+  onBackdropPress,
   onClose,
 }: {
   open: boolean;
@@ -264,10 +318,30 @@ function FilterMenu({
   rows: MenuRow[];
   highlight: 'row' | 'mark';
   onSelect: (key: string) => void;
+  onBackdropPress: (event: GestureResponderEvent) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { height } = useWindowDimensions();
   const { mounted, panelStyle } = useDisclosure(open);
+  const list = useRef<ScrollView>(null);
+
+  // Re-keyed on every open so the fresh ScrollView can scroll the current choice
+  // into view: a menu that stays mounted fires `onContentSizeChange` once and
+  // never again, and the year pill carries a century of rows whose selection is
+  // rarely near the top. Closing does not re-key, so the exit animation keeps
+  // its scroll position.
+  const [generation, setGeneration] = useState(0);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setGeneration((value) => value + 1);
+  }
+
+  const selected = rows.findIndex((row) => row.selected);
+  // A long list cannot run off the bottom of the screen; the panel grows with
+  // its rows until this cap and scrolls after it.
+  const maxHeight = Math.max(layout.touchTarget * 3, height - anchor.top - space.xxl);
 
   return (
     <Modal transparent visible={mounted} animationType="none" onRequestClose={onClose}>
@@ -275,7 +349,7 @@ function FilterMenu({
         accessibilityRole="button"
         accessibilityLabel={t('common.closeFilter')}
         style={StyleSheet.absoluteFill}
-        onPress={onClose}
+        onPress={onBackdropPress}
       />
       <Animated.View
         style={[
@@ -285,25 +359,42 @@ function FilterMenu({
           panelStyle,
         ]}
       >
-        {rows.map((row) => (
-          <Pressable
-            key={row.key}
-            accessibilityRole="button"
-            accessibilityState={{ selected: row.selected }}
-            onPress={() => onSelect(row.key)}
-            style={({ pressed }) => [
-              styles.filterOption,
-              row.selected && highlight === 'row' && styles.filterOptionSelected,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Text style={[type.eyebrow, styles.filterOptionLabel, row.selected ? text.pink : null]}>
-              {row.label.toUpperCase()}
-            </Text>
-            {row.count ? <Text style={styles.summary}>{row.count.toUpperCase()}</Text> : null}
-            {row.selected ? <Icon name="check" color={color.pink} size={14} /> : null}
-          </Pressable>
-        ))}
+        <ScrollView
+          key={generation}
+          ref={list}
+          bounces={false}
+          showsVerticalScrollIndicator
+          style={{ maxHeight }}
+          onContentSizeChange={() => {
+            if (selected <= 0) return;
+            list.current?.scrollTo({
+              y: Math.max(0, (selected - 1) * layout.touchTarget),
+              animated: false,
+            });
+          }}
+        >
+          {rows.map((row) => (
+            <Pressable
+              key={row.key}
+              accessibilityRole="button"
+              accessibilityState={{ selected: row.selected }}
+              onPress={() => onSelect(row.key)}
+              style={({ pressed }) => [
+                styles.filterOption,
+                row.selected && highlight === 'row' && styles.filterOptionSelected,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text
+                style={[type.eyebrow, styles.filterOptionLabel, row.selected ? text.pink : null]}
+              >
+                {row.label.toUpperCase()}
+              </Text>
+              {row.count ? <Text style={styles.summary}>{row.count.toUpperCase()}</Text> : null}
+              {row.selected ? <Icon name="check" color={color.pink} size={14} /> : null}
+            </Pressable>
+          ))}
+        </ScrollView>
       </Animated.View>
     </Modal>
   );

@@ -3,9 +3,13 @@
   "searchPlaceholder": "Rechercher des titres…",
   "searchAria": "rechercher des titres",
   "filterAria": "filtrer par type",
+  "year": "ANNÉE",
+  "yearAria": "filtrer par année",
+  "anyYear": "Toutes les années",
   "results": "Résultats",
   "browse": "Sur cette instance",
   "browseKind": "{{kind}} sur cette instance",
+  "browseEmpty": "Rien sur cette instance ne correspond à ce filtre.",
   "resultCount_one": "{{count}} TITRE",
   "resultCount_other": "{{count}} TITRES",
   "minQuery": "Saisissez au moins {{count}} caractères pour lancer la recherche.",
@@ -31,6 +35,8 @@
   "loadingMore": "Chargement de la suite…",
   "empty": "Rien sur cette instance ne correspond à «\u00a0{{query}}\u00a0».",
   "emptyInKind": "Rien sur cette instance ne correspond à «\u00a0{{query}}\u00a0» en {{kind}}.",
+  "emptyInYear": "Rien sur cette instance ne correspond à «\u00a0{{query}}\u00a0» sorti en {{year}}.",
+  "emptyInKindYear": "Rien sur cette instance ne correspond à «\u00a0{{query}}\u00a0» en {{kind}} sorti en {{year}}.",
   "missingTitle": "Vous ne le trouvez pas\u00a0?",
   "missingBody": "Le catalogue se remplit au fil du temps : les titres sont ajoutés au catalogue central et arrivent ensuite sur chaque instance. Écrivez une demande pour en faire ajouter un."
 }

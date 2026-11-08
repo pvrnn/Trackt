@@ -6,6 +6,11 @@ export interface MediaSearchState {
   status: 'idle' | 'loading' | 'success' | 'error';
   /** Kept across reloads so the grid doesn't flicker while a new query is in flight. */
   results: SearchResult[];
+  /**
+   * `results` belongs to the previous query key while this one loads
+   * (`keepPreviousData`), not to the key now being asked for.
+   */
+  isPlaceholder: boolean;
   /** Whether the server holds another batch past the ones loaded. */
   hasMore: boolean;
   /** Appends the next batch; a no-op once `hasMore` is false or one is in flight. */
@@ -23,6 +28,29 @@ export const MEDIA_SEARCH_LIMIT = 30;
  * callers show `idle` and say so rather than asking.
  */
 export const MIN_MEDIA_SEARCH_QUERY = 3;
+
+/**
+ * Oldest year Discover's year pill offers. The catalog's silent-era films sit
+ * above it, and a bound keeps a hand-typed `?year=` from asking for a nonsense
+ * century.
+ */
+export const SEARCH_YEAR_FLOOR = 1900;
+
+/**
+ * Every year from next year (announced releases) down to `SEARCH_YEAR_FLOOR`,
+ * newest first. Static rather than a facet of what an instance holds: a fresh
+ * self-host has materialized almost nothing, and the central catalog answers
+ * for the years it hasn't. Both Discover screens build the same pill from it.
+ */
+export const SELECTABLE_YEARS: readonly number[] = (() => {
+  const newest = new Date().getUTCFullYear() + 1;
+  return Array.from({ length: newest - SEARCH_YEAR_FLOOR + 1 }, (_, index) => newest - index);
+})();
+
+/** Whether a value names a year the picker actually offers, as a whole number. */
+export function isSelectableYear(year: number): boolean {
+  return Number.isInteger(year) && year >= SEARCH_YEAR_FLOOR && year <= SELECTABLE_YEARS[0]!;
+}
 
 /** Mirrors `SearchQuerySchema`'s `offset` ceiling: a batch starting past it is refused. */
 const MAX_SEARCH_OFFSET = 1000;
@@ -48,10 +76,12 @@ interface MediaSearchPage {
  * serves them, so a later batch can legitimately contain a row an earlier one
  * already carried.
  */
-export function useMediaSearch(query: string, kind?: MediaKind): MediaSearchState {
+export function useMediaSearch(query: string, kind?: MediaKind, year?: number): MediaSearchState {
   const q = query.trim();
   const result = useInfiniteQuery({
-    queryKey: ['search', q, kind],
+    // No `year` element when the filter is off, so the key stays byte-identical
+    // to the nav typeahead's and Enter on its results is a cache hit.
+    queryKey: year ? ['search', q, kind, year] : ['search', q, kind],
     enabled: q.length >= MIN_MEDIA_SEARCH_QUERY,
     placeholderData: keepPreviousData,
     initialPageParam: 0,
@@ -62,6 +92,7 @@ export function useMediaSearch(query: string, kind?: MediaKind): MediaSearchStat
         offset: String(pageParam),
       };
       if (kind) searchParams.kind = kind;
+      if (year) searchParams.year = String(year);
       const response = await http().get('search', { searchParams, signal });
       const page = SearchResultSchema.array().parse(await response.json());
       return {
@@ -108,6 +139,7 @@ export function useMediaSearch(query: string, kind?: MediaKind): MediaSearchStat
   return {
     status,
     results,
+    isPlaceholder: result.isPlaceholderData,
     hasMore: hasNextPage,
     loadMore,
     loadingMore: isFetchingNextPage,
