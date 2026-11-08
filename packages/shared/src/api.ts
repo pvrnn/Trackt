@@ -45,15 +45,21 @@ export const SearchResultSchema = z.object({
 export type SearchResult = z.infer<typeof SearchResultSchema>;
 
 /**
- * How many titles `GET /v1/media/showcase` returns: what this instance has, for
- * the landing page's cover band. Enough to fill a wide viewport twice over (the
- * band duplicates its contents to loop seamlessly) without making an anonymous
- * endpoint worth hammering.
+ * How many titles a `GET /v1/media/showcase` batch carries: this instance's own
+ * catalog, for the landing page's cover band and Discover's browse shelf. Enough
+ * to fill a wide viewport twice over (the band duplicates its contents to loop
+ * seamlessly) without making an anonymous endpoint worth hammering — and small
+ * enough that scrolling the shelf one batch at a time stays cheap.
  */
 export const SHOWCASE_LIMIT = 24;
 
-/** Kinds are round-robined into the band, so this is its per-kind depth. */
-export const SHOWCASE_PER_KIND = 5;
+/**
+ * Farthest `offset` the shelf may page to. Like search, a browse surface is a
+ * suggestion, not an exhaustive listing: past ~40 batches the caller has seen
+ * everything a shelf is for, and the bound keeps an anonymous walk of the whole
+ * catalog off the table. Mirrored by `useShowcase`'s stop condition.
+ */
+export const SHOWCASE_MAX_OFFSET = 1000;
 
 /**
  * A work linked to another by a typed relation (ADR-0004), with the direction

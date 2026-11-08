@@ -1,8 +1,15 @@
-import { useQuery, type QueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  type QueryClient,
+} from '@tanstack/react-query';
 import {
   LOG_DATE_FLOOR,
   LogDatesSchema,
   MediaDetailSchema,
+  SHOWCASE_LIMIT,
+  SHOWCASE_MAX_OFFSET,
   SearchResultSchema,
   type LogDates,
   type LogDatesBody,
@@ -41,6 +48,25 @@ export function useMediaDetail(slug: string) {
   });
 }
 
+/** One `GET /media/showcase` batch, plus the offset it was asked for. */
+interface ShowcasePage {
+  offset: number;
+  rows: SearchResult[];
+  hasMore: boolean;
+}
+
+export interface ShowcaseState {
+  /** Every batch loaded so far, in shelf order. The band only ever reads the first. */
+  data: SearchResult[];
+  isPending: boolean;
+  /** Whether the endpoint holds another batch past the ones loaded. */
+  hasMore: boolean;
+  /** Appends the next batch; a no-op once `hasMore` is false or one is in flight. */
+  loadMore: () => void;
+  /** True only while a `loadMore` is in flight, never during the first batch. */
+  loadingMore: boolean;
+}
+
 /**
  * What this instance carries: the landing page's cover band, and Discover's
  * shelf for the state where nothing has been typed yet. Public — the endpoint
@@ -51,30 +77,57 @@ export function useMediaDetail(slug: string) {
  * release year, so Discover's year filter applies to the shelf as well as to
  * results.
  *
+ * Batches accumulate so the shelf can be scrolled rather than paged: the endpoint
+ * pages the same round-robin order by `offset` and answers `x-has-more`, and the
+ * ceiling `SHOWCASE_MAX_OFFSET` is where `hasMore` stops exactly as search's does.
+ * `keepPreviousData` holds the shelf a currently selected chip or year is
+ * replacing, so the grid doesn't blank on every filter change.
+ *
  * A failure is not worth surfacing here: a band is decoration above the fold
- * on a marketing page, and a browse shelf is a suggestion. `data ?? []` lets
- * the caller treat "failed" and "this instance has an empty catalog" as one
- * state, which is what both have a fallback for.
+ * on a marketing page, and a browse shelf is a suggestion. `data` is `[]` for
+ * both "failed" and "this instance has an empty catalog", which is the one state
+ * callers have a fallback for.
  */
-export function useShowcase(kind?: MediaKind, year?: number) {
-  return useQuery({
+export function useShowcase(kind?: MediaKind, year?: number): ShowcaseState {
+  const result = useInfiniteQuery({
     queryKey: ['showcase', kind ?? 'all', year ?? 'all'],
-    queryFn: async ({ signal }): Promise<SearchResult[]> => {
-      const searchParams: Record<string, string> = {};
+    placeholderData: keepPreviousData,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam, signal }): Promise<ShowcasePage> => {
+      const searchParams: Record<string, string> = { offset: String(pageParam) };
       if (kind) searchParams.kind = kind;
       if (year) searchParams.year = String(year);
-      const json = await http()
-        .get('media/showcase', {
-          signal,
-          searchParams: Object.keys(searchParams).length > 0 ? searchParams : undefined,
-        })
-        .json();
-      return SearchResultSchema.array().parse(json);
+      const response = await http().get('media/showcase', { signal, searchParams });
+      const rows = SearchResultSchema.array().parse(await response.json());
+      return {
+        offset: pageParam,
+        rows,
+        hasMore: response.headers.get('x-has-more') === 'true',
+      } satisfies ShowcasePage;
+    },
+    getNextPageParam: (last): number | undefined => {
+      if (!last.hasMore) return undefined;
+      const next = last.offset + SHOWCASE_LIMIT;
+      return next > SHOWCASE_MAX_OFFSET ? undefined : next;
     },
     // It changes when the catalog is populated, not between page views.
     staleTime: 5 * 60_000,
     retry: false,
   });
+
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = result;
+  const loadMore = () => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    void fetchNextPage();
+  };
+
+  return {
+    data: (result.data?.pages ?? []).flatMap((page) => page.rows),
+    isPending: result.isPending,
+    hasMore: hasNextPage,
+    loadMore,
+    loadingMore: isFetchingNextPage,
+  };
 }
 
 /**

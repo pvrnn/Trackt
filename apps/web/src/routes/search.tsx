@@ -1,6 +1,6 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
@@ -90,6 +90,43 @@ function insertedCount(prev: string, next: string): number {
   return next.length - prefix - suffix;
 }
 
+/**
+ * Pulls the next batch when the sentinel `ref` comes within 600px of the
+ * viewport, so the batch is usually there before the last row is.
+ *
+ * `reobserve` is the trap: an IntersectionObserver only reports *changes*, so a
+ * sentinel that stays in view across a batch would never fire again and the grid
+ * would stall one screen short of the fold. Each caller passes something that
+ * moves with every batch — the rows loaded, and whether one is in flight for a
+ * batch that appended nothing new (a deduplicated overlap), which a row count
+ * alone misses. Re-attaching when the list stops being rendered is the other
+ * half: `enabled` drops to false and the observer disconnects rather than
+ * watching a detached node.
+ */
+function useLoadMoreSentinel(
+  ref: RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+  reobserve: string,
+  loadMore: () => void,
+): void {
+  const latest = useRef(loadMore);
+  useEffect(() => {
+    latest.current = loadMore;
+  });
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !enabled) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) latest.current();
+      },
+      { rootMargin: '600px 0px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [enabled, reobserve, ref]);
+}
+
 function SearchPage() {
   const { t } = useTranslation();
   const labels = useLabels();
@@ -102,10 +139,18 @@ function SearchPage() {
   // narrowed by the same kind chips and year the results are. It survives a
   // query too short to run — there are no results to take its place, and a lone
   // "keep typing" line would blank the page the user arrived on.
-  const { data: showcase, isPending: showcasePending } = useShowcase(kind, year);
+  const {
+    data: showcase,
+    isPending: showcasePending,
+    hasMore: showcaseMore,
+    loadMore: loadShowcase,
+    loadingMore: showcaseLoadingMore,
+  } = useShowcase(kind, year);
   const resultGroups = groupGameSearchResults(results);
   const tooShort = q.trim().length > 0 && q.trim().length < MIN_MEDIA_SEARCH_QUERY;
-  const browseItems = q && !tooShort ? [] : (showcase ?? []);
+  const browsing = !q || tooShort;
+  const browseItems = browsing ? showcase : [];
+
   const yearItems: SelectItem[] = [
     { value: '', label: t('discover.anyYear') },
     ...SELECTABLE_YEARS.map((value) => ({ value: String(value), label: String(value) })),
@@ -122,30 +167,23 @@ function SearchPage() {
       ? t('discover.emptyInYear', { query: q, year })
       : t('discover.empty', { query: q });
 
-  // Infinite scroll: the sentinel sits past the grid and pulls the next batch
-  // when it comes within 600px of the viewport, so the next batch is usually
-  // there before the last row is. Re-observing after every batch is deliberate
-  // — an IntersectionObserver only reports *changes*, so a sentinel that stays
-  // in view across a batch would never fire again and the grid would stall one
-  // screen short of the fold; `loadingMore` is in the deps for the batch that
-  // appended nothing new (a deduplicated overlap), which `results.length` misses.
+  // Infinite scroll on both grids: the results, and the shelf the page shows
+  // before anything is typed. Only one of the two is rendered at a time, so the
+  // observers never compete for the fold.
   const sentinel = useRef<HTMLDivElement>(null);
-  const loadMoreRef = useRef(loadMore);
-  useEffect(() => {
-    loadMoreRef.current = loadMore;
-  });
-  useEffect(() => {
-    const node = sentinel.current;
-    if (!node || !hasMore || status !== 'success') return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) loadMoreRef.current();
-      },
-      { rootMargin: '600px 0px' },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasMore, status, results.length, loadingMore]);
+  const shelfSentinel = useRef<HTMLDivElement>(null);
+  useLoadMoreSentinel(
+    sentinel,
+    q !== '' && !tooShort && status === 'success' && hasMore,
+    `${results.length}:${loadingMore}`,
+    loadMore,
+  );
+  useLoadMoreSentinel(
+    shelfSentinel,
+    browsing && browseItems.length > 0 && showcaseMore,
+    `${browseItems.length}:${showcaseLoadingMore}`,
+    loadShowcase,
+  );
 
   // `?q=` also changes without this field: the nav search submits to this page
   // while it is already mounted (no remount on a search-param change), and
@@ -312,6 +350,16 @@ function SearchPage() {
                   </li>
                 ))}
               </ul>
+              {/* The shelf pages the same way the results do: scrolling past
+                  what this instance shows first asks for the next batch of the
+                  same round-robin order. */}
+              <div ref={shelfSentinel} aria-hidden="true" className="h-px" />
+              <p
+                role="status"
+                className="min-h-5 text-center font-label text-[12px] tracking-label text-dim"
+              >
+                {showcaseLoadingMore ? t('discover.loadingMore') : ''}
+              </p>
             </>
           ) : (
             !showcasePending &&
@@ -429,10 +477,10 @@ function SearchPage() {
                       );
                     })}
                   </ul>
-                  {/* The sentinel the scroll observer watches, then the only
-                      thing a short grid says about more: a batch on its way.
-                      Nothing is rendered at the end of the list, because the
-                      count above already says how many are showing. */}
+                  {/* The results grid's sentinel, then the only thing a short
+                      grid says about more: a batch on its way. Nothing is
+                      rendered at the end of the list, because the count above
+                      already says how many are showing. */}
                   <div ref={sentinel} aria-hidden="true" className="h-px" />
                   <p
                     role="status"
