@@ -254,6 +254,25 @@ describe.runIf(available)('me/history (postgres)', () => {
     expect((await history('?kind=movie')).totals.episodes).toBe(0);
   });
 
+  it('collapses check-in days into sessions split by a week-long gap', async () => {
+    const all = await history();
+    const bebop = all.entries.find((entry) => entry.id === bebopId)!;
+    // 20 Dec → 11 Jan is 22 days apart: two sessions, not one.
+    expect(bebop.sessions).toEqual([
+      { from: '2025-12-20', to: '2025-12-20' },
+      { from: '2026-01-11', to: '2026-01-11' },
+    ]);
+    expect(all.entries.find((entry) => entry.id === matrixId)!.sessions).toEqual([]);
+  });
+
+  it('counts kinds within the year and status, ignoring the kind filter', async () => {
+    const page = await history('?year=2026&kind=movie');
+    const counts = Object.fromEntries(page.kinds.map((entry) => [entry.kind, entry.count]));
+    expect(counts).toEqual({ anime: 2, movie: 1 });
+    const open = await history('?year=2026&status=in_progress');
+    expect(open.kinds).toEqual([{ kind: 'anime', count: 1 }]);
+  });
+
   it('pages with a cursor, without gaps or repeats', async () => {
     const first = await history('?limit=2');
     expect(first.entries).toHaveLength(2);

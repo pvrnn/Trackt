@@ -11,7 +11,17 @@
     "body": "Rien ne vit à « {{slug}} » sur cette instance. Le titre a peut-être été retiré du catalogue."
   },
   "statusLabel": "Statut",
-  "log": "＋ SUIVI",
+  "log": {
+    "title": "Votre suivi",
+    "dates": "DATES",
+    "lists": "LISTES",
+    "edit": "MODIFIER",
+    "add": "AJOUTER",
+    "since": "Depuis le {{date}}",
+    "until": "Jusqu’au {{date}}",
+    "noDates": "Non définies",
+    "listsValue": "Le garder dans une liste"
+  },
   "dates": {
     "title": "Dates",
     "add": "＋ AJOUTER DES DATES",
@@ -23,7 +33,8 @@
     "future": "Les dates ne peuvent pas être dans le futur.",
     "floor": "Les dates commencent au {{date}}. Vérifiez l’année.",
     "order": "La date de fin précède la date de début.",
-    "setDate": "DÉFINIR LA DATE"
+    "setDate": "DÉFINIR LA DATE",
+    "hint": "Une date de fin range le titre sous cette année dans votre historique et ferme sa barre sur la frise."
   },
   "upToDate": "À JOUR",
   "checkIn": "{{verb}} {{part}}",
@@ -32,7 +43,6 @@
   "markAll": "MARQUER TOUT COMME {{verb}}",
   "clearProgress": "EFFACER LA PROGRESSION",
   "favourite": "FAVORI",
-  "list": "LISTE",
   "saveFailed": "Ça n'a pas enregistré — réessayez.",
   "part": {
     "episode": "Épisode",
@@ -78,27 +88,26 @@
   },
   "rating": {
     "yours": "VOTRE NOTE",
-    "rate": "NOTER CE TITRE",
     "rateTrigger": "NOTER",
     "community": "{{score}} SUR {{count}} ICI",
     "none": "AUCUNE NOTE ICI POUR L’INSTANT",
     "label": "Votre note",
     "group": "note",
     "rateValue": "Noter {{value}}",
-    "clear": "EFFACER LA NOTE",
-    "rateThis": "Noter",
-    "closeWithoutSaving": "Fermer sans enregistrer",
-    "clearYourRating": "Effacer votre note",
-    "yourScore": "Votre note",
-    "yourRatingChange": "Votre note : {{score}}. La modifier"
+    "scrub": "Votre note, sur 10. Glissez jusqu’à zéro pour l’effacer"
   },
   "details": {
-    "title": "Détails",
     "status": "STATUT",
     "released": "SORTIE",
     "genres": "GENRES",
     "alsoKnownAs": "AUSSI CONNU SOUS",
-    "external": "EXTERNE"
+    "studio": "STUDIO",
+    "createdBy": "CRÉÉ PAR",
+    "runtime": "DURÉE",
+    "runtimeValue": "{{minutes}} min",
+    "volumes": "VOLUMES",
+    "ended": "FIN",
+    "metadataFrom": "MÉTADONNÉES"
   },
   "youMightLike": "Vous aimerez peut-être aussi",
   "relation": {
@@ -131,11 +140,9 @@
     "addToLog": "Ajouter à votre journal",
     "addToLogLabel": "AJOUTER AU JOURNAL",
     "datesChange": "Dates : {{dates}}. Les modifier",
-    "setDates": "Définir les dates",
-    "setDatesLabel": "DÉFINIR LES DATES"
+    "setDates": "Définir les dates"
   },
   "actions": {
-    "fav": "FAV",
     "removeFromFavourites": "Retirer des favoris",
     "addToFavourites": "Ajouter aux favoris",
     "addToList": "Ajouter à une liste"
@@ -152,5 +159,6 @@
   "synopsis": {
     "expand": "AFFICHER PLUS",
     "collapse": "AFFICHER MOINS"
-  }
+  },
+  "favourited": "EN FAVORI"
 }

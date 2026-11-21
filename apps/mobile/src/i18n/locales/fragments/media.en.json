@@ -11,7 +11,17 @@
     "body": "Nothing lives at “{{slug}}” on this instance. It may have been removed from the catalog."
   },
   "statusLabel": "Status",
-  "log": "＋ LOG",
+  "log": {
+    "title": "Your log",
+    "dates": "DATES",
+    "lists": "LISTS",
+    "edit": "EDIT",
+    "add": "ADD",
+    "since": "Since {{date}}",
+    "until": "Until {{date}}",
+    "noDates": "Not set",
+    "listsValue": "Keep it in a list"
+  },
   "dates": {
     "title": "Dates",
     "add": "＋ ADD DATES",
@@ -23,7 +33,8 @@
     "future": "Dates can’t be in the future.",
     "floor": "Dates start at {{date}}. Check the year.",
     "order": "The finish date is before the start date.",
-    "setDate": "SET DATE"
+    "setDate": "SET DATE",
+    "hint": "A finish date files the title under that year in your history and closes its bar on the timeline."
   },
   "upToDate": "UP TO DATE",
   "checkIn": "{{verb}} {{part}}",
@@ -32,7 +43,6 @@
   "markAll": "MARK ALL {{verb}}",
   "clearProgress": "CLEAR PROGRESS",
   "favourite": "FAVOURITE",
-  "list": "LIST",
   "saveFailed": "That didn’t save — try again.",
   "part": {
     "episode": "Episode",
@@ -78,27 +88,26 @@
   },
   "rating": {
     "yours": "YOUR RATING",
-    "rate": "RATE THIS",
     "rateTrigger": "RATE",
     "community": "{{score}} FROM {{count}} HERE",
     "none": "NO RATINGS HERE YET",
     "label": "Your rating",
     "group": "score",
     "rateValue": "Rate {{value}}",
-    "clear": "CLEAR RATING",
-    "rateThis": "Rate this",
-    "closeWithoutSaving": "Close without saving",
-    "clearYourRating": "Clear your rating",
-    "yourScore": "Your score",
-    "yourRatingChange": "Your rating: {{score}}. Change it"
+    "scrub": "Your rating, out of 10. Slide to zero to clear it"
   },
   "details": {
-    "title": "Details",
     "status": "STATUS",
     "released": "RELEASED",
     "genres": "GENRES",
     "alsoKnownAs": "ALSO KNOWN AS",
-    "external": "EXTERNAL"
+    "studio": "STUDIO",
+    "createdBy": "CREATED BY",
+    "runtime": "RUNTIME",
+    "runtimeValue": "{{minutes}} min",
+    "volumes": "VOLUMES",
+    "ended": "ENDED",
+    "metadataFrom": "METADATA FROM"
   },
   "youMightLike": "You might also like",
   "relation": {
@@ -131,11 +140,9 @@
     "addToLog": "Add to your log",
     "addToLogLabel": "ADD TO LOG",
     "datesChange": "Dates: {{dates}}. Change them",
-    "setDates": "Set dates",
-    "setDatesLabel": "SET DATES"
+    "setDates": "Set dates"
   },
   "actions": {
-    "fav": "FAV",
     "removeFromFavourites": "Remove from favourites",
     "addToFavourites": "Add to favourites",
     "addToList": "Add to a list"
@@ -152,5 +159,6 @@
   "synopsis": {
     "expand": "SHOW MORE",
     "collapse": "SHOW LESS"
-  }
+  },
+  "favourited": "FAVOURITED"
 }

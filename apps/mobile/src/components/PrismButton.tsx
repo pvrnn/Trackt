@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { AnimatedPressable, usePressMotion } from './Press';
-import { PRISM, color, radius, space, stroke, surface } from '../theme/tokens';
+import { PRISM, color, control, nativeInk, radius, space, stroke, surface } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /**
@@ -18,6 +18,12 @@ import { type } from '../theme/typography';
  *
  * `secondary` is the glass pill: the same geometry with a border instead of the
  * gradient, so the two never disagree about size when they sit in a column.
+ * `state` is the pink-ringed pill for a settled state (connected, friends,
+ * selected) — pink is the only state colour (§08).
+ *
+ * Heights follow the §08 button ladder: 54 primary, 46 secondary and state,
+ * 44 with `size="row"` for an action inside a list row. They are minimums, so a
+ * pair side by side in a row stretches to one height.
  */
 export function PrismButton({
   label,
@@ -26,19 +32,28 @@ export function PrismButton({
   disabled = false,
   busy = false,
   variant = 'primary',
+  size,
+  accessibilityLabel,
   style,
 }: {
   label: string;
+  /** For when the label alone doesn't say what the button acts on. */
+  accessibilityLabel?: string;
   icon?: IconName;
   onPress: () => void;
   disabled?: boolean;
   busy?: boolean;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'state';
+  /** Defaults to the variant's rung of the ladder. */
+  size?: 'primary' | 'secondary' | 'row';
   style?: StyleProp<ViewStyle>;
 }) {
   const inert = disabled || busy;
   const press = usePressMotion();
-  const tint = variant === 'primary' ? color.onPrism : color.fg;
+  const tint =
+    variant === 'primary' ? color.onPrism : variant === 'state' ? nativeInk.pinkInk : color.fg;
+  const height =
+    control[size === 'row' ? 'inRow' : (size ?? (variant === 'primary' ? 'primary' : 'secondary'))];
   const content = (
     <View style={styles.content}>
       {busy ? <ActivityIndicator size="small" color={tint} /> : null}
@@ -52,12 +67,18 @@ export function PrismButton({
   return (
     <AnimatedPressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: inert, busy }}
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       disabled={inert}
-      style={[styles.pill, style, inert ? styles.inert : press.animatedStyle]}
+      style={[
+        styles.pill,
+        { minHeight: height },
+        style,
+        inert ? styles.inert : press.animatedStyle,
+      ]}
     >
       {variant === 'primary' ? (
         <LinearGradient
@@ -69,7 +90,9 @@ export function PrismButton({
           {content}
         </LinearGradient>
       ) : (
-        <View style={[styles.surface, styles.secondary]}>{content}</View>
+        <View style={[styles.surface, variant === 'state' ? styles.state : styles.secondary]}>
+          {content}
+        </View>
       )}
     </AnimatedPressable>
   );
@@ -86,15 +109,23 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   surface: {
-    paddingVertical: space.md,
+    flexGrow: 1,
+    paddingVertical: space.sm,
     paddingHorizontal: space.xl,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   secondary: {
     borderRadius: radius.pill,
     borderWidth: stroke,
-    borderColor: surface.glassBorderStrong,
+    borderColor: 'rgba(255,255,255,0.18)',
     backgroundColor: surface.glass,
+  },
+  state: {
+    borderRadius: radius.pill,
+    borderWidth: stroke,
+    borderColor: 'rgba(217,107,176,0.55)',
+    backgroundColor: 'rgba(217,107,176,0.16)',
   },
   content: {
     flexDirection: 'row',

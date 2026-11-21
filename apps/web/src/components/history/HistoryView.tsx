@@ -1,16 +1,18 @@
 import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { MEDIA_KINDS, type HistoryEntry, type LogStatus, type MediaKind } from '@trackt/shared';
-import { GlassCard } from '../ui/GlassCard';
-import { KindDot } from '../ui/KindDot';
-import { Select, type SelectItem } from '../ui/Select';
+import type { HistoryEntry, LogStatus } from '@trackt/shared';
+import { useEffect } from 'react';
+import { kindDotClass } from '../ui/KindDot';
+import { FilterCell, KindStrip } from '../ui/FilterBar';
+import type { SelectItem } from '../ui/Select';
+import { HistoryTimeline } from './HistoryTimeline';
 import {
-  ALL_KINDS,
   ALL_STATUSES,
   ALL_YEARS,
   HISTORY_STATUSES,
   type HistorySearchParams,
+  type HistoryViewMode,
 } from '../../lib/history-search';
 import { useFormat } from '../../lib/format';
 import { useLabels } from '../../lib/labels';
@@ -52,13 +54,16 @@ export interface HistoryViewProps {
  * `planned` never reaches this page: the server excludes anything with no
  * dates, but the map is total so a status can't fall through to no colour.
  */
-const STATUS_STYLES: Record<LogStatus, { text: string; border: string; dot: string }> = {
-  planned: { text: 'text-dim', border: 'border-white/10', dot: 'bg-dim' },
-  in_progress: { text: 'text-pink', border: 'border-pink/50', dot: 'bg-pink' },
-  completed: { text: 'text-muted', border: 'border-white/15', dot: 'bg-muted' },
-  paused: { text: 'text-gold', border: 'border-gold/40', dot: 'bg-gold' },
-  dropped: { text: 'text-faint', border: 'border-white/10', dot: 'bg-faint' },
+const STATUS_STYLES: Record<LogStatus, { text: string; dot: string }> = {
+  planned: { text: 'text-dim', dot: 'bg-dim' },
+  in_progress: { text: 'text-[#e58cc4]', dot: 'bg-pink' },
+  completed: { text: 'text-muted', dot: 'bg-muted' },
+  paused: { text: 'text-gold', dot: 'bg-gold' },
+  dropped: { text: 'text-dim', dot: 'bg-faint' },
 };
+
+/** The API's largest page: the timeline wants everything, in as few trips as possible. */
+const TIMELINE_PAGE = 200;
 
 const GROUPING_KEYS = {
   year: 'history.grouping.year',
@@ -77,13 +82,29 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
   // Year by default: the page's own axis is the year, so the headings match it
   // out of the box. Season and month are the zoom-ins.
   const group = search.group ?? 'year';
+  const view = search.view ?? 'timeline';
 
+  // The year-scoped read: the grid's rows, and in both views the stats, the
+  // kind counts and the year picker.
   const history = useHistory({
     username,
     year: year === ALL_YEARS ? undefined : year,
     kind,
     status,
   });
+  // The timeline draws the whole span and scrolls to the year instead of
+  // filtering to it, so it reads all time, every page.
+  const timeline = useHistory({
+    username,
+    kind,
+    status,
+    limit: TIMELINE_PAGE,
+    enabled: view === 'timeline',
+  });
+  const { hasMore: timelineHasMore, isLoadingMore: timelineLoadingMore, loadMore } = timeline;
+  useEffect(() => {
+    if (view === 'timeline' && timelineHasMore && !timelineLoadingMore) loadMore();
+  }, [view, timelineHasMore, timelineLoadingMore, loadMore]);
 
   const scope = year === ALL_YEARS ? t('history.allTime') : String(year);
   const groups = groupEntries(history.entries, group, year === ALL_YEARS, format.locale, {
@@ -136,11 +157,23 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
   const nothingTracked = !history.isLoading && history.years.length === 0 && !filtered;
   const titles = t('history.titles', { count: history.totals.titles });
 
+  const stats = [
+    { value: history.totals.completed, label: t('history.stats.completed') },
+    { value: history.totals.titles, label: t('history.stats.titles') },
+    { value: history.totals.episodes, label: t('history.stats.episodes') },
+    { value: history.totals.chapters, label: t('history.stats.chapters') },
+  ];
+  const timelineEmpty = !timeline.isLoading && timeline.entries.length === 0;
+  const active = view === 'timeline' ? timeline : history;
+  // The timeline's origin is its oldest title, so it waits for the last page
+  // rather than redrawing (and jumping its scroll) as each older one lands.
+  const pending = active.isLoading || (view === 'timeline' && timeline.hasMore);
+
   return (
     <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-6 pt-12 pb-20 sm:px-10">
-      <div className="flex flex-wrap items-baseline gap-4">
+      <div className="flex flex-wrap items-end gap-4">
         <h1 className="font-heading text-[64px] leading-none uppercase">{t('history.title')}</h1>
-        <span className="text-prism font-label text-sm font-bold tracking-label">
+        <span className="mb-2 text-prism font-label text-sm font-bold tracking-label">
           {username && (
             <>
               <Link to="/users/$username" params={{ username }} className="hover:brightness-115">
@@ -151,103 +184,102 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
           )}
           {nothingTracked ? t('history.nothingTracked') : t('history.scope', { scope, titles })}
         </span>
+        <span className="flex-1" />
+        <div
+          role="group"
+          aria-label={t('history.view.aria')}
+          className="flex rounded-full bg-glass p-1 ring-1 ring-white/12 ring-inset"
+        >
+          {VIEWS.map(({ value, glyph }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={view === value}
+              onClick={() => setSearch({ view: value === 'timeline' ? undefined : value })}
+              className={clsx(
+                'flex h-[38px] cursor-pointer items-center gap-2 rounded-full px-[18px] font-label text-xs font-bold tracking-label transition',
+                view === value ? 'bg-fg text-on-prism' : 'text-muted hover:text-fg',
+              )}
+            >
+              <span aria-hidden>{glyph}</span>
+              {t(`history.view.${value}`)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* One row: kinds are tabs (the primary axis, and the one filter worth
-          seeing every option of at a glance), everything else is a captioned
-          pill on the right. Three stacked rows of chips spent most of their
-          width on empty space and pushed the actual history below the fold. */}
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-3 border-b border-divider">
-        <div className="scrollbar-none flex min-w-0 flex-1 gap-1 overflow-x-auto">
-          {[ALL_KINDS, ...MEDIA_KINDS].map((value) => {
-            const selected = (kind ?? ALL_KINDS) === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={selected}
-                onClick={() =>
-                  setSearch({ kind: value === ALL_KINDS ? undefined : (value as MediaKind) })
-                }
-                className={clsx(
-                  '-mb-px cursor-pointer border-b-2 px-4 py-3 font-label text-[13px] font-semibold tracking-label whitespace-nowrap transition',
-                  selected ? 'border-pink text-fg' : 'border-transparent text-dim hover:text-pink',
-                )}
-              >
-                {value === ALL_KINDS ? t('common.all') : labels.kind(value as MediaKind)}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
-          <Select
-            variant="pill"
-            caption={t('history.filters.year')}
-            aria-label={t('history.filters.yearAria')}
-            className="py-2 pr-3 pl-3.5"
+      {/* One console: every filter is the same cell, and the numbers for
+          whatever they select sit underneath. */}
+      <div className="fbar flex-col flex-nowrap">
+        <div className="flex flex-wrap items-stretch">
+          <KindStrip
+            value={kind}
+            counts={history.kinds}
+            onChange={(next) => setSearch({ kind: next })}
+          />
+          <FilterCell
+            label={t('history.filters.year')}
             items={yearItems}
             value={year === ALL_YEARS ? ALL_YEARS : String(year)}
-            selected={year !== ALL_YEARS}
             onChange={(value) =>
               setSearch({ year: value === ALL_YEARS ? ALL_YEARS : Number(value) })
             }
           />
-          <Select
-            variant="pill"
-            caption={t('history.filters.status')}
-            aria-label={t('history.filters.statusAria')}
-            className="py-2 pr-3 pl-3.5"
+          <FilterCell
+            label={t('history.filters.status')}
             items={statusItems}
             value={status ?? ALL_STATUSES}
-            selected={status !== undefined}
             onChange={(value) =>
               setSearch({ status: value === ALL_STATUSES ? undefined : (value as LogStatus) })
             }
           />
-          <Select
-            variant="pill"
-            caption={t('history.filters.group')}
-            aria-label={t('history.filters.groupAria')}
-            className="py-2 pr-3 pl-3.5"
-            items={groupItems}
-            value={group}
-            onChange={(value) => setSearch({ group: value as HistoryGrouping })}
-          />
+          {view === 'grid' && (
+            <FilterCell
+              label={t('history.filters.group')}
+              items={groupItems}
+              value={group}
+              onChange={(value) => setSearch({ group: value as HistoryGrouping })}
+            />
+          )}
         </div>
+        <dl className="m-0 grid grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, index) => (
+            <div
+              key={stat.label}
+              className={clsx(
+                'flex min-w-0 items-baseline gap-3 px-6 py-3.5',
+                index > 0 && 'shadow-[inset_1px_0_0_rgba(255,255,255,0.09)]',
+              )}
+            >
+              <dt className="order-last truncate font-label text-[11px] font-semibold tracking-[0.1em] text-dim uppercase">
+                {stat.label}
+              </dt>
+              <dd className="m-0 text-prism font-display text-[28px] leading-none">{stat.value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <HistoryStat
-          value={history.totals.completed}
-          label={t('history.stats.completed')}
-          note={t('history.stats.completedNote', { scope })}
-        />
-        <HistoryStat
-          value={history.totals.titles}
-          label={t('history.stats.inView')}
-          note={t('history.stats.inViewNote', { scope })}
-        />
-        <HistoryStat
-          value={history.totals.episodes}
-          label={t('history.stats.episodes')}
-          note={t('history.stats.checkInsNote', { scope })}
-        />
-        <HistoryStat
-          value={history.totals.chapters}
-          label={t('history.stats.chapters')}
-          note={t('history.stats.checkInsNote', { scope })}
-        />
-      </div>
-
-      {history.isError ? (
+      {active.isError ? (
         <p role="alert" className="text-[15px] text-red-400">
           {username ? t('history.public.error', { username }) : t('history.error')}
         </p>
-      ) : history.isLoading ? (
+      ) : pending ? (
         <p aria-busy className="text-[15px] text-muted">
           {t('history.loading', { scope: scope.toLowerCase() })}
         </p>
+      ) : view === 'timeline' ? (
+        timelineEmpty ? (
+          <EmptyHistory
+            username={username}
+            nothingTracked={nothingTracked}
+            filtered={filtered}
+            scope={t('history.allTime')}
+            onClearFilters={() => setSearch({ kind: undefined, status: undefined })}
+          />
+        ) : (
+          <HistoryTimeline entries={timeline.entries} jumpYear={year} />
+        )
       ) : history.entries.length === 0 ? (
         <EmptyHistory
           username={username}
@@ -259,15 +291,15 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
       ) : (
         <>
           {groups.map((group) => (
-            <section key={group.key} className="flex flex-col gap-3">
-              <div className="flex items-center gap-3.5">
-                <h2 className="font-heading text-[26px] uppercase">{group.label}</h2>
-                <span className="font-label text-[11px] font-semibold tracking-label text-faint">
+            <section key={group.key} className="flex flex-col gap-4">
+              <div className="flex items-baseline gap-3.5">
+                <h2 className="font-heading text-[28px] uppercase">{group.label}</h2>
+                <span className="font-label text-[11px] font-semibold tracking-[0.1em] text-dim">
                   {t('history.titles', { count: group.entries.length })}
                 </span>
-                <span aria-hidden className="h-px flex-1 bg-divider" />
+                <span aria-hidden className="h-px flex-1 self-center bg-divider" />
               </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-x-4 gap-y-[26px]">
                 {group.entries.map((entry) => (
                   <HistoryCard key={entry.id} entry={entry} />
                 ))}
@@ -276,12 +308,12 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
           ))}
 
           {history.hasMore && (
-            <div className="flex justify-center">
+            <div className="mt-1.5 flex justify-center">
               <button
                 type="button"
                 onClick={history.loadMore}
                 disabled={history.isLoadingMore}
-                className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-6 py-3 font-label text-xs font-semibold tracking-label text-muted transition hover:border-pink hover:text-pink disabled:cursor-wait disabled:opacity-60"
+                className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-7 py-[13px] font-label text-xs font-bold tracking-label text-muted transition hover:border-pink hover:text-pink disabled:cursor-wait disabled:opacity-60"
               >
                 {history.isLoadingMore ? t('history.loadingMore') : t('history.loadMore')}
               </button>
@@ -293,71 +325,61 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
   );
 }
 
-function HistoryStat({ value, label, note }: { value: number; label: string; note: string }) {
-  return (
-    <GlassCard className="flex items-baseline gap-3 rounded-card-sm px-4 py-3">
-      <span className="shrink-0 text-prism font-display text-[26px] leading-none">{value}</span>
-      <span className="flex min-w-0 flex-col">
-        <span className="font-label text-[10px] font-semibold tracking-label text-muted uppercase">
-          {label}
-        </span>
-        <span className="truncate font-label text-[10px] tracking-label text-dim">{note}</span>
-      </span>
-    </GlassCard>
-  );
-}
+const VIEWS: { value: HistoryViewMode; glyph: string }[] = [
+  { value: 'timeline', glyph: '▬' },
+  { value: 'grid', glyph: '▦' },
+];
 
 /**
- * A cover with the record on it: status and score at rest, the full log (date
- * range and progress) on hover and focus. Focus matters as much as hover here:
- * the range is the only place the two dates are readable, so a keyboard user
- * must be able to reach it.
+ * The artwork stays clean but for the score; the record sits underneath, so
+ * nothing needs a hover to be read.
  */
 function HistoryCard({ entry }: { entry: HistoryEntry }) {
   const labels = useLabels();
   const format = useFormat();
   const range = format.dateRange(entry.startedAt, entry.finishedAt);
-  const progress =
-    entry.total !== null && entry.status !== 'completed' ? `${entry.watched}/${entry.total}` : null;
   return (
     <Link
       to="/media/$slug"
       params={{ slug: entry.slug }}
-      className="group relative block aspect-[2/3] overflow-hidden rounded-cover border border-glass-border bg-cover bg-center transition hover:border-pink focus-visible:border-pink focus-visible:outline-none"
-      style={
-        entry.coverUrl
-          ? { backgroundImage: `url(${entry.coverUrl})` }
-          : { background: coverGradient(entry.kind, entry.title) }
-      }
+      className="group flex min-w-0 flex-col gap-2.5 focus-visible:outline-none"
     >
-      {/* Nothing at rest but the artwork: the overlay below carries the whole
-          record (title, kind, date range, progress) on hover and focus. */}
-      <span className="absolute inset-0 flex flex-col justify-end gap-2 bg-ink/95 p-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-        <span className="font-heading text-lg leading-tight uppercase">{entry.title}</span>
-        {range && <span className="font-label text-[13px] font-semibold">{range}</span>}
-        <span className="flex items-center gap-2">
-          <KindDot kind={entry.kind} showLabel />
-          {progress && (
-            <span className="font-label text-[11px] tracking-label text-dim">{progress}</span>
-          )}
-        </span>
-      </span>
-
-      {/* Last, so it paints over the hover overlay: status and score are the
-          two facts that stay readable in both states. */}
-      <span className="absolute inset-x-2 top-2 flex items-center justify-between gap-2">
-        <span
-          className={clsx(
-            'rounded-full border bg-ink/80 px-2.5 py-1 font-label text-[9px] font-bold tracking-label',
-            STATUS_STYLES[entry.status].text,
-            STATUS_STYLES[entry.status].border,
-          )}
-        >
-          {labels.status(entry.status)}
-        </span>
+      <span
+        className="relative block aspect-[2/3] overflow-hidden rounded-[10px] bg-cover bg-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14),0_10px_28px_-14px_rgba(0,0,0,0.9)] transition duration-160 group-hover:-translate-y-1 group-hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22),0_18px_36px_-16px_rgba(217,107,176,0.45),0_10px_28px_-14px_rgba(0,0,0,0.9)] group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-pink motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+        style={
+          entry.coverUrl
+            ? { backgroundImage: `url(${entry.coverUrl})` }
+            : { background: coverGradient(entry.kind, entry.title) }
+        }
+      >
         {entry.score !== null && (
-          <span className="rounded-full bg-ink/80 px-2 py-0.5 font-display text-[15px] text-pink">
+          <span className="absolute top-2 right-2 rounded-full bg-on-prism px-[9px] py-[5px] font-display text-[15px] leading-none text-[#e58cc4] ring-1 ring-white/14 ring-inset">
             {format.score(entry.score)}
+          </span>
+        )}
+      </span>
+      <span className="flex min-w-0 flex-col gap-[5px]">
+        <span className="line-clamp-2 text-sm leading-[1.3] font-semibold">{entry.title}</span>
+        <span className="flex flex-wrap items-center gap-[7px]">
+          <span
+            aria-hidden
+            className={clsx('size-[7px] shrink-0 rounded-full', kindDotClass[entry.kind])}
+          />
+          <span className="font-label text-[11px] font-semibold tracking-label text-muted uppercase">
+            {labels.kindSingular(entry.kind)}
+          </span>
+          <span
+            className={clsx(
+              'font-label text-[11px] font-semibold tracking-[0.06em] uppercase',
+              STATUS_STYLES[entry.status].text,
+            )}
+          >
+            · {labels.status(entry.status)}
+          </span>
+        </span>
+        {range && (
+          <span className="font-label text-[11px] font-medium tracking-[0.06em] text-dim">
+            {range}
           </span>
         )}
       </span>

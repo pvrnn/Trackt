@@ -1,14 +1,10 @@
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 /**
- * The four tab glyphs from `Mobile System.dc.html` §03, drawn rather than typed.
- *
- * The mockup writes them as the characters ▤ ⌕ ◈ ◍, which is fine in a browser
- * with a full Unicode fallback chain and unreliable on device — the app loads
- * three text faces, none of which ships those glyphs, so the system fallback
- * decides how they look per platform. Four small paths keep them identical.
- *
- * Stroked at 1.6 with no fill, so `color` alone carries the active state.
+ * The four tab icons from `Mobile System.dc.html` §03 (`V2_ICON_PATHS`): line
+ * drawings at 24 on a 1.7 stroke, never unicode symbols — the faces the app
+ * loads ship none of them, so the platform fallback picks a different size and
+ * weight on each OS. No fill, so `color` alone carries the active state.
  */
 export type TabName = 'home' | 'discover' | 'news' | 'profile';
 
@@ -21,29 +17,32 @@ export function TabIcon({
   color: string;
   size?: number;
 }) {
-  const stroke = { stroke: color, strokeWidth: 1.6, fill: 'none' } as const;
+  const line = {
+    stroke: color,
+    strokeWidth: 1.7,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    fill: 'none',
+  } as const;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       {name === 'home' ? (
-        <>
-          <Rect x={3.5} y={4.5} width={17} height={15} rx={2.5} {...stroke} />
-          <Path d="M3.5 9.5h17" {...stroke} />
-          <Path d="M9 9.5v10" {...stroke} />
-        </>
+        <Path d="M4 11.5 12 4.5l8 7V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" {...line} />
       ) : name === 'discover' ? (
         <>
-          <Circle cx={10.5} cy={10.5} r={6} {...stroke} />
-          <Path d="M15 15l4.5 4.5" strokeLinecap="round" {...stroke} />
+          <Circle cx={11} cy={11} r={6.5} {...line} />
+          <Path d="m16 16 4.5 4.5" {...line} />
         </>
       ) : name === 'news' ? (
         <>
-          <Path d="M12 3.5l8 8.5-8 8.5-8-8.5z" strokeLinejoin="round" {...stroke} />
-          <Path d="M12 8.5l3.5 3.5-3.5 3.5-3.5-3.5z" strokeLinejoin="round" {...stroke} />
+          <Path d="M4.5 5.5h11v13a1.5 1.5 0 0 0 3 0V9.5h-3" {...line} />
+          <Path d="M4.5 5.5v12a2 2 0 0 0 2 2h10.5" {...line} />
+          <Path d="M7.5 9.5h5M7.5 13h5M7.5 16.5h3" {...line} />
         </>
       ) : (
         <>
-          <Circle cx={12} cy={9} r={3.6} {...stroke} />
-          <Path d="M4.8 20a7.2 7.2 0 0 1 14.4 0" strokeLinecap="round" {...stroke} />
+          <Circle cx={12} cy={8.5} r={3.6} {...line} />
+          <Path d="M4.8 20c.9-3.6 3.7-5.4 7.2-5.4s6.3 1.8 7.2 5.4" {...line} />
         </>
       )}
     </Svg>

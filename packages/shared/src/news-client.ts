@@ -2,8 +2,10 @@ import { z } from 'zod';
 import {
   NewsArticleSchema,
   NewsArticleSummarySchema,
+  NewsFeedFacetsSchema,
   type NewsArticle,
   type NewsArticleSummary,
+  type NewsFeedFacets,
 } from './news.js';
 import type { SkippedItem } from './catalog-client.js';
 
@@ -23,6 +25,8 @@ import type { SkippedItem } from './catalog-client.js';
 const ListEnvelopeSchema = z.object({
   articles: z.array(z.looseObject({})),
   nextCursor: z.string().nullable(),
+  // Counts are a nicety: a malformed block costs the counts, not the feed.
+  facets: NewsFeedFacetsSchema.optional().catch(undefined),
 });
 
 /**
@@ -67,6 +71,7 @@ export interface FetchNewsListResult {
   articles: NewsArticleSummary[];
   /** null on the last page. */
   nextCursor: string | null;
+  facets?: NewsFeedFacets | undefined;
   skipped: SkippedItem[];
 }
 
@@ -89,7 +94,7 @@ export async function fetchNewsList(
 
   const envelope = ListEnvelopeSchema.parse(await response.json());
   const { items, skipped } = parseItems(envelope.articles, NewsArticleSummarySchema, '(article)');
-  return { articles: items, nextCursor: envelope.nextCursor, skipped };
+  return { articles: items, nextCursor: envelope.nextCursor, facets: envelope.facets, skipped };
 }
 
 export interface FetchNewsArticleOptions {

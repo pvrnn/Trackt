@@ -1,7 +1,15 @@
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { ApiErrorSchema, SearchQuerySchema, SearchResultSchema } from '@trackt/shared';
-import { searchFederated } from '../../lib/federated-search.js';
+import {
+  ApiErrorSchema,
+  SearchGenresQuerySchema,
+  SearchGenresSchema,
+  SearchKindCountsSchema,
+  SearchKindsQuerySchema,
+  SearchQuerySchema,
+  SearchResultSchema,
+} from '@trackt/shared';
+import { countSearchKinds, listSearchGenres, searchFederated } from '../../lib/federated-search.js';
 import { getSessionUser } from '../../lib/session.js';
 
 /**
@@ -35,6 +43,48 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
       });
       reply.header('x-has-more', String(result.hasMore));
       return result.results;
+    },
+  );
+
+  app.get(
+    '/search/kinds',
+    {
+      // Fired beside every search, so it shares search's budget shape.
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['catalog'],
+        querystring: SearchKindsQuerySchema,
+        response: { 200: SearchKindCountsSchema, 503: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      return countSearchKinds(db, app.deps.env.CATALOG_URL, request.query, {
+        timeoutMs: app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+        logger: app.log,
+      });
+    },
+  );
+
+  app.get(
+    '/search/genres',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['catalog'],
+        querystring: SearchGenresQuerySchema,
+        response: { 200: SearchGenresSchema, 503: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      reply.header('cache-control', 'public, max-age=3600');
+      return listSearchGenres(db, app.deps.env.CATALOG_URL, request.query, {
+        timeoutMs: app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+        logger: app.log,
+      });
     },
   );
 };

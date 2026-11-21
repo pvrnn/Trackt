@@ -15,6 +15,8 @@
   --color-dim: #948da1;
   --color-faint: #6a6478;
   --color-pink: #d96bb0;
+  /* Pink lifted for small text on ink, where #d96bb0 reads too dark. */
+  --color-pink-ink: #e58cc4;
   /* The prism's warm stop, named so status/state colours can reach for it
      without borrowing `kind-anime`, which happens to share the value. */
   --color-gold: #d9a441;
@@ -27,7 +29,7 @@
   --color-pink-selected: rgb(217 107 176 / 0.18);
   --color-pink-row: rgb(217 107 176 / 0.12);
   --color-kind-movie: #8b5cf6;
-  --color-kind-game: #58a68a;
+  --color-kind-game: #3fbf8f;
   --color-kind-series: #4a6ee8;
   --color-kind-anime: #d9a441;
   --color-kind-manga: #e8874a;
@@ -200,6 +202,338 @@
     .dialog-overlay[data-state],
     .dialog-content[data-state] {
       animation: none;
+    }
+  }
+}
+
+/*
+ * Landing: the hero's cover wall and the two chips floating over it. Each wall
+ * column holds its tiles twice and slides exactly 50%, so the loop has no seam
+ * as long as tile spacing is a margin rather than a flex gap.
+ */
+@layer components {
+  .wall-col {
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+  }
+  .wall-up {
+    animation: wall-up 46s linear infinite;
+  }
+  .wall-down {
+    animation: wall-down 58s linear infinite;
+  }
+  .wall-up.wall-slow {
+    animation-duration: 70s;
+  }
+  .wall-down.wall-slow {
+    animation-duration: 82s;
+  }
+  .float-chip {
+    animation: float-chip 6s ease-in-out infinite;
+  }
+  .float-chip-late {
+    animation-delay: -3s;
+  }
+  .landing-tile {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .landing-tile:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      inset 0 0 0 1px rgb(217 107 176 / 0.5),
+      0 24px 50px -28px rgb(217 107 176 / 0.5);
+  }
+  @keyframes wall-up {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-50%);
+    }
+  }
+  @keyframes wall-down {
+    from {
+      transform: translateY(-50%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes float-chip {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wall-up,
+    .wall-down,
+    .float-chip {
+      animation: none;
+    }
+    .landing-tile,
+    .landing-tile:hover {
+      transition: none;
+      transform: none;
+    }
+  }
+}
+
+/*
+ * Filter bar (docs/design README › Filter console): every filter is the same
+ * cell, and the cells share one row and wrap as it narrows. `overflow: hidden`
+ * on the bar is what trims the cells' outer hairlines into the rounded edge.
+ */
+@layer components {
+  .fbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgb(255 255 255 / 0.05);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+    backdrop-filter: blur(16px);
+    transition: box-shadow 140ms ease;
+  }
+  .fcell {
+    position: relative;
+    flex: 1 1 170px;
+    min-width: 0;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px;
+    box-shadow:
+      inset -1px 0 0 rgb(255 255 255 / 0.09),
+      inset 0 -1px 0 rgb(255 255 255 / 0.09);
+    transition: background 140ms ease;
+  }
+  .fcell:hover,
+  .fcell:focus-within {
+    background: rgb(255 255 255 / 0.045);
+  }
+  .fcell:has(.fcell-select:focus-visible) {
+    box-shadow:
+      inset -1px 0 0 rgb(255 255 255 / 0.09),
+      inset 0 -1px 0 rgb(255 255 255 / 0.09),
+      inset 0 0 0 2px var(--color-pink);
+  }
+  .fcell-label {
+    flex-shrink: 0;
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--color-dim);
+  }
+  .fcell-chev {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-top: -5px;
+    border-right: 1.5px solid var(--color-muted);
+    border-bottom: 1.5px solid var(--color-muted);
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+  /* Discover's console (`Search.dc.html`): the cells grow to share a wrapped row. */
+  .fbar-discover {
+    container-type: inline-size;
+  }
+  .fcell-year {
+    flex: 0 1 170px;
+  }
+  .fcell-more {
+    flex: 0 1 250px;
+  }
+  @container (max-width: 1130px) {
+    .fcell-year,
+    .fcell-more {
+      flex-grow: 1;
+    }
+  }
+  .fopt {
+    height: 32px;
+    padding: 0 11px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    color: var(--color-muted);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+    transition:
+      background 140ms ease,
+      box-shadow 140ms ease,
+      color 140ms ease;
+  }
+  .fopt:hover {
+    color: var(--color-fg);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3);
+  }
+  .fopt[aria-checked='true'],
+  .fopt[aria-pressed='true'] {
+    color: var(--color-fg);
+    background: rgb(217 107 176 / 0.16);
+    box-shadow: inset 0 0 0 1px rgb(217 107 176 / 0.6);
+  }
+  .fsearch {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    border-radius: 10px;
+    cursor: text;
+    background: rgb(255 255 255 / 0.05);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+    transition: box-shadow 140ms ease;
+  }
+  .fsearch:focus-within {
+    box-shadow:
+      inset 0 0 0 1px var(--color-pink),
+      0 0 0 4px rgb(217 107 176 / 0.14);
+  }
+  .ftok {
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 3px 0 11px;
+    border-radius: 8px;
+    white-space: nowrap;
+    background: rgb(255 255 255 / 0.06);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-fg);
+  }
+  .ftok button {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--color-muted);
+  }
+  .ftok button:hover {
+    background: rgb(255 255 255 / 0.1);
+    color: var(--color-fg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fopt,
+    .fsearch {
+      transition: none;
+    }
+  }
+  .kstrip {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: 366px;
+    max-width: 100%;
+  }
+  .kchip {
+    height: 32px;
+    min-width: 30px;
+    padding: 0 9px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    white-space: nowrap;
+    transition:
+      background 160ms ease,
+      box-shadow 160ms ease,
+      color 160ms ease;
+  }
+  .kchip:hover {
+    background: rgb(255 255 255 / 0.07);
+    color: var(--color-fg);
+  }
+  .kchip:focus-visible {
+    outline: 2px solid var(--color-pink);
+    outline-offset: 2px;
+  }
+  .kchip[aria-pressed='true'] {
+    color: var(--color-fg);
+    background: color-mix(in srgb, var(--kc) 17%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kc) 60%, transparent);
+  }
+  .kchip-all[aria-pressed='true'] {
+    background: rgb(255 255 255 / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
+  }
+  .kchip-dot {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--kc);
+    transition: transform 160ms ease;
+  }
+  .kchip:hover .kchip-dot {
+    transform: scale(1.25);
+  }
+  .kchip-label {
+    display: inline-flex;
+    gap: 6px;
+    max-width: 0;
+    margin-left: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+      max-width 220ms ease,
+      margin-left 220ms ease,
+      opacity 160ms ease;
+  }
+  .kchip:hover .kchip-label,
+  .kchip:focus-visible .kchip-label,
+  .kchip[aria-pressed='true'] .kchip-label {
+    max-width: 120px;
+    margin-left: 8px;
+    opacity: 1;
+  }
+  /* One name open at a time, so the strip never changes width. */
+  .kstrip:hover .kchip[aria-pressed='true']:not(:hover) .kchip-label {
+    max-width: 0;
+    margin-left: 0;
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fcell,
+    .kchip,
+    .kchip-dot,
+    .kchip-label {
+      transition: none;
     }
   }
 }

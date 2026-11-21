@@ -58,6 +58,7 @@ export {
   type ImportUnmatchedEntry,
   type UncertainMatchList,
 } from './job.js';
+export { updateImportRun, type ImportRunPatch } from './runs.js';
 export {
   mapLetterboxdEntry,
   type LetterboxdList,
@@ -108,6 +109,25 @@ export {
 } from './steam/client.js';
 export { mapSteamGame, type SteamMapOptions } from './steam/map.js';
 export type { SteamOwnedGame } from './steam/schemas.js';
+export { fetchTvTimeEntries } from './tvtime/adapter.js';
+export { mapTvTimeMovie, mapTvTimeShow, type TvTimeMapOptions } from './tvtime/map.js';
+export {
+  TvTimeExportSchema,
+  type TvTimeExport,
+  type TvTimeMovie,
+  type TvTimeSeason,
+  type TvTimeShow,
+} from './tvtime/schemas.js';
+export { readTvTimeUpload, tvTimeUploadLabel, type TvTimeFile } from './tvtime/upload.js';
+export {
+  ImportFileSchema,
+  MAX_IMPORT_FILE_BYTES,
+  MAX_IMPORT_FILES,
+  isFileSource,
+  readImportUpload,
+  type ImportFile,
+  type ImportUpload,
+} from './upload.js';
 export {
   MAX_UNCERTAIN_CANDIDATES,
   UNCERTAIN_FLOOR,

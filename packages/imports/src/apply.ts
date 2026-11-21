@@ -1,4 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import type { LogStatus } from '@trackt/shared';
 import {
   importMatch,
   rating,
@@ -13,8 +14,8 @@ import type { ImportSource, ImportWarning } from './types.js';
 
 export interface ApplyOptions {
   /**
-   * Rewrite rows the viewer already logs. Off by default: an import is a
-   * backfill, so a second run adds the new entries and touches nothing else.
+   * Rewrite rows the viewer already logs. Off by default: a log that exists is
+   * merged instead (`mergeLogRow`), so a second source only adds what it knows.
    */
   overwrite?: boolean;
   /**
@@ -32,6 +33,9 @@ export interface ImportReport {
   created: number;
   /** Log rows rewritten (`overwrite` only). */
   updated: number;
+  /** Existing log rows a merge added something to. */
+  merged: number;
+  /** Existing log rows the source had nothing new for. */
   skippedExisting: number;
   /** Works that got a progress position (episodes/chapters), not a part count. */
   withProgress: number;
@@ -44,6 +48,84 @@ export interface ImportReport {
   warnings: ImportWarning[];
   /** Provider rows this instance's catalog does not carry, skipped. */
   unmatched: { externalId: string; title: string }[];
+}
+
+/** A merge moves a status only to a higher rank; a tie keeps what is logged. */
+const STATUS_RANK: Record<LogStatus, number> = {
+  planned: 0,
+  in_progress: 1,
+  paused: 1,
+  completed: 2,
+  dropped: 2,
+};
+
+/** Highest part number the viewer has checked in for a work; 0 when none. */
+async function furthestPart(db: Db, userId: string, mediaId: string): Promise<number> {
+  const [row] = await db.execute<{ furthest: string | null }>(sql`
+    SELECT max(mp.number) AS furthest FROM progress p
+    JOIN media_part mp ON mp.id = p.part_id
+    WHERE p.user_id = ${userId} AND mp.media_id = ${mediaId}
+  `);
+  return Number(row?.furthest ?? 0);
+}
+
+/**
+ * Fold a source's row into a log the viewer already has, so importing a second
+ * service adds what it knows without undoing the first or what was typed by hand.
+ *
+ * - Dates and notes fill gaps only, and a filled date never lands on the wrong
+ *   side of the other one.
+ * - Status only climbs: planned < in_progress/paused < completed/dropped.
+ * - Progress and repeats only rise, so progress goes through `setProgressUpTo`
+ *   only when the new mark is past every part already checked in.
+ * - A score lands only where the viewer has none.
+ */
+async function mergeLogRow(
+  db: Db,
+  userId: string,
+  row: ImportPlanRow,
+): Promise<'merged' | 'skipped'> {
+  const target = row.target!;
+  const { entry } = row;
+  const where = and(eq(userMedia.userId, userId), eq(userMedia.mediaId, target.id));
+  const [current] = await db.select().from(userMedia).where(where);
+  if (!current) return 'skipped';
+
+  const set: Partial<typeof userMedia.$inferInsert> = {};
+  if (STATUS_RANK[entry.status] > STATUS_RANK[current.status]) set.status = entry.status;
+  if (entry.repeats > current.repeats) set.repeats = entry.repeats;
+  const finish = current.finishedAt;
+  if (!current.startedAt && entry.startedAt && (!finish || entry.startedAt <= finish)) {
+    set.startedAt = entry.startedAt;
+  }
+  const start = set.startedAt ?? current.startedAt;
+  if (!finish && entry.finishedAt && (!start || entry.finishedAt >= start)) {
+    set.finishedAt = entry.finishedAt;
+  }
+  if (!current.notes && entry.notes) set.notes = entry.notes;
+
+  let changed = Object.keys(set).length > 0;
+  if (changed) await db.update(userMedia).set(set).where(where);
+
+  if (row.upTo > 0 && row.upTo > (await furthestPart(db, userId, target.id))) {
+    await setProgressUpTo(db, userId, target, row.upTo);
+    changed = true;
+  }
+
+  if (entry.score !== null) {
+    const written = await db
+      .insert(rating)
+      .values({ userId, targetType: 'media', targetId: target.id, score: String(entry.score) })
+      .onConflictDoUpdate({
+        target: [rating.userId, rating.targetType, rating.targetId],
+        set: { score: String(entry.score), updatedAt: new Date() },
+        setWhere: isNull(rating.score),
+      })
+      .returning({ id: rating.id });
+    if (written.length > 0) changed = true;
+  }
+
+  return changed ? 'merged' : 'skipped';
 }
 
 /**
@@ -59,7 +141,7 @@ async function writeLogRow(
   userId: string,
   row: ImportPlanRow,
   overwrite: boolean,
-): Promise<'created' | 'updated' | 'skipped'> {
+): Promise<'created' | 'updated' | 'merged' | 'skipped'> {
   const target = row.target;
   if (!target) return 'skipped';
   const { entry } = row;
@@ -79,7 +161,7 @@ async function writeLogRow(
     `);
   }
 
-  if (row.existing && !overwrite) return 'skipped';
+  if (row.existing && !overwrite) return mergeLogRow(db, userId, row);
 
   const fields = {
     status: entry.status,
@@ -102,12 +184,14 @@ async function writeLogRow(
       .set(set)
       .where(and(eq(userMedia.userId, userId), eq(userMedia.mediaId, target.id)));
   } else {
-    // A log row can appear between the plan and this write; the import must not
-    // overwrite it merely by losing the race.
-    await db
+    // A log row can appear between the plan and this write, or from an earlier
+    // row of this same import naming the same work: either way it is merged into.
+    const inserted = await db
       .insert(userMedia)
       .values({ userId, mediaId: target.id, ...fields })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ mediaId: userMedia.mediaId });
+    if (inserted.length === 0) return mergeLogRow(db, userId, row);
   }
 
   // New rows with no progress have nothing to clear; an overwrite does.
@@ -150,6 +234,7 @@ export async function applyImportPlan(
     profile: plan.profile,
     created: 0,
     updated: 0,
+    merged: 0,
     skippedExisting: 0,
     withProgress: 0,
     ratings: 0,
@@ -170,6 +255,7 @@ export async function applyImportPlan(
         report.skippedExisting += 1;
       } else {
         if (outcome === 'created') report.created += 1;
+        else if (outcome === 'merged') report.merged += 1;
         else report.updated += 1;
         if (row.upTo > 0) report.withProgress += 1;
         if (row.entry.score !== null) report.ratings += 1;

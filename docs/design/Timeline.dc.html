@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    .tl-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.22) transparent; }
+    .tl-scroll::-webkit-scrollbar { height: 8px; }
+    .tl-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 999px; }
+    .tl-item { color: #f0edf4; transition: filter 140ms ease; }
+    .tl-item:hover { color: #f0edf4; filter: brightness(1.22); z-index: 3; }
+    .tl-item:hover .tl-title { text-decoration: underline; text-underline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .tl-item { transition: none; } }
+  </style>
+</helmet>
+
+<!-- TIMELINE — one arrow of time you scroll sideways. Every kind shares it; colour says which kind.
+     Used full-size on History and with mini="true" on the Profile. -->
+<div style="background: rgba(255,255,255,0.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: {{ radius }}; backdrop-filter: blur(16px); display: flex; flex-direction: column; min-width: 0;">
+
+  <sc-if value="{{ isFull }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding: 14px 18px; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.09);">
+      <sc-for list="{{ legend }}" as="k" hint-placeholder-count="6">
+        <span style="display: flex; align-items: center; gap: 6px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">
+          <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: {{ k.dot }};"></span>{{ k.label }}
+        </span>
+      </sc-for>
+      <div style="flex: 1;"></div>
+      <div role="group" aria-label="Zoom" style="display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);">
+        <button onClick="{{ zoomOut }}" aria-label="Zoom out" aria-disabled="{{ atMin }}" style="width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ outFg }};" style-hover="background: rgba(255,255,255,0.08);">−</button>
+        <span style="min-width: 74px; text-align: center; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">{{ zoomLabel }}</span>
+        <button onClick="{{ zoomIn }}" aria-label="Zoom in" aria-disabled="{{ atMax }}" style="width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: {{ inFg }};" style-hover="background: rgba(255,255,255,0.08);">+</button>
+      </div>
+      <div role="group" aria-label="Move through time" style="display: flex; gap: 4px;">
+        <button onClick="{{ back }}" aria-label="Earlier" style="width: 38px; height: 38px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 17px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">‹</button>
+        <button onClick="{{ fwd }}" aria-label="Later" style="width: 38px; height: 38px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 17px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">›</button>
+      </div>
+      <button onClick="{{ toToday }}" style="height: 38px; padding: 0 16px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4;" style-hover="background: rgba(217,107,176,0.14);">TODAY →</button>
+    </div>
+  </sc-if>
+
+  <div style="position: relative; min-width: 0;">
+    <div ref="{{ setScroller }}" class="tl-scroll" tabindex="0" role="region" aria-label="Timeline. Scroll sideways to move through time." style="overflow-x: auto; overflow-y: hidden; padding: {{ padY }} 0;">
+      <div style="position: relative; width: {{ W }}; height: {{ H }};">
+
+        <!-- month rules and labels -->
+        <sc-for list="{{ ticks }}" as="t" hint-placeholder-count="12">
+          <span aria-hidden="true" style="position: absolute; left: {{ t.x }}; top: 0; bottom: 0; width: 1px; background: {{ t.rule }};"></span>
+          <span aria-hidden="true" style="position: absolute; left: {{ t.x }}; top: {{ tickTop }}; padding-left: 6px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {{ t.fg }}; white-space: nowrap;">{{ t.label }}</span>
+        </sc-for>
+
+        <!-- the arrow -->
+        <!-- the shaft is one gradient per calendar year: gold in January, violet by December, then it starts over -->
+        <span aria-hidden="true" style="position: absolute; left: 0; top: {{ axisTop }}; width: {{ shaftW }}; height: {{ shaftH }}; overflow: hidden;">
+          <sc-for list="{{ yearBands }}" as="y" hint-placeholder-count="2">
+            <span style="position: absolute; left: {{ y.x }}; width: {{ y.w }}; top: 0; bottom: 0; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></span>
+          </sc-for>
+        </span>
+        <span aria-hidden="true" style="position: absolute; left: {{ headX }}; top: {{ headTop }}; width: 0; height: 0; border-left: {{ headL }} solid {{ tipColor }}; border-top: {{ headH }} solid transparent; border-bottom: {{ headH }} solid transparent;"></span>
+        <span aria-hidden="true" style="position: absolute; left: {{ todayX }}; top: {{ todayDotTop }}; width: {{ dotSize }}; height: {{ dotSize }}; margin-left: {{ dotM }}; border-radius: 999px; background: #0e0c10; box-shadow: inset 0 0 0 3px #f0edf4;"></span>
+        <span aria-hidden="true" style="position: absolute; left: {{ todayX }}; top: {{ tickTop }}; margin-left: 12px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #f0edf4; white-space: nowrap;">TODAY</span>
+
+        <!-- titles: label that stays in view while its bar scrolls past, then the bar -->
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="8">
+          <a href="Media Detail.dc.html" class="tl-item" title="{{ it.tip }}" style="position: absolute; left: {{ it.x }}; top: {{ it.top }}; width: {{ it.w }}; height: {{ it.h }}; display: flex; flex-direction: {{ it.dir }}; justify-content: flex-end; gap: {{ gap }};">
+            <span style="position: sticky; left: 12px; align-self: flex-start; max-width: 100%; display: flex; align-items: center; gap: 9px; padding-right: 8px;">
+              <sc-if value="{{ isFull }}" hint-placeholder-val="{{ true }}">
+                <span aria-hidden="true" style="width: 30px; height: 44px; flex-shrink: 0; border-radius: 5px; background: {{ it.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);"></span>
+              </sc-if>
+              <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                <span class="tl-title" style="font-size: {{ titleSize }}; font-weight: 600; line-height: 1.2; white-space: nowrap;">{{ it.title }} <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: {{ it.tagFg }};">{{ it.tag }}</span></span>
+                <sc-if value="{{ isFull }}" hint-placeholder-val="{{ true }}">
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 500; letter-spacing: 0.06em; color: #b8b1c4; white-space: nowrap;">{{ it.meta }}</span>
+                </sc-if>
+              </span>
+            </span>
+            <span aria-hidden="true" style="position: relative; flex-shrink: 0; height: {{ barH }}; width: 100%;">
+              <!-- start to finish: a dashed thread -->
+              <span style="position: absolute; left: 0; top: 50%; margin-top: -1px; width: {{ it.barW }}; height: 2px; background: {{ it.dash }};"></span>
+              <!-- the days actually logged: solid blocks -->
+              <sc-for list="{{ it.segs }}" as="sg" hint-placeholder-count="1">
+                <span style="position: absolute; top: 0; bottom: 0; left: {{ sg.x }}; width: {{ sg.w }}; min-width: 4px; border-radius: 4px; background: {{ it.color }}; opacity: {{ it.segOp }};"></span>
+              </sc-for>
+              <sc-if value="{{ it.single }}" hint-placeholder-val="{{ false }}">
+                <span style="position: absolute; left: 1px; top: 50%; width: {{ diamond }}; height: {{ diamond }}; margin-top: {{ diamondM }}; border-radius: 2px; transform: rotate(45deg); background: {{ it.color }};"></span>
+              </sc-if>
+              <sc-if value="{{ it.ongoing }}" hint-placeholder-val="{{ false }}">
+                <span style="position: absolute; left: {{ it.barW }}; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 999px; background: #17131d; box-shadow: inset 0 0 0 3px {{ it.color }};"></span>
+              </sc-if>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- mini: step through time from the corner, clear of the arrow -->
+    <sc-if value="{{ isMini }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px;">
+        <button onClick="{{ back }}" aria-label="Earlier" style="width: 28px; height: 28px; border-radius: 999px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 14px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">‹</button>
+        <button onClick="{{ fwd }}" aria-label="Later" style="width: 28px; height: 28px; border-radius: 999px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 14px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">›</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ isFull }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; align-items: center; gap: 10px 26px; flex-wrap: wrap; padding: 12px 18px 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09); font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span aria-hidden="true" style="width: 26px; height: 12px; border-radius: 4px; background: #b8b1c4;"></span>DAYS YOU LOGGED</span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span aria-hidden="true" style="width: 26px; height: 2px; background: repeating-linear-gradient(90deg, #b8b1c4 0 5px, transparent 5px 10px);"></span>GAP BETWEEN SESSIONS</span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; transform: rotate(45deg); background: #b8b1c4;"></span>ONE SITTING</span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 999px; box-shadow: inset 0 0 0 3px #b8b1c4;"></span>STILL GOING</span>
+      <span style="margin-left: auto; color: #948da1;">SCROLL SIDEWAYS OR USE ‹ › TO MOVE THROUGH TIME</span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mini":{"editor":"boolean","default":false,"section":"Timeline"},"kind":{"editor":null,"default":"ALL","tsType":"string"},"status":{"editor":null,"default":"ALL","tsType":"string"},"jump":{"editor":null,"default":"","tsType":"string"},"$preview":{"width":1280,"height":520}}'>
+const ARTS = [
+  'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
+  'radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%)',
+  'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+  'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)',
+  'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)',
+  'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)',
+  'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)',
+  'radial-gradient(46% 32% at 50% 40%, #e9e4f5 0%, transparent 72%), linear-gradient(180deg, #55309a 0%, #0d0817 100%)',
+  'linear-gradient(64deg, transparent 0 44%, rgba(255,255,255,0.85) 44% 47%, transparent 47%), linear-gradient(200deg, #c2202a 0%, #2a0608 78%)',
+  'radial-gradient(70% 50% at 40% 62%, #ff9bd0 0%, transparent 70%), linear-gradient(180deg, #1b3a2a 0%, #0a1510 100%)',
+  'linear-gradient(180deg, #ece6d6 0%, #b9ae95 58%, #5a5140 100%)',
+  'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)',
+];
+const TODAY = '2026-11-14';
+const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const KINDS = [
+  { key: 'MOVIE', label: 'MOVIES', dot: '#8b5cf6' },
+  { key: 'SERIES', label: 'SERIES', dot: '#6d8bf0' },
+  { key: 'ANIME', label: 'ANIME', dot: '#d9a441' },
+  { key: 'MANGA', label: 'MANGA', dot: '#e8874a' },
+  { key: 'WEBTOON', label: 'WEBTOONS', dot: '#d96bb0' },
+  { key: 'GAME', label: 'GAMES', dot: '#3fbf8f' },
+];
+const DOT = KINDS.reduce((m, k) => { m[k.key] = k.dot; return m; }, {});
+// start / end are the dates on the title. segs are the stretches with actual check-ins;
+// without segs the whole span counts as active. end: null = still going.
+const DATA = [
+  { t: 'Neon Harbor', k: 'SERIES', st: 'progress', start: '2026-07-12', end: null, segs: [['2026-07-12', '2026-08-02'], ['2026-10-20', '2026-11-12']], score: '', a: 0 },
+  { t: 'Moonlit Courier', k: 'WEBTOON', st: 'progress', start: '2026-02-02', end: null, segs: [['2026-02-02', '2026-03-15'], ['2026-05-01', '2026-05-20'], ['2026-08-10', '2026-09-05'], ['2026-11-01', '2026-11-13']], score: '9.5', a: 3 },
+  { t: 'Glass Orchard', k: 'ANIME', st: 'progress', start: '2026-10-04', end: null, score: '', a: 5 },
+  { t: 'Tidewalker', k: 'GAME', st: 'progress', start: '2026-09-06', end: null, segs: [['2026-09-06', '2026-09-28'], ['2026-10-18', '2026-11-09']], score: '', a: 11 },
+  { t: 'Paper Cities', k: 'MANGA', st: 'progress', start: '2025-03-10', end: null, segs: [['2025-03-10', '2025-04-20'], ['2026-07-02', '2026-08-15'], ['2026-10-28', '2026-11-13']], score: '', a: 4 },
+  { t: 'The Long Static', k: 'MOVIE', st: 'completed', start: '2026-07-04', end: '2026-07-04', score: '9.0', a: 2 },
+  { t: 'Ashfall Chronicle', k: 'ANIME', st: 'paused', start: '2026-05-03', end: '2026-06-21', score: '8.5', a: 1 },
+  { t: 'Copper Veil', k: 'WEBTOON', st: 'completed', start: '2026-04-14', end: '2026-06-08', score: '9.0', a: 9 },
+  { t: 'Hollow Signal', k: 'MOVIE', st: 'completed', start: '2026-05-30', end: '2026-05-30', score: '7.5', a: 7 },
+  { t: 'Sable Coast', k: 'SERIES', st: 'completed', start: '2026-04-02', end: '2026-05-11', score: '8.5', a: 6 },
+  { t: 'Static Bloom', k: 'ANIME', st: 'dropped', start: '2026-04-09', end: '2026-04-18', score: '5.0', a: 9 },
+  { t: 'Ninth Tide', k: 'MANGA', st: 'completed', start: '2026-01-11', end: '2026-03-27', score: '8.5', a: 8 },
+  { t: 'Emberfall', k: 'GAME', st: 'completed', start: '2026-02-20', end: '2026-03-08', score: '8.0', a: 1 },
+  { t: 'The Ferry Years', k: 'SERIES', st: 'completed', start: '2026-01-04', end: '2026-02-11', score: '9.5', a: 10 },
+  { t: 'Tidewrack', k: 'SERIES', st: 'dropped', start: '2026-01-28', end: '2026-02-03', score: '4.5', a: 2 },
+  { t: 'Salt & Signal', k: 'MOVIE', st: 'completed', start: '2026-01-19', end: '2026-01-19', score: '8.0', a: 0 },
+  { t: 'Lantern Quarter', k: 'WEBTOON', st: 'paused', start: '2026-01-02', end: '2026-01-06', score: '', a: 3 },
+  { t: 'Drowned Almanac', k: 'MANGA', st: 'completed', start: '2025-10-30', end: '2025-12-22', score: '9.0', a: 10 },
+  { t: 'Harbor Vigil', k: 'SERIES', st: 'completed', start: '2025-10-01', end: '2025-11-14', score: '8.0', a: 6 },
+  { t: 'Ash & Ivory', k: 'ANIME', st: 'completed', start: '2025-07-05', end: '2025-09-27', score: '9.5', a: 1 },
+  { t: 'The Quiet Fleet', k: 'MOVIE', st: 'completed', start: '2025-08-16', end: '2025-08-16', score: '7.0', a: 2 },
+  { t: 'Cinder Route', k: 'WEBTOON', st: 'dropped', start: '2025-05-20', end: '2025-06-02', score: '6.0', a: 9 },
+  { t: 'Nightjar', k: 'SERIES', st: 'completed', start: '2025-03-01', end: '2025-04-09', score: '8.5', a: 0 },
+  { t: 'Bell & Undertide', k: 'MANGA', st: 'paused', start: '2025-01-22', end: '2025-02-18', score: '', a: 5 },
+];
+const ZOOMS = [{ ppd: 3, label: 'YEARS' }, { ppd: 6, label: 'MONTHS' }, { ppd: 12, label: 'WEEKS' }];
+const day = (iso) => { const p = iso.split('-').map(Number); return Date.UTC(p[0], p[1] - 1, p[2]) / 864e5; };
+const fmt = (iso) => iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1] + ' ' + iso.slice(2, 4);
+const px = (n) => Math.round(n) + 'px';
+
+class Component extends DCLogic {
+  state = { zoom: 1 };
+  PAD = 48;
+
+  setScroller = (el) => { this.sc = el; };
+  t0() { const first = DATA.reduce((m, r) => (r.start < m ? r.start : m), TODAY); return day(first.slice(0, 7) + '-01'); }
+  ppd() { return this.props.mini ? 3.4 : ZOOMS[this.state.zoom].ppd; }
+  xOf(d) { return this.PAD + (d - this.t0()) * this.ppd(); }
+
+  toEnd() { if (this.sc) this.sc.scrollLeft = this.sc.scrollWidth; }
+  componentDidMount() { this.seenZoom = this.state.zoom; this.seenJump = this.props.jump; this.toEnd(); }
+  // the runtime does not hand over previous props/state, so remember what was last seen
+  componentDidUpdate() {
+    if (this.seenZoom !== this.state.zoom) { this.seenZoom = this.state.zoom; this.toEnd(); }
+    if (this.seenJump !== this.props.jump) {
+      this.seenJump = this.props.jump;
+      const y = this.props.jump;
+      if (!this.sc) return;
+      if (!y || y === 'ALL' || y === TODAY.slice(0, 4)) this.toEnd();
+      else this.sc.scrollLeft = Math.max(0, this.xOf(day(y + '-01-01')) - 24);
+    }
+  }
+  step(dir) { if (this.sc) this.sc.scrollBy({ left: dir * this.sc.clientWidth * 0.75, behavior: 'smooth' }); }
+
+  renderVals() {
+    const mini = !!this.props.mini;
+    const kind = this.props.kind || 'ALL', status = this.props.status || 'ALL';
+    const ppd = this.ppd();
+    const t0 = this.t0(), tNow = day(TODAY);
+    const LANE = mini ? 36 : 72, BAR = mini ? 10 : 14, GAP = mini ? 4 : 8, BAND = mini ? 28 : 38;
+
+    const rows = DATA
+      .filter((r) => (kind === 'ALL' || r.k === kind) && (status === 'ALL' || r.st === status))
+      .sort((a, b) => day(a.start) - day(b.start));
+
+    // pack every title, whatever its kind, into the first row where it fits. Titles still going are placed
+    // first so they hold the rows nearest the arrow at today; finished ones fill the gaps before them.
+    const lanes = [];
+    const measured = rows.map((r) => {
+      const s = day(r.start), e = day(r.end || TODAY) + 1, single = r.start === r.end;
+      const barW = single ? 14 : Math.max((e - s) * ppd, 4);
+      const tag = r.st === 'paused' ? 'PAUSED' : (r.st === 'dropped' ? 'DROPPED' : r.score);
+      const days = Math.round(e - s);
+      const meta = single ? fmt(r.start) : fmt(r.start) + ' → ' + (r.end ? fmt(r.end) : 'TODAY') + ' · ' + days + ' DAYS';
+      const lblW = mini
+        ? (r.t.length + (tag ? tag.length + 1 : 0)) * 6.4 + 14
+        : 30 + 9 + Math.max((r.t.length + (tag ? tag.length + 1 : 0)) * 7.3, meta.length * 6.4) + 12;
+      const w = Math.max(barW + (r.end ? 0 : 8), lblW);
+      return { r, s, single, barW, tag, meta, w, x: this.xOf(s), days };
+    });
+    const place = (p) => {
+      let lane = lanes.findIndex((spans) => spans.every((sp) => p.x + p.w + 18 <= sp[0] || sp[1] + 18 <= p.x));
+      if (lane < 0) { lane = lanes.length; lanes.push([]); }
+      lanes[lane].push([p.x, p.x + p.w]);
+      p.lane = lane;
+    };
+    measured.filter((p) => !p.r.end).sort((a, b) => b.s - a.s).forEach(place);
+    measured.filter((p) => p.r.end).forEach(place);
+    const placed = measured;
+    const laneEnds = lanes;
+
+    // full: lanes alternate above and below the arrow. mini: everything sits above it.
+    const n = Math.max(laneEnds.length, 1);
+    const above = mini ? n : Math.ceil(n / 2), below = mini ? 0 : Math.floor(n / 2);
+    const axisY = above * LANE + 6;
+    const H = axisY + BAND + below * LANE + (below ? 4 : 0);
+    const W = this.xOf(tNow + 1) + 110;
+
+    const items = placed.map((p) => {
+      const up = mini || p.lane % 2 === 0;
+      const level = mini ? p.lane : Math.floor(p.lane / 2);
+      const color = DOT[p.r.k];
+      const segs = p.single ? [] : (p.r.segs || [[p.r.start, p.r.end || TODAY]]).map((sg) => ({
+        x: px((day(sg[0]) - p.s) * ppd), w: px((day(sg[1]) + 1 - day(sg[0])) * ppd),
+      }));
+      return {
+        title: p.r.t, tag: p.tag, meta: p.meta, art: ARTS[p.r.a], color,
+        tagFg: p.r.st === 'paused' ? '#d9a441' : (p.r.st === 'dropped' ? '#948da1' : '#e58cc4'),
+        tip: p.r.t + ' · ' + p.meta,
+        x: px(p.x), w: px(p.w), h: px(LANE - 8),
+        // the bar is always the part nearest the arrow
+        top: px(up ? axisY - 10 - (level + 1) * LANE + 8 : axisY + BAND + level * LANE),
+        dir: up ? 'column' : 'column-reverse',
+        barW: px(p.barW),
+        dash: p.single ? 'transparent' : 'repeating-linear-gradient(90deg, ' + color + ' 0 5px, transparent 5px 10px)',
+        segOp: p.r.st === 'dropped' ? 0.5 : 1,
+        segs, single: p.single, ongoing: !p.r.end,
+      };
+    });
+
+    const ticks = [];
+    const y0 = new Date(t0 * 864e5).getUTCFullYear(), y1 = +TODAY.slice(0, 4);
+    for (let y = y0; y <= y1; y++) {
+      for (let m = 0; m < 12; m++) {
+        const d = day(y + '-' + String(m + 1).padStart(2, '0') + '-01');
+        if (d > tNow) break;
+        const jan = m === 0;
+        const show = ppd >= 5 || m % 3 === 0;
+        ticks.push({
+          x: px(this.xOf(d)),
+          label: jan ? String(y) : (show ? MON[m] : ''),
+          fg: jan ? '#f0edf4' : '#948da1',
+          rule: jan ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+        });
+      }
+    }
+
+    // arrow: thicker shaft, coloured by position in the year, restarting every 1 January
+    const SHAFT = mini ? 5 : 8, HEAD_L = mini ? 16 : 24, HEAD_H = mini ? 10 : 15, DOTS = mini ? 13 : 18;
+    const yearBands = [];
+    for (let y = y0 - 1; y <= y1; y++) {
+      const a = this.xOf(day(y + '-01-01')), b = this.xOf(day((y + 1) + '-01-01'));
+      yearBands.push({ x: px(a), w: px(b - a) });
+    }
+    // the head takes the colour the gradient has reached where the shaft ends
+    const tipDay = t0 + (W - HEAD_L - this.PAD) / ppd;
+    const ys = day(y1 + '-01-01'), f = Math.min(1, Math.max(0, (tipDay - ys) / (day((y1 + 1) + '-01-01') - ys)));
+    const STOPS = [[217, 164, 65], [217, 107, 176], [139, 92, 246]];
+    const seg = f < 0.5 ? 0 : 1, u = seg === 0 ? f / 0.5 : (f - 0.5) / 0.5;
+    const tipColor = 'rgb(' + STOPS[seg].map((v, i) => Math.round(v + (STOPS[seg + 1][i] - v) * u)).join(',') + ')';
+
+    const z = this.state.zoom;
+    return {
+      isFull: !mini, isMini: mini,
+      radius: mini ? '14px' : '18px',
+      padY: mini ? '12px' : '18px',
+      legend: KINDS.map((k) => ({ label: k.label, dot: k.dot })),
+      zoomLabel: ZOOMS[z].label,
+      atMin: z === 0, atMax: z === ZOOMS.length - 1,
+      outFg: z === 0 ? '#6a6478' : '#f0edf4', inFg: z === ZOOMS.length - 1 ? '#6a6478' : '#f0edf4',
+      zoomOut: () => this.setState((s) => ({ zoom: Math.max(0, s.zoom - 1) })),
+      zoomIn: () => this.setState((s) => ({ zoom: Math.min(ZOOMS.length - 1, s.zoom + 1) })),
+      toToday: () => { if (this.sc) this.sc.scrollTo({ left: this.sc.scrollWidth, behavior: 'smooth' }); },
+      back: () => this.step(-1), fwd: () => this.step(1),
+      setScroller: this.setScroller,
+
+      W: px(W), H: px(H),
+      ticks, tickTop: px(axisY + (mini ? 10 : 13)),
+      axisTop: px(axisY - SHAFT / 2), shaftH: px(SHAFT), shaftW: px(W - HEAD_L), headX: px(W - HEAD_L - 1), headTop: px(axisY - HEAD_H),
+      headL: px(HEAD_L), headH: px(HEAD_H), tipColor, yearBands,
+      todayX: px(this.xOf(tNow + 1)), todayDotTop: px(axisY - DOTS / 2), dotSize: px(DOTS), dotM: px(-DOTS / 2),
+      items,
+      gap: px(GAP), barH: px(BAR), titleSize: mini ? '11px' : '13px',
+      diamond: px(BAR - 1), diamondM: px(-(BAR - 1) / 2),
+    };
+  }
+}
+</script>
+</body>
+</html>

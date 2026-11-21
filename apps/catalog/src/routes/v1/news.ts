@@ -85,25 +85,29 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
       // `news_article_feed_idx`'s (published_at DESC, id DESC) ordering exactly.
       //
       // limit + 1 probes for a next page without a second COUNT query.
-      const rows = await db.execute(sql`
-        SELECT ${SUMMARY_COLUMNS}
-        FROM news_article a
-        WHERE ${PUBLISHED}
-          ${
-            // Overlap, not containment: an article tagged MANGA+ANIME matches a
-            // reader filtering for either, and a reader filtering for both wants
-            // the union of the two, not only the articles tagged with both.
-            kinds.length > 0
-              ? sql`AND a.kinds && ARRAY[${sql.join(
-                  kinds.map((value) => sql`${value}`),
-                  sql`, `,
-                )}]::text[]`
-              : sql``
-          }
+      // Every filter but the kind and the cursor: the kind strip's counts
+      // are taken over this, so each option says what picking it would show.
+      const scoped = sql`${PUBLISHED}
           AND (${topic ?? null}::text IS NULL OR a.topic = ${topic ?? null}::text)
           AND (${from ?? null}::date IS NULL OR a.published_at >= ${from ?? null}::date)
           AND (${to ?? null}::date IS NULL
-               OR a.published_at < (${to ?? null}::date + INTERVAL '1 day'))
+               OR a.published_at < (${to ?? null}::date + INTERVAL '1 day'))`;
+      // Overlap, not containment: an article tagged MANGA+ANIME matches a
+      // reader filtering for either, and a reader filtering for both wants the
+      // union of the two, not only the articles tagged with both.
+      const kindMatch =
+        kinds.length > 0
+          ? sql`AND a.kinds && ARRAY[${sql.join(
+              kinds.map((value) => sql`${value}`),
+              sql`, `,
+            )}]::text[]`
+          : sql``;
+
+      const rows = await db.execute(sql`
+        SELECT ${SUMMARY_COLUMNS}
+        FROM news_article a
+        WHERE ${scoped}
+          ${kindMatch}
           AND (${after?.publishedAt ?? null}::timestamptz IS NULL
                OR (a.published_at, a.id)
                   < (${after?.publishedAt ?? null}::timestamptz, ${after?.id ?? null}::uuid))
@@ -115,10 +119,36 @@ export const newsRoutes: FastifyPluginAsyncZod = async (app) => {
       const hasMore = page.length > limit;
       const articles = page.slice(0, limit).map(toSummary);
       const last = articles.at(-1);
+      const nextCursor =
+        hasMore && last ? encodeNewsCursor({ publishedAt: last.publishedAt, id: last.id }) : null;
+      // Counted once per feed, on its first page; later pages would only
+      // repeat the same two aggregates.
+      if (cursor) return { articles, nextCursor };
+
+      const [totals, perKind] = await Promise.all([
+        db.execute(sql`
+          SELECT count(*)::int AS any_kind,
+                 count(*) FILTER (WHERE TRUE ${kindMatch})::int AS total
+          FROM news_article a
+          WHERE ${scoped}
+        `),
+        db.execute(sql`
+          SELECT k AS kind, count(*)::int AS count
+          FROM news_article a, unnest(a.kinds) AS k
+          WHERE ${scoped}
+          GROUP BY k
+        `),
+      ]);
+      const counts: Record<string, number> = {};
+      for (const row of perKind) counts[row.kind as string] = row.count as number;
       return {
         articles,
-        nextCursor:
-          hasMore && last ? encodeNewsCursor({ publishedAt: last.publishedAt, id: last.id }) : null,
+        nextCursor,
+        facets: {
+          total: (totals[0]?.total as number | undefined) ?? 0,
+          anyKind: (totals[0]?.any_kind as number | undefined) ?? 0,
+          kinds: counts,
+        },
       };
     },
   );

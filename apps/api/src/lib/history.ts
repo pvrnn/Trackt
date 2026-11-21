@@ -1,6 +1,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import type { Db } from '@trackt/db';
 import {
+  HISTORY_SESSION_GAP_DAYS,
   PART_KIND_BY_MEDIA,
   encodeHistoryCursor,
   type HistoryCursor,
@@ -80,7 +81,7 @@ export async function loadHistory(
     ? sql`AND (COALESCE(um.finished_at, um.started_at), um.media_id) < (${cursor.loggedOn}::date, ${cursor.mediaId}::uuid)`
     : sql``;
 
-  const [entryRows, yearRows, totalRows, checkins] = await Promise.all([
+  const [entryRows, yearRows, kindRows, totalRows, checkins] = await Promise.all([
     db.execute(sql`
       SELECT m.id, m.slug, m.kind, m.title, m.cover_url, um.status,
              um.started_at, um.finished_at,
@@ -112,6 +113,18 @@ export async function loadHistory(
       GROUP BY 1
       ORDER BY 1 DESC
     `),
+    // Unfiltered by kind on purpose — the kind tabs' own counts.
+    db.execute(sql`
+      SELECT m.kind, count(*)::int AS count
+      FROM user_media um
+      JOIN media m ON m.id = um.media_id
+      WHERE um.user_id = ${userId}
+        AND COALESCE(um.finished_at, um.started_at) IS NOT NULL
+        AND ${visible}
+        AND ${windowSql(window)}
+        AND ${statusSql(query.status)}
+      GROUP BY 1
+    `),
     db.execute(sql`
       SELECT count(*)::int AS titles,
              count(*) FILTER (WHERE um.status = 'completed')::int AS completed
@@ -125,6 +138,11 @@ export async function loadHistory(
   const rows = [...entryRows];
   const hasMore = rows.length > query.limit;
   const page = hasMore ? rows.slice(0, query.limit) : rows;
+  const sessions = await loadSessions(
+    db,
+    userId,
+    page.map((row) => row.id as string),
+  );
   const entries: HistoryEntry[] = page.map((row) => ({
     id: row.id as string,
     slug: row.slug as string,
@@ -140,6 +158,7 @@ export async function loadHistory(
     // Movies have no parts to progress through (ADR-0003).
     total:
       PART_KIND_BY_MEDIA[row.kind as MediaKind] === null ? null : (row.part_count as number | null),
+    sessions: sessions.get(row.id as string) ?? [],
   }));
 
   const last = page.at(-1);
@@ -157,6 +176,10 @@ export async function loadHistory(
       year: Number(row.year),
       count: Number(row.count),
     })),
+    kinds: [...kindRows].map((row) => ({
+      kind: row.kind as MediaKind,
+      count: Number(row.count),
+    })),
     totals: {
       titles: Number(totals?.titles ?? 0),
       completed: Number(totals?.completed ?? 0),
@@ -164,4 +187,50 @@ export async function loadHistory(
       chapters: checkins.chapters,
     },
   };
+}
+
+/**
+ * Check-in days per work, collapsed into sessions: a gaps-and-islands pass
+ * where a break longer than {@link HISTORY_SESSION_GAP_DAYS} opens a new island.
+ * Days are UTC, like every other date on this page.
+ */
+async function loadSessions(
+  db: Db,
+  userId: string,
+  mediaIds: string[],
+): Promise<Map<string, HistoryEntry['sessions']>> {
+  const sessions = new Map<string, HistoryEntry['sessions']>();
+  if (mediaIds.length === 0) return sessions;
+  const rows = await db.execute(sql`
+    WITH days AS (
+      SELECT DISTINCT mp.media_id, (p.watched_at AT TIME ZONE 'UTC')::date AS day
+      FROM progress p
+      JOIN media_part mp ON mp.id = p.part_id
+      WHERE p.user_id = ${userId}
+        AND mp.media_id IN (${sql.join(
+          mediaIds.map((id) => sql`${id}::uuid`),
+          sql`, `,
+        )})
+    ), breaks AS (
+      SELECT media_id, day,
+             CASE WHEN day - lag(day) OVER (PARTITION BY media_id ORDER BY day)
+                       <= ${HISTORY_SESSION_GAP_DAYS}
+                  THEN 0 ELSE 1 END AS opens
+      FROM days
+    ), islands AS (
+      SELECT media_id, day, sum(opens) OVER (PARTITION BY media_id ORDER BY day) AS island
+      FROM breaks
+    )
+    SELECT media_id, min(day)::text AS from_day, max(day)::text AS to_day
+    FROM islands
+    GROUP BY media_id, island
+    ORDER BY media_id, from_day
+  `);
+  for (const row of rows) {
+    const id = row.media_id as string;
+    const list = sessions.get(id) ?? [];
+    list.push({ from: row.from_day as string, to: row.to_day as string });
+    sessions.set(id, list);
+  }
+  return sessions;
 }

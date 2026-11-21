@@ -24,9 +24,9 @@ import { Icon } from './Icon';
  * - **drag** the slider to travel across hundreds in one gesture,
  * - **−/+** for a single unit, which is what most days need.
  *
- * The design's scale, kept: 46 Anton for the number, 24 for `/ total`, a 6pt
- * rail with the PRISM fill and a 26pt light knob, 46pt round steppers with the
- * plus in PRISM. The number is a bare field with an underline that lights pink
+ * The design's scale: 44 Anton for the number, 22 for `/ total`, a 6pt rail
+ * with the PRISM fill and a 24pt light knob, 48pt round steppers with the plus
+ * in PRISM. The number is a bare field with an underline that lights pink
  * on focus — no well, no border, because a box around it made it read as a form
  * rather than a readout you can edit.
  */
@@ -132,7 +132,7 @@ export function ProgressCard({
     <View style={styles.card}>
       <View style={styles.head}>
         <Text style={[type.eyebrow, text.dim]}>{unitLabel}</Text>
-        <Text style={[type.eyebrow, text.pink]}>{percent}%</Text>
+        <Text style={[type.eyebrow, text.pinkInk]}>{percent}%</Text>
       </View>
 
       <View style={styles.counter}>
@@ -211,16 +211,13 @@ export function ProgressCard({
       </GestureDetector>
 
       {ahead > 0 ? (
-        <Text style={[type.bodySm, text.muted]}>
-          {ahead} further ahead {ahead === 1 ? 'is' : 'are'} ticked — moving this clears anything
-          past where you are.
-        </Text>
+        <Text style={[type.bodySm, text.muted]}>{t('media.progress.ahead', { count: ahead })}</Text>
       ) : null}
     </View>
   );
 }
 
-/** −/+ : 46pt round, the plus in PRISM because it is the one you press daily. */
+/** −/+ : 48pt round, the plus in PRISM because it is the one you press daily. */
 function Stepper({
   direction,
   disabled,
@@ -236,7 +233,7 @@ function Stepper({
     direction === 'up' ? (
       <Icon name="plus" color={color.onPrism} size={20} />
     ) : (
-      <Icon name="minus" color={disabled ? color.faint : color.muted} size={20} />
+      <Icon name="minus" color={color.muted} size={20} />
     );
 
   return (
@@ -273,7 +270,9 @@ const styles = StyleSheet.create({
   // hairline: it is the screen's subject, and the mockup rings it for that.
   card: {
     gap: space.md,
-    padding: space.lg,
+    paddingTop: space.lg,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
     borderRadius: radius.card,
     borderWidth: stroke,
     borderColor: surface.pinkBorder,
@@ -300,11 +299,11 @@ const styles = StyleSheet.create({
   field: {
     minWidth: 56,
   },
-  /** Anton 46: the number is the biggest thing on the screen after the title. */
+  /** Anton 44: the number is the biggest thing on the screen after the title. */
   number: {
     fontFamily: type.stat.fontFamily,
-    fontSize: 46,
-    lineHeight: 48,
+    fontSize: 44,
+    lineHeight: 46,
   },
   editing: {
     color: color.fg,
@@ -314,16 +313,16 @@ const styles = StyleSheet.create({
   },
   total: {
     fontFamily: type.stat.fontFamily,
-    fontSize: 24,
-    lineHeight: 26,
+    fontSize: 22,
+    lineHeight: 24,
   },
   steppers: {
     flexDirection: 'row',
-    gap: space.sm,
+    gap: 10,
   },
   stepper: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: radius.pill,
     overflow: 'hidden',
     alignItems: 'center',
@@ -344,7 +343,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   track: {
-    height: 26,
+    height: 24,
     justifyContent: 'center',
   },
   rail: {
@@ -362,11 +361,11 @@ const styles = StyleSheet.create({
   knob: {
     position: 'absolute',
     top: '50%',
-    width: 26,
-    height: 26,
-    marginLeft: -13,
-    marginTop: -13,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    marginLeft: -12,
+    marginTop: -12,
+    borderRadius: 12,
     backgroundColor: color.fg,
     shadowColor: '#000',
     shadowOpacity: 0.7,

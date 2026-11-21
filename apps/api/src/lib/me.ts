@@ -2,9 +2,12 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { favorite, media, type Db } from '@trackt/db';
 import {
   MEDIA_KINDS,
+  PART_KIND_BY_MEDIA,
   type ActivityEntry,
   type FavoriteEntry,
+  type InProgressEntry,
   type MediaKind,
+  type ProfileTaste,
 } from '@trackt/shared';
 import { visibleMediaSql } from './visibility.js';
 
@@ -95,6 +98,84 @@ export async function loadProfileStats(db: Db, userId: string): Promise<ProfileS
     titlesTracked: Number(stats?.titles ?? 0),
     meanRating: stats?.mean_rating !== null ? Number(stats?.mean_rating) : null,
     dayStreak,
+  };
+}
+
+const TASTE_GENRE_LIMIT = 5;
+
+/** The profile's RIGHT NOW row: in-progress titles, newest first, plus the uncapped total. */
+export async function loadInProgress(
+  db: Db,
+  userId: string,
+  limit: number,
+): Promise<{ entries: InProgressEntry[]; total: number }> {
+  const visible = visibleMediaSql(sql.raw('m.'));
+  const [rows, [count]] = await Promise.all([
+    db.execute(sql`
+      SELECT m.id, m.slug, m.kind, m.title, m.cover_url, m.part_count,
+             (SELECT count(*)::int FROM progress p
+               JOIN media_part mp ON mp.id = p.part_id
+               WHERE p.user_id = ${userId} AND mp.media_id = m.id) AS watched
+      FROM user_media um
+      JOIN media m ON m.id = um.media_id
+      WHERE um.user_id = ${userId} AND um.status = 'in_progress' AND ${visible}
+      ORDER BY um.updated_at DESC
+      LIMIT ${limit}
+    `),
+    db.execute(sql`
+      SELECT count(*)::int AS count FROM user_media um
+      JOIN media m ON m.id = um.media_id
+      WHERE um.user_id = ${userId} AND um.status = 'in_progress' AND ${visible}
+    `),
+  ]);
+  return {
+    entries: [...rows].map((row) => {
+      const kind = row.kind as MediaKind;
+      return {
+        id: row.id as string,
+        slug: row.slug as string,
+        kind,
+        title: row.title as string,
+        coverUrl: (row.cover_url as string | null) ?? null,
+        watched: Number(row.watched),
+        total: PART_KIND_BY_MEDIA[kind] && row.part_count !== null ? Number(row.part_count) : null,
+      };
+    }),
+    total: Number(count?.count ?? 0),
+  };
+}
+
+/** The profile's TASTE card: tracked titles by kind and genre, and how the subject rates. */
+export async function loadTaste(db: Db, userId: string): Promise<ProfileTaste> {
+  const visible = visibleMediaSql(sql.raw('m.'));
+  const [kinds, genres, [ratings]] = await Promise.all([
+    db.execute(sql`
+      SELECT m.kind, count(*)::int AS count FROM user_media um
+      JOIN media m ON m.id = um.media_id
+      WHERE um.user_id = ${userId} AND ${visible}
+      GROUP BY m.kind
+      ORDER BY count DESC, m.kind
+    `),
+    db.execute(sql`
+      SELECT g.name, count(*)::int AS count FROM user_media um
+      JOIN media m ON m.id = um.media_id
+      CROSS JOIN LATERAL unnest(m.genres) AS g(name)
+      WHERE um.user_id = ${userId} AND ${visible}
+      GROUP BY g.name
+      ORDER BY count DESC, g.name
+      LIMIT ${TASTE_GENRE_LIMIT}
+    `),
+    db.execute(sql`
+      SELECT count(*)::int AS rated, count(*) FILTER (WHERE r.score = 10)::int AS tens
+      FROM rating r
+      WHERE r.user_id = ${userId} AND r.target_type = 'media' AND r.score IS NOT NULL
+    `),
+  ]);
+  return {
+    kinds: [...kinds].map((row) => ({ kind: row.kind as MediaKind, count: Number(row.count) })),
+    genres: [...genres].map((row) => ({ name: row.name as string, count: Number(row.count) })),
+    ratedCount: Number(ratings?.rated ?? 0),
+    perfectTens: Number(ratings?.tens ?? 0),
   };
 }
 

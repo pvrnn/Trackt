@@ -17,15 +17,6 @@
     "chapterOf": "Chapter {{next}} of {{total}}",
     "chapter": "Chapter {{next}}"
   },
-  "inProgress": {
-    "title": "In progress",
-    "caption": "{{kind}} · {{progress}}",
-    "episode": "Ep {{watched}} of {{total}}",
-    "chapter": "Ch {{watched}} of {{total}}",
-    "viewAll_one": "NEWEST {{count}} · VIEW ALL →",
-    "viewAll_other": "NEWEST {{count}} · VIEW ALL →",
-    "rest": "FIRST {{count}} · SEE HISTORY FOR THE REST"
-  },
   "caughtUp": "All caught up: you’ve logged all known progress.",
   "activity": {
     "title": "Recent activity",
@@ -49,5 +40,18 @@
   "nothingQueued": "Nothing queued",
   "nothingQueuedBody": "Start something from Discover and its next episode shows up here.",
   "swipeHint": "Or swipe the row right",
-  "of": "OF"
+  "inProgressCount_one": "{{count}} IN PROGRESS",
+  "inProgressCount_other": "{{count}} IN PROGRESS",
+  "inProgressMore": "{{count}}+ IN PROGRESS",
+  "seeAll": "SEE ALL →",
+  "news": {
+    "title": "News",
+    "caption": "FROM WHAT YOU TRACK",
+    "all": "ALL →",
+    "tracking": "TRACKING"
+  },
+  "checkedIn": "Checked in — {{title}} {{part}}",
+  "checkedInQueued": "Checked in — {{title}} {{part}} · will sync",
+  "search": "Search",
+  "profile": "Your profile"
 }

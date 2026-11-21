@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { eq, or } from 'drizzle-orm';
 import { createDb, users } from '@trackt/db';
 import { EnvValidationError, loadEnv } from '@trackt/shared';
@@ -8,9 +8,10 @@ import { replayImportReport } from './replay.js';
 import { runImport } from './run.js';
 import { IMPORT_SOURCES } from './sources.js';
 import type { ImportCredentials, ImportSource } from './types.js';
+import { isFileSource, readImportUpload } from './upload.js';
 
 /**
- * `pnpm import -- --source <mal|anilist|letterboxd|trakt|steam> --user <email|uuid> --profile <name> [--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]`
+ * `pnpm import -- --source <mal|anilist|letterboxd|trakt|steam|tvtime> --user <email|uuid> (--profile <name> | --file <path>…) [--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]`
  *
  * The first driver of the importer: the product surface (a wizard that enqueues
  * an `importer` job) is a later step, so the pipeline is exercised without
@@ -21,6 +22,8 @@ interface Args {
   source: ImportSource;
   user: string;
   profile: string;
+  /** File sources (TV Time): the export files, repeatable. */
+  files: string[];
   dryRun: boolean;
   overwrite: boolean;
   enrich: boolean;
@@ -35,7 +38,8 @@ interface Args {
 const DEFAULT_SOURCE: ImportSource = 'mal';
 
 const USAGE =
-  'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt|steam> --user <email|uuid> --profile <name> ' +
+  'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt|steam|tvtime> --user <email|uuid> ' +
+  '(--profile <name> | --file <path> [--file <path>]) ' +
   '[--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>] [--no-catalog]';
 
 function parseSource(value: string | undefined): ImportSource {
@@ -49,6 +53,7 @@ function parseArgs(argv: string[]): Args {
     source: DEFAULT_SOURCE,
     user: '',
     profile: '',
+    files: [],
     dryRun: false,
     overwrite: false,
     enrich: false,
@@ -72,13 +77,23 @@ function parseArgs(argv: string[]): Args {
     else if (arg === '--source') args.source = parseSource(argv[++i]);
     else if (arg === '--user') args.user = argv[++i] ?? '';
     else if (arg === '--profile') args.profile = argv[++i] ?? '';
+    else if (arg === '--file') args.files.push(argv[++i] ?? '');
+    else if (arg?.startsWith('--file=')) args.files.push(arg.slice('--file='.length));
     else if (arg?.startsWith('--source=')) args.source = parseSource(arg.slice('--source='.length));
     else if (arg?.startsWith('--user=')) args.user = arg.slice('--user='.length);
     else if (arg?.startsWith('--profile=')) args.profile = arg.slice('--profile='.length);
     else throw new Error(`unknown argument "${arg}"\n${USAGE}`);
   }
   // A replay carries the profile in the report it reads.
-  if (!args.user || (!args.profile && !args.fromReport)) throw new Error(USAGE);
+  const named = args.profile || args.files.length > 0 || args.fromReport;
+  if (!args.user || !named) throw new Error(USAGE);
+  if (args.files.some((file) => !file)) throw new Error(`--file needs a path\n${USAGE}`);
+  if (args.files.length > 0 && !isFileSource(args.source))
+    throw new Error(
+      `--file is for file sources (tvtime); ${args.source} reads --profile\n${USAGE}`,
+    );
+  if (isFileSource(args.source) && !args.fromReport && args.files.length === 0)
+    throw new Error(`${args.source} imports an export: pass it with --file\n${USAGE}`);
   if (args.report === '') throw new Error(`--report needs a path\n${USAGE}`);
   if (args.fromReport === '') throw new Error(`--from-report needs a path\n${USAGE}`);
   if (args.fromReport && args.enrich)
@@ -147,7 +162,19 @@ async function main(): Promise<void> {
 
     const saved = args.fromReport ? await readReport(resolve(args.fromReport)) : null;
     const source = saved?.source ?? args.source;
-    const profile = saved?.profile ?? args.profile;
+    const uploaded =
+      !saved && args.files.length > 0
+        ? readImportUpload(
+            source,
+            await Promise.all(
+              args.files.map(async (file) => ({
+                name: basename(file),
+                content: await readFile(resolve(file), 'utf8'),
+              })),
+            ),
+          )
+        : null;
+    const profile = saved?.profile ?? uploaded?.profile ?? args.profile;
 
     console.log(
       `importing ${IMPORT_SOURCES[source].label} "${profile}" into ${user.username ?? user.email}` +
@@ -170,6 +197,7 @@ async function main(): Promise<void> {
           userId: user.id,
           source,
           profile,
+          ...(uploaded ? { upload: uploaded.upload } : {}),
           credentials,
           dryRun: args.dryRun,
           overwrite: args.overwrite,
@@ -215,6 +243,7 @@ async function main(): Promise<void> {
       console.log('\nwritten');
       console.log(line('created', report.created));
       console.log(line('updated', report.updated));
+      console.log(line('merged (log)', report.merged));
       console.log(line('skipped (log)', report.skippedExisting));
       console.log(line('with progress', report.withProgress));
       console.log(line('with score', report.ratings));

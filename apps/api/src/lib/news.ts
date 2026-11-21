@@ -130,6 +130,7 @@ export async function loadNewsList(
     const page: NewsListResponse = {
       articles: response.articles,
       nextCursor: response.nextCursor,
+      ...(response.facets ? { facets: response.facets } : {}),
     };
     listMemo.set(key, page);
     return page;

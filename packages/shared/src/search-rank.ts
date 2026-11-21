@@ -55,3 +55,42 @@ export const DERIVATIVE_FORMATS = {
  * do not report ratings, rather than reading "unknown" as "bad".
  */
 export const UNKNOWN_POPULARITY = 0.5;
+
+/** Discover's SORT. `relevance` is the rank above; the others reorder the hits that survive the floor below. */
+export const SEARCH_SORTS = ['relevance', 'newest', 'az'] as const;
+export type SearchSort = (typeof SEARCH_SORTS)[number];
+
+/**
+ * Under `newest` or `az`, a hit must contain the query (tier ≥ 2) or come at
+ * least this close as a fuzzy match. Without it "Newest" leads with whichever
+ * trigram neighbour of a typo happens to be the most recent release.
+ */
+export const SEARCH_SORT_TEXT_FLOOR = 0.5;
+
+export interface SortableSearchHit {
+  id: string;
+  title: string;
+  year: number | null;
+  rank: number;
+}
+
+/**
+ * The merge order for one sort, mirroring each service's `ORDER BY` so a
+ * federated page reads the same as either source alone. Ties fall back to rank,
+ * then id, so the order is total and pages never overlap.
+ */
+export function compareSearchHits(sort: SearchSort) {
+  const byRank = (a: SortableSearchHit, b: SortableSearchHit) =>
+    b.rank - a.rank || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+  if (sort === 'newest') {
+    return (a: SortableSearchHit, b: SortableSearchHit) =>
+      (b.year ?? -Infinity) - (a.year ?? -Infinity) || byRank(a, b);
+  }
+  if (sort === 'az') {
+    return (a: SortableSearchHit, b: SortableSearchHit) =>
+      a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }) ||
+      b.rank - a.rank ||
+      a.id.localeCompare(b.id);
+  }
+  return byRank;
+}

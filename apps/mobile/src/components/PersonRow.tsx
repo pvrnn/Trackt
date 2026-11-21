@@ -6,7 +6,17 @@ import { Avatar } from './Avatar';
 import { Icon } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
 import { Touchable } from './Touchable';
-import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
+import {
+  PRISM,
+  color,
+  control,
+  nativeInk,
+  radius,
+  space,
+  stroke,
+  surface,
+  text,
+} from '../theme/tokens';
 import { type } from '../theme/typography';
 
 import { i18n } from '../i18n';
@@ -87,7 +97,7 @@ export function PersonRow({
           accessibilityLabel={t('social.declineName', { name: person.name })}
           disabled={disabled}
           onPress={onDecline}
-          hitSlop={space.sm}
+          hitSlop={(control.inRow - control.disc) / 2}
           style={({ pressed }) => [styles.decline, { opacity: pressed ? 0.6 : 1 }]}
         >
           <Icon name="close" color={color.dim} size={12} />
@@ -119,6 +129,9 @@ export function PersonRow({
           </LinearGradient>
         ) : (
           <View style={[styles.pillFill, TONES[action.tone]]}>
+            {action.tone === 'friends' ? (
+              <Icon name="check" color={nativeInk.pinkInk} size={11} />
+            ) : null}
             <Text style={[styles.pillLabel, TONE_TEXT[action.tone]]}>{action.label}</Text>
           </View>
         )}
@@ -186,8 +199,8 @@ const styles = StyleSheet.create({
     color: color.dim,
   },
   decline: {
-    width: 30,
-    height: 30,
+    width: control.disc,
+    height: control.disc,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
@@ -196,17 +209,23 @@ const styles = StyleSheet.create({
   },
   /**
    * Geometry only — the rounding belongs to the face below. `overflow: 'hidden'`
-   * against a pill radius chops a corner off the gradient on Android.
+   * against a pill radius chops a corner off the gradient on Android. One width
+   * for every state (§08), so the list's right edge is a straight line.
    */
   pill: {
-    alignSelf: 'flex-start',
+    width: 104,
+    height: control.inRow,
   },
   pillInert: {
     opacity: 0.6,
   },
   pillFill: {
-    paddingVertical: space.sm + 1,
-    paddingHorizontal: space.md,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.xs,
+    paddingHorizontal: space.sm,
     borderRadius: radius.pill,
     // The gradient needs a transparent ring so it matches the toned faces' height.
     borderWidth: stroke,
@@ -251,8 +270,8 @@ const TONES = StyleSheet.create({
   prism: {},
   friends: {
     borderWidth: stroke,
-    borderColor: 'rgba(139,92,246,0.5)',
-    backgroundColor: 'rgba(139,92,246,0.16)',
+    borderColor: 'rgba(217,107,176,0.55)',
+    backgroundColor: 'rgba(217,107,176,0.16)',
   },
   quiet: {
     borderWidth: stroke,
@@ -268,7 +287,7 @@ const TONES = StyleSheet.create({
 
 const TONE_TEXT = StyleSheet.create({
   prism: { color: color.onPrism },
-  friends: { color: '#c4b5fd' },
+  friends: { color: nativeInk.pinkInk },
   quiet: { color: color.dim },
   add: { color: color.pink },
 });

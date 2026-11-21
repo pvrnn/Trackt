@@ -12,6 +12,7 @@
  *
  * Configure it once at startup with `configureClient()`; see `runtime.ts`.
  */
+export * from './brand-marks.js';
 export * from './cover.js';
 export * from './external.js';
 export * from './game-search.js';
@@ -32,5 +33,6 @@ export * from './profile.js';
 export * from './query-client.js';
 export * from './runtime.js';
 export * from './search.js';
+export * from './timeline.js';
 export * from './url.js';
 export * from './use-debounced.js';

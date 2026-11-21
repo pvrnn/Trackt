@@ -2,13 +2,22 @@ import { sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import {
   ApiErrorSchema,
+  CatalogSearchKindsQuerySchema,
+  CatalogSearchKindsResponseSchema,
   CatalogSearchQuerySchema,
+  CatalogGenresQuerySchema,
+  CatalogGenresResponseSchema,
   CatalogSearchResponseSchema,
   DERIVATIVE_FORMATS,
+  GENRE_SUGGESTION_LIMIT,
   SEARCH_RANK_WEIGHTS,
+  SEARCH_SORT_TEXT_FLOOR,
   UNKNOWN_POPULARITY,
+  mediaStatusesFor,
   type CatalogSearchHit,
   type ExternalIds,
+  type SearchSort,
+  type StatusFilter,
 } from '@trackt/shared';
 
 /**
@@ -26,6 +35,59 @@ const derivativeFormatSql = sql.join(
   ),
   sql` OR `,
 );
+
+interface MatchFilters {
+  year?: number | undefined;
+  genres?: string[] | undefined;
+  status?: StatusFilter | undefined;
+}
+
+/** The rows a query matches, shared by the ranked search and its per-kind counts. */
+function matchSql(q: string, { year, genres, status }: MatchFilters) {
+  return sql`deleted_at IS NULL
+    AND (immutable_unaccent(lower(title)) % immutable_unaccent(lower(${q}))
+         OR immutable_unaccent(lower(title)) LIKE '%' || immutable_unaccent(lower(${q})) || '%'
+         OR immutable_unaccent(lower(immutable_array_to_string(synonyms, ' '))) LIKE '%' || immutable_unaccent(lower(${q})) || '%')
+    AND (${year ?? null}::int IS NULL OR year = ${year ?? null}::int)
+    ${
+      genres?.length
+        ? sql`AND genres @> ARRAY[${sql.join(
+            genres.map((genre) => sql`${genre}`),
+            sql`, `,
+          )}]::text[]`
+        : sql``
+    }
+    ${
+      status
+        ? sql`AND status IN (${sql.join(
+            mediaStatusesFor(status).map((value) => sql`${value}`),
+            sql`, `,
+          )})`
+        : sql``
+    }`;
+}
+
+/**
+ * The relevance floor a reordering sort applies (`SEARCH_SORT_TEXT_FLOOR`),
+ * spelled over the base row so the per-kind counts can apply it too: tier ≥ 2
+ * is exactly "the title or a synonym contains the query".
+ */
+function sortFloorSql(q: string, sort: SearchSort) {
+  if (sort === 'relevance') return sql``;
+  return sql`AND (immutable_unaccent(lower(title)) LIKE '%' || immutable_unaccent(lower(${q})) || '%'
+    OR immutable_unaccent(lower(immutable_array_to_string(synonyms, ' '))) LIKE '%' || immutable_unaccent(lower(${q})) || '%'
+    OR GREATEST(
+         similarity(immutable_unaccent(lower(title)), immutable_unaccent(lower(${q}))),
+         similarity(immutable_unaccent(lower(immutable_array_to_string(synonyms, ' '))), immutable_unaccent(lower(${q})))
+       ) >= ${SEARCH_SORT_TEXT_FLOOR})`;
+}
+
+/** Mirrors `compareSearchHits` in `@trackt/shared`, which merges federated pages. */
+function orderSql(sort: SearchSort) {
+  if (sort === 'newest') return sql`year DESC NULLS LAST, rank DESC, title ASC, id ASC`;
+  if (sort === 'az') return sql`immutable_unaccent(lower(title)) ASC, rank DESC, id ASC`;
+  return sql`rank DESC, title ASC, id ASC`;
+}
 
 /**
  * Live federated-search surface (ADR-0002): instances query this in parallel
@@ -51,7 +113,7 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
 
-      const { q, kind, year, limit } = request.query;
+      const { q, kind, sort, limit, ...filters } = request.query;
       const rows = await db.execute(sql`
         SELECT scored.*,
                scored.tier
@@ -81,14 +143,11 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
                     ELSE ${UNKNOWN_POPULARITY}
                   END) AS popularity
           FROM catalog_media
-          WHERE deleted_at IS NULL
-            AND (immutable_unaccent(lower(title)) % immutable_unaccent(lower(${q}))
-                 OR immutable_unaccent(lower(title)) LIKE '%' || immutable_unaccent(lower(${q})) || '%'
-                 OR immutable_unaccent(lower(immutable_array_to_string(synonyms, ' '))) LIKE '%' || immutable_unaccent(lower(${q})) || '%')
+          WHERE ${matchSql(q, filters)}
             AND (${kind ?? null}::text IS NULL OR kind = ${kind ?? null}::text)
-            AND (${year ?? null}::int IS NULL OR year = ${year ?? null}::int)
+            ${sortFloorSql(q, sort)}
         ) scored
-        ORDER BY rank DESC, title ASC, id ASC
+        ORDER BY ${orderSql(sort)}
         LIMIT ${limit}
       `);
 
@@ -110,6 +169,69 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
         rank: row.rank as number,
       }));
       return { results };
+    },
+  );
+
+  // Counts for the kind strip, over every kind at once: the same match and
+  // floor as the ranked search, so ALL equals the full result set.
+  app.get(
+    '/catalog/search/kinds',
+    {
+      schema: {
+        tags: ['catalog'],
+        querystring: CatalogSearchKindsQuerySchema,
+        response: { 200: CatalogSearchKindsResponseSchema, 503: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const { q, sort, ...filters } = request.query;
+      const rows = await db.execute(sql`
+        SELECT kind, count(*)::int AS count
+        FROM catalog_media
+        WHERE ${matchSql(q, filters)}
+          ${sortFloorSql(q, sort)}
+        GROUP BY kind
+      `);
+      const kinds: Record<string, number> = {};
+      for (const row of rows) kinds[row.kind as string] = row.count as number;
+      return { kinds };
+    },
+  );
+
+  // The vocabulary for Discover's genre filter: a few dozen tags, so one
+  // aggregate over the table is cheap and an hour of caching hides even that.
+  app.get(
+    '/catalog/genres',
+    {
+      schema: {
+        tags: ['catalog'],
+        querystring: CatalogGenresQuerySchema,
+        response: { 200: CatalogGenresResponseSchema, 503: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const { kind, q } = request.query;
+      const rows = await db.execute(sql`
+        SELECT genre, count(*)::int AS count
+        FROM catalog_media, unnest(genres) AS genre
+        WHERE deleted_at IS NULL
+          ${kind ? sql`AND kind = ${kind}` : sql``}
+          ${q ? sql`AND strpos(genre, ${q}) > 0` : sql``}
+        GROUP BY genre
+        ORDER BY ${q ? sql`(left(genre, ${q.length}) = ${q}) DESC,` : sql``} count DESC, genre ASC
+        ${q ? sql`LIMIT ${GENRE_SUGGESTION_LIMIT}` : sql``}
+      `);
+      reply.header('cache-control', 'public, max-age=3600');
+      return {
+        genres: [...rows].map((row) => ({
+          genre: row.genre as string,
+          count: row.count as number,
+        })),
+      };
     },
   );
 };

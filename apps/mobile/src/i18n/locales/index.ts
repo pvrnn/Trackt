@@ -14,6 +14,8 @@ import mediaEn from './fragments/media.en.json';
 import mediaFr from './fragments/media.fr.json';
 import newsEn from './fragments/news.en.json';
 import newsFr from './fragments/news.fr.json';
+import onboardingEn from './fragments/onboarding.en.json';
+import onboardingFr from './fragments/onboarding.fr.json';
 import profileEn from './fragments/profile.en.json';
 import profileFr from './fragments/profile.fr.json';
 import socialEn from './fragments/social.en.json';
@@ -36,6 +38,7 @@ export const en = {
   social: socialEn,
   news: newsEn,
   feedback: feedbackEn,
+  onboarding: onboardingEn,
 };
 
 /**
@@ -56,4 +59,5 @@ export const fr: Catalog<typeof en> = {
   social: socialFr,
   news: newsFr,
   feedback: feedbackFr,
+  onboarding: onboardingFr,
 };

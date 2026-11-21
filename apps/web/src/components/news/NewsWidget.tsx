@@ -1,79 +1,141 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { coverGradient, useNewsFeed } from '@trackt/client';
+import type { NewsArticleSummary } from '@trackt/shared';
+import { coverGradient, useTrackedNews } from '@trackt/client';
 import { useFormat } from '../../lib/format';
 import { useLabels } from '../../lib/labels';
-import { GlassCard } from '../ui/GlassCard';
 
-const WIDGET_LIMIT = 4;
+/** In-progress titles asked for news: one rate-limited by-media read each. */
+const NEWS_SOURCES = 4;
+const NEWS_SHOWN = 5;
 
-/** Compact "latest news" sidebar block, a slice of the /news feed, not the full card. */
-export function NewsWidget() {
-  const { t } = useTranslation();
+function coverStyle(article: NewsArticleSummary) {
+  return article.coverUrl
+    ? { backgroundImage: `url(${article.coverUrl})` }
+    : { background: coverGradient(article.kinds[0] ?? 'series', article.title) };
+}
+
+function useMeta() {
   const labels = useLabels();
   const format = useFormat();
-  const { articles, isLoading, isError } = useNewsFeed({});
-  const latest = articles.slice(0, WIDGET_LIMIT);
+  return (article: NewsArticleSummary) => {
+    const date = format.newsDate(article.publishedAt);
+    const kind = article.kinds[0];
+    return kind ? `${labels.kindSingular(kind).toUpperCase()} · ${date}` : date;
+  };
+}
+
+function TopicTag({ article }: { article: NewsArticleSummary }) {
+  const labels = useLabels();
+  return (
+    <span className="rounded-full bg-pink-selected px-2.5 py-0.75 font-label text-[10px] font-bold tracking-label text-[#e58cc4] uppercase">
+      {labels.topic(article.topic)}
+    </span>
+  );
+}
+
+/** Home's "News · from what you track": a lead story, then briefs as rows. */
+export function NewsWidget({ mediaIds }: { mediaIds: readonly string[] }) {
+  const { t } = useTranslation();
+  const meta = useMeta();
+  const { articles, isPending } = useTrackedNews(mediaIds.slice(0, NEWS_SOURCES), NEWS_SHOWN);
+  const [lead, ...briefs] = articles;
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-heading text-[32px] uppercase">{t('news.widget.heading')}</h2>
+    <section aria-labelledby="home-news" className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
+        <h2 id="home-news" className="font-heading text-[48px] leading-none uppercase">
+          {t('home.news.title')}
+        </h2>
+        <span className="font-label text-xs font-semibold tracking-label text-dim">
+          {t('home.news.caption')}
+        </span>
+        <span className="flex-1" />
         <Link
           to="/news"
-          className="text-prism font-label text-xs font-bold tracking-btn hover:text-pink"
+          className="font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
         >
-          {t('news.widget.viewAll')}
+          {t('home.news.all')}
         </Link>
       </div>
 
-      {isError ? (
-        <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-          {t('news.widget.error')}
-        </GlassCard>
-      ) : isLoading ? (
-        <div className="h-24" aria-busy />
-      ) : latest.length === 0 ? (
-        <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-          {t('news.widget.empty')}
-        </GlassCard>
+      {!lead ? (
+        isPending && mediaIds.length > 0 ? (
+          <div className="h-64" aria-busy />
+        ) : (
+          <p className="rounded-card-sm border border-dashed border-white/20 px-5 py-4 text-sm text-muted">
+            {t('home.news.empty')}
+          </p>
+        )
       ) : (
-        <ul className="flex flex-col gap-2.5">
-          {latest.map((article) => {
-            const coverKind = article.kinds[0];
-            return (
-              <GlassCard
-                as="li"
-                key={article.slug}
-                className="flex items-center gap-3 rounded-card-sm px-3.5 py-3"
+        <>
+          <article className="overflow-hidden rounded-card border border-glass-border bg-glass backdrop-blur-[16px]">
+            <Link
+              to="/news/$slug"
+              params={{ slug: lead.slug }}
+              aria-hidden
+              tabIndex={-1}
+              className="relative block h-[250px] bg-cover bg-center"
+              style={coverStyle(lead)}
+            >
+              <span className="absolute top-3.5 left-3.5 flex items-center gap-1.5 rounded-full bg-on-prism px-2.75 py-1.25 ring-1 ring-pink/60 ring-inset">
+                <span className="size-1.25 rounded-full bg-pink" />
+                <span className="font-label text-[10px] font-bold tracking-label text-[#e58cc4]">
+                  {t('home.news.tracking')}
+                </span>
+              </span>
+            </Link>
+            <div className="flex flex-col gap-2.5 px-6 pt-5 pb-5.5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <TopicTag article={lead} />
+                <span className="font-label text-[11px] font-medium tracking-label text-dim">
+                  {meta(lead)}
+                </span>
+              </div>
+              <Link
+                to="/news/$slug"
+                params={{ slug: lead.slug }}
+                className="text-[26px] leading-[1.2] font-bold text-balance hover:text-pink"
               >
-                <Link
-                  to="/news/$slug"
-                  params={{ slug: article.slug }}
-                  className="size-11 shrink-0 rounded-md bg-cover bg-center"
-                  style={
-                    article.coverUrl
-                      ? { backgroundImage: `url(${article.coverUrl})` }
-                      : { background: coverGradient(coverKind ?? 'movie', article.title) }
-                  }
-                  aria-hidden
-                />
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                {lead.title}
+              </Link>
+              {lead.dek && (
+                <p className="text-[15px] leading-[1.6] text-pretty text-muted">{lead.dek}</p>
+              )}
+            </div>
+          </article>
+
+          {briefs.length > 0 && (
+            <ul className="flex flex-col">
+              {briefs.map((article) => (
+                <li key={article.id}>
                   <Link
                     to="/news/$slug"
                     params={{ slug: article.slug }}
-                    className="truncate text-[13px] leading-[1.3] font-bold hover:text-pink"
+                    className="group flex items-center gap-4 py-3.5 shadow-[inset_0_-1px_0_rgb(255_255_255/0.08)]"
                   >
-                    {article.title}
+                    <span
+                      aria-hidden
+                      className="h-[69px] w-[46px] shrink-0 rounded-thumb bg-cover bg-center ring-1 ring-white/14 ring-inset"
+                      style={coverStyle(article)}
+                    />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1.75">
+                      <span className="flex flex-wrap items-center gap-2.5">
+                        <TopicTag article={article} />
+                        <span className="font-label text-[11px] font-medium tracking-label text-dim">
+                          {meta(article)}
+                        </span>
+                      </span>
+                      <span className="text-base leading-[1.3] font-semibold group-hover:text-pink">
+                        {article.title}
+                      </span>
+                    </span>
                   </Link>
-                  <span className="font-label text-[11px] tracking-label text-dim">
-                    {labels.topic(article.topic)} · {format.newsDate(article.publishedAt)}
-                  </span>
-                </div>
-              </GlassCard>
-            );
-          })}
-        </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </section>
   );

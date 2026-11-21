@@ -44,5 +44,6 @@
   },
   "offlineTitle": "News is offline",
   "offlineBody": "This instance couldn't reach the catalog's news feed.",
-  "endOfFeed": "END OF THE FEED"
+  "endOfFeed": "END OF THE FEED",
+  "when": "WHEN"
 }

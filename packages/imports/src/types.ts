@@ -7,7 +7,7 @@ import type { FetchLike, PageFetcher } from './http/fetch.js';
  * (`scripts/*-scrape` + `apps/catalog`) — nothing here publishes media, and a
  * row the catalog does not carry is reported, never invented.
  */
-export type ImportSource = 'mal' | 'anilist' | 'letterboxd' | 'trakt' | 'steam';
+export type ImportSource = 'mal' | 'anilist' | 'letterboxd' | 'trakt' | 'steam' | 'tvtime';
 
 /** The media kinds an import can target — the catalog's own vocabulary, not a source's. */
 export type ImportKind = MediaKind;
@@ -46,6 +46,11 @@ export interface ImportEntry {
    * match, never a filter, because most sources state nothing.
    */
   originCountry?: readonly string[];
+  /**
+   * A second kind to resolve against when no row of `kind` answers: TV Time
+   * files anime as TVDB shows, the catalog files them as `anime`.
+   */
+  fallbackKind?: ImportKind;
 }
 
 export type ImportWarningCode =
@@ -114,6 +119,8 @@ export interface FetchEntriesOptions {
   enrichFilmPages?: boolean;
   /** Hard cap on those per-work requests (default 200). */
   maxEnrich?: number;
+  /** File sources (TV Time): the compact export the API read off the upload. */
+  upload?: unknown;
 }
 
 /** One source's fetch + map half: provider rows in, Trackt entries out. */

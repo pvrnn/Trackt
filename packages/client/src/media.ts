@@ -19,6 +19,7 @@ import {
   type SearchResult,
 } from '@trackt/shared';
 import { toError } from './http.js';
+import { discoverFilterParams, type DiscoverFilters } from './search.js';
 import { http, useIsAuthed } from './runtime.js';
 
 /**
@@ -94,13 +95,21 @@ export interface ShowcaseState {
  * both "failed" and "this instance has an empty catalog", which is the one state
  * callers have a fallback for.
  */
-export function useShowcase(kind?: MediaKind, year?: number): ShowcaseState {
+export function useShowcase(
+  kind?: MediaKind,
+  year?: number,
+  filters?: DiscoverFilters,
+): ShowcaseState {
+  const filter = discoverFilterParams(filters);
   const result = useInfiniteQuery({
-    queryKey: ['showcase', kind ?? 'all', year ?? 'all'],
+    queryKey: ['showcase', kind ?? 'all', year ?? 'all', ...filter.key],
     placeholderData: keepPreviousData,
     initialPageParam: 0,
     queryFn: async ({ pageParam, signal }): Promise<ShowcasePage> => {
-      const searchParams: Record<string, string> = { offset: String(pageParam) };
+      const searchParams: Record<string, string> = {
+        offset: String(pageParam),
+        ...filter.params,
+      };
       if (kind) searchParams.kind = kind;
       if (year) searchParams.year = String(year);
       const response = await http().get('media/showcase', { signal, searchParams });
@@ -182,6 +191,63 @@ export const PART_BLOCK_SIZE = 40;
 export function volumeCount(metadata: Record<string, unknown>): number | null {
   const value = metadata.volumes;
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+export type MediaFact =
+  | { key: 'status'; value: string; airing: boolean }
+  | { key: 'released' | 'ended'; value: string }
+  | { key: 'studio' | 'createdBy' | 'genres' | 'alsoKnownAs'; value: string[] }
+  | { key: 'runtime' | 'volumes'; value: number };
+
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && v !== '') : [];
+
+/**
+ * The FACTS strip: what the catalog states about a work, in display order. A
+ * fact the provider did not publish is left out, never filled with a dash.
+ * Dates are returned as given (`2024-02-02`, or partial like `2024`).
+ */
+export function mediaFacts(media: MediaDetail): MediaFact[] {
+  const meta = media.metadata;
+  const facts: MediaFact[] = [];
+  const status =
+    media.status?.toUpperCase() ??
+    (typeof meta.igdbStatus === 'string' ? meta.igdbStatus.toUpperCase() : null);
+  if (status) {
+    facts.push({
+      key: 'status',
+      value: status,
+      airing: media.status === 'airing' || media.status === 'publishing',
+    });
+  }
+  const released =
+    media.releaseDate ??
+    (typeof meta.startDate === 'string' ? meta.startDate : null) ??
+    (media.year !== null ? String(media.year) : null);
+  if (released) facts.push({ key: 'released', value: released });
+  if (media.status === 'ended' && typeof meta.endDate === 'string' && meta.endDate !== '') {
+    facts.push({ key: 'ended', value: meta.endDate });
+  }
+  const studios = strings(meta.studios);
+  if (studios.length > 0) facts.push({ key: 'studio', value: studios.slice(0, 2) });
+  const creators = [
+    ...new Set(
+      (Array.isArray(meta.credits) ? meta.credits : [])
+        .map((credit: unknown) =>
+          credit && typeof credit === 'object' && 'name' in credit ? credit.name : null,
+        )
+        .filter((name): name is string => typeof name === 'string' && name !== ''),
+    ),
+  ];
+  if (creators.length > 0) facts.push({ key: 'createdBy', value: creators.slice(0, 2) });
+  if (typeof meta.duration === 'number' && meta.duration > 0) {
+    facts.push({ key: 'runtime', value: meta.duration });
+  }
+  const volumes = volumeCount(meta);
+  if (volumes !== null) facts.push({ key: 'volumes', value: volumes });
+  if (media.genres.length > 0) facts.push({ key: 'genres', value: media.genres });
+  if (media.synonyms.length > 0) facts.push({ key: 'alsoKnownAs', value: media.synonyms });
+  return facts;
 }
 
 /** One block of parts, with the viewer's position folded in. */

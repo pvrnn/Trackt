@@ -1,24 +1,27 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ActivityEntry, PublicProfile } from '@trackt/shared';
+import type { PublicProfile } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
-import { FavouriteShelves } from '../components/profile/FavouriteShelves';
+import { Favourites } from '../components/profile/Favourites';
 import { NoSuchUser } from '../components/profile/NoSuchUser';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
+import {
+  ProfileTimeline,
+  RecentActivity,
+  RightNow,
+  TasteCard,
+} from '../components/profile/ProfileSections';
 import { Button, buttonClassName } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { GlassCard } from '../components/ui/GlassCard';
 import { useOptionalSession } from '../lib/auth-client';
-import { useLabels } from '../lib/labels';
 import {
   useAcceptFriendRequest,
   usePublicProfile,
   useRemoveFriend,
   useSendFriendRequest,
-  relativeTime,
 } from '@trackt/client';
 
 /**
@@ -34,15 +37,9 @@ export const Route = createFileRoute('/users/$username')({
 
 function PublicProfilePage() {
   const { t } = useTranslation();
-  const labels = useLabels();
   const { username } = Route.useParams();
   const { isPending: sessionPending, session, navUser } = useOptionalSession();
   const { data: profile, isPending, isError } = usePublicProfile(username);
-
-  const activityVerb = (entry: ActivityEntry) =>
-    entry.verb === 'checked_in'
-      ? labels.trackingVerb(entry.kind, 'past')
-      : t(entry.verb === 'rated' ? 'profile.recent.rated' : 'profile.recent.marked');
 
   if (sessionPending) return <div className="min-h-screen bg-ink" />;
 
@@ -62,72 +59,47 @@ function PublicProfilePage() {
         ) : !profile ? (
           <NoSuchUser username={username} />
         ) : (
-          <>
+          <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-10 pt-11 pb-20">
             <ProfileHeader
               user={profile.user}
               stats={profile.stats}
               friendsMeta={
                 <span>
-                  <span className="font-semibold text-fg">{profile.friendCount}</span>{' '}
+                  <span className="text-fg">{profile.friendCount}</span>{' '}
                   {t('social.friendLabel', { count: profile.friendCount })}
                 </span>
               }
               action={<FriendAction profile={profile} signedIn={!!session} />}
             />
 
-            <main className="mx-auto flex max-w-[1360px] flex-col gap-10 px-10 pt-10 pb-20">
-              <FavouriteShelves
-                favorites={profile.favorites}
-                own={false}
-                emptyMessage={t('profile.favourites.emptyOther', { name: profile.user.name })}
-              />
-
-              <section className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <h2 className="font-heading text-[32px] uppercase">
-                    {t('profile.recent.title')}
-                  </h2>
-                  <Link
-                    to="/users/$username/history"
-                    params={{ username: profile.user.username }}
-                    className="font-label text-xs font-semibold tracking-label text-dim hover:text-pink"
-                  >
-                    {t('profile.recent.viewHistory')}
-                  </Link>
-                </div>
-                {profile.activity.length > 0 ? (
-                  <ul className="flex flex-col gap-2">
-                    {profile.activity.map((entry, index) => (
-                      <GlassCard
-                        as="li"
-                        key={`${entry.verb}-${entry.slug}-${index}`}
-                        className="flex items-center gap-3.5 rounded-card-sm px-4.5 py-3.5"
-                      >
-                        <p className="flex-1 text-sm text-muted">
-                          {activityVerb(entry)}{' '}
-                          <Link
-                            to="/media/$slug"
-                            params={{ slug: entry.slug }}
-                            className="font-semibold text-fg hover:text-pink"
-                          >
-                            {entry.title}
-                          </Link>{' '}
-                          <span className="font-bold text-pink">{entry.detail}</span>
-                        </p>
-                        <span className="font-label text-xs text-dim">
-                          {relativeTime(entry.at)}
-                        </span>
-                      </GlassCard>
-                    ))}
-                  </ul>
-                ) : (
-                  <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                    {t('profile.recent.emptyPublic')}
-                  </GlassCard>
-                )}
-              </section>
-            </main>
-          </>
+            <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+              <div className="flex min-w-0 flex-col gap-11">
+                <Favourites
+                  favorites={profile.favorites}
+                  own={false}
+                  emptyMessage={t('profile.favourites.emptyOther', { name: profile.user.name })}
+                />
+                <RightNow
+                  entries={profile.inProgress}
+                  total={profile.inProgressCount}
+                  username={profile.user.username}
+                />
+                <ProfileTimeline username={profile.user.username} />
+                <RecentActivity
+                  activity={profile.activity}
+                  emptyMessage={t('profile.recent.emptyPublic')}
+                  username={profile.user.username}
+                />
+              </div>
+              <aside className="flex min-w-0 flex-col gap-4">
+                <TasteCard
+                  taste={profile.taste}
+                  meanRating={profile.stats.meanRating}
+                  emptyMessage={t('profile.taste.emptyOther', { name: profile.user.name })}
+                />
+              </aside>
+            </div>
+          </main>
         )}
       </div>
     </div>

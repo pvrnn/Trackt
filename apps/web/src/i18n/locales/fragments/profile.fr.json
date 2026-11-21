@@ -12,10 +12,12 @@
     "backToSearch": "RETOUR À LA RECHERCHE →"
   },
   "header": {
-    "memberSince": "@{{username}} · membre depuis {{date}}",
-    "titlesTracked": "TITRES SUIVIS",
+    "joined": "INSCRIT·E EN {{date}}",
     "streak_one": "SÉRIE DE {{count}} JOUR",
-    "streak_other": "SÉRIE DE {{count}} JOURS"
+    "streak_other": "SÉRIE DE {{count}} JOURS",
+    "share": "↗ PARTAGER",
+    "shareCopied": "LIEN COPIÉ",
+    "shareFailed": "ÉCHEC DE LA COPIE"
   },
   "stats": {
     "episodesThisYear": "Épisodes cette année",
@@ -29,20 +31,53 @@
     "emptyOwn": "Rien dans vos favoris pour l’instant. Appuyez sur ♡ FAVORI sur la page d’un titre et il apparaîtra ici, classé par étagère.",
     "emptyOther": "{{name}} n’a encore rien ajouté à ses favoris.",
     "findMore": "Trouver d’autres titres à mettre en favori",
-    "movie": "Films favoris",
-    "game": "Jeux favoris",
-    "series": "Séries favorites",
-    "anime": "Animés favoris",
-    "manga": "Mangas favoris",
-    "webtoon": "Webtoons favoris"
+    "total_one": "{{count}} FAVORI",
+    "total_other": "{{count}} FAVORIS",
+    "topPicks": "COUPS DE CŒUR",
+    "topOf": "TOP {{kind}}",
+    "rank": "N° {{rank}}",
+    "seeAll": "TOUT VOIR ({{count}}) →",
+    "showFewer": "VOIR MOINS"
   },
   "recent": {
     "title": "Récents",
-    "viewHistory": "VOIR L’HISTORIQUE →",
+    "fullHistory": "TOUT L’HISTORIQUE →",
     "emptyOwn": "Ce que vous regardez et lisez, vos notes et vos changements de statut apparaissent ici.",
     "emptyPublic": "Aucun suivi public pour l’instant.",
     "rated": "Noté",
     "marked": "Marqué"
+  },
+  "rightNow": {
+    "title": "En ce moment",
+    "count_one": "{{shown}} SUR {{count}} EN COURS",
+    "count_other": "{{shown}} SUR {{count}} EN COURS",
+    "all": "TOUT CE QUI EST EN COURS →",
+    "episode_one": "{{count}} épisode vu",
+    "episode_other": "{{count}} épisodes vus",
+    "chapter_one": "{{count}} chapitre lu",
+    "chapter_other": "{{count}} chapitres lus",
+    "episodeOfTotal_one": "Épisode {{count}} sur {{total}}",
+    "episodeOfTotal_other": "Épisode {{count}} sur {{total}}",
+    "chapterOfTotal_one": "Chapitre {{count}} sur {{total}}",
+    "chapterOfTotal_other": "Chapitre {{count}} sur {{total}}"
+  },
+  "taste": {
+    "title": "Goûts",
+    "kinds": "CE QUI EST SUIVI",
+    "genres": "Y REVIENT TOUJOURS",
+    "average": "NOTE MOYENNE",
+    "rated_one": "{{count}} NOTÉ",
+    "rated_other": "{{count}} NOTÉS",
+    "perfectTens_one": "{{count}} DIX SUR DIX",
+    "perfectTens_other": "{{count}} DIX SUR DIX",
+    "emptyOwn": "Suivez quelques titres et le profil de vos goûts apparaîtra ici.",
+    "emptyOther": "{{name}} n’a encore rien suivi."
+  },
+  "friends": {
+    "all": "LES {{count}} →",
+    "showFewer": "VOIR MOINS",
+    "requests_one": "{{count}} DEMANDE EN ATTENTE",
+    "requests_other": "{{count}} DEMANDES EN ATTENTE"
   },
   "badges": {
     "title": "Badges",
@@ -101,6 +136,14 @@
         "trakt": "trakt.tv/users/pseudo",
         "steam": "steamcommunity.com/id/pseudo ou steamID64",
         "other": "pseudo"
+      },
+      "file": {
+        "field": "FICHIERS D’EXPORT",
+        "choose": "CHOISIR DES FICHIERS",
+        "none": "Aucun fichier choisi",
+        "chosen": "{{names}}",
+        "hint": "Les deux fichiers JSON (films et séries) de votre export TV Time, ou son résumé HTML. Les fichiers JSON contiennent les dates de visionnage ; le résumé non.",
+        "readError": "Impossible de lire {{name}}."
       }
     },
     "preview": {
@@ -118,7 +161,8 @@
       "more": "… {{n}} de plus",
       "nothing": "Tout ce profil est déjà suivi. Rien ne serait écrit.",
       "importNow": "IMPORTER MAINTENANT",
-      "unreadable": "L’aperçu est terminé, mais son résultat est illisible. Réessayez."
+      "unreadable": "L’aperçu est terminé, mais son résultat est illisible. Réessayez.",
+      "readingFile": "Lecture de votre export {{source}}. Rien n’a encore été écrit."
     },
     "run": {
       "running": "Écriture de votre bibliothèque. Vous pouvez fermer : l’import continue.",
@@ -126,6 +170,7 @@
       "doneTitle": "Import terminé",
       "created": "Créés",
       "updated": "Mis à jour",
+      "merged": "Fusionnés",
       "skipped": "Déjà suivis",
       "withProgress": "Avec progression",
       "ratings": "Notes",
@@ -149,5 +194,10 @@
       "start": "Impossible de lancer l’import.",
       "poll": "Impossible de lire la progression de l’import."
     }
+  },
+  "timeline": {
+    "title": "Frise",
+    "hint": "REMONTEZ LE TEMPS",
+    "open": "OUVRIR DANS L’HISTORIQUE →"
   }
 }

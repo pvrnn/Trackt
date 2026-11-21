@@ -8,6 +8,7 @@ import {
   useImportJob,
   useImportSources,
   useStartImport,
+  type ImportFileInput,
   type ImportJobStatus,
   type ImportSourceStatus,
 } from '@trackt/client';
@@ -75,6 +76,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>('choose');
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [profile, setProfile] = useState('');
+  const [files, setFiles] = useState<ImportFileInput[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [startError, setStartError] = useState<string | null>(null);
@@ -82,7 +84,9 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
 
   const selected = sources.data?.sources.find((source) => source.id === sourceId) ?? null;
   const trimmed = profile.trim();
-  const canStart = selected !== null && selected.available && trimmed.length > 0;
+  const isFile = selected?.access === 'file';
+  const canStart =
+    selected !== null && selected.available && (isFile ? files.length > 0 : trimmed.length > 0);
 
   /** A finished real run wrote logs: every screen that counts them is now stale. */
   const runCompleted = step === 'running' && job.data?.state === 'completed';
@@ -94,23 +98,22 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   }, [runCompleted, queryClient]);
 
   const launch = (dryRun: boolean) => {
-    if (!selected || !trimmed) return;
+    if (!canStart) return;
     setStartError(null);
-    startImport.mutate(
-      dryRun
-        ? { source: selected.id, profile: trimmed, dryRun: true }
-        : { source: selected.id, profile: trimmed, overwrite: false },
-      {
-        onSuccess: (queued) => {
-          // The attempt moves with the new job, never before it: a key change
-          // while the old job is still the answer would poll that answer again.
-          setAttempt((current) => current + 1);
-          setJobId(queued.jobId);
-          setStep(dryRun ? 'preview' : 'running');
-        },
-        onError: (error) => setStartError(error.message),
+    // A file source re-sends its export for the real run: the preview job kept only its own copy.
+    const input = isFile
+      ? { source: selected.id, files }
+      : { source: selected.id, profile: trimmed };
+    startImport.mutate(dryRun ? { ...input, dryRun: true } : { ...input, overwrite: false }, {
+      onSuccess: (queued) => {
+        // The attempt moves with the new job, never before it: a key change
+        // while the old job is still the answer would poll that answer again.
+        setAttempt((current) => current + 1);
+        setJobId(queued.jobId);
+        setStep(dryRun ? 'preview' : 'running');
       },
-    );
+      onError: (error) => setStartError(error.message),
+    });
   };
 
   /** Back to the source list. The preview was a dry run, so nothing was written. */
@@ -132,9 +135,12 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
             onSelect={(id) => {
               setSourceId(id);
               setProfile('');
+              setFiles([]);
             }}
             profile={profile}
             onProfile={setProfile}
+            files={files}
+            onFiles={setFiles}
             selected={selected}
             canStart={canStart}
             starting={startImport.isPending}
@@ -149,6 +155,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
             status={job.data}
             loadError={job.isError ? job.error.message : null}
             sourceLabel={selected?.label ?? t('profile.import.sources.unknown')}
+            isFile={isFile}
             starting={startImport.isPending}
             error={startError}
             onBack={back}
@@ -176,6 +183,8 @@ function ChooseStep({
   onSelect,
   profile,
   onProfile,
+  files,
+  onFiles,
   selected,
   canStart,
   starting,
@@ -188,6 +197,8 @@ function ChooseStep({
   onSelect: (id: string) => void;
   profile: string;
   onProfile: (value: string) => void;
+  files: ImportFileInput[];
+  onFiles: (files: ImportFileInput[]) => void;
   selected: ImportSourceStatus | null;
   canStart: boolean;
   starting: boolean;
@@ -232,21 +243,27 @@ function ChooseStep({
             ))}
           </div>
 
-          <Input
-            label={t('profile.import.choose.field')}
-            name="importProfile"
-            value={profile}
-            disabled={!selected}
-            autoComplete="off"
-            placeholder={
-              selected ? t(placeholderKey(selected.id)) : t('profile.import.choose.fieldIdle')
-            }
-            className="disabled:cursor-not-allowed disabled:opacity-50"
-            onChange={(event) => onProfile(event.target.value)}
-          />
-          <p className="-mt-2 text-xs leading-relaxed text-faint">
-            {t('profile.import.choose.fieldHint')}
-          </p>
+          {selected?.access === 'file' ? (
+            <FilePicker files={files} onFiles={onFiles} />
+          ) : (
+            <>
+              <Input
+                label={t('profile.import.choose.field')}
+                name="importProfile"
+                value={profile}
+                disabled={!selected}
+                autoComplete="off"
+                placeholder={
+                  selected ? t(placeholderKey(selected.id)) : t('profile.import.choose.fieldIdle')
+                }
+                className="disabled:cursor-not-allowed disabled:opacity-50"
+                onChange={(event) => onProfile(event.target.value)}
+              />
+              <p className="-mt-2 text-xs leading-relaxed text-faint">
+                {t('profile.import.choose.fieldHint')}
+              </p>
+            </>
+          )}
         </>
       )}
 
@@ -263,6 +280,68 @@ function ChooseStep({
         )}
       </div>
     </>
+  );
+}
+
+/** An export read as text in the browser; the API reduces it to what the import needs. */
+function FilePicker({
+  files,
+  onFiles,
+}: {
+  files: ImportFileInput[];
+  onFiles: (files: ImportFileInput[]) => void;
+}) {
+  const { t } = useTranslation();
+  const [readError, setReadError] = useState<string | null>(null);
+
+  const read = async (list: FileList | null) => {
+    setReadError(null);
+    const chosen = [...(list ?? [])];
+    const read: ImportFileInput[] = [];
+    for (const file of chosen) {
+      try {
+        read.push({ name: file.name, content: await file.text() });
+      } catch {
+        setReadError(t('profile.import.choose.file.readError', { name: file.name }));
+        onFiles([]);
+        return;
+      }
+    }
+    onFiles(read);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="font-label text-xs tracking-label text-dim uppercase">
+        {t('profile.import.choose.file.field')}
+      </span>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="cursor-pointer rounded-card-sm border border-glass-border bg-glass px-4 py-2 text-sm font-bold text-fg transition focus-within:border-pink hover:border-pink">
+          {t('profile.import.choose.file.choose')}
+          <input
+            type="file"
+            name="importFiles"
+            multiple
+            accept=".json,.html,.htm,application/json,text/html"
+            className="sr-only"
+            onChange={(event) => void read(event.target.files)}
+          />
+        </label>
+        <span className="min-w-0 truncate text-sm text-muted">
+          {files.length > 0
+            ? t('profile.import.choose.file.chosen', {
+                names: files.map((file) => file.name).join(', '),
+              })
+            : t('profile.import.choose.file.none')}
+        </span>
+      </div>
+      {readError && (
+        <p role="alert" className="text-sm text-red-400">
+          {readError}
+        </p>
+      )}
+      <p className="text-xs leading-relaxed text-faint">{t('profile.import.choose.file.hint')}</p>
+    </div>
   );
 }
 
@@ -307,6 +386,7 @@ function PreviewStep({
   status,
   loadError,
   sourceLabel,
+  isFile,
   starting,
   error,
   onBack,
@@ -317,6 +397,7 @@ function PreviewStep({
   status: ImportJobStatus | undefined;
   loadError: string | null;
   sourceLabel: string;
+  isFile: boolean;
   starting: boolean;
   error: string | null;
   onBack: () => void;
@@ -354,7 +435,9 @@ function PreviewStep({
         <p className="text-[15px] text-muted">
           {phase === 'queued'
             ? t('profile.import.queued')
-            : t('profile.import.preview.reading', { source: sourceLabel })}
+            : isFile
+              ? t('profile.import.preview.readingFile', { source: sourceLabel })
+              : t('profile.import.preview.reading', { source: sourceLabel })}
         </p>
         <ProgressBar percent={null} />
       </div>
@@ -489,6 +572,7 @@ function RunningStep({
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               <Count label={t('profile.import.run.created')} value={report.created} />
               <Count label={t('profile.import.run.updated')} value={report.updated} />
+              <Count label={t('profile.import.run.merged')} value={report.merged} />
               <Count label={t('profile.import.run.skipped')} value={report.skippedExisting} />
               <Count label={t('profile.import.run.withProgress')} value={report.withProgress} />
               <Count label={t('profile.import.run.ratings')} value={report.ratings} />

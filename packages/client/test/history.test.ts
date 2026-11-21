@@ -28,6 +28,7 @@ function entry(loggedOn: string, id = loggedOn): HistoryEntry {
     score: null,
     watched: 0,
     total: null,
+    sessions: [],
   };
 }
 

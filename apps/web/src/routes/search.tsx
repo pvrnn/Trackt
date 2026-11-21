@@ -1,14 +1,23 @@
-import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MEDIA_KINDS, type MediaKind } from '@trackt/shared';
+import {
+  GenreListSchema,
+  MEDIA_KINDS,
+  SEARCH_SORTS,
+  STATUS_FILTERS,
+  type MediaKind,
+  type SearchResult,
+  type SearchSort,
+  type StatusFilter,
+} from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
-import { CoverCard } from '../components/media/CoverCard';
-import { Chip } from '../components/ui/Chip';
-import { KindDot } from '../components/ui/KindDot';
-import { Select, type SelectItem } from '../components/ui/Select';
+import { FilterPanel, FilterTokens, FiltersCell } from '../components/search/DiscoverFilterPanel';
+import { DiscoverPoster } from '../components/search/DiscoverPoster';
+import { FilterBar, FilterCell, KindStrip } from '../components/ui/FilterBar';
+import { Select } from '../components/ui/Select';
+import type { SelectItem } from '../components/ui/Select';
 import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
 import {
@@ -18,6 +27,7 @@ import {
   groupGameSearchResults,
   isSelectableYear,
   useMediaSearch,
+  useSearchKindCounts,
   useShowcase,
 } from '@trackt/client';
 
@@ -25,6 +35,18 @@ export interface SearchParams {
   q?: string;
   kind?: MediaKind;
   year?: number;
+  /** Absent means relevance, so the plain search URL stays the default. */
+  sort?: Exclude<SearchSort, 'relevance'>;
+  /** Comma-joined, as the API takes it; every genre must match. */
+  genres?: string;
+  status?: StatusFilter;
+}
+
+/** A `?genres=` the API would accept, normalised; anything else is no filter. */
+function parseGenres(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const parsed = GenreListSchema.safeParse(value);
+  return parsed.success ? parsed.data.join(',') : undefined;
 }
 
 /**
@@ -42,12 +64,17 @@ export const Route = createFileRoute('/search')({
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     kind: MEDIA_KINDS.includes(search.kind as MediaKind) ? (search.kind as MediaKind) : undefined,
     year: parseYear(search.year),
+    sort:
+      search.sort !== 'relevance' && SEARCH_SORTS.includes(search.sort as SearchSort)
+        ? (search.sort as Exclude<SearchSort, 'relevance'>)
+        : undefined,
+    genres: parseGenres(search.genres),
+    status: STATUS_FILTERS.includes(search.status as StatusFilter)
+      ? (search.status as StatusFilter)
+      : undefined,
   }),
   component: SearchPage,
 });
-
-/** Toggle-group value for the unfiltered state; `kind` stays undefined in the URL. */
-const ALL_KINDS = 'all';
 
 /**
  * How long typing settles before it becomes a query. The search endpoint sits
@@ -118,9 +145,52 @@ function SearchPage() {
   const labels = useLabels();
   const navigate = useNavigate({ from: Route.fullPath });
   const { isPending, navUser } = useAuthedPage();
-  const { q = '', kind, year } = Route.useSearch();
+  const {
+    q = '',
+    kind,
+    year,
+    sort = 'relevance',
+    genres: genreParam,
+    status: mediaStatus,
+  } = Route.useSearch();
   const [input, setInput] = useState(q);
-  const { status, results, hasMore, loadMore, loadingMore } = useMediaSearch(q, kind, year);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const panelId = useId();
+  const filtersButton = useRef<HTMLButtonElement>(null);
+  const genres = genreParam ? genreParam.split(',') : [];
+  const filters = { genres, status: mediaStatus };
+  const panelActive = genres.length + (mediaStatus ? 1 : 0);
+  const { status, results, hasMore, loadMore, loadingMore } = useMediaSearch(
+    q,
+    kind,
+    year,
+    sort,
+    filters,
+  );
+  const kindCounts = useSearchKindCounts(q, year, sort, filters);
+  // Hits for every filter at once: the picked kind's count, or all of them.
+  const hitCount = kindCounts
+    ? kind
+      ? (kindCounts[kind] ?? 0)
+      : MEDIA_KINDS.reduce((sum, value) => sum + (kindCounts[value] ?? 0), 0)
+    : undefined;
+  // The count beside RESULTS: the server's, or the list's own once it is all loaded.
+  const resultCount =
+    hitCount ??
+    (status === 'success' && results.length > 0 && !hasMore ? results.length : undefined);
+  const panelProps = {
+    genres,
+    status: mediaStatus,
+    onGenres: (next: string[]) =>
+      navigate({
+        search: (previous) => ({
+          ...previous,
+          genres: next.length > 0 ? next.join(',') : undefined,
+        }),
+      }),
+    onStatus: (next: StatusFilter | undefined) =>
+      navigate({ search: (previous) => ({ ...previous, status: next }) }),
+  };
   // What the page shows before anything is typed: the instance's own catalog,
   // narrowed by the same kind chips and year the results are. It survives a
   // query too short to run — there are no results to take its place, and a lone
@@ -131,27 +201,34 @@ function SearchPage() {
     hasMore: showcaseMore,
     loadMore: loadShowcase,
     loadingMore: showcaseLoadingMore,
-  } = useShowcase(kind, year);
+  } = useShowcase(kind, year, filters);
   const resultGroups = groupGameSearchResults(results);
   const tooShort = q.trim().length > 0 && q.trim().length < MIN_MEDIA_SEARCH_QUERY;
   const browsing = !q || tooShort;
   const browseItems = browsing ? showcase : [];
 
+  const sortItems: SelectItem[] = [
+    { value: 'relevance', label: t('discover.sortRelevance') },
+    { value: 'newest', label: t('discover.sortNewest') },
+    { value: 'az', label: t('discover.sortAz') },
+  ];
   const yearItems: SelectItem[] = [
     { value: '', label: t('discover.anyYear') },
     ...SELECTABLE_YEARS.map((value) => ({ value: String(value), label: String(value) })),
   ];
-  const emptyMessage = kind
-    ? year
-      ? t('discover.emptyInKindYear', {
-          query: q,
-          kind: labels.kind(kind).toLowerCase(),
-          year,
-        })
-      : t('discover.emptyInKind', { query: q, kind: labels.kind(kind).toLowerCase() })
-    : year
-      ? t('discover.emptyInYear', { query: q, year })
-      : t('discover.empty', { query: q });
+  const emptyMessage = panelActive
+    ? t('discover.emptyFiltered', { query: q })
+    : kind
+      ? year
+        ? t('discover.emptyInKindYear', {
+            query: q,
+            kind: labels.kind(kind).toLowerCase(),
+            year,
+          })
+        : t('discover.emptyInKind', { query: q, kind: labels.kind(kind).toLowerCase() })
+      : year
+        ? t('discover.emptyInYear', { query: q, year })
+        : t('discover.empty', { query: q });
 
   // Infinite scroll on both grids: the results, and the shelf the page shows
   // before anything is typed. Only one of the two is rendered at a time, so the
@@ -209,82 +286,79 @@ function SearchPage() {
     return () => clearTimeout(timer);
   }, [input, q, navigate]);
 
-  // No ⌘K listener here: the nav pill now renders on this page too and owns the
-  // one global shortcut, so two listeners don't fight over `preventDefault`.
-  // This input keeps `autoFocus`, which is what ⌘K would have done on arrival.
+  // No ⌘K listener here: NavSearch owns the one global shortcut and hands it to
+  // the `data-discover-query` field below while this page is mounted.
 
   if (isPending || !navUser) return <div className="min-h-screen bg-ink" />;
+
+  const filtered = kind !== undefined || year !== undefined || panelActive > 0;
+  const gameContextLine = (item: SearchResult): string => {
+    const context = gameSearchContext(item.kind, item.metadata ?? {});
+    if (!context) return '';
+    return [
+      context.editionTitle
+        ? t('discover.gameEdition', { name: context.editionTitle })
+        : context.role
+          ? t(`discover.gameRole.${context.role}`)
+          : null,
+      context.parentTitle ? t('discover.gameFor', { title: context.parentTitle }) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
+  const resetFilters = () => {
+    setInput('');
+    navigate({ search: {} });
+  };
 
   return (
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
       <div className="relative">
         <AppNav user={navUser} />
-        <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
+        <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-4 pt-12 pb-20 sm:px-10">
           <h1 className="font-heading text-[64px] leading-none uppercase">{t('discover.title')}</h1>
 
-          <div className="flex flex-col gap-3.5">
-            <label className="flex items-center gap-3.5 rounded-full border border-glass-border-strong bg-glass-well px-6 py-4 backdrop-blur-[16px]">
-              <span aria-hidden className="text-lg text-dim">
-                ⌕
-              </span>
-              <input
-                type="search"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder={t('discover.searchPlaceholder')}
-                // The wrapping label's only content is the aria-hidden ⌕, so
-                // without this the name falls back to the placeholder, the
-                // weakest source in the accname spec, and gone once you type.
-                aria-label={t('discover.searchAria')}
-                autoFocus
-                className="flex-1 bg-transparent text-[17px] outline-none placeholder:text-dim"
+          {/* One row: the query, then every filter as the same cell. */}
+          {/* What doesn't fit (status, genres) is the last cell's panel, hung off
+              this wrapper; what is set in there shows as tokens under the bar. */}
+          <div className="relative">
+            <FilterBar className="fbar-discover focus-within:shadow-[inset_0_0_0_1px_rgb(217_107_176_/_0.7)]">
+              <label className="fcell flex-[4_1_320px] cursor-text gap-3.5">
+                <span aria-hidden className="text-xl leading-none text-dim">
+                  ⌕
+                </span>
+                <input
+                  type="search"
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder={t('discover.searchPlaceholder')}
+                  // The label's only other content is aria-hidden, so without this
+                  // the name falls back to the placeholder, gone once you type.
+                  aria-label={t('discover.searchAria')}
+                  autoFocus
+                  data-discover-query
+                  className="min-w-0 flex-1 bg-transparent py-4 text-[17px] font-medium outline-none placeholder:text-dim [&::-webkit-search-cancel-button]:appearance-none"
+                />
+                <span
+                  aria-hidden
+                  className="hidden rounded-md px-2 py-1 font-label text-[11px] font-semibold tracking-[0.06em] text-dim shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)] lg:inline"
+                >
+                  ⌘K
+                </span>
+              </label>
+              <KindStrip
+                value={kind}
+                counts={browsing ? undefined : kindCounts}
+                onChange={(next) =>
+                  navigate({ search: (previous) => ({ ...previous, kind: next }) })
+                }
               />
-              {/* No ⌘K hint: the shortcut focuses the nav pill, and this field
-                  is already focused on arrival. */}
-            </label>
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
-              <ToggleGroup.Root
-                type="single"
-                aria-label={t('discover.filterAria')}
-                value={kind ?? ALL_KINDS}
-                onValueChange={(value) => {
-                  // Radix emits '' when the active item is pressed again; a filter
-                  // row has no "nothing selected" state, so ignore it.
-                  if (!value) return;
-                  navigate({
-                    search: (previous) => ({
-                      ...previous,
-                      kind: value === ALL_KINDS ? undefined : (value as MediaKind),
-                    }),
-                  });
-                }}
-                className="flex flex-wrap gap-2.5"
-              >
-                {/* `aria-pressed={undefined}` drops Chip's own toggle semantics:
-                    ToggleGroup supplies role="radio" + aria-checked here, and a
-                    radio that is also aria-pressed is invalid ARIA. */}
-                <ToggleGroup.Item value={ALL_KINDS} asChild>
-                  <Chip selected={kind === undefined} aria-pressed={undefined}>
-                    {t('common.all')}
-                  </Chip>
-                </ToggleGroup.Item>
-                {MEDIA_KINDS.map((value) => (
-                  <ToggleGroup.Item key={value} value={value} asChild>
-                    <Chip selected={kind === value} aria-pressed={undefined}>
-                      {labels.kind(value)}
-                    </Chip>
-                  </ToggleGroup.Item>
-                ))}
-              </ToggleGroup.Root>
-              <Select
-                variant="pill"
-                caption={t('discover.year')}
-                aria-label={t('discover.yearAria')}
-                className="py-2 pr-3 pl-4"
+              <FilterCell
+                className="fcell-year"
+                label={t('discover.year')}
                 items={yearItems}
                 value={year === undefined ? '' : String(year)}
-                selected={year !== undefined}
                 onChange={(value) =>
                   navigate({
                     search: (previous) => ({
@@ -294,8 +368,29 @@ function SearchPage() {
                   })
                 }
               />
-            </div>
+              <FiltersCell
+                ref={filtersButton}
+                open={panelOpen}
+                active={panelActive}
+                panelId={panelId}
+                onToggle={() => setPanelOpen((open) => !open)}
+              />
+            </FilterBar>
+            {panelOpen && (
+              <FilterPanel
+                {...panelProps}
+                id={panelId}
+                kind={kind}
+                total={browsing ? undefined : hitCount}
+                onClose={() => {
+                  setPanelOpen(false);
+                  filtersButton.current?.focus();
+                }}
+              />
+            )}
           </div>
+
+          <FilterTokens {...panelProps} />
 
           {/* Says why the shelf below hasn't turned into results, without
               taking the shelf away. */}
@@ -306,39 +401,16 @@ function SearchPage() {
           )}
 
           {/* Nothing typed yet (or not enough): the instance's own catalog,
-              under the filter chips above. No heading when the shelf is empty —
-              a lone "On this instance" over nothing reads as a load that
-              failed — but a filter that matches nothing says so, or the chip
-              and year pill look like they did nothing. */}
+              narrowed by the same tabs and year. No heading over it, by design. */}
           {browseItems.length > 0 ? (
             <>
-              <h2 className="font-heading text-[32px] uppercase">
-                {kind
-                  ? t('discover.browseKind', { kind: labels.kind(kind) })
-                  : t('discover.browse')}
-              </h2>
-              <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              <ul className={GRID}>
                 {browseItems.map((item) => (
-                  <li key={item.id}>
-                    <Link to="/media/$slug" params={{ slug: item.slug }}>
-                      <CoverCard
-                        kind={item.kind}
-                        title={item.title}
-                        coverUrl={item.coverUrl ?? undefined}
-                        caption={
-                          <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
-                            <KindDot kind={item.kind} showLabel />
-                            {item.year !== null && <span>· {item.year}</span>}
-                          </span>
-                        }
-                      />
-                    </Link>
+                  <li key={item.id} className="min-w-0">
+                    <DiscoverPoster item={item} />
                   </li>
                 ))}
               </ul>
-              {/* The shelf pages the same way the results do: scrolling past
-                  what this instance shows first asks for the next batch of the
-                  same round-robin order. */}
               <div ref={shelfSentinel} aria-hidden="true" className="h-px" />
               <p
                 role="status"
@@ -348,22 +420,40 @@ function SearchPage() {
               </p>
             </>
           ) : (
+            browsing &&
             !showcasePending &&
-            (kind !== undefined || year !== undefined) &&
-            (!q || tooShort) && (
-              <p className="text-[15px] text-muted">{t('discover.browseEmpty')}</p>
-            )
+            filtered && <NothingMatches body={t('discover.browseEmpty')} onReset={resetFilters} />
           )}
 
           {q && !tooShort && (
             <>
-              <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-4">
                 <h2 className="font-heading text-[32px] uppercase">{t('discover.results')}</h2>
-                {status === 'success' && results.length > 0 && (
-                  <span className="font-label text-[13px] tracking-label text-dim">
-                    {t('discover.resultCount', { count: results.length })}
-                  </span>
-                )}
+                {/* Sort orders results rather than narrowing them, so it sits
+                    with the count as a quiet menu, not in the bar. */}
+                <div className="flex items-center gap-1.5">
+                  {resultCount !== undefined && (
+                    <span className="pr-2.5 font-label text-[12px] font-semibold tracking-label text-dim shadow-[inset_-1px_0_0_rgb(255_255_255_/_0.12)]">
+                      {t('discover.resultCount', { count: resultCount })}
+                    </span>
+                  )}
+                  <Select
+                    variant="bare"
+                    caption={t('discover.sort')}
+                    aria-label={t('discover.sort')}
+                    items={sortItems}
+                    value={sort}
+                    onChange={(value) =>
+                      navigate({
+                        search: (previous) => ({
+                          ...previous,
+                          sort: value === 'relevance' ? undefined : (value as 'newest' | 'az'),
+                        }),
+                      })
+                    }
+                    className="rounded-lg uppercase hover:bg-white/[0.07]"
+                  />
+                </div>
               </div>
 
               {status === 'error' ? (
@@ -371,102 +461,44 @@ function SearchPage() {
                   {t('errors.searchFailed')}
                 </p>
               ) : results.length === 0 && status === 'success' ? (
-                <p className="text-[15px] text-muted">{emptyMessage}</p>
+                <NothingMatches body={emptyMessage} onReset={resetFilters} />
               ) : (
                 <>
-                  <ul
-                    aria-busy={status === 'loading'}
-                    className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
-                  >
-                    {resultGroups.map(({ result, related }) => {
-                      const gameContext = gameSearchContext(result.kind, result.metadata ?? {});
-                      const role = gameContext?.role
-                        ? t(`discover.gameRole.${gameContext.role}`)
-                        : null;
-                      const context = [
-                        gameContext?.editionTitle
-                          ? t('discover.gameEdition', { name: gameContext.editionTitle })
-                          : role,
-                        gameContext?.parentTitle
-                          ? t('discover.gameFor', { title: gameContext.parentTitle })
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ');
-                      return (
-                        <li key={result.id}>
-                          <Link to="/media/$slug" params={{ slug: result.slug }}>
-                            <CoverCard
-                              kind={result.kind}
-                              title={result.title}
-                              coverUrl={result.coverUrl ?? undefined}
-                              caption={
-                                <>
-                                  <span className="flex items-center gap-2 font-label text-[11px] tracking-label uppercase">
-                                    <KindDot kind={result.kind} showLabel />
-                                    {result.year !== null && <span>· {result.year}</span>}
-                                  </span>
-                                  {context && (
-                                    <span className="mt-1 block text-xs text-dim">{context}</span>
-                                  )}
-                                </>
-                              }
-                            />
-                          </Link>
-                          {related.length > 0 && (
-                            <details className="mt-2 text-xs text-muted">
-                              <summary className="cursor-pointer select-none">
-                                {t('discover.relatedReleases', { count: related.length })}
-                              </summary>
-                              <ul className="mt-1 space-y-1 pl-3">
-                                {related.map((item) => {
-                                  const itemContext = gameSearchContext(
-                                    item.kind,
-                                    item.metadata ?? {},
-                                  );
-                                  const itemRole = itemContext?.role
-                                    ? t(`discover.gameRole.${itemContext.role}`)
-                                    : null;
-                                  const itemLabel = [
-                                    itemContext?.editionTitle
-                                      ? t('discover.gameEdition', {
-                                          name: itemContext.editionTitle,
-                                        })
-                                      : itemRole,
-                                    itemContext?.parentTitle
-                                      ? t('discover.gameFor', { title: itemContext.parentTitle })
-                                      : null,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' · ');
-                                  return (
-                                    <li key={item.id}>
-                                      <Link
-                                        to="/media/$slug"
-                                        params={{ slug: item.slug }}
-                                        className="block rounded px-1 py-1 hover:bg-white/10 hover:text-fg"
-                                      >
-                                        <span className="font-semibold">{item.title}</span>
-                                        {(item.year !== null || itemLabel) && (
-                                          <span className="block text-dim">
-                                            {[item.year, itemLabel].filter(Boolean).join(' · ')}
-                                          </span>
-                                        )}
-                                      </Link>
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                            </details>
-                          )}
-                        </li>
-                      );
-                    })}
+                  <ul aria-busy={status === 'loading'} className={GRID}>
+                    {resultGroups.map(({ result, related }) => (
+                      <li key={result.id} className="min-w-0">
+                        <DiscoverPoster item={result} context={gameContextLine(result)} />
+                        {related.length > 0 && (
+                          <details className="mt-2 text-xs text-muted">
+                            <summary className="cursor-pointer select-none">
+                              {t('discover.relatedReleases', { count: related.length })}
+                            </summary>
+                            <ul className="mt-1 space-y-1 pl-3">
+                              {related.map((item) => {
+                                const itemLabel = gameContextLine(item);
+                                return (
+                                  <li key={item.id}>
+                                    <Link
+                                      to="/media/$slug"
+                                      params={{ slug: item.slug }}
+                                      className="block rounded px-1 py-1 hover:bg-white/10 hover:text-fg"
+                                    >
+                                      <span className="font-semibold">{item.title}</span>
+                                      {(item.year !== null || itemLabel) && (
+                                        <span className="block text-dim">
+                                          {[item.year, itemLabel].filter(Boolean).join(' · ')}
+                                        </span>
+                                      )}
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </details>
+                        )}
+                      </li>
+                    ))}
                   </ul>
-                  {/* The results grid's sentinel, then the only thing a short
-                      grid says about more: a batch on its way. Nothing is
-                      rendered at the end of the list, because the count above
-                      already says how many are showing. */}
                   <div ref={sentinel} aria-hidden="true" className="h-px" />
                   <p
                     role="status"
@@ -479,12 +511,36 @@ function SearchPage() {
             </>
           )}
 
-          <aside className="mt-3 rounded-card border border-dashed border-white/20 bg-glass px-8 py-7 backdrop-blur-[16px]">
-            <p className="text-base font-bold">{t('discover.missingTitle')}</p>
-            <p className="mt-0.5 text-sm text-muted">{t('discover.missingBody')}</p>
+          <aside className="mt-3 flex items-center gap-6 rounded-card border border-dashed border-white/20 bg-glass px-8 py-7 backdrop-blur-[16px]">
+            <span aria-hidden className="text-prism font-display text-[40px] leading-none">
+              ＋
+            </span>
+            <div>
+              <p className="text-base font-bold">{t('discover.missingTitle')}</p>
+              <p className="mt-0.5 text-sm text-muted">{t('discover.missingBody')}</p>
+            </div>
           </aside>
         </main>
       </div>
+    </div>
+  );
+}
+
+const GRID = 'grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6';
+
+function NothingMatches({ body, onReset }: { body: string; onReset: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-white/20 px-8 py-11 text-center">
+      <p className="font-heading text-[32px] text-dim uppercase">{t('discover.nothingMatches')}</p>
+      <p className="text-sm text-muted">{body}</p>
+      <button
+        type="button"
+        onClick={onReset}
+        className="mt-2 cursor-pointer px-1 py-2 font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
+      >
+        {t('discover.resetFilters')}
+      </button>
     </div>
   );
 }

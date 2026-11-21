@@ -12,6 +12,10 @@
     "soon": "SOON",
     "comingSoon": "Coming soon"
   },
+  "filters": {
+    "kind": "filter by kind",
+    "kindLabel": "KIND"
+  },
   "meta": {
     "description": "Trackt: open-source, self-hostable tracker for movies, series, anime, manga, webtoons, and games.",
     "home": "Home · Trackt",
@@ -41,7 +45,6 @@
     "lists": "LISTS",
     "history": "HISTORY",
     "profile": "PROFILE",
-    "selfHost": "SELF-HOST",
     "api": "API",
     "github": "GITHUB",
     "signIn": "SIGN IN"
@@ -144,84 +147,175 @@
   "auth": {
     "login": {
       "title": "Welcome back",
-      "subtitle": "Track everything. Lose nothing."
+      "pitchTop": "Pick up where",
+      "pitchBottom": "you left off."
     },
     "register": {
-      "title": "Create account",
-      "subtitle": "Your history, ratings, and lists, exportable any time."
+      "title": "Start your log",
+      "pitchTop": "Everything you watch,",
+      "pitchBottom": "read and play."
     },
     "fields": {
-      "name": "Name",
       "username": "Username",
       "email": "Email",
-      "password": "Password",
-      "confirmPassword": "Confirm password"
+      "password": "Password"
     },
+    "passwordHint": {
+      "login": "Your password",
+      "register": "Choose a password"
+    },
+    "showPassword": "SHOW",
+    "hidePassword": "HIDE",
+    "showPasswordAria": "Show password",
     "submit": "SIGN IN",
     "submitting": "SIGNING IN…",
     "createAccount": "CREATE ACCOUNT",
     "creatingAccount": "CREATING ACCOUNT…",
-    "newHere": "New here",
-    "alreadyMember": "Already a member",
+    "switchToRegister": {
+      "text": "New here?",
+      "action": "Create an account"
+    },
+    "switchToLogin": {
+      "text": "Already tracking?",
+      "action": "Sign in"
+    },
+    "backToSite": "BACK TO SITE",
     "homeAria": "Trackt home",
-    "manifesto": {
-      "line1": "Every episode.",
-      "line2": "Every chapter.",
-      "line3": "Yours forever.",
-      "body": "Open source, self-hostable, full export any time. Built by people who lost their history once."
-    },
+    "github": "OPEN SOURCE ON GITHUB",
+    "tvTimeSoon": "TV TIME IMPORT COMING SOON",
+    "modesAria": "Sign in or create an account",
     "validation": {
-      "nameRequired": "Name is required",
-      "usernameFormat": "3–30 characters: letters, numbers, dots, underscores",
+      "usernameFormat": "3 to 30 characters: letters, numbers, dots, underscores",
       "emailRequired": "Email is required",
-      "passwordLength": "At least {{min}} characters",
-      "passwordMismatch": "Passwords do not match"
-    },
-    "tvTime": {
-      "title": "Coming from TV Time?",
-      "body": "Bring your GDPR export: 1,000 episodes import in under a minute.",
-      "cta": "IMPORT · SOON",
-      "tooltip": "The TV Time importer is coming soon"
+      "passwordLength": "At least {{min}} characters"
     }
   },
   "marketing": {
     "hero": {
-      "eyebrow": "OPEN SOURCE · SELF-HOSTABLE · COMMUNITY-OWNED",
-      "titleTop": "Track everything.",
-      "titleBottom": "Lose <accent>nothing.</accent>",
-      "body": "Movies, series, anime, manga, webtoons, and games, with full export at any time and a public API from day one. TV Time deleted 25 million histories. Never again.",
-      "start": "START TRACKING",
-      "importSoon": "IMPORT FROM TV TIME · SOON",
-      "importTooltip": "The TV Time importer is coming soon",
-      "selfHost": "or self-host:"
+      "label": "Track every movie, series, anime, manga, webtoon and game",
+      "titleTop": "Track every",
+      "word": {
+        "movie": "MOVIE.",
+        "series": "SERIES.",
+        "anime": "ANIME.",
+        "manga": "MANGA.",
+        "webtoon": "WEBTOON.",
+        "game": "GAME."
+      },
+      "body": "One log for everything you watch, read and play. Check in an episode or a chapter in two taps, see what your friends are into, and get news only about what you follow.",
+      "start": "START TRACKING · FREE",
+      "github": "VIEW ON GITHUB",
+      "proof": "OPEN SOURCE · FULL EXPORT ANY TIME · <import>IMPORT FROM 5 APPS</import>",
+      "checkedIn": "Checked in",
+      "finished": "{{user}} finished it"
     },
-    "pillars": {
-      "title": "Why this exists",
-      "one": {
-        "title": "Your data, forever",
-        "body": "Full export at any time in an open format. Public API from day one. Portability is the founding principle, not a checkbox."
+    "kinds": {
+      "titleTop": "Six kinds.",
+      "titleBottom": "One log.",
+      "body": "No more one app for shows, a spreadsheet for manga and a memory for games. Each kind is tracked the way it is actually consumed.",
+      "how": {
+        "movie": "Watched, rated, rewatched.",
+        "series": "Season by season, episode by episode.",
+        "anime": "Every season, every episode.",
+        "manga": "By chapter or by volume.",
+        "webtoon": "Chapter by chapter, season by season.",
+        "game": "Playing, paused, finished or dropped."
       },
-      "two": {
-        "title": "Self-host in one command",
-        "body": "docker compose up and you have your own instance: your catalog, your community, your rules."
-      },
-      "three": {
-        "title": "Track at real granularity",
-        "body": "Episodes, chapters, volumes, rewatches. Half-point ratings on whole works or single episodes."
-      },
-      "four": {
-        "title": "Community catalog",
-        "body": "Webtoons and obscure titles the big databases skip? Add them yourself and share them across instances."
+      "sample": {
+        "movie": "{{title}} · WATCHED · 9.0",
+        "series": "{{title}} · EPISODE 5",
+        "anime": "{{title}} · EPISODE 18",
+        "manga": "{{title}} · CHAPTER 31",
+        "webtoon": "{{title}} · CHAPTER 112",
+        "game": "{{title}} · PLAYING"
       }
     },
-    "checkIn": {
-      "titleTop": "Two taps.",
-      "titleBottom": "It’s logged.",
-      "body": "Per-episode for series and anime, per-chapter for manga and webtoons, and one-step status tracking for games. Speed is a hard requirement, not a feature.",
-      "episodeOf": "Episode {{next}} of {{total}}",
-      "episode": "Episode {{next}}",
-      "chapterOf": "Chapter {{next}} of {{total}}",
-      "chapter": "Chapter {{next}}"
+    "features": {
+      "title": "More than a checklist",
+      "checkIn": {
+        "title": "Two taps. It’s logged.",
+        "body": "Your next episode or chapter is waiting on the home page. Try it.",
+        "next": "Episode {{next}} of {{total}}",
+        "done": "Checked in · next: episode {{next}}",
+        "action": "Check in {{title}}"
+      },
+      "friends": {
+        "title": "Friends, minus the spoilers",
+        "body": "See what your people watch, read, rate and drop. Anything past where you are stays blurred until you catch up.",
+        "rated": "<b>{{user}}</b> rated <b>{{title}}</b> {{unit}} <score>{{score}}</score>",
+        "spoiler": "<b>{{user}}</b> on {{unit}}: <spoiler>the lighthouse keeper twist</spoiler>",
+        "spoilerTag": "SPOILER"
+      },
+      "news": {
+        "title": "News you actually follow",
+        "body": "Renewals, release dates and adaptations, filtered down to the titles in your library.",
+        "renewed": "Neon Harbor renewed for a third season",
+        "premiere": "Ashfall Chronicle part two premieres 9 January"
+      },
+      "profile": {
+        "title": "A profile that reads like you",
+        "body": "Your top pick in every kind, what you are into right now, and where your time really goes.",
+        "time": "WHERE THE TIME GOES"
+      }
+    },
+    "import": {
+      "titleTop": "Bring your",
+      "titleBottom": "history with you",
+      "body": "Years of watching, reading and playing already live somewhere. Import them and start with a full log instead of an empty one.",
+      "cta": "IMPORT MY HISTORY",
+      "note": "RATINGS AND DATES COME ACROSS · IMPORT MORE THAN ONE"
+    },
+    "discord": {
+      "eyebrow": "DISCORD BOT",
+      "titleTop": "Watch together,",
+      "titleBottom": "log together",
+      "body": "Add the Trackt bot to your server and the log follows your group into the channel where you already talk.",
+      "parties": {
+        "k": "WATCH PARTIES",
+        "v": "Schedule an episode, a film or a chapter. Everyone who joins is checked in when it ends."
+      },
+      "feed": {
+        "k": "ACTIVITY FEED",
+        "v": "Check-ins, ratings and finished titles post to the channel you choose."
+      },
+      "commands": {
+        "k": "COMMANDS",
+        "v": "Look up a title, see what is up next, or log from chat without opening the app."
+      },
+      "cta": "ADD TO DISCORD",
+      "bot": "BOT",
+      "party": "WATCH PARTY · TONIGHT 21:00",
+      "partyMeta": "S2 E6 · Dead Reckoning · {{count}} going",
+      "join": "JOIN",
+      "going": "GOING",
+      "over": "Party over. <b>june_k</b>, <b>rex</b>, <b>aki</b> and <b>noor</b> were checked in to <b>S2 E6</b>. Average rating <score>8.8</score>"
+    },
+    "open": {
+      "title": "Open by default",
+      "body": "Years of history should not depend on one company staying alive. The code is public, your data leaves whenever you want, and anyone can run their own copy.",
+      "github": "VIEW ON GITHUB",
+      "docs": "API DOCS",
+      "source": {
+        "k": "OPEN SOURCE",
+        "v": "GPL-3.0, developed in the open on GitHub."
+      },
+      "data": {
+        "k": "YOUR DATA",
+        "v": "Full export at any time, in an open format."
+      },
+      "api": {
+        "k": "PUBLIC API",
+        "v": "Everything the app does, documented from day one."
+      },
+      "selfHost": {
+        "k": "SELF-HOST",
+        "v": "Prefer your own instance? One command:"
+      }
+    },
+    "closer": {
+      "title": "Start your <accent>log.</accent>",
+      "body": "Add the first thing you watched, read or played this week. The rest follows.",
+      "cta": "START TRACKING · FREE"
     },
     "footer": {
       "credit": "GPL-3.0 · Metadata from <tmdb>TMDB</tmdb>, <anilist>AniList</anilist> and <tvmaze>TVmaze</tvmaze>. This product uses the TMDB API but is not endorsed or certified by TMDB."

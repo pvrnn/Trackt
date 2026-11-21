@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import {
+  CatalogGenresResponseSchema,
   CatalogRelationEdgeSchema,
   CatalogSearchHitSchema,
+  CatalogSearchKindsResponseSchema,
+  type CatalogGenresResponse,
   type CatalogRelationEdge,
   type CatalogSearchHit,
 } from './catalog.js';
@@ -53,9 +56,22 @@ function parseItems<T>(
   return { items, skipped };
 }
 
-export interface FetchCatalogSearchOptions {
+/** Discover's narrowing filters, as the catalog's query string spells them. */
+interface CatalogFilterOptions {
+  genres?: readonly string[] | undefined;
+  status?: string | undefined;
+}
+
+function setFilterParams(url: URL, { genres, status }: CatalogFilterOptions): void {
+  if (genres && genres.length > 0) url.searchParams.set('genres', genres.join(','));
+  if (status) url.searchParams.set('status', status);
+}
+
+export interface FetchCatalogSearchOptions extends CatalogFilterOptions {
   kind?: string;
   year?: number;
+  /** Omitted for relevance, so a catalog that predates `sort` sees the request it always did. */
+  sort?: string;
   limit?: number;
   timeoutMs: number;
   fetchImpl?: typeof fetch;
@@ -72,11 +88,13 @@ export async function fetchCatalogSearch(
   query: string,
   options: FetchCatalogSearchOptions,
 ): Promise<FetchCatalogSearchResult> {
-  const { kind, year, limit, timeoutMs, fetchImpl = fetch } = options;
+  const { kind, year, sort, limit, timeoutMs, fetchImpl = fetch } = options;
   const url = new URL('/v1/catalog/search', catalogUrl);
   url.searchParams.set('q', query);
   if (kind) url.searchParams.set('kind', kind);
   if (year) url.searchParams.set('year', String(year));
+  setFilterParams(url, options);
+  if (sort && sort !== 'relevance') url.searchParams.set('sort', sort);
   if (limit) url.searchParams.set('limit', String(limit));
 
   const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
@@ -87,6 +105,60 @@ export async function fetchCatalogSearch(
   const envelope = SearchEnvelopeSchema.parse(await response.json());
   const { items, skipped } = parseItems(envelope.results, CatalogSearchHitSchema, '(hit)');
   return { results: items, skipped };
+}
+
+export interface FetchCatalogSearchKindsOptions extends CatalogFilterOptions {
+  year?: number | undefined;
+  sort?: string | undefined;
+  timeoutMs: number;
+  fetchImpl?: typeof fetch;
+}
+
+/**
+ * Per-kind hit counts for a query. Returns null when the catalog predates the
+ * route (404), so the caller can tell "no counts to give" from "zero hits".
+ */
+export async function fetchCatalogSearchKinds(
+  catalogUrl: string,
+  query: string,
+  options: FetchCatalogSearchKindsOptions,
+): Promise<Record<string, number> | null> {
+  const { year, sort, timeoutMs, fetchImpl = fetch } = options;
+  const url = new URL('/v1/catalog/search/kinds', catalogUrl);
+  url.searchParams.set('q', query);
+  if (year) url.searchParams.set('year', String(year));
+  if (sort && sort !== 'relevance') url.searchParams.set('sort', sort);
+  setFilterParams(url, options);
+  const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`catalog search kinds failed: ${response.status} ${response.statusText}`);
+  }
+  return CatalogSearchKindsResponseSchema.parse(await response.json()).kinds;
+}
+
+export interface FetchCatalogGenresOptions {
+  kind?: string | undefined;
+  q?: string | undefined;
+  timeoutMs: number;
+  fetchImpl?: typeof fetch;
+}
+
+/** Genre tags in use on the catalog, or null when it predates the route (404). */
+export async function fetchCatalogGenres(
+  catalogUrl: string,
+  options: FetchCatalogGenresOptions,
+): Promise<CatalogGenresResponse['genres'] | null> {
+  const { kind, q, timeoutMs, fetchImpl = fetch } = options;
+  const url = new URL('/v1/catalog/genres', catalogUrl);
+  if (kind) url.searchParams.set('kind', kind);
+  if (q) url.searchParams.set('q', q);
+  const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`catalog genres failed: ${response.status} ${response.statusText}`);
+  }
+  return CatalogGenresResponseSchema.parse(await response.json()).genres;
 }
 
 export interface FetchCatalogRelationsOptions {

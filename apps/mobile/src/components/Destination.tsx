@@ -30,7 +30,7 @@ export function Destination({
       <Icon name={icon} color={color.pink} size={17} />
       <Text style={[type.cardTitle, styles.rowLabel]}>{label}</Text>
       {meta ? <Text style={[type.eyebrow, text.dim]}>{meta.toUpperCase()}</Text> : null}
-      <Icon name="chevron-right" color={color.faint} size={16} />
+      <Icon name="chevron-right" color={color.dim} size={16} />
     </>
   );
 

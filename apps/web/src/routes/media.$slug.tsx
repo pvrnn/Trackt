@@ -1,25 +1,24 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import clsx from 'clsx';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   LOG_STATUSES,
-  MEDIA_RELATION_LABELS,
   type LogDates,
   type LogStatus,
   type MediaDetail,
+  type MediaKind,
   type MediaRelationLabel,
 } from '@trackt/shared';
 import { FeedbackDialog } from '../components/feedback/FeedbackDialog';
 import { AppNav, type AppNavUser } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { AddToListDialog } from '../components/media/AddToListDialog';
-import { CoverCard } from '../components/media/CoverCard';
+import { LogCard } from '../components/media/LogCard';
 import { LogDatesDialog } from '../components/media/LogDatesDialog';
 import { PartBlockRow, PartRow } from '../components/media/PartRows';
 import { ProgressCard } from '../components/media/ProgressCard';
-import { RatingPopover } from '../components/media/RatingPopover';
 import { MediaNews } from '../components/news/MediaNews';
 import { Button } from '../components/ui/Button';
 import { KindDot } from '../components/ui/KindDot';
@@ -33,6 +32,7 @@ import {
   todayIso,
   firstUnwatched,
   invalidateTracking,
+  mediaFacts,
   partLayout,
   partWindow,
   partsUpTo,
@@ -67,8 +67,8 @@ export const Route = createFileRoute('/media/$slug')({
   component: MediaPage,
 });
 
-/** Sidebar heading per relation label (ADR-0004), in catalog-key form. */
-const RELATION_HEADINGS = {
+/** Per-card relation label (ADR-0004), in catalog-key form. */
+const RELATION_LABELS = {
   prequel: 'media.relation.prequel',
   sequel: 'media.relation.sequel',
   source: 'media.relation.source',
@@ -78,51 +78,69 @@ const RELATION_HEADINGS = {
   related: 'media.relation.related',
 } as const satisfies Record<MediaRelationLabel, string>;
 
-/**
- * Group relations into sidebar sections, in MEDIA_RELATION_LABELS order: the
- * same order the API sorts by, so headings never reshuffle between renders.
- */
-function groupRelations(relations: MediaDetail['relations']) {
-  return MEDIA_RELATION_LABELS.map(
-    (label) => [label, relations.filter((item) => item.relation === label)] as const,
-  ).filter(([, items]) => items.length > 0);
+type RelatedItem = {
+  id: string;
+  slug: string;
+  kind: MediaKind;
+  title: string;
+  coverUrl: string | null;
+  seasonNumber: number | null;
+  label: string;
+};
+
+/** Related works, three across: the artwork stays clean and the words sit under it. */
+function RelatedGrid({ items }: { items: RelatedItem[] }) {
+  const { t } = useTranslation();
+  return (
+    <section aria-labelledby="related-title" className="flex flex-col gap-3.5">
+      <h2 id="related-title" className="font-heading text-2xl uppercase">
+        {t('media.relatedTitle')}
+      </h2>
+      <div className="grid grid-cols-3 gap-3">
+        {items.map((item) => (
+          <Link
+            key={item.id}
+            to="/media/$slug"
+            params={{ slug: item.slug }}
+            className="group flex min-w-0 flex-col gap-[7px]"
+          >
+            <div
+              aria-hidden
+              className="relative aspect-2/3 rounded-[9px] bg-cover bg-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14),0_10px_26px_-14px_rgba(0,0,0,0.9)]"
+              style={
+                item.coverUrl
+                  ? { backgroundImage: `url(${item.coverUrl})` }
+                  : { background: coverGradient(item.kind, item.title) }
+              }
+            >
+              {item.seasonNumber !== null && (
+                <span className="absolute top-2 left-2 rounded-full bg-on-prism px-2 py-0.5 font-label text-[10px] font-bold tracking-label text-pink">
+                  S{item.seasonNumber}
+                </span>
+              )}
+            </div>
+            <span className="font-label text-[10px] font-bold tracking-label text-pink">
+              {item.label}
+            </span>
+            <span className="text-[13px] leading-tight font-semibold transition-colors group-hover:text-pink">
+              {item.title}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
 }
 
-/** The pair a work nearly always has one of each: rendered two-up. */
-const PAIRED_RELATIONS = new Set<MediaRelationLabel>(['prequel', 'sequel']);
-
-/** One relation group's covers: three across, or one per row inside a paired cell. */
-function RelationCards({
-  kind,
-  items,
-  inColumn = false,
-}: {
-  kind: MediaDetail['kind'];
-  items: MediaDetail['relations'];
-  /** The pair above already splits the sidebar, so covers keep their own width. */
-  inColumn?: boolean;
-}) {
-  return (
-    <div className={clsx('grid gap-3', inColumn ? 'grid-cols-1' : 'grid-cols-3')}>
-      {items.map((item) => (
-        <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
-          <div className="relative">
-            <CoverCard
-              kind={item.kind}
-              title={item.title}
-              coverUrl={item.coverUrl ?? undefined}
-              caption={item.kind === kind ? undefined : <KindDot kind={item.kind} showLabel />}
-            />
-            {item.seasonNumber !== null && (
-              <span className="absolute top-2.5 left-2.5 rounded-full bg-ink/80 px-2.5 py-0.5 font-display text-sm text-pink">
-                S{item.seasonNumber}
-              </span>
-            )}
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
+/** Full ISO dates read as '2 Feb 2024'; partial ones ('2024-02') stay as given. */
+function factDate(value: string, locale: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 function partNoun(detail: MediaDetail) {
@@ -357,11 +375,13 @@ function MediaPage() {
           },
         };
 
-  const relationGroups = groupRelations(detail.relations);
-  const neighbourGroups = relationGroups.filter(([label]) => PAIRED_RELATIONS.has(label));
-  const otherGroups = relationGroups.filter(([label]) => !PAIRED_RELATIONS.has(label));
-  /** Upstream records for the external row: the ids are also the redirect targets. */
+  const relatedItems: RelatedItem[] =
+    detail.relations.length > 0
+      ? detail.relations.map((item) => ({ ...item, label: t(RELATION_LABELS[item.relation]) }))
+      : detail.related.map((item) => ({ ...item, label: t('media.relation.similar') }));
+  /** Upstream records for the ALSO ON row: the ids are also the redirect targets. */
   const external = externalProfiles(detail.kind, detail.externalIds, detail.metadata);
+  const fromTmdb = external.some(({ provider }) => provider.toLowerCase() === 'tmdb');
   /** '04 JAN → 11 FEB' when the log has dates; null offers to add them. */
   const dateLabel = format.dateRange(viewer.startedAt, viewer.finishedAt);
 
@@ -372,10 +392,10 @@ function MediaPage() {
     (typeof detail.metadata.igdbStatus === 'string'
       ? detail.metadata.igdbStatus.toUpperCase()
       : null);
-  /** Kind · year, one line; the genres are tags of their own in the details. */
   const metaLine = [
-    labels.kindSingular(detail.kind),
+    labels.kindSingular(detail.kind).toUpperCase(),
     detail.year !== null ? String(detail.year) : null,
+    detail.genres.length > 0 ? detail.genres.slice(0, 2).join(', ').toUpperCase() : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -388,64 +408,58 @@ function MediaPage() {
     .filter(Boolean)
     .join(' · ');
 
-  const detailRows: [string, ReactNode][] = [
-    [t('media.details.status'), displayStatus ?? 'N/A'],
-    [
-      t('media.details.released'),
-      detail.releaseDate ?? (detail.year !== null ? String(detail.year) : 'N/A'),
-    ],
-    [
-      t('media.details.genres'),
-      detail.genres.length > 0 ? (
-        <span className="flex flex-wrap justify-end gap-1.5">
-          {detail.genres.map((genre) => (
-            <span
-              key={genre}
-              className="rounded-full border border-glass-border bg-glass px-2.5 py-1 font-label text-[10px] font-semibold tracking-label text-muted"
-            >
-              {genre.toUpperCase()}
-            </span>
-          ))}
-        </span>
-      ) : (
-        'N/A'
-      ),
-    ],
-    ...(detail.synonyms.length > 0
-      ? ([[t('media.details.alsoKnownAs'), detail.synonyms.join(' · ')]] as [string, string][])
-      : []),
-    [
-      t('media.details.external'),
-      external.length > 0 ? (
-        <span className="inline-flex flex-wrap justify-end gap-x-2 gap-y-1">
-          {external.map(({ provider, url }) =>
-            url ? (
-              <a
-                key={provider}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-pink underline-offset-2 transition hover:underline"
-              >
-                {provider.toUpperCase()} ↗
-              </a>
-            ) : (
-              <span key={provider} className="text-dim">
-                {provider.toUpperCase()}
-              </span>
-            ),
-          )}
-        </span>
-      ) : (
-        'N/A'
-      ),
-    ],
-  ];
+  const facts = mediaFacts(detail).map((fact) => {
+    switch (fact.key) {
+      case 'status':
+        return { key: fact.key, value: fact.value, accent: fact.airing };
+      case 'released':
+      case 'ended':
+        return { key: fact.key, value: factDate(fact.value, format.locale) };
+      case 'runtime':
+        return { key: fact.key, value: t('media.details.runtimeValue', { minutes: fact.value }) };
+      case 'volumes':
+        return { key: fact.key, value: String(fact.value) };
+      case 'alsoKnownAs':
+        return { key: fact.key, value: fact.value.join(' · '), wide: true };
+      case 'genres':
+        return { key: fact.key, value: fact.value.join(', '), wide: fact.value.length > 2 };
+      default:
+        return { key: fact.key, value: fact.value.join(', ') };
+    }
+  });
+
+  const setStatus = (value: string) => {
+    if (value === '') {
+      applyViewer({ status: null, startedAt: null, finishedAt: null }, () =>
+        trackingApi.clearStatus(detail.id),
+      );
+      return;
+    }
+    const status = value as LogStatus;
+    // The API sweeps progress for these two (PRD §3.1); mirror it
+    // optimistically so the rows don't lag a refetch behind.
+    const sweep: ViewerPatch =
+      !checkable || listLength === 0
+        ? {}
+        : status === 'completed'
+          ? { watched: partsUpTo(listLength) }
+          : status === 'planned'
+            ? { watched: [] }
+            : {};
+    // Same for the dates the server stamps (ADR-0007).
+    const dates = stampedDates(status, viewer, todayIso());
+    applyViewer({ status, ...sweep, ...dates }, () => trackingApi.setStatus(detail.id, status));
+    // The one transition with no evidence behind its date: the user is logging
+    // something they watched at some unknown time in the past, and today is
+    // almost certainly wrong.
+    if (status === 'completed' && (viewer.status === null || viewer.status === 'planned')) {
+      setEditingDates(dates);
+    }
+  };
 
   return (
     <Shell user={navUser}>
-      {/* Hero: full-bleed backdrop, the artwork carries the page. */}
-      <div className="relative overflow-hidden border-b border-white/9">
+      <header className="relative">
         <div
           aria-hidden
           className="absolute inset-0"
@@ -459,8 +473,8 @@ function MediaPage() {
           />
         )}
         {/* Fallback only: a poster blown up to full bleed is a crop of one
-            corner of the art, so where a banner exists it is the whole backdrop
-            and the cover is left to the poster card below. */}
+            corner of the art, so where a banner exists the cover is left to
+            the poster card below. */}
         {!detail.bannerUrl && detail.coverUrl && (
           <div
             aria-hidden
@@ -468,17 +482,25 @@ function MediaPage() {
             style={{ backgroundImage: `url(${detail.coverUrl})` }}
           />
         )}
-        {/* The scrim is what makes the panel a header rather than a picture:
-            it carries the art down into the page's own ink so there is no seam,
-            and gives the title something to sit on whatever the cover is. */}
+        {/* We do not choose the artwork, so the page brings its own contrast:
+            ≥0.9 under the whole text column, easing off only where there is no
+            text, then a fade into Ink (Design System §08). */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,12,16,0.35)_0%,rgba(14,12,16,0.55)_45%,rgba(14,12,16,0.92)_100%)]"
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(14,12,16,0.95) 0%, rgba(14,12,16,0.9) max(860px, calc(50% + 170px)), rgba(14,12,16,0.24) max(1180px, calc(50% + 490px)), rgba(14,12,16,0.1) 100%)',
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,12,16,0.3)_0%,rgba(14,12,16,0)_22%,rgba(14,12,16,0)_66%,#0e0c10_100%)]"
         />
 
-        <div className="relative mx-auto flex max-w-[1360px] flex-col gap-10 px-10 pt-16 pb-11 md:flex-row md:items-end">
+        <div className="relative mx-auto flex max-w-[1360px] flex-col gap-9 px-4 pt-[60px] pb-9 sm:px-10 md:flex-row md:items-end">
           <div
-            className="cover h-[360px] w-[240px] shrink-0 bg-cover bg-center"
+            className="cover h-[330px] w-[220px] shrink-0 bg-cover bg-center"
             style={
               detail.coverUrl
                 ? { backgroundImage: `url(${detail.coverUrl})` }
@@ -486,27 +508,52 @@ function MediaPage() {
             }
           />
 
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
-            {/* Kind and year on one line; genres carry tags of their own. */}
-            <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex max-w-[600px] min-w-0 flex-1 flex-col gap-3.5">
+            <div className="flex items-center gap-[9px]">
               <KindDot kind={detail.kind} />
-              <span className="font-label text-xs tracking-label text-muted">{metaLine}</span>
+              <span className="font-label text-xs font-bold tracking-[0.12em] text-[#cfc9d8]">
+                {metaLine}
+              </span>
             </div>
 
-            <h1 className="font-heading text-[clamp(44px,6vw,78px)] leading-[0.94] uppercase">
+            <h1 className="font-heading text-[clamp(44px,6vw,76px)] leading-[0.94] uppercase [text-shadow:0_2px_30px_rgba(14,12,16,0.7)]">
               {detail.title}
             </h1>
 
             {detail.description && (
-              <p className="max-w-[620px] text-[16px] leading-relaxed text-muted">
+              <p className="line-clamp-3 text-base leading-relaxed text-pretty text-[#cfc9d8]">
                 {detail.description}
               </p>
             )}
 
-            {/* Status and dates are facts, not buttons: the chip changes the
-                one, the date segment opens the editor for the other. */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Named by the hidden label *plus* the trigger, so the chip
+            {factsLine && (
+              <span className="font-label text-xs font-semibold tracking-[0.08em] text-muted">
+                {factsLine}
+              </span>
+            )}
+
+            {/* Three controls, in the order you use them: do the next thing,
+                change the state, love it. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={primary.onClick}
+                className={clsx(
+                  'flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full px-7 transition',
+                  primary.done
+                    ? 'bg-[#1d1826] text-muted inset-ring inset-ring-white/18 hover:inset-ring-pink'
+                    : 'bg-prism text-on-prism hover:brightness-110',
+                )}
+              >
+                <span aria-hidden className="text-[15px] leading-none">
+                  {primary.done ? '★' : '✓'}
+                </span>
+                <span className="font-label text-[13px] font-bold tracking-label whitespace-nowrap">
+                  {primary.label}
+                </span>
+              </button>
+
+              {/* Named by the hidden label *plus* the trigger, so the pill
                   announces "Status, COMPLETED"; an `aria-label` here would
                   replace the value and leave only "status". */}
               <span id="log-status-label" className="sr-only">
@@ -519,82 +566,9 @@ function MediaPage() {
                 items={logItems}
                 value={viewer.status ?? ''}
                 selected={viewer.status !== null}
-                onChange={(value) => {
-                  if (value === '') {
-                    applyViewer({ status: null, startedAt: null, finishedAt: null }, () =>
-                      trackingApi.clearStatus(detail.id),
-                    );
-                    return;
-                  }
-                  const status = value as LogStatus;
-                  // The API sweeps progress for these two (PRD §3.1); mirror it
-                  // optimistically so the rows don't lag a refetch behind.
-                  const sweep: ViewerPatch =
-                    !checkable || listLength === 0
-                      ? {}
-                      : status === 'completed'
-                        ? { watched: partsUpTo(listLength) }
-                        : status === 'planned'
-                          ? { watched: [] }
-                          : {};
-                  // Same for the dates the server stamps (ADR-0007), so the
-                  // date segment fills in as the status chip changes.
-                  const dates = stampedDates(status, viewer, todayIso());
-                  applyViewer({ status, ...sweep, ...dates }, () =>
-                    trackingApi.setStatus(detail.id, status),
-                  );
-                  // The one transition with no evidence behind its date: the
-                  // user is logging something they watched at some unknown time
-                  // in the past, and today is almost certainly wrong.
-                  if (
-                    status === 'completed' &&
-                    (viewer.status === null || viewer.status === 'planned')
-                  ) {
-                    setEditingDates(dates);
-                  }
-                }}
+                onChange={setStatus}
+                className="h-[52px] font-bold"
               />
-              {/* Only with a log to date: the dates live on the log row, so
-                  there is nothing to edit before one exists. */}
-              {viewer.status !== null && (
-                <button
-                  type="button"
-                  onClick={() => setEditingDates({ ...viewer })}
-                  title={t('media.dates.edit')}
-                  className="cursor-pointer font-label text-xs font-semibold tracking-label text-muted transition-colors hover:text-pink"
-                >
-                  {dateLabel ?? t('media.dates.add')}
-                </button>
-              )}
-              {factsLine && (
-                <>
-                  <span className="font-label text-xs text-dim">·</span>
-                  <span className="font-label text-xs font-semibold tracking-label text-muted">
-                    {factsLine}
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* One primary, two secondaries. Nothing else competes. */}
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={primary.onClick}
-                className={clsx(
-                  'flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full px-7 transition',
-                  primary.done
-                    ? 'bg-glass text-muted inset-ring inset-ring-white/15 hover:inset-ring-pink'
-                    : 'bg-prism text-on-prism hover:brightness-110',
-                )}
-              >
-                <span aria-hidden className="text-[15px] leading-none">
-                  {primary.done ? '★' : '✓'}
-                </span>
-                <span className="font-label text-[13px] font-bold tracking-label whitespace-nowrap">
-                  {primary.label}
-                </span>
-              </button>
 
               <button
                 type="button"
@@ -607,34 +581,19 @@ function MediaPage() {
                   )
                 }
                 className={clsx(
-                  'flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full px-5 inset-ring transition',
+                  'flex h-[52px] cursor-pointer items-center gap-[9px] rounded-full bg-[#1d1826] px-5 inset-ring transition hover:inset-ring-pink',
                   viewer.favorited
-                    ? 'bg-pink-selected text-pink inset-ring-pink/50'
-                    : 'bg-glass text-muted inset-ring-white/15 hover:text-pink hover:inset-ring-pink',
+                    ? 'text-pink inset-ring-pink/60'
+                    : 'text-[#cfc9d8] inset-ring-white/18',
                 )}
               >
                 <span aria-hidden className="text-[15px] leading-none">
                   {viewer.favorited ? '♥' : '♡'}
                 </span>
-                <span className="font-label text-xs font-bold tracking-label">
-                  {t('media.favourite')}
+                <span className="font-label text-xs font-bold tracking-[0.08em]">
+                  {viewer.favorited ? t('media.favourited') : t('media.favourite')}
                 </span>
               </button>
-
-              {listsOn && (
-                <button
-                  type="button"
-                  onClick={() => setAddingToList(true)}
-                  className="flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full bg-glass px-5 text-muted inset-ring inset-ring-white/15 transition hover:text-pink hover:inset-ring-pink"
-                >
-                  <span aria-hidden className="text-[15px] leading-none">
-                    ＋
-                  </span>
-                  <span className="font-label text-xs font-bold tracking-label">
-                    {t('media.list')}
-                  </span>
-                </button>
-              )}
             </div>
 
             {viewerMutation.isError && (
@@ -644,9 +603,84 @@ function MediaPage() {
             )}
           </div>
         </div>
+      </header>
+
+      {/* FACTS: a strip, not a table. */}
+      <div className="relative mx-auto flex max-w-[1360px] flex-col gap-3 px-4 pt-1 sm:px-10">
+        {facts.length > 0 && (
+          <dl className="m-0 overflow-hidden rounded-card bg-glass inset-ring inset-ring-white/10 backdrop-blur-[16px]">
+            {/* Every cell rules its top and left edge; the -1px offset tucks
+                the first row's and column's rules under the card's own edge,
+                so the strip can wrap without a stray line. */}
+            <div className="-mt-px -ml-px flex flex-wrap">
+              {facts.map((fact) => (
+                <div
+                  key={fact.key}
+                  className={clsx(
+                    'flex min-w-0 flex-col gap-1.5 border-t border-l border-divider px-5 py-4',
+                    fact.wide ? 'flex-[2_1_320px]' : 'flex-[1_1_150px]',
+                  )}
+                >
+                  <dt className="font-label text-[10px] font-bold tracking-[0.12em] text-dim">
+                    {t(`media.details.${fact.key}`)}
+                  </dt>
+                  <dd
+                    className={clsx(
+                      'm-0 text-[15px] leading-snug font-semibold',
+                      fact.accent ? 'text-pink' : 'text-fg',
+                    )}
+                  >
+                    {fact.value}
+                  </dd>
+                </div>
+              ))}
+            </div>
+          </dl>
+        )}
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 px-1">
+          {external.length > 0 && (
+            <>
+              <span className="font-label text-[10px] font-bold tracking-[0.12em] text-dim">
+                {t('media.details.alsoOn')}
+              </span>
+              {external.map(({ provider, url }) =>
+                url ? (
+                  <a
+                    key={provider}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-label text-[11px] font-bold tracking-[0.08em] text-pink transition hover:brightness-125"
+                  >
+                    {provider.toUpperCase()} ↗
+                  </a>
+                ) : (
+                  <span
+                    key={provider}
+                    className="font-label text-[11px] font-bold tracking-[0.08em] text-dim"
+                  >
+                    {provider.toUpperCase()}
+                  </span>
+                ),
+              )}
+            </>
+          )}
+          <div className="flex-1" />
+          {fromTmdb && (
+            <span className="font-label text-[11px] text-dim">{t('media.details.tmdbNotice')}</span>
+          )}
+          <button
+            type="button"
+            onClick={() => setReportingIssue(true)}
+            className="cursor-pointer px-0.5 py-1.5 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition-colors hover:text-pink"
+          >
+            <span aria-hidden>⚑ </span>
+            {t('media.reportIssue')}
+          </button>
+        </div>
       </div>
 
-      <main className="mx-auto grid max-w-[1360px] grid-cols-1 gap-12 px-10 pt-10 pb-20 lg:grid-cols-[2fr_1fr]">
+      <main className="mx-auto grid max-w-[1360px] grid-cols-1 items-start gap-12 px-4 pt-9 pb-20 sm:px-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         {/* LEFT: the counter, then the parts it scopes. */}
         <section className="flex min-w-0 flex-col gap-[18px]">
           <div className="flex flex-wrap items-center gap-4">
@@ -731,118 +765,26 @@ function MediaPage() {
           )}
         </section>
 
-        {/* RIGHT */}
-        <aside className="flex flex-col gap-8">
-          {/* The rating: your score against the instance's, which is the only
-              comparison that makes either number mean anything. */}
-          <div className="flex gap-2.5">
-            <div className="flex flex-1 items-center gap-3.5 rounded-card-sm bg-glass px-4.5 py-4 inset-ring inset-ring-white/10 backdrop-blur-[16px]">
-              {viewer.score !== null ? (
-                <span className="text-prism font-display text-[38px] leading-none">
-                  {format.score(viewer.score)}
-                </span>
-              ) : (
-                <span className="font-display text-[38px] leading-none text-faint">–</span>
-              )}
-              <div className="flex flex-col gap-0.5">
-                <span className="font-label text-[11px] tracking-label text-muted">
-                  {viewer.score !== null ? t('media.rating.yours') : t('media.rating.rate')}
-                </span>
-                <span className="font-label text-[11px] tracking-label text-dim">
-                  {detail.community.averageScore !== null
-                    ? t('media.rating.community', {
-                        score: format.score(detail.community.averageScore),
-                        count: detail.community.ratingCount,
-                      })
-                    : t('media.rating.none')}
-                </span>
-              </div>
-            </div>
-            <RatingPopover
-              score={viewer.score}
-              onChange={(score) => {
-                if (score === null) {
-                  applyViewer({ score: null }, () => trackingApi.clearScore(detail.id));
-                } else {
-                  applyViewer({ score }, () => trackingApi.setScore(detail.id, score));
-                }
-              }}
-              trigger={<span aria-hidden>✎</span>}
-              triggerClassName="grid w-14 shrink-0 cursor-pointer place-items-center rounded-card-sm bg-glass text-base text-pink transition inset-ring inset-ring-white/10 outline-none hover:inset-ring-pink"
-            />
-          </div>
+        <aside className="flex min-w-0 flex-col gap-8">
+          <LogCard
+            score={viewer.score}
+            communityScore={detail.community.averageScore}
+            ratingCount={detail.community.ratingCount}
+            onRate={(score) =>
+              score === null
+                ? applyViewer({ score: null }, () => trackingApi.clearScore(detail.id))
+                : applyViewer({ score }, () => trackingApi.setScore(detail.id, score))
+            }
+            // Dates live on the log row, so there is nothing to date before one exists.
+            datesLabel={viewer.status !== null ? dateLabel : undefined}
+            onEditDates={() => setEditingDates({ ...viewer })}
+            onAddToList={listsOn ? () => setAddingToList(true) : undefined}
+          />
 
-          <section className="flex flex-col gap-3.5">
-            <h2 className="font-heading text-2xl uppercase">{t('media.details.title')}</h2>
-            <div className="flex flex-col">
-              {detailRows.map(([key, value]) => (
-                <div
-                  key={key}
-                  className="flex items-baseline justify-between gap-4 py-3 inset-ring-0 [box-shadow:inset_0_-1px_0_rgba(255,255,255,0.07)]"
-                >
-                  <span className="shrink-0 font-label text-[11px] tracking-label text-dim">
-                    {key}
-                  </span>
-                  <span className="min-w-0 flex-1 text-right text-[13px]">{value}</span>
-                </div>
-              ))}
-            </div>
-            {/* Sits with the facts rather than in the hero: what a media report
-                is almost always about is one of the rows above. Styled as a
-                control, not a caption — as text it read as another row. */}
-            <button
-              type="button"
-              onClick={() => setReportingIssue(true)}
-              className="mt-1 flex cursor-pointer items-center gap-2 self-start rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-[11px] font-bold tracking-btn text-muted transition hover:border-pink hover:text-pink"
-            >
-              <span aria-hidden>⚑</span>
-              {t('media.reportIssue')}
-            </button>
-          </section>
-
-          {/* Central news touching this work (ADR-0005). Placed above the
-              relation grids because it is about *this* work; the grids point
-              away from it. Renders nothing when there is nothing to show. */}
+          {/* Central news touching this work (ADR-0005); renders nothing when empty. */}
           <MediaNews mediaId={detail.id} />
 
-          {/* Prequel and sequel side by side rather than stacked: a work rarely
-              has more than one of each. Same three-up cell size as the other
-              groups, so the covers don't grow. */}
-          {neighbourGroups.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {neighbourGroups.map(([label, items]) => (
-                <section key={label} className="flex min-w-0 flex-col gap-3.5">
-                  <h2 className="font-heading text-2xl uppercase">{t(RELATION_HEADINGS[label])}</h2>
-                  <RelationCards kind={detail.kind} items={items} inColumn />
-                </section>
-              ))}
-            </div>
-          )}
-
-          {otherGroups.map(([label, items]) => (
-            <section key={label} className="flex flex-col gap-3.5">
-              <h2 className="font-heading text-2xl uppercase">{t(RELATION_HEADINGS[label])}</h2>
-              <RelationCards kind={detail.kind} items={items} />
-            </section>
-          ))}
-
-          {/* Genre-overlap suggestions, only when there's nothing typed to show (ADR-0004). */}
-          {detail.relations.length === 0 && detail.related.length > 0 && (
-            <section className="flex flex-col gap-3.5">
-              <h2 className="font-heading text-2xl uppercase">{t('media.youMightLike')}</h2>
-              <div className="grid grid-cols-3 gap-3">
-                {detail.related.map((item) => (
-                  <Link key={item.id} to="/media/$slug" params={{ slug: item.slug }}>
-                    <CoverCard
-                      kind={item.kind}
-                      title={item.title}
-                      coverUrl={item.coverUrl ?? undefined}
-                    />
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
+          {relatedItems.length > 0 && <RelatedGrid items={relatedItems} />}
         </aside>
       </main>
       {addingToList && (

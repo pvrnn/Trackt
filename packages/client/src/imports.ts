@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MediaKindSchema } from '@trackt/shared';
 import { z } from 'zod';
 import { toError } from './http.js';
@@ -31,7 +31,8 @@ export const ImportSourceStatusSchema = z.object({
   id: z.string(),
   label: z.string(),
   kinds: z.array(MediaKindSchema).default([]),
-  access: z.enum(['api', 'scrape']).catch('api'),
+  /** `file`: the viewer uploads an export instead of naming a profile. */
+  access: z.enum(['api', 'scrape', 'file']).catch('api'),
   requiresBrowser: z.boolean().default(false),
   available: z.boolean(),
   /** Why it is unavailable — the env var to set. Absent when available. */
@@ -45,6 +46,8 @@ export type ImportSources = z.infer<typeof ImportSourcesSchema>;
 export const ImportQueuedSchema = z.object({
   jobId: z.string(),
   state: ImportJobStateSchema.catch('unknown'),
+  /** The run's `import_run` row; null for a preview, or from an instance that keeps none. */
+  runId: z.string().nullable().default(null),
 });
 export type ImportQueued = z.infer<typeof ImportQueuedSchema>;
 
@@ -68,6 +71,7 @@ export const ImportReportSchema = z.object({
   profile: z.string(),
   created: z.number().default(0),
   updated: z.number().default(0),
+  merged: z.number().default(0),
   skippedExisting: z.number().default(0),
   withProgress: z.number().default(0),
   ratings: z.number().default(0),
@@ -108,7 +112,37 @@ export const ImportJobStatusSchema = z.object({
 });
 export type ImportJobStatus = z.infer<typeof ImportJobStatusSchema>;
 
+export const IMPORT_RUN_STATES = ['queued', 'running', 'completed', 'failed'] as const;
+export type ImportRunState = (typeof IMPORT_RUN_STATES)[number];
+
+/** One import as the instance recorded it; outlives the queue job behind it. */
+export const ImportRunSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  profile: z.string(),
+  state: z.enum(IMPORT_RUN_STATES).catch('failed'),
+  progress: z
+    .object({ done: z.number().default(0), total: z.number().default(0) })
+    .default({ done: 0, total: 0 }),
+  result: z
+    .unknown()
+    .nullish()
+    .transform((value) => {
+      const parsed = ImportJobResultSchema.safeParse(value);
+      return parsed.success ? parsed.data : null;
+    }),
+  errorKind: z.string().nullable().default(null),
+  error: z.string().nullable().default(null),
+  createdAt: z.string(),
+  startedAt: z.string().nullable().default(null),
+  finishedAt: z.string().nullable().default(null),
+});
+export type ImportRun = z.infer<typeof ImportRunSchema>;
+
+export const ImportRunListSchema = z.object({ runs: z.array(ImportRunSchema) });
+
 export const importSourcesKey = ['import:sources'] as const;
+export const importRunsKey = ['import:runs'] as const;
 /** Every job query, so a wizard can drop the whole family when it starts over. */
 export const importJobsKey = ['import:job'] as const;
 /**
@@ -183,9 +217,16 @@ export function useImportSources() {
   });
 }
 
+/** An export file, read as text; a file source (`access: 'file'`) sends these instead of a profile. */
+export interface ImportFileInput {
+  name: string;
+  content: string;
+}
+
 export interface StartImportInput {
   source: string;
-  profile: string;
+  profile?: string;
+  files?: ImportFileInput[];
   dryRun?: boolean;
   overwrite?: boolean;
 }
@@ -205,7 +246,40 @@ export async function startImport(input: StartImportInput): Promise<ImportQueued
 }
 
 export function useStartImport() {
-  return useMutation({ mutationFn: startImport });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: startImport,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: importRunsKey }),
+  });
+}
+
+/** The viewer's imports, newest first. An instance without the route reads as none. */
+export async function fetchImportRuns(): Promise<ImportRun[]> {
+  try {
+    const response = await http().get('me/import/runs', { throwHttpErrors: false });
+    if (response.status === 404) return [];
+    if (!response.ok) throw new Error(`import runs responded ${response.status}`);
+    return ImportRunListSchema.parse(await response.json()).runs;
+  } catch (error) {
+    throw await toError(error, 'import runs');
+  }
+}
+
+/** Polls while any run is still queued or running. */
+export function useImportRuns() {
+  const isAuthed = useIsAuthed();
+  return useQuery({
+    queryKey: importRunsKey,
+    queryFn: fetchImportRuns,
+    enabled: isAuthed,
+    refetchInterval: (query) => {
+      if (query.state.status === 'error') return false;
+      const live = query.state.data?.some(
+        (run) => run.state === 'queued' || run.state === 'running',
+      );
+      return live ? POLL_MS : false;
+    },
+  });
 }
 
 /**

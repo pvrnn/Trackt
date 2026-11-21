@@ -14,7 +14,6 @@
   "log": "＋ SUIVI",
   "dates": {
     "title": "Dates",
-    "add": "＋ AJOUTER DES DATES",
     "edit": "Modifier les dates de début et de fin",
     "started": "DÉBUT",
     "finished": "FIN",
@@ -31,7 +30,7 @@
   "markAll": "MARQUER TOUT COMME {{verb}}",
   "clearProgress": "EFFACER LA PROGRESSION",
   "favourite": "FAVORI",
-  "list": "LISTE",
+  "favourited": "EN FAVORI",
   "saveFailed": "L’enregistrement a échoué. Réessayez.",
   "part": {
     "episode": "Épisode",
@@ -73,33 +72,45 @@
   },
   "rating": {
     "yours": "VOTRE NOTE",
-    "rate": "NOTER CE TITRE",
-    "rateTrigger": "NOTER",
     "community": "{{score}} SUR {{count}} ICI",
     "none": "AUCUNE NOTE ICI POUR L’INSTANT",
-    "label": "Votre note",
-    "group": "note",
-    "rateValue": "Noter {{value}}",
-    "clear": "EFFACER LA NOTE"
+    "clear": "EFFACER",
+    "scrub": "Votre note, sur 10. Glissez jusqu’à zéro pour l’effacer"
+  },
+  "logCard": {
+    "title": "Votre suivi",
+    "dates": "DATES",
+    "lists": "LISTES",
+    "edit": "MODIFIER",
+    "add": "＋ AJOUTER",
+    "noDates": "Non définies",
+    "listsValue": "Le garder dans une liste"
   },
   "details": {
-    "title": "Détails",
     "status": "STATUT",
     "released": "SORTIE",
+    "ended": "FIN",
+    "studio": "STUDIO",
+    "createdBy": "CRÉÉ PAR",
+    "runtime": "DURÉE",
+    "runtimeValue": "{{minutes}} min",
+    "volumes": "VOLUMES",
     "genres": "GENRES",
     "alsoKnownAs": "AUSSI CONNU SOUS",
-    "external": "EXTERNE"
+    "alsoOn": "AUSSI SUR",
+    "tmdbNotice": "Métadonnées de TMDB. Ni approuvé ni certifié par TMDB."
   },
   "reportIssue": "SIGNALER UN PROBLÈME",
-  "youMightLike": "Vous aimerez peut-être aussi",
+  "relatedTitle": "Lié",
   "relation": {
     "prequel": "PRÉQUELLE",
     "sequel": "SUITE",
     "source": "ŒUVRE D’ORIGINE",
-    "adaptation": "ADAPTATIONS",
-    "spinoff": "HORS-SÉRIES",
+    "adaptation": "ADAPTATION",
+    "spinoff": "HORS-SÉRIE",
     "parent": "ŒUVRE PARENTE",
-    "related": "ASSOCIÉS"
+    "related": "LIÉ",
+    "similar": "SIMILAIRE"
   },
   "addToList": {
     "title": "Ajouter à une liste",

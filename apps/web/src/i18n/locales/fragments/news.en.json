@@ -1,28 +1,27 @@
 {
   "title": "News",
-  "allKinds": "ALL",
-  "filterAria": "filter by media kind",
-  "range": {
-    "today": "TODAY",
-    "week": "THIS WEEK",
-    "month": "THIS MONTH",
-    "allTime": "ALL TIME"
-  },
   "from": "FROM",
   "to": "TO",
-  "clear": "CLEAR",
   "latest": "Latest",
   "storyCount_one": "{{count}} STORY",
   "storyCount_other": "{{count}} STORIES",
   "loadingFeed": "Loading the feed…",
   "feedError": "News failed to load. Is this instance’s API reachable? Try again in a moment.",
-  "loadMore": "LOAD MORE",
+  "pager": {
+    "label": "Pages",
+    "prev": "← PREV",
+    "next": "NEXT →",
+    "page": "Page {{page}}"
+  },
+  "range_one": "{{from}}–{{to}} OF {{count}} STORY",
+  "range_other": "{{from}}–{{to}} OF {{count}} STORIES",
   "loadingMore": "LOADING…",
   "empty": {
-    "title": "Nothing yet",
+    "title": "Nothing here",
     "filtered": "No stories match these filters. Widen the dates, or clear the kind.",
     "unfiltered": "No news has been published yet. Stories appear here once the central catalog starts publishing them.",
-    "browse": "BROWSE DISCOVER →"
+    "browse": "BROWSE DISCOVER →",
+    "library": "No stories about what you’re tracking match these filters."
   },
   "article": {
     "back": "← ALL NEWS",
@@ -34,10 +33,21 @@
     "backToNews": "BACK TO NEWS →"
   },
   "mediaHeading": "In the news",
-  "widget": {
-    "heading": "Latest news",
-    "viewAll": "VIEW ALL →",
-    "error": "Couldn’t load news right now.",
-    "empty": "Nothing to report yet. Check back soon."
+  "show": {
+    "label": "SHOW",
+    "all": "Everything",
+    "library": "My library"
+  },
+  "when": {
+    "label": "WHEN",
+    "all": "Any time",
+    "today": "Today",
+    "week": "This week",
+    "month": "This month",
+    "custom": "Custom"
+  },
+  "clearRange": "CLEAR RANGE",
+  "library": {
+    "title": "From your library"
   }
 }

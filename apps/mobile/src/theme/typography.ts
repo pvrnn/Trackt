@@ -44,8 +44,10 @@ const flush = { includeFontPadding: false } as const;
 /** The type scale at phone sizes; `hero` is the bottom of web's fluid range. */
 export const type = {
   hero: { fontFamily: font.display, fontSize: 44, lineHeight: 44 },
-  title: { fontFamily: font.display, fontSize: 32, lineHeight: 33 },
-  section: { fontFamily: font.display, fontSize: 22, lineHeight: 24 },
+  /** §02 and §08: page title 34 / 1.0. */
+  title: { fontFamily: font.display, fontSize: 34, lineHeight: 35 },
+  /** §08 section scale: 24. */
+  section: { fontFamily: font.display, fontSize: 24, lineHeight: 26 },
   body: { fontFamily: font.body, fontSize: 15, lineHeight: 23 },
   /** Archivo 700 / 15 — card and row titles (`Mobile System.dc.html` §02). */
   cardTitle: { fontFamily: font.bodyBold, fontSize: 15, lineHeight: 19 },

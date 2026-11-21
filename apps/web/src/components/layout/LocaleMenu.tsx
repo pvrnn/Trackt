@@ -14,7 +14,10 @@ const MENU_ITEM =
  */
 const ENDONYMS: Record<Locale, string> = { en: 'English', fr: 'Français' };
 
-/** Compact `EN`/`FR` pill for the account and marketing menus. */
+/**
+ * The nav's language control: a quiet menu, not a badge. The globe says what
+ * it is and the caret says it opens.
+ */
 export function LocaleMenu({ className }: { className?: string }) {
   const { t } = useTranslation();
   const { locale, setLocale } = useLocale();
@@ -24,11 +27,28 @@ export function LocaleMenu({ className }: { className?: string }) {
       <DropdownMenu.Trigger
         aria-label={t('locale.switch')}
         className={clsx(
-          'cursor-pointer rounded-full border border-glass-border-strong bg-glass px-3.5 py-2 font-label text-xs font-semibold tracking-label text-muted transition outline-none hover:border-pink hover:text-pink',
+          'inline-flex h-9 cursor-pointer items-center gap-[7px] rounded-lg pr-[9px] pl-2.5 font-label text-xs font-bold tracking-[0.08em] text-muted transition outline-none',
+          'hover:bg-white/8 hover:text-fg focus-visible:bg-white/8 focus-visible:text-fg data-[state=open]:bg-white/8 data-[state=open]:text-fg',
           className,
         )}
       >
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          className="size-[17px] shrink-0"
+        >
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5S9.4 5.9 12 3.5z" />
+        </svg>
         {locale.toUpperCase()}
+        <span
+          aria-hidden
+          className="mb-1 ml-0.5 size-1.5 rotate-45 border-r-[1.5px] border-b-[1.5px] border-current opacity-80"
+        />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content

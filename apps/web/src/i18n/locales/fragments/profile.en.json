@@ -12,10 +12,12 @@
     "backToSearch": "BACK TO SEARCH →"
   },
   "header": {
-    "memberSince": "@{{username}} · member since {{date}}",
-    "titlesTracked": "TITLES TRACKED",
+    "joined": "JOINED {{date}}",
     "streak_one": "{{count}}-DAY STREAK",
-    "streak_other": "{{count}}-DAY STREAK"
+    "streak_other": "{{count}}-DAY STREAK",
+    "share": "↗ SHARE",
+    "shareCopied": "LINK COPIED",
+    "shareFailed": "COPY FAILED"
   },
   "stats": {
     "episodesThisYear": "Episodes this year",
@@ -29,20 +31,53 @@
     "emptyOwn": "Nothing favourited yet. Hit ♡ FAVOURITE on any title’s page and it shows up here, ranked per shelf.",
     "emptyOther": "{{name}} hasn’t favourited anything yet.",
     "findMore": "Find more to favourite",
-    "movie": "Favourite movies",
-    "game": "Favourite games",
-    "series": "Favourite series",
-    "anime": "Favourite anime",
-    "manga": "Favourite manga",
-    "webtoon": "Favourite webtoons"
+    "total_one": "{{count}} FAVOURITE",
+    "total_other": "{{count}} FAVOURITES",
+    "topPicks": "TOP PICKS",
+    "topOf": "TOP {{kind}}",
+    "rank": "NO. {{rank}}",
+    "seeAll": "SEE ALL {{count}} →",
+    "showFewer": "SHOW FEWER"
   },
   "recent": {
     "title": "Recent",
-    "viewHistory": "SEE HISTORY →",
+    "fullHistory": "FULL HISTORY →",
     "emptyOwn": "What you watch and read, your ratings, and status changes show up here.",
     "emptyPublic": "Nothing tracked publicly yet.",
     "rated": "Rated",
     "marked": "Marked"
+  },
+  "rightNow": {
+    "title": "Right now",
+    "count_one": "{{shown}} OF {{count}} IN PROGRESS",
+    "count_other": "{{shown}} OF {{count}} IN PROGRESS",
+    "all": "ALL IN PROGRESS →",
+    "episode_one": "{{count}} episode watched",
+    "episode_other": "{{count}} episodes watched",
+    "chapter_one": "{{count}} chapter read",
+    "chapter_other": "{{count}} chapters read",
+    "episodeOfTotal_one": "Episode {{count}} of {{total}}",
+    "episodeOfTotal_other": "Episode {{count}} of {{total}}",
+    "chapterOfTotal_one": "Chapter {{count}} of {{total}}",
+    "chapterOfTotal_other": "Chapter {{count}} of {{total}}"
+  },
+  "taste": {
+    "title": "Taste",
+    "kinds": "WHAT GETS TRACKED",
+    "genres": "KEEPS COMING BACK TO",
+    "average": "AVERAGE RATING",
+    "rated_one": "{{count}} RATED",
+    "rated_other": "{{count}} RATED",
+    "perfectTens_one": "{{count}} PERFECT TEN",
+    "perfectTens_other": "{{count}} PERFECT TENS",
+    "emptyOwn": "Track a few titles and the shape of your taste shows up here.",
+    "emptyOther": "{{name}} hasn’t tracked anything yet."
+  },
+  "friends": {
+    "all": "ALL {{count}} →",
+    "showFewer": "SHOW FEWER",
+    "requests_one": "{{count}} REQUEST WAITING",
+    "requests_other": "{{count}} REQUESTS WAITING"
   },
   "badges": {
     "title": "Badges",
@@ -101,6 +136,14 @@
         "trakt": "trakt.tv/users/username",
         "steam": "steamcommunity.com/id/name or steamID64",
         "other": "username"
+      },
+      "file": {
+        "field": "EXPORT FILES",
+        "choose": "CHOOSE FILES",
+        "none": "No file chosen",
+        "chosen": "{{names}}",
+        "hint": "The two JSON files (movies and series) from your TV Time export, or its HTML summary. The JSON files carry watch dates; the summary does not.",
+        "readError": "Couldn’t read {{name}}."
       }
     },
     "preview": {
@@ -118,7 +161,8 @@
       "more": "… {{n}} more",
       "nothing": "Everything on that profile is already logged. Nothing would be written.",
       "importNow": "IMPORT NOW",
-      "unreadable": "The preview finished, but its result could not be read. Try again."
+      "unreadable": "The preview finished, but its result could not be read. Try again.",
+      "readingFile": "Reading your {{source}} export. Nothing has been written yet."
     },
     "run": {
       "running": "Writing your library. You can close this — the import carries on.",
@@ -126,6 +170,7 @@
       "doneTitle": "Import finished",
       "created": "Created",
       "updated": "Updated",
+      "merged": "Merged",
       "skipped": "Already logged",
       "withProgress": "With progress",
       "ratings": "Ratings",
@@ -149,5 +194,10 @@
       "start": "Couldn’t start the import.",
       "poll": "Couldn’t read the import’s progress."
     }
+  },
+  "timeline": {
+    "title": "Timeline",
+    "hint": "SCROLL BACK THROUGH TIME",
+    "open": "OPEN IN HISTORY →"
   }
 }

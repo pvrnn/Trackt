@@ -17,26 +17,27 @@
     "chapterOf": "Chapter {{next}} of {{total}}",
     "chapter": "Chapter {{next}}"
   },
-  "inProgress": {
-    "title": "In progress",
-    "caption": "{{kind}} · {{progress}}",
-    "episode": "Ep {{watched}} of {{total}}",
-    "chapter": "Ch {{watched}} of {{total}}",
-    "viewAll_one": "NEWEST {{count}} · VIEW ALL →",
-    "viewAll_other": "NEWEST {{count}} · VIEW ALL →"
+  "upNext": {
+    "checkIn": "Check in {{part}} of {{title}}",
+    "checkedIn": "✓ Checked in · {{part}}",
+    "allCaughtUp": "ALL CAUGHT UP",
+    "allInProgress_one": "{{count}} IN PROGRESS →",
+    "allInProgress_other": "ALL {{count}} IN PROGRESS →",
+    "allInProgressMore": "ALL IN PROGRESS →"
   },
   "caughtUp": "All caught up: you’ve logged all known progress.",
+  "news": {
+    "title": "News",
+    "caption": "FROM WHAT YOU TRACK",
+    "all": "ALL NEWS →",
+    "tracking": "TRACKING",
+    "empty": "No news yet on what you’re tracking. The full feed is one click away."
+  },
   "activity": {
     "title": "Recent activity",
     "line": "{{verb}} <work>{{title}}</work> <detail>{{detail}}</detail>",
-    "empty": "What you watch and read, ratings, and status changes show up here."
-  },
-  "stats": {
-    "title": "This year",
-    "episodes": "Episodes",
-    "chapters": "Chapters",
-    "dayStreak": "Day streak",
-    "completed": "Completed"
+    "empty": "What you watch and read, ratings, and status changes show up here.",
+    "all": "FULL HISTORY →"
   },
   "errors": {
     "save": "Couldn’t save your progress. Try again.",

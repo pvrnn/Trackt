@@ -1,6 +1,7 @@
 import { buildProviderMediaRow, insertNewProviderMedia, type Db } from '@trackt/db';
 import { fetchCatalogSearch, type CatalogSearchHit } from '@trackt/shared';
 import { MAX_YEAR_GAP, chooseMatch, countriesOf, rankMatches } from './match.js';
+import { IMPORT_SOURCES } from './sources.js';
 import { uncertainFrom, type UncertainMatch } from './uncertain.js';
 import { entryKey, type ImportTarget } from './resolve.js';
 import { normaliseTitle } from './titles.js';
@@ -110,6 +111,26 @@ function eligibleHits(entry: ImportEntry, hits: readonly CatalogSearchHit[]): Ca
   return sameWork.filter((hit) => hit.year !== null && Math.abs(hit.year - year) <= MAX_YEAR_GAP);
 }
 
+/**
+ * A hit whose own provider id equals one the entry carries (the source's join
+ * keys, in order): the catalog has already said which work it is, so there is
+ * no title call to make — and a yearless source needs no exact title.
+ */
+function pinnedHit(entry: ImportEntry, hits: readonly CatalogSearchHit[]): CatalogSearchHit | null {
+  for (const key of IMPORT_SOURCES[entry.source].joinKeys) {
+    const value = entry.externalIds[key];
+    if (value === undefined || value === null || value === '') continue;
+    const hit = hits.find(
+      (candidate) =>
+        candidate.kind === entry.kind &&
+        (entry.seasonNumber === null || candidate.seasonNumber === entry.seasonNumber) &&
+        String(candidate.externalIds[key] ?? '') === String(value),
+    );
+    if (hit) return hit;
+  }
+  return null;
+}
+
 /** ` (2017)`, or nothing when the source never stated a year. */
 function statedYear(entry: ImportEntry): string {
   return entry.year === null ? '' : ` (${entry.year})`;
@@ -195,22 +216,26 @@ export async function findCatalogMatches(
           timeoutMs,
           fetchImpl,
         });
-        return eligibleHits(entry, results);
+        return { hits: eligibleHits(entry, results), pinned: pinnedHit(entry, results) };
       } catch (error) {
         if (isRateLimited(error) && attempt < maxAttempts) {
           await sleep(1000 * attempt * attempt);
           continue;
         }
         failed += 1;
-        return [] as CatalogSearchHit[];
+        return { hits: [] as CatalogSearchHit[], pinned: null };
       }
     }
   });
 
   const matches: CatalogMatch[] = [];
   const uncertain = new Map<string, UncertainMatch>();
-  for (const [index, hits] of answers.entries()) {
+  for (const [index, { hits, pinned }] of answers.entries()) {
     const entry = candidates[index]!;
+    if (pinned) {
+      matches.push({ entry, hit: pinned, matchScore: 1 });
+      continue;
+    }
     const subject = {
       title: entry.title,
       year: entry.year,

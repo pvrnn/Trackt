@@ -58,6 +58,7 @@ describe('locale-aware history grouping', () => {
       score: null,
       watched: 0,
       total: null,
+      sessions: [],
     };
   }
 

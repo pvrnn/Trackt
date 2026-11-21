@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -15,6 +16,20 @@
     body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .poster .art { transition: transform 160ms ease; }
+    .poster:hover .art { transform: translateY(-3px); }
+    @media (prefers-reduced-motion: reduce) { .poster .art { transition: none; } .poster:hover .art { transform: none; } }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
   </style>
 </helmet>
 
@@ -23,130 +38,403 @@
 
 <div style="position: relative;">
 <!-- nav -->
-<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
   <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
   <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
     <a href="Home.dc.html" style="color: #948da1;">HOME</a>
     <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
-    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
-    <a href="Profile.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">ACTIVITY</a>
+    <a href="News.dc.html" style="color: #948da1;">NEWS</a>
+    <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
+    <a href="Profile.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">PROFILE</a>
   </div>
   <div style="flex: 1;"></div>
-  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
-  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
-</div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 14px 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span aria-hidden="true">⌕</span><span style="flex: 1;">Search titles or people…</span><span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 5px; padding: 2px 6px;">⌘K</span></a>
+  <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+  <a href="Profile.dc.html" aria-label="Your profile" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">M</a>
+</nav>
 
-<!-- header -->
-<div style="border-bottom: 1px solid rgba(255,255,255,0.09);">
-  <div style="max-width: 1360px; margin: 0 auto; padding: 56px 40px 40px; display: flex; gap: 32px; align-items: flex-end;">
-    <div style="width: 120px; height: 120px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-family: Anton; font-size: 48px;">M</div>
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-      <div style="font-family: Anton; font-size: 56px; line-height: 1; text-transform: uppercase;">Mara V.</div>
-      <div style="color: #b8b1c4; font-size: 15px;">@marav · Watches too much neo-noir. Reads webtoons on the tram. TV Time refugee, class of '26.</div>
-      <div style="display: flex; gap: 20px; font-family: 'Space Grotesk'; font-size: 13px; color: #948da1;">
-        <span><span style="color: #f0edf4; font-weight: 600;">214</span> FOLLOWERS</span>
-        <span><span style="color: #f0edf4; font-weight: 600;">180</span> FOLLOWING</span>
-        <span style="color: #d96bb0;">● 23-DAY STREAK</span>
+<main style="max-width: 1360px; margin: 0 auto; padding: 44px 40px 80px; display: flex; flex-direction: column; gap: 36px;">
+
+  <!-- IDENTITY — who, in one line of sight -->
+  <header style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; gap: 28px; align-items: center; flex-wrap: wrap;">
+      <div aria-hidden="true" style="width: 104px; height: 104px; flex-shrink: 0; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-family: Anton; font-size: 44px;">M</div>
+      <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 8px;">
+        <h1 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 56px; line-height: 1; text-transform: uppercase;">Mara V.</h1>
+        <div style="color: #b8b1c4; font-size: 16px; line-height: 1.5; max-width: 62ch;">Watches too much neo-noir. Reads webtoons on the tram. TV Time refugee, class of '26.</div>
+        <div style="display: flex; gap: 8px 18px; flex-wrap: wrap; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">
+          <span>@MARAV</span>
+          <span>JOINED JUL 2026</span>
+          <a href="#friends"><span style="color: #f0edf4;">6</span> FRIENDS</a>
+          <span style="color: #e58cc4;">● 23-DAY STREAK</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; flex-shrink: 0;">
+        <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+          <button style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">EDIT PROFILE</button>
+        </sc-if>
+        <sc-if value="{{ isVisitor }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ addFriend }}" aria-pressed="{{ requested }}" style="background: {{ addBg }}; box-shadow: {{ addRing }}; color: {{ addFg }}; border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px;" style-hover="filter: brightness(1.12);">{{ addLabel }}</button>
+        </sc-if>
+        <button onClick="{{ share }}" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 20px; color: {{ shareFg }};" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">{{ shareLabel }}</button>
       </div>
     </div>
-    <div style="background: rgba(255,255,255,0.05); color: #f0edf4; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 11px 24px; cursor: pointer;" style-hover="border-color: #d96bb0; color: #d96bb0;">EDIT PROFILE</div>
-  </div>
-  <div style="max-width: 1360px; margin: 0 auto; padding: 0 40px 40px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
-    <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
-      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px 24px; backdrop-filter: blur(16px);">
-        <div style="font-family: Anton; font-size: 36px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ s.v }}</div>
-        <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #948da1;">{{ s.k }}</div>
-      </div>
-    </sc-for>
-  </div>
-</div>
 
-<div style="max-width: 1360px; margin: 0 auto; padding: 40px 40px 80px; display: flex; flex-direction: column; gap: 40px;">
-  <sc-for list="{{ favBlocks }}" as="blk" hint-placeholder-count="2">
-    <div style="display: flex; flex-direction: column; gap: 16px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">{{ blk.title }}</div>
-        <div style="width: 8px; height: 8px; border-radius: 999px; background: {{ blk.dot }};"></div>
-      </div>
-      <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;">
-        <sc-for list="{{ blk.items }}" as="c">
-          <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="aspect-ratio: 2/3; border-radius: 12px; background: {{ c.grad }}; display: flex; align-items: flex-end; padding: 12px; position: relative; overflow: hidden;">
-              <div style="position: absolute; top: 10px; left: 10px; background: rgba(14,12,16,0.8); color: #d96bb0; font-family: Anton; font-size: 14px; padding: 2px 10px; border-radius: 999px;">{{ c.rank }}</div>
-              <span style="font-family: Anton; font-size: 16px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ c.title }}</span>
+    <!-- numbers: one quiet strip, not five cards -->
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; backdrop-filter: blur(16px);">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
+        <div style="padding: 16px 24px; display: flex; align-items: baseline; gap: 12px; box-shadow: {{ s.rule }}; min-width: 0;">
+          <div style="font-family: Anton; font-size: 30px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ s.v }}</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #948da1;">{{ s.k }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </header>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 48px; align-items: start;">
+
+    <!-- LEFT — taste first, then what's happening now, then the trail -->
+    <div style="display: flex; flex-direction: column; gap: 44px; min-width: 0;">
+
+      <!-- FAVOURITES — always one row. Top picks = the #1 of every kind; tabs go deeper. -->
+      <section aria-labelledby="h-fav" style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: baseline; gap: 14px;">
+          <h2 id="h-fav" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase;">Favourites</h2>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ favTotal }}</div>
+          <div style="flex: 1;"></div>
+          <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+            <button style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; padding: 6px 2px;">✎ EDIT &amp; REORDER</button>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.09); margin-bottom: 14px;">
+          <sc-for list="{{ favTabs }}" as="t" hint-placeholder-count="7">
+            <button onClick="{{ t.pick }}" aria-pressed="{{ t.on }}" style="position: relative; display: flex; align-items: center; gap: 8px; padding: 13px 14px; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: {{ t.fg }};" style-hover="color: #f0edf4;">
+              <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: {{ t.dot }}; display: {{ t.dotDisplay }};"></span>
+              <span>{{ t.label }}</span>
+              <span style="font-weight: 500; color: #948da1;">{{ t.count }}</span>
+              <span aria-hidden="true" style="position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; border-radius: 2px; background: {{ t.line }};"></span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px;">
+          <sc-for list="{{ favRow }}" as="c" hint-placeholder-count="6">
+            <a href="Media Detail.dc.html" class="poster" style="display: flex; flex-direction: column; gap: 9px; min-width: 0;">
+              <div class="art" style="aspect-ratio: 2/3; border-radius: 9px; background: {{ c.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 26px -14px rgba(0,0,0,0.9);"></div>
+              <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: {{ c.dot }};"></span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">{{ c.eyebrow }}</span>
+                </div>
+                <div class="clamp2" style="font-weight: 600; font-size: 13px; line-height: 1.3;">{{ c.title }}</div>
+              </div>
+            </a>
+          </sc-for>
+          <sc-if value="{{ showAddFav }}" hint-placeholder-val="{{ false }}">
+            <button aria-label="Add a favourite" style="aspect-ratio: 2/3; align-self: start; border: 1px dashed rgba(255,255,255,0.22); border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #948da1; font-size: 22px;" style-hover="border-color: #d96bb0; color: #d96bb0;">＋</button>
+          </sc-if>
+        </div>
+        <sc-if value="{{ hasMoreFav }}" hint-placeholder-val="{{ false }}">
+          <a href="Profile.dc.html" style="align-self: flex-start; margin-top: 12px; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">{{ moreFavLabel }}</a>
+        </sc-if>
+      </section>
+
+      <!-- RIGHT NOW -->
+      <section aria-labelledby="h-now" style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: baseline; gap: 14px;">
+          <h2 id="h-now" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase;">Right now</h2>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">3 OF 12 IN PROGRESS</div>
+          <div style="flex: 1;"></div>
+          <a href="History.dc.html" style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">ALL IN PROGRESS →</a>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+          <sc-for list="{{ now }}" as="n" hint-placeholder-count="3">
+            <a href="Media Detail.dc.html" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 16px 10px 10px; display: flex; align-items: center; gap: 14px; backdrop-filter: blur(16px); min-width: 0;" style-hover="box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55);">
+              <div aria-hidden="true" style="width: 50px; height: 75px; flex-shrink: 0; border-radius: 7px; background: {{ n.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: {{ n.dot }};"></span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ n.kind }}</span>
+                </div>
+                <div class="one-line" style="font-weight: 700; font-size: 15px;">{{ n.title }}</div>
+                <div class="one-line" style="color: #b8b1c4; font-size: 13px;">{{ n.where }}</div>
+                <div aria-hidden="true" style="height: 3px; border-radius: 999px; background: rgba(255,255,255,0.1); margin-top: 3px; overflow: hidden;">
+                  <div style="height: 100%; width: {{ n.pct }}; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+                </div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- TIMELINE — the same arrow as History, shrunk: scroll back through what they were into -->
+      <section aria-labelledby="h-tl" style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+        <div style="display: flex; align-items: baseline; gap: 14px;">
+          <h2 id="h-tl" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase;">Timeline</h2>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">SCROLL BACK THROUGH TIME</div>
+          <div style="flex: 1;"></div>
+          <a href="History.dc.html" style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">OPEN IN HISTORY →</a>
+        </div>
+        <dc-import name="Timeline" mini="{{ true }}" hint-size="100%,260px"></dc-import>
+      </section>
+
+      <!-- RECENT — rows, not cards -->
+      <section aria-labelledby="h-recent" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: baseline; gap: 14px;">
+          <h2 id="h-recent" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase;">Recent</h2>
+          <div style="flex: 1;"></div>
+          <a href="History.dc.html" style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">FULL HISTORY →</a>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{ recent }}" as="r" hint-placeholder-count="6">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 13px 0; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08);">
+              <span aria-hidden="true" style="width: 7px; height: 7px; flex-shrink: 0; border-radius: 999px; background: {{ r.dot }};"></span>
+              <div style="flex: 1; min-width: 0; font-size: 15px; color: #b8b1c4;">{{ r.verb }} <a href="Media Detail.dc.html" style="color: #f0edf4; font-weight: 600;">{{ r.what }}</a> <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;">{{ r.unit }}</span> <span style="color: #d96bb0; font-weight: 700;">{{ r.score }}</span></div>
+              <div style="flex-shrink: 0; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ r.time }}</div>
             </div>
-          </a>
-        </sc-for>
-        <div style="aspect-ratio: 2/3; border: 1px dashed rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6a6478; font-size: 24px; cursor: pointer;" style-hover="border-color: #d96bb0; color: #d96bb0;">＋</div>
-      </div>
+          </sc-for>
+        </div>
+      </section>
     </div>
-  </sc-for>
 
-  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 48px;">
-    <div style="display: flex; flex-direction: column; gap: 16px;">
-      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">Recent</div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <sc-for list="{{ recent }}" as="r" hint-placeholder-count="5">
-          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; display: flex; gap: 14px; padding: 14px 18px; align-items: center; backdrop-filter: blur(16px);">
-            <div style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 999px; background: {{ r.dot }};"></div>
-            <div style="font-size: 14px; color: #b8b1c4; flex: 1;">{{ r.verb }} <span style="color: #f0edf4; font-weight: 600;">{{ r.what }}</span> <span style="color: #d96bb0; font-weight: 700;">{{ r.extra }}</span></div>
-            <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">{{ r.time }}</div>
+    <!-- RIGHT — the person in numbers and people -->
+    <aside style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+
+      <!-- visitor only: what you two share -->
+      <sc-if value="{{ isVisitor }}" hint-placeholder-val="{{ false }}">
+        <section style="background: rgba(217,107,176,0.1); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.45); border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(16px);">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #e58cc4;">YOU AND MARA</div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="font-family: Anton; font-size: 44px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">14</div>
+            <div style="font-size: 15px; line-height: 1.4; color: #f0edf4;">titles in common.<br><span style="color: #b8b1c4;">Neon Harbor is in both your favourites.</span></div>
           </div>
-        </sc-for>
-      </div>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 16px;">
-      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">Badges</div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <sc-for list="{{ badges }}" as="b" hint-placeholder-count="3">
-          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 14px; backdrop-filter: blur(16px);">
-            <div style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: linear-gradient(135deg, rgba(217,164,65,0.25), rgba(139,92,246,0.25)); border: 1px solid #d96bb0; color: #d96bb0; display: flex; align-items: center; justify-content: center; font-family: Anton; font-size: 15px;">{{ b.glyph }}</div>
-            <div>
-              <div style="font-weight: 700; font-size: 14px;">{{ b.name }}</div>
-              <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">{{ b.desc }}</div>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{ common }}" as="c" hint-placeholder-count="5">
+              <a href="Media Detail.dc.html" aria-label="{{ c.title }}" style="flex: 1; aspect-ratio: 2/3; border-radius: 6px; background: {{ c.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></a>
+            </sc-for>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- TASTE -->
+      <section aria-labelledby="h-taste" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 22px; backdrop-filter: blur(16px);">
+        <h2 id="h-taste" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">Taste</h2>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">WHERE THE TIME GOES</div>
+          <div aria-hidden="true" style="display: flex; gap: 2px; height: 10px;">
+            <sc-for list="{{ mix }}" as="m" hint-placeholder-count="6">
+              <div style="flex: {{ m.pct }} 1 0; min-width: 4px; background: {{ m.dot }}; border-radius: 3px;"></div>
+            </sc-for>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px;">
+            <sc-for list="{{ mix }}" as="m" hint-placeholder-count="6">
+              <div style="display: flex; align-items: center; gap: 6px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">
+                <span aria-hidden="true" style="width: 7px; height: 7px; flex-shrink: 0; border-radius: 999px; background: {{ m.dot }};"></span>
+                <span>{{ m.kind }}</span>
+                <span style="color: #f0edf4;">{{ m.pct }}%</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">KEEPS COMING BACK TO</div>
+          <sc-for list="{{ genres }}" as="g" hint-placeholder-count="5">
+            <div style="display: grid; grid-template-columns: 124px minmax(0, 1fr) 28px; align-items: center; gap: 12px;">
+              <span class="one-line" style="font-size: 14px; font-weight: 600;">{{ g.name }}</span>
+              <div aria-hidden="true" style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08);">
+                <div style="height: 100%; width: {{ g.w }}; border-radius: 999px; background: #d96bb0;"></div>
+              </div>
+              <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: #b8b1c4; text-align: right;">{{ g.n }}</span>
             </div>
-          </div>
-        </sc-for>
-      </div>
-      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(16px);">
-        <div style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.08em; color: #948da1;">PROFILE VISIBILITY</div>
-        <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: #d96bb0;">PUBLIC ▾</div>
-      </div>
-    </div>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; align-items: baseline; gap: 12px; padding-top: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
+          <div style="font-family: Anton; font-size: 30px; line-height: 1;">7.8</div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">AVERAGE RATING · 143 RATED · 9 PERFECT TENS</div>
+        </div>
+      </section>
+
+      <!-- FRIENDS -->
+      <section id="friends" aria-labelledby="h-friends" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px; backdrop-filter: blur(16px);">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <h2 id="h-friends" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">Friends</h2>
+          <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: #948da1;">6</div>
+          <div style="flex: 1;"></div>
+          <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+            <button style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; padding: 4px 2px;">＋ ADD FRIEND</button>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{ friends }}" as="p" hint-placeholder-count="4">
+            <a href="Profile.dc.html" style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+              <div aria-hidden="true" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: {{ p.av }}; display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 13px;">{{ p.initials }}</div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                <div class="one-line" style="font-weight: 600; font-size: 14px;">{{ p.name }}</div>
+                <div class="one-line" style="font-size: 12px; color: #948da1;">{{ p.note }}</div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
+          <a href="Profile.dc.html" style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">ALL 6 →</a>
+          <div style="flex: 1;"></div>
+          <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+            <a href="Profile.dc.html" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d9a441; padding: 5px 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(217,164,65,0.5);">3 REQUESTS WAITING</a>
+          </sc-if>
+        </div>
+      </section>
+
+      <!-- BADGES -->
+      <section aria-labelledby="h-badges" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px; backdrop-filter: blur(16px);">
+        <h2 id="h-badges" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">Badges</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+          <sc-for list="{{ badges }}" as="b" hint-placeholder-count="3">
+            <div title="{{ b.desc }}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+              <div aria-hidden="true" style="width: 52px; height: 52px; border-radius: 999px; background: linear-gradient(135deg, rgba(217,164,65,0.25), rgba(139,92,246,0.25)); box-shadow: inset 0 0 0 1px #d96bb0; color: #e58cc4; display: flex; align-items: center; justify-content: center; font-family: Anton; font-size: 18px;">{{ b.glyph }}</div>
+              <div style="font-weight: 600; font-size: 13px; line-height: 1.25;">{{ b.name }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">PROFILE VISIBILITY</div>
+          <button style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #d96bb0; padding: 6px 2px;">PUBLIC ▾</button>
+        </div>
+      </sc-if>
+    </aside>
   </div>
-</div>
+</main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script>
+<script type="text/x-dc" data-dc-script data-props='{"viewer":{"editor":"enum","options":["owner","visitor"],"default":"owner","section":"States"}}'>
+// Placeholder artwork. Deliberately includes light, flat and loud covers.
+const ARTS = [
+  'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
+  'radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%)',
+  'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+  'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)',
+  'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)',
+  'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)',
+  'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)',
+  'radial-gradient(46% 32% at 50% 40%, #e9e4f5 0%, transparent 72%), linear-gradient(180deg, #55309a 0%, #0d0817 100%)',
+  'linear-gradient(64deg, transparent 0 44%, rgba(255,255,255,0.85) 44% 47%, transparent 47%), linear-gradient(200deg, #c2202a 0%, #2a0608 78%)',
+  'radial-gradient(70% 50% at 40% 62%, #ff9bd0 0%, transparent 70%), linear-gradient(180deg, #1b3a2a 0%, #0a1510 100%)',
+  'linear-gradient(180deg, #ece6d6 0%, #b9ae95 58%, #5a5140 100%)',
+  'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)',
+];
+const DOT = { MOVIE: '#8b5cf6', SERIES: '#4a6ee8', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+// ranked favourites per kind, [title, art index]
+const FAVS = [
+  { kind: 'SERIES', label: 'SERIES', items: [['Neon Harbor', 0], ['Sable Coast', 6], ['The Ferry Years', 10], ['Harbor Vigil', 2]] },
+  { kind: 'ANIME', label: 'ANIME', items: [['Ashfall Chronicle', 1], ['Glass Orchard', 5], ['Static Bloom', 9], ['Second Sun', 11], ['Kiln', 8], ['Paper Lantern Club', 3]] },
+  { kind: 'MOVIE', label: 'MOVIES', items: [['The Long Static', 2], ['Hollow Signal', 7], ['Salt Road', 10], ['Night Ferry', 0], ['Low Orbit', 6]] },
+  { kind: 'MANGA', label: 'MANGA', items: [['Paper Cities', 4], ['Ninth Tide', 8], ['Inkwell', 10], ['The Quiet Blade', 7], ['Marrow', 5], ['Tin Sparrow', 6], ['Lowlands', 9], ['Cartographer', 1]] },
+  { kind: 'WEBTOON', label: 'WEBTOONS', items: [['Moonlit Courier', 3], ['Copper Veil', 11]] },
+  { kind: 'GAME', label: 'GAMES', items: [['Tidewalker', 11], ['Emberfall', 1], ['Loom', 9]] },
+];
+const AV = [
+  'linear-gradient(135deg, #d9a441, #d96bb0)',
+  'linear-gradient(135deg, #a78bfa, #6d8bf0)',
+  'linear-gradient(135deg, #d96bb0, #a78bfa)',
+  'linear-gradient(135deg, #6d8bf0, #35d6c0)',
+];
+
 class Component extends DCLogic {
+  state = { tab: 'TOP', requested: false, shared: false };
+
   renderVals() {
+    const prism = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
+    const isOwner = (this.props.viewer ?? 'owner') !== 'visitor';
+    const tab = this.state.tab;
+    const total = FAVS.reduce((n, f) => n + f.items.length, 0);
+
+    let favRow, more = 0, showAdd = false;
+    if (tab === 'TOP') {
+      favRow = FAVS.map((f) => ({ title: f.items[0][0], art: ARTS[f.items[0][1]], dot: DOT[f.kind], eyebrow: 'TOP ' + f.kind }));
+    } else {
+      const f = FAVS.find((x) => x.kind === tab);
+      favRow = f.items.slice(0, 6).map((it, i) => ({ title: it[0], art: ARTS[it[1]], dot: DOT[f.kind], eyebrow: 'NO. ' + (i + 1) }));
+      more = f.items.length - favRow.length;
+      showAdd = isOwner && f.items.length < 6;
+    }
+
+    const tabs = [{ key: 'TOP', label: 'TOP PICKS', count: '' }].concat(
+      FAVS.map((f) => ({ key: f.kind, label: f.label, count: f.items.length }))
+    );
+    const stats = [
+      { v: '186', k: 'EPISODES THIS YEAR' },
+      { v: '412', k: 'CHAPTERS READ' },
+      { v: '318h', k: 'WATCHED' },
+      { v: '41', k: 'COMPLETED' },
+      { v: '12', k: 'REWATCHES' },
+    ];
+    const genres = [
+      { name: 'Neo-noir', n: 38 }, { name: 'Psychological', n: 31 }, { name: 'Slow-burn drama', n: 24 },
+      { name: 'Maritime', n: 17 }, { name: 'Slice of life', n: 12 },
+    ];
+
     return {
-      stats: [
-        { v: '186', k: 'EPISODES THIS YEAR' },
-        { v: '412', k: 'CHAPTERS READ' },
-        { v: '318h', k: 'HOURS WATCHED' },
-        { v: '41', k: 'COMPLETED' },
-        { v: '12', k: 'REWATCHES' },
-      ],
-      favBlocks: [
-        { title: 'Favourite series', dot: '#4a6ee8', items: [
-          { rank: '01', title: 'Neon Harbor', grad: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)' },
-          { rank: '02', title: 'Sable Coast', grad: 'linear-gradient(160deg, #2a4a8c 0%, #080d17 100%)' },
-          { rank: '03', title: 'The Ferry Years', grad: 'linear-gradient(160deg, #2a3a8c 0%, #0a0c17 100%)' },
-          { rank: '04', title: 'The Long Static', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
-        ]},
-        { title: 'Favourite webtoons', dot: '#d96bb0', items: [
-          { rank: '01', title: 'Moonlit Courier', grad: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)' },
-          { rank: '02', title: 'Copper Veil', grad: 'linear-gradient(160deg, #a03a7a 0%, #170812 100%)' },
-        ]},
-      ],
+      isOwner, isVisitor: !isOwner,
+      requested: this.state.requested,
+      addFriend: () => this.setState((s) => ({ requested: !s.requested })),
+      addLabel: this.state.requested ? 'REQUESTED ✓' : '＋ ADD FRIEND',
+      addBg: this.state.requested ? 'rgba(255,255,255,0.05)' : prism,
+      addRing: this.state.requested ? 'inset 0 0 0 1px rgba(255,255,255,0.18)' : 'none',
+      addFg: this.state.requested ? '#b8b1c4' : '#14101a',
+      share: () => this.setState({ shared: true }),
+      shareLabel: this.state.shared ? 'LINK COPIED' : '↗ SHARE',
+      shareFg: this.state.shared ? '#e58cc4' : '#f0edf4',
+
+      stats: stats.map((s, i) => Object.assign({}, s, { rule: i === 0 ? 'none' : 'inset 1px 0 0 rgba(255,255,255,0.09)' })),
+
+      favTotal: total + ' ACROSS ' + FAVS.length + ' KINDS',
+      favTabs: tabs.map((t) => ({
+        label: t.label, count: t.count, on: t.key === tab,
+        dot: DOT[t.key] || 'transparent',
+        dotDisplay: t.key === 'TOP' ? 'none' : 'block',
+        fg: t.key === tab ? '#f0edf4' : '#b8b1c4',
+        line: t.key === tab ? prism : 'transparent',
+        pick: () => this.setState({ tab: t.key }),
+      })),
+      favRow,
+      showAddFav: showAdd,
+      hasMoreFav: more > 0,
+      moreFavLabel: 'SEE ALL ' + (favRow.length + more) + ' →',
+
+      now: [
+        { title: 'Neon Harbor', kind: 'SERIES', where: 'S2 · episode 4 of 12', pct: '33%', art: ARTS[0] },
+        { title: 'Ashfall Chronicle', kind: 'ANIME', where: 'Episode 17 of 24', pct: '71%', art: ARTS[1] },
+        { title: 'Paper Cities', kind: 'MANGA', where: 'Vol 4 · chapter 31 of 50', pct: '62%', art: ARTS[4] },
+      ].map((n) => Object.assign({}, n, { dot: DOT[n.kind] })),
+
       recent: [
-        { dot: '#4a6ee8', verb: 'Checked in', what: 'Neon Harbor S2 E4', extra: '', time: 'TODAY' },
-        { dot: '#d9a441', verb: 'Rated', what: 'Ashfall Chronicle E17', extra: '8.5', time: 'YESTERDAY' },
-        { dot: '#d96bb0', verb: 'Read', what: 'Moonlit Courier Ch 111–112', extra: '', time: 'YESTERDAY' },
-        { dot: '#8b5cf6', verb: 'Finished', what: 'The Long Static', extra: '9.0', time: 'JUL 04' },
-        { dot: '#e8874a', verb: 'Started', what: 'Paper Cities Vol 4', extra: '', time: 'JUL 02' },
-      ],
+        { kind: 'SERIES', verb: 'Watched', what: 'Neon Harbor', unit: 'S2 E4', score: '', time: 'TODAY' },
+        { kind: 'ANIME', verb: 'Rated', what: 'Ashfall Chronicle', unit: 'E17', score: '8.5', time: 'YESTERDAY' },
+        { kind: 'WEBTOON', verb: 'Read', what: 'Moonlit Courier', unit: 'CH 111–112', score: '', time: 'YESTERDAY' },
+        { kind: 'MOVIE', verb: 'Finished', what: 'The Long Static', unit: '', score: '9.0', time: '4 JUL' },
+        { kind: 'MANGA', verb: 'Started', what: 'Paper Cities', unit: 'VOL 4', score: '', time: '2 JUL' },
+        { kind: 'MOVIE', verb: 'Dropped', what: 'Hollow Signal', unit: 'AFTER 40 MIN', score: '', time: '28 JUN' },
+      ].map((r) => Object.assign({}, r, { dot: DOT[r.kind] })),
+
+      common: [0, 2, 4, 1, 6].map((i, k) => ({ art: ARTS[i], title: ['Neon Harbor', 'The Long Static', 'Paper Cities', 'Ashfall Chronicle', 'Sable Coast'][k] })),
+
+      mix: [
+        { kind: 'SERIES', pct: 34 }, { kind: 'ANIME', pct: 27 }, { kind: 'MANGA', pct: 21 },
+        { kind: 'WEBTOON', pct: 9 }, { kind: 'MOVIE', pct: 6 }, { kind: 'GAME', pct: 3 },
+      ].map((m) => Object.assign({}, m, { dot: DOT[m.kind] })),
+      genres: genres.map((g) => Object.assign({}, g, { w: Math.round((g.n / genres[0].n) * 100) + '%' })),
+
+      friends: [
+        { name: 'Sam Okonkwo', note: 'Watching Neon Harbor · 14 in common' },
+        { name: 'Iris Delacroix', note: 'Reading Moonlit Courier · 9 in common' },
+        { name: 'Noor Haddad', note: 'Finished The Long Static · 11 in common' },
+        { name: 'Ben Alvarez', note: '31-day streak · 6 in common' },
+      ].map((p, i) => Object.assign({}, p, { av: AV[i % AV.length], initials: p.name.split(' ').map((w) => w[0]).join('') })),
+
       badges: [
         { glyph: '23', name: 'Streak keeper', desc: '23 days of daily check-ins' },
         { glyph: 'TV', name: 'The migrator', desc: 'Imported 1,000+ episodes from TV Time' },

@@ -162,6 +162,13 @@
       "when": 1793476427045,
       "tag": "0022_serious_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794750041143,
+      "tag": "0023_low_firebrand",
+      "breakpoints": true
     }
   ]
 }

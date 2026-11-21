@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Landing</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -12,9 +13,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; overflow-x: hidden; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    @keyframes wall-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+    @keyframes wall-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+    @keyframes float-chip { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .wall-col { display: flex; flex-direction: column; will-change: transform; }
+    .wall-up { animation: wall-up 46s linear infinite; }
+    .wall-down { animation: wall-down 58s linear infinite; }
+    .wall-up.slow { animation-duration: 70s; }
+    .float-chip { animation: float-chip 6s ease-in-out infinite; }
+    .float-chip.late { animation-delay: -3s; }
+    .tile { transition: transform 180ms ease, box-shadow 180ms ease; }
+    .tile:hover { transform: translateY(-4px); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.5), 0 24px 50px -28px rgba(217,107,176,0.5); }
+    @media (prefers-reduced-motion: reduce) {
+      .wall-up, .wall-down, .float-chip { animation: none; }
+      .tile { transition: none; } .tile:hover { transform: none; }
+    }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
   </style>
 </helmet>
 
@@ -23,110 +48,444 @@
 
 <div style="position: relative;">
 <!-- nav -->
-<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09);">
-  <div style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</div>
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 12px 28px; flex-wrap: wrap; padding: 18px clamp(20px, 4vw, 40px); position: sticky; top: 0; background: rgba(14,12,16,0.72); backdrop-filter: blur(16px); box-shadow: inset 0 -1px 0 rgba(255,255,255,0.09); z-index: 20;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
   <div style="flex: 1;"></div>
-  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; align-items: center;">
-    <a href="Landing.dc.html" style="color: #948da1;">SELF-HOST</a>
-    <a href="Landing.dc.html" style="color: #948da1;">API</a>
-    <a href="Landing.dc.html" style="color: #948da1;">GITHUB</a>
-    <a href="Login.dc.html" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; padding: 10px 22px; border-radius: 999px;" style-hover="filter: brightness(1.15); color: #14101a;">SIGN IN</a>
+  <div style="display: flex; gap: 8px 24px; flex-wrap: wrap; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; align-items: center;">
+    <a href="News.dc.html" style="color: #b8b1c4;">NEWS</a>
+    <a href="#open" style="color: #b8b1c4;">API</a>
+    <a href="https://github.com/pvrnn/Trackt" style="color: #b8b1c4;">GITHUB ↗</a>
+    <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+    <a href="Login.dc.html" style="background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-weight: 700; font-size: 13px; padding: 10px 22px; border-radius: 999px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">SIGN IN</a>
   </div>
-</div>
+</nav>
 
-<!-- hero -->
-<div style="border-bottom: 1px solid rgba(255,255,255,0.09); position: relative; overflow: hidden;">
-  <div style="max-width: 1360px; margin: 0 auto; padding: 96px 40px 80px; display: flex; flex-direction: column; gap: 28px; position: relative;">
-    <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">OPEN SOURCE · SELF-HOSTABLE · COMMUNITY-OWNED</div>
-    <div style="font-family: Anton; font-size: 120px; line-height: 0.92; text-transform: uppercase; max-width: 1000px;">Track everything.<br>Lose <span style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">nothing.</span></div>
-    <div style="color: #b8b1c4; font-size: 19px; line-height: 1.6; max-width: 560px;">Movies, series, anime, manga, and webtoons — with full export at any time and a public API from day one. TV Time deleted 25 million histories. Never again.</div>
-    <div style="display: flex; gap: 14px; flex-wrap: wrap;">
-      <a href="Login.dc.html" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 16px 32px; border-radius: 999px;" style-hover="filter: brightness(1.15); color: #14101a;">START TRACKING</a>
-      <a href="Landing.dc.html" style="border: 1px solid rgba(255,255,255,0.2); color: #f0edf4; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 15px 32px; border-radius: 999px; background: rgba(255,255,255,0.05);" style-hover="border-color: #d96bb0;">IMPORT FROM TV TIME</a>
+<!-- HERO — the promise on the left, the proof (a wall of everything) on the right -->
+<header style="position: relative; overflow: hidden;">
+  <div style="max-width: 1360px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); gap: 24px 48px; align-items: center;">
+
+    <div style="display: flex; flex-direction: column; gap: 26px; padding: 72px 0 80px; min-width: 0;">
+      <div style="display: flex; gap: 8px 16px; flex-wrap: wrap;">
+        <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="6">
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: {{ k.dot }};"></span>
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: {{ k.fg }}; transition: color 300ms ease;">{{ k.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <h1 aria-label="Track every movie, series, anime, manga, webtoon and game" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(64px, 9.4vw, 132px); line-height: 0.92; text-transform: uppercase;">
+        <span aria-hidden="true" style="display: block;">Track every</span>
+        <span aria-hidden="true" style="position: relative; display: block;">
+          <span style="visibility: hidden;">WEBTOON.</span>
+          <sc-for list="{{ words }}" as="w" hint-placeholder-count="1">
+            <span style="position: absolute; left: 0; top: 0; white-space: nowrap; opacity: {{ w.op }}; transform: {{ w.tf }}; transition: opacity 420ms ease, transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1); background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ w.label }}</span>
+          </sc-for>
+        </span>
+      </h1>
+
+      <p style="margin: 0; color: #cfc9d8; font-size: 19px; line-height: 1.6; max-width: 520px; text-wrap: pretty;">One log for everything you watch, read and play. Check in an episode or a chapter in two taps, see what your friends are into, and get news only about what you follow.</p>
+
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <a href="Login.dc.html" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 17px 34px; border-radius: 999px;" style-hover="filter: brightness(1.15); color: #14101a;">START TRACKING — FREE</a>
+        <a href="https://github.com/pvrnn/Trackt" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 17px 28px; border-radius: 999px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">VIEW ON GITHUB ↗</a>
+      </div>
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; color: #948da1;">OPEN SOURCE · FULL EXPORT ANY TIME · <a href="#import" style="color: #b8b1c4; text-decoration: underline; text-underline-offset: 3px;">IMPORT FROM 5 APPS</a></div>
     </div>
-    <div style="font-family: 'Space Grotesk'; font-size: 13px; color: #948da1;">or self-host: <span style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 12px; color: #d96bb0;">docker compose up</span></div>
+
+    <!-- the wall: three columns of covers drifting past, tilted. Pure decoration. -->
+    <div aria-hidden="true" style="position: relative; height: 680px; min-width: 0; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 80%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 80%, transparent 100%);">
+      <div style="position: absolute; inset: -120px -40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; transform: rotate(-7deg);">
+        <sc-for list="{{ wall }}" as="col" hint-placeholder-count="3">
+          <div class="{{ col.cls }}">
+            <sc-for list="{{ col.items }}" as="c" hint-placeholder-count="6">
+              <div style="aspect-ratio: 2/3; margin-bottom: 16px; border-radius: 12px; background: {{ c.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 18px 40px -20px rgba(0,0,0,0.9); position: relative;">
+                <div style="position: absolute; left: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; background: #14101a;">
+                  <span style="width: 6px; height: 6px; border-radius: 999px; background: {{ c.dot }};"></span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #f0edf4;">{{ c.kind }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 110px; background: linear-gradient(90deg, #0e0c10 0%, rgba(14,12,16,0) 100%);"></div>
+      <!-- two moments from the app, floating over the wall on opaque backing -->
+      <div class="float-chip" style="position: absolute; left: 4%; top: 30%; display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; border-radius: 999px; background: #191520; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55), 0 24px 50px -18px rgba(0,0,0,0.9);">
+        <span style="width: 34px; height: 34px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px;">✓</span>
+        <span style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 700; font-size: 14px;">Checked in</span>
+          <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4;">NEON HARBOR · S2 E5</span>
+        </span>
+      </div>
+      <div class="float-chip late" style="position: absolute; right: 6%; top: 58%; display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-radius: 18px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 24px 50px -18px rgba(0,0,0,0.9);">
+        <span style="font-family: Anton; font-size: 34px; line-height: 1; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">9.0</span>
+        <span style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 700; font-size: 14px;">rex finished it</span>
+          <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4;">THE LONG STATIC</span>
+        </span>
+      </div>
+    </div>
   </div>
-  <!-- cover strip -->
-  <div style="display: flex; gap: 2px; transform: {{ stripTransform }}; margin: 0 -80px; width: calc(100% + 160px);">
-    <sc-for list="{{ strip }}" as="s" hint-placeholder-count="10">
-      <div style="flex: 1; min-width: 110px; height: 190px; background: {{ s.grad }}; display: flex; align-items: flex-start; padding: 12px 10px;">
-        <span style="font-family: Anton; font-size: 13px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.9); opacity: {{ titleOpacity }};">{{ s.title }}</span>
+</header>
+
+<!-- SIX KINDS -->
+<section aria-labelledby="h-kinds" style="max-width: 1360px; margin: 0 auto; padding: 72px clamp(20px, 4vw, 40px) 88px; display: flex; flex-direction: column; gap: 36px;">
+  <div style="display: flex; align-items: flex-end; gap: 16px 40px; flex-wrap: wrap;">
+    <h2 id="h-kinds" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(44px, 5.6vw, 72px); line-height: 0.95; text-transform: uppercase;">Six kinds.<br>One log.</h2>
+    <p style="margin: 0 0 6px; color: #b8b1c4; font-size: 17px; line-height: 1.6; max-width: 460px; text-wrap: pretty;">No more one app for shows, a spreadsheet for manga and a memory for games. Each kind is tracked the way it is actually consumed.</p>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px;">
+    <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6">
+      <div class="tile" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; padding: 24px; display: flex; gap: 20px; align-items: stretch; backdrop-filter: blur(16px); min-width: 0;">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 999px; background: {{ t.dot }};"></span>
+            <h3 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 30px; line-height: 1; text-transform: uppercase;">{{ t.name }}</h3>
+          </div>
+          <div style="color: #b8b1c4; font-size: 15px; line-height: 1.5;">{{ t.how }}</div>
+          <div style="flex: 1; min-height: 8px;"></div>
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4;">{{ t.sample }}</div>
+          <div aria-hidden="true" style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden;">
+            <div style="height: 100%; width: {{ t.pct }}; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+          </div>
+        </div>
+        <div aria-hidden="true" style="width: 84px; flex-shrink: 0; aspect-ratio: 2/3; align-self: center; border-radius: 9px; background: {{ t.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 14px 30px -16px rgba(0,0,0,0.9); transform: rotate(3deg);"></div>
       </div>
     </sc-for>
   </div>
-</div>
+</section>
 
-<!-- pillars -->
-<div style="max-width: 1360px; margin: 0 auto; padding: 80px 40px; display: flex; flex-direction: column; gap: 40px;">
-  <div style="font-family: Anton; font-size: 48px; text-transform: uppercase;">Why this exists</div>
-  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-    <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="4">
-      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(16px);">
-        <div style="font-family: Anton; font-size: 28px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ p.num }}</div>
-        <div style="font-weight: 700; font-size: 17px;">{{ p.title }}</div>
-        <div style="color: #b8b1c4; font-size: 14px; line-height: 1.6;">{{ p.body }}</div>
+<!-- WHAT IT DOES — four real pieces of the app, not four icons -->
+<section aria-labelledby="h-does" style="box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); background: rgba(14,12,16,0.35);">
+  <div style="max-width: 1360px; margin: 0 auto; padding: 88px clamp(20px, 4vw, 40px); display: flex; flex-direction: column; gap: 36px;">
+    <h2 id="h-does" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(44px, 5.6vw, 72px); line-height: 0.95; text-transform: uppercase;">More than a checklist</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr)); gap: 16px;">
+
+      <!-- check-in -->
+      <article style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; backdrop-filter: blur(16px); min-width: 0;">
+        <h3 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 34px; line-height: 1; text-transform: uppercase;">Two taps. It's logged.</h3>
+        <p style="margin: 0; color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 46ch;">Your next episode or chapter is waiting on the home page. Try it.</p>
+        <div style="flex: 1; min-height: 6px;"></div>
+        <div style="background: #17131d; box-shadow: inset 0 0 0 1px {{ ciRing }}; border-radius: 14px; padding: 10px 14px 10px 10px; display: flex; align-items: center; gap: 14px; max-width: 420px; transition: box-shadow 200ms ease;">
+          <div aria-hidden="true" style="width: 54px; height: 81px; flex-shrink: 0; border-radius: 7px; background: radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: #d9a441;"></span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">ANIME</span>
+            </div>
+            <div style="font-weight: 700; font-size: 15px;">Ashfall Chronicle</div>
+            <div style="color: #b8b1c4; font-size: 13px;">{{ ciNext }}</div>
+            <div aria-hidden="true" style="height: 3px; border-radius: 999px; background: rgba(255,255,255,0.1); margin-top: 3px; overflow: hidden;">
+              <div style="height: 100%; width: {{ ciPct }}; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); transition: width 400ms ease;"></div>
+            </div>
+          </div>
+          <button onClick="{{ checkIn }}" aria-pressed="{{ ciDone }}" aria-label="Check in Ashfall Chronicle" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 999px; background: {{ ciBg }}; box-shadow: {{ ciBtnRing }}; color: {{ ciFg }}; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;" style-hover="filter: brightness(1.15);">✓</button>
+        </div>
+      </article>
+
+      <!-- friends -->
+      <article style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; backdrop-filter: blur(16px); min-width: 0;">
+        <h3 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 34px; line-height: 1; text-transform: uppercase;">Friends, minus the spoilers</h3>
+        <p style="margin: 0; color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 46ch;">See what your people watch, read, rate and drop. Anything past where you are stays blurred until you catch up.</p>
+        <div style="flex: 1; min-height: 6px;"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px;">
+            <div aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0); color: #14101a; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">J</div>
+            <div style="font-size: 14px; color: #b8b1c4; line-height: 1.45;"><span style="color: #f0edf4; font-weight: 600;">june_k</span> rated <span style="color: #f0edf4; font-weight: 600;">Neon Harbor</span> S2 E4 <span style="color: #e58cc4; font-weight: 700;">9.0</span></div>
+          </div>
+          <div style="background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px;">
+            <div aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; background: linear-gradient(135deg, #a78bfa, #6d8bf0); color: #14101a; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">R</div>
+            <div style="font-size: 14px; color: #b8b1c4; line-height: 1.45;"><span style="color: #f0edf4; font-weight: 600;">rex</span> on S2 E6 — <span style="color: #f0edf4; filter: blur(5px); cursor: pointer;" style-hover="filter: blur(0px);">the lighthouse keeper twist</span> <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4;">SPOILER</span></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- news -->
+      <article style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; backdrop-filter: blur(16px); min-width: 0;">
+        <h3 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 34px; line-height: 1; text-transform: uppercase;">News you actually follow</h3>
+        <p style="margin: 0; color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 46ch;">Renewals, release dates and adaptations, filtered down to the titles in your library.</p>
+        <div style="flex: 1; min-height: 6px;"></div>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{ briefs }}" as="n" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 12px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
+              <div aria-hidden="true" style="width: 38px; height: 57px; flex-shrink: 0; border-radius: 5px; background: {{ n.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+                <div style="align-self: flex-start; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; padding: 3px 10px; border-radius: 999px; background: {{ n.tagBg }}; color: {{ n.tagFg }};">{{ n.tag }}</div>
+                <div style="font-weight: 600; font-size: 15px; line-height: 1.3;">{{ n.headline }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </article>
+
+      <!-- profile -->
+      <article style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; backdrop-filter: blur(16px); min-width: 0;">
+        <h3 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 34px; line-height: 1; text-transform: uppercase;">A profile that reads like you</h3>
+        <p style="margin: 0; color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 46ch;">Your top pick in every kind, what you are into right now, and where your time really goes.</p>
+        <div style="flex: 1; min-height: 6px;"></div>
+        <div style="display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap;">
+          <div aria-hidden="true" style="display: flex; gap: 8px;">
+            <sc-for list="{{ picks }}" as="p" hint-placeholder-count="6">
+              <div style="width: 46px; aspect-ratio: 2/3; border-radius: 6px; background: {{ p.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></div>
+            </sc-for>
+          </div>
+          <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">WHERE THE TIME GOES</div>
+            <div aria-hidden="true" style="display: flex; gap: 2px; height: 10px;">
+              <sc-for list="{{ mix }}" as="m" hint-placeholder-count="6">
+                <div style="flex: {{ m.pct }} 1 0; min-width: 4px; background: {{ m.dot }}; border-radius: 3px;"></div>
+              </sc-for>
+            </div>
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">SERIES 34% · ANIME 27% · MANGA 21% · …</div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- IMPORT — arrive with your history, not an empty shelf -->
+<section id="import" aria-labelledby="h-import" style="max-width: 1360px; margin: 0 auto; padding: 88px clamp(20px, 4vw, 40px); display: flex; flex-direction: column; gap: 36px;">
+  <div style="display: flex; align-items: flex-end; gap: 16px 40px; flex-wrap: wrap;">
+    <h2 id="h-import" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(44px, 5.6vw, 72px); line-height: 0.95; text-transform: uppercase;">Bring your<br>history with you</h2>
+    <p style="margin: 0 0 6px; color: #b8b1c4; font-size: 17px; line-height: 1.6; max-width: 460px; text-wrap: pretty;">Years of watching, reading and playing already live somewhere. Import them and start with a full log instead of an empty one.</p>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px;">
+    <sc-for list="{{ sources }}" as="s" hint-placeholder-count="5">
+      <div class="tile" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 16px; backdrop-filter: blur(16px); min-width: 0;">
+        <!-- logo slot: drop the service's official mark here -->
+        <div aria-hidden="true" style="width: 56px; height: 56px; border-radius: 14px; border: 1px dashed rgba(255,255,255,0.28); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">LOGO</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="margin: 0; font-weight: 700; font-size: 19px; line-height: 1.2;">{{ s.name }}</h3>
+          <div style="display: flex; gap: 6px 12px; flex-wrap: wrap;">
+            <sc-for list="{{ s.kinds }}" as="k" hint-placeholder-count="1">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: {{ k.dot }};"></span>
+                <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">{{ k.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
       </div>
     </sc-for>
   </div>
-</div>
+  <div style="display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap;">
+    <a href="Login.dc.html" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 14px 26px; border-radius: 999px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">IMPORT MY HISTORY</a>
+    <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; color: #948da1;">RATINGS AND DATES COME ACROSS · IMPORT MORE THAN ONE</span>
+  </div>
+</section>
 
-<!-- check-in demo band -->
-<div style="border-top: 1px solid rgba(255,255,255,0.09); border-bottom: 1px solid rgba(255,255,255,0.09);">
-  <div style="max-width: 1360px; margin: 0 auto; padding: 80px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;">
-    <div style="display: flex; flex-direction: column; gap: 16px;">
-      <div style="font-family: Anton; font-size: 48px; line-height: 1; text-transform: uppercase;">Two taps.<br>You're checked in.</div>
-      <div style="color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 440px;">Per-episode for series and anime, per-chapter for manga and webtoons, rewatch counters, precise stats. Speed is a hard requirement, not a feature.</div>
-    </div>
-    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; display: flex; overflow: hidden; max-width: 460px; backdrop-filter: blur(16px);">
-      <div style="width: 96px; height: 136px; flex-shrink: 0; background: linear-gradient(160deg, #8a5c2a 20%, #17100a 100%); display: flex; align-items: flex-end; padding: 8px;">
-        <span style="font-family: Anton; font-size: 12px; line-height: 1.15; text-transform: uppercase; color: rgba(255,255,255,0.92);">Ashfall Chronicle</span>
+<!-- DISCORD — the log, where your group already talks -->
+<section id="discord" aria-labelledby="h-discord" style="box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); background: rgba(14,12,16,0.35);">
+  <div style="max-width: 1360px; margin: 0 auto; padding: 88px clamp(20px, 4vw, 40px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 40px 64px; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div aria-hidden="true" style="width: 44px; height: 44px; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.28); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">LOGO</div>
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #b8b1c4;">DISCORD BOT</div>
       </div>
-      <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
-        <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">ANIME</div>
-        <div style="font-weight: 700; font-size: 16px;">Ashfall Chronicle</div>
-        <div style="color: #b8b1c4; font-size: 13px;">Episode 18 of 24</div>
-        <div style="flex: 1;"></div>
-        <div style="display: flex;">
-          <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 9px 18px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">✓ CHECK IN</div>
+      <h2 id="h-discord" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(44px, 5.6vw, 72px); line-height: 0.95; text-transform: uppercase;">Watch together,<br>log together</h2>
+      <p style="margin: 0; color: #b8b1c4; font-size: 17px; line-height: 1.6; max-width: 46ch; text-wrap: pretty;">Add the Trackt bot to your server and the log follows your group into the channel where you already talk.</p>
+      <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;">
+        <sc-for list="{{ bot }}" as="b" hint-placeholder-count="3">
+          <li style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 20px; padding: 16px 0; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.09); align-items: baseline;">
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #e58cc4;">{{ b.k }}</span>
+            <span style="font-size: 16px; line-height: 1.5; color: #f0edf4;">{{ b.v }}</span>
+          </li>
+        </sc-for>
+      </ul>
+      <div style="display: flex; margin-top: 6px;">
+        <a href="#discord" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 14px 26px; border-radius: 999px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">ADD TO DISCORD ↗</a>
+      </div>
+    </div>
+
+    <!-- a channel, in our own vocabulary: a watch party you can join, then the check-ins it produced -->
+    <div style="background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 40px 80px -40px rgba(0,0,0,0.9); border-radius: 18px; padding: 8px 0 14px; display: flex; flex-direction: column; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 12px 20px 14px; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08);">
+        <span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 16px; font-weight: 700; color: #948da1;">#</span>
+        <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;">watch-party</span>
+      </div>
+      <div style="display: flex; gap: 12px; padding: 16px 20px 8px;">
+        <div aria-hidden="true" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; display: flex; align-items: center; justify-content: center; font-family: Anton; font-size: 15px;">T</div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-weight: 700; font-size: 14px;">Trackt</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #14101a; background: #b8b1c4; border-radius: 4px; padding: 1px 5px;">BOT</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">20:41</span>
+          </div>
+          <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.45); border-radius: 14px; padding: 12px; display: flex; gap: 14px; align-items: center;">
+            <div aria-hidden="true" style="width: 54px; height: 81px; flex-shrink: 0; border-radius: 7px; background: radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4;">WATCH PARTY · TONIGHT 21:00</div>
+              <div style="font-weight: 700; font-size: 16px;">Neon Harbor</div>
+              <div style="color: #b8b1c4; font-size: 13px;">S2 E6 · Dead Reckoning · {{ going }} going</div>
+            </div>
+            <button onClick="{{ join }}" aria-pressed="{{ joined }}" style="flex-shrink: 0; background: {{ joinBg }}; box-shadow: {{ joinRing }}; color: {{ joinFg }}; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; padding: 11px 18px; border-radius: 999px;" style-hover="filter: brightness(1.15);">{{ joinLabel }}</button>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; padding: 10px 20px 4px;">
+        <div aria-hidden="true" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; display: flex; align-items: center; justify-content: center; font-family: Anton; font-size: 15px;">T</div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-weight: 700; font-size: 14px;">Trackt</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #14101a; background: #b8b1c4; border-radius: 4px; padding: 1px 5px;">BOT</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">21:48</span>
+          </div>
+          <div style="font-size: 14px; line-height: 1.5; color: #b8b1c4;">Party over. <span style="color: #f0edf4; font-weight: 600;">june_k</span>, <span style="color: #f0edf4; font-weight: 600;">rex</span>, <span style="color: #f0edf4; font-weight: 600;">aki</span> and <span style="color: #f0edf4; font-weight: 600;">noor</span> were checked in to <span style="color: #f0edf4; font-weight: 600;">S2 E6</span>. Average rating <span style="color: #e58cc4; font-weight: 700;">8.8</span></div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- OPEN — still true, no longer the headline -->
+<section id="open" aria-labelledby="h-open" style="max-width: 1360px; margin: 0 auto; padding: 88px clamp(20px, 4vw, 40px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 32px 64px; align-items: start;">
+  <div style="display: flex; flex-direction: column; gap: 18px;">
+    <h2 id="h-open" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(44px, 5.6vw, 72px); line-height: 0.95; text-transform: uppercase;">Open by default</h2>
+    <p style="margin: 0; color: #b8b1c4; font-size: 17px; line-height: 1.6; max-width: 46ch; text-wrap: pretty;">Years of history should not depend on one company staying alive. The code is public, your data leaves whenever you want, and anyone can run their own copy.</p>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px;">
+      <a href="https://github.com/pvrnn/Trackt" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 14px 26px; border-radius: 999px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">VIEW ON GITHUB ↗</a>
+      <a href="#open" style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; padding: 14px 8px;">API DOCS →</a>
+    </div>
+  </div>
+  <dl style="margin: 0; display: flex; flex-direction: column;">
+    <sc-for list="{{ open }}" as="o" hint-placeholder-count="4">
+      <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 20px; padding: 18px 0; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.09); align-items: baseline;">
+        <dt style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">{{ o.k }}</dt>
+        <dd style="margin: 0; font-size: 16px; line-height: 1.5; color: #f0edf4;">{{ o.v }} <span style="font-family: 'Space Grotesk'; font-size: 13px; color: #e58cc4;">{{ o.code }}</span></dd>
+      </div>
+    </sc-for>
+  </dl>
+</section>
+
+<!-- CLOSER -->
+<section aria-labelledby="h-go" style="position: relative; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(600px 300px at 50% 120%, rgba(217,107,176,0.4), transparent 70%), radial-gradient(500px 280px at 20% 110%, rgba(217,164,65,0.3), transparent 70%), radial-gradient(500px 280px at 80% 110%, rgba(139,92,246,0.35), transparent 70%);"></div>
+  <div style="position: relative; max-width: 1360px; margin: 0 auto; padding: 104px clamp(20px, 4vw, 40px) 112px; display: flex; flex-direction: column; align-items: center; gap: 26px; text-align: center;">
+    <h2 id="h-go" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(56px, 8vw, 112px); line-height: 0.92; text-transform: uppercase;">Start your <span style="background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">log.</span></h2>
+    <p style="margin: 0; color: #cfc9d8; font-size: 18px; line-height: 1.6; max-width: 44ch;">Add the first thing you watched, read or played this week. The rest follows.</p>
+    <a href="Login.dc.html" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; padding: 17px 36px; border-radius: 999px;" style-hover="filter: brightness(1.15); color: #14101a;">START TRACKING — FREE</a>
+  </div>
+</section>
 
 <!-- footer -->
-<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 64px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+<footer style="max-width: 1360px; margin: 0 auto; padding: 40px clamp(20px, 4vw, 40px) 56px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
   <div style="font-family: Anton; font-size: 20px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</div>
-  <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; max-width: 560px;">GPL-3.0 · Metadata from TMDB, AniList and TVmaze. This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
-</div>
+  <div style="font-family: 'Space Grotesk'; font-size: 12px; line-height: 1.6; color: #948da1; max-width: 620px;">GPL-3.0 · Metadata from TMDB, AniList and TVmaze. This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
+</footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;stripTilt&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: -2, &quot;min&quot;: -6, &quot;max&quot;: 6, &quot;step&quot;: 0.5, &quot;unit&quot;: &quot;deg&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Cover strip&quot;}, &quot;showStripTitles&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Cover strip&quot;}}">
+<script type="text/x-dc" data-dc-script>
+// Placeholder artwork: light, flat and loud covers on purpose.
+const ARTS = [
+  'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
+  'radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%)',
+  'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+  'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)',
+  'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)',
+  'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)',
+  'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)',
+  'radial-gradient(46% 32% at 50% 40%, #e9e4f5 0%, transparent 72%), linear-gradient(180deg, #55309a 0%, #0d0817 100%)',
+  'linear-gradient(64deg, transparent 0 44%, rgba(255,255,255,0.85) 44% 47%, transparent 47%), linear-gradient(200deg, #c2202a 0%, #2a0608 78%)',
+  'radial-gradient(70% 50% at 40% 62%, #ff9bd0 0%, transparent 70%), linear-gradient(180deg, #1b3a2a 0%, #0a1510 100%)',
+  'linear-gradient(180deg, #ece6d6 0%, #b9ae95 58%, #5a5140 100%)',
+  'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)',
+];
+const KINDS = [
+  { key: 'MOVIE', label: 'MOVIES', word: 'MOVIE.', dot: '#8b5cf6' },
+  { key: 'SERIES', label: 'SERIES', word: 'SERIES.', dot: '#6d8bf0' },
+  { key: 'ANIME', label: 'ANIME', word: 'ANIME.', dot: '#d9a441' },
+  { key: 'MANGA', label: 'MANGA', word: 'MANGA.', dot: '#e8874a' },
+  { key: 'WEBTOON', label: 'WEBTOONS', word: 'WEBTOON.', dot: '#d96bb0' },
+  { key: 'GAME', label: 'GAMES', word: 'GAME.', dot: '#3fbf8f' },
+];
+const DOT = KINDS.reduce((m, k) => { m[k.key] = k.dot; return m; }, {});
+// [art index, kind] per wall column
+const WALL = [
+  [[0, 'SERIES'], [5, 'ANIME'], [4, 'MANGA'], [11, 'GAME'], [2, 'MOVIE']],
+  [[3, 'WEBTOON'], [8, 'MANGA'], [6, 'SERIES'], [1, 'ANIME'], [7, 'MOVIE']],
+  [[9, 'ANIME'], [10, 'SERIES'], [11, 'GAME'], [4, 'MANGA'], [3, 'WEBTOON']],
+];
+
 class Component extends DCLogic {
+  state = { word: 0, checked: false, joined: false };
+
+  componentDidMount() {
+    const calm = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (calm) return;
+    this.timer = setInterval(() => this.setState((s) => ({ word: (s.word + 1) % KINDS.length })), 2200);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
   renderVals() {
-    const tilt = this.props.stripTilt ?? -2;
+    const i = this.state.word;
+    const prev = (i + KINDS.length - 1) % KINDS.length;
+    const done = this.state.checked;
+    const prism = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
     return {
-      stripTransform: 'rotate(' + tilt + 'deg) translateY(20px)',
-      titleOpacity: (this.props.showStripTitles ?? true) ? 1 : 0,
-      strip: [
-        { title: 'Neon Harbor', grad: 'linear-gradient(160deg, #35296b, #0e0c1a)' },
-        { title: 'Ashfall Chronicle', grad: 'linear-gradient(160deg, #8a5c2a, #17100a)' },
-        { title: 'Moonlit Courier', grad: 'linear-gradient(160deg, #8c2a6b, #170812)' },
-        { title: 'The Long Static', grad: 'linear-gradient(160deg, #3a55b0, #080b17)' },
-        { title: 'Paper Cities', grad: 'linear-gradient(160deg, #6b3aa0, #0f0817)' },
-        { title: 'Sable Coast', grad: 'linear-gradient(160deg, #2a4a8c, #080d17)' },
-        { title: 'Copper Veil', grad: 'linear-gradient(160deg, #a03a7a, #170812)' },
-        { title: 'Glass Orchard', grad: 'linear-gradient(160deg, #b0722a, #140e08)' },
-        { title: 'Hollow Signal', grad: 'linear-gradient(160deg, #55309a, #0d0817)' },
-        { title: 'Ninth Tide', grad: 'linear-gradient(160deg, #8c5a2a, #140f08)' },
-        { title: 'Static Bloom', grad: 'linear-gradient(160deg, #c48a2a, #141008)' },
-        { title: 'The Ferry Years', grad: 'linear-gradient(160deg, #2a3a8c, #0a0c17)' },
+      kinds: KINDS.map((k, n) => ({ label: k.label, dot: k.dot, fg: n === i ? '#f0edf4' : '#948da1' })),
+      words: KINDS.map((k, n) => ({
+        label: k.word,
+        op: n === i ? 1 : 0,
+        tf: n === i ? 'translateY(0)' : (n === prev ? 'translateY(-35%)' : 'translateY(35%)'),
+      })),
+      wall: WALL.map((col, n) => {
+        const items = col.map((c) => ({ art: ARTS[c[0]], kind: c[1], dot: DOT[c[1]] }));
+        return { cls: 'wall-col ' + (n === 1 ? 'wall-down' : (n === 2 ? 'wall-up slow' : 'wall-up')), items: items.concat(items) };
+      }),
+
+      tiles: [
+        { kind: 'MOVIE', name: 'Movies', how: 'Watched, rated, rewatched.', sample: 'THE LONG STATIC · WATCHED · 9.0', pct: '100%', art: 2 },
+        { kind: 'SERIES', name: 'Series', how: 'Season by season, episode by episode.', sample: 'NEON HARBOR · S2 E5 OF 12', pct: '38%', art: 0 },
+        { kind: 'ANIME', name: 'Anime', how: 'Every season, every episode.', sample: 'ASHFALL CHRONICLE · EP 18 OF 24', pct: '75%', art: 5 },
+        { kind: 'MANGA', name: 'Manga', how: 'By chapter or by volume.', sample: 'PAPER CITIES · VOL 4 · CH 31', pct: '62%', art: 4 },
+        { kind: 'WEBTOON', name: 'Webtoons', how: 'Chapter by chapter, season by season.', sample: 'MOONLIT COURIER · CH 112', pct: '84%', art: 3 },
+        { kind: 'GAME', name: 'Games', how: 'Playing, paused, finished or dropped.', sample: 'TIDEWALKER · PLAYING', pct: '45%', art: 11 },
+      ].map((t) => Object.assign({}, t, { dot: DOT[t.kind], art: ARTS[t.art] })),
+
+      checkIn: () => this.setState((s) => ({ checked: !s.checked })),
+      ciDone: done,
+      ciNext: done ? 'Checked in · next: episode 19' : 'Episode 18 of 24',
+      ciPct: done ? '75%' : '71%',
+      ciRing: done ? 'rgba(217,107,176,0.55)' : 'rgba(255,255,255,0.1)',
+      ciBg: done ? 'rgba(217,107,176,0.16)' : prism,
+      ciBtnRing: done ? 'inset 0 0 0 1px rgba(217,107,176,0.6)' : 'none',
+      ciFg: done ? '#e58cc4' : '#14101a',
+
+      briefs: [
+        { tag: 'NEW SEASON', tagBg: 'rgba(217,107,176,0.18)', tagFg: '#e58cc4', headline: 'Neon Harbor renewed for a third season', art: ARTS[0] },
+        { tag: 'RELEASE DATE', tagBg: 'rgba(74,110,232,0.2)', tagFg: '#8fa5f0', headline: 'Ashfall Chronicle part two premieres 9 January', art: ARTS[1] },
       ],
-      pillars: [
-        { num: '01', title: 'Your data, forever', body: 'Full export at any time in an open format. Public API from day one. Portability is the founding principle, not a checkbox.' },
-        { num: '02', title: 'Self-host in one command', body: 'docker compose up and you have your own instance — your catalog, your community, your rules.' },
-        { num: '03', title: 'Track at real granularity', body: 'Episodes, chapters, volumes, rewatches. Half-point ratings on whole works or single episodes.' },
-        { num: '04', title: 'Community catalog', body: 'Webtoons and obscure titles the big databases skip? Add them yourself and share them across instances.' },
+      picks: [0, 5, 2, 4, 3, 11].map((n) => ({ art: ARTS[n] })),
+      mix: [['SERIES', 34], ['ANIME', 27], ['MANGA', 21], ['WEBTOON', 9], ['MOVIE', 6], ['GAME', 3]].map((m) => ({ dot: DOT[m[0]], pct: m[1] })),
+
+      sources: [
+        { name: 'Letterboxd', kinds: ['MOVIE'] },
+        { name: 'MyAnimeList', kinds: ['ANIME', 'MANGA'] },
+        { name: 'AniList', kinds: ['ANIME', 'MANGA'] },
+        { name: 'TV Time', kinds: ['SERIES', 'MOVIE'] },
+        { name: 'Steam profile', kinds: ['GAME'] },
+      ].map((s) => ({ name: s.name, kinds: s.kinds.map((k) => ({ label: KINDS.find((x) => x.key === k).label, dot: DOT[k] })) })),
+
+      bot: [
+        { k: 'WATCH PARTIES', v: 'Schedule an episode, a film or a chapter. Everyone who joins is checked in when it ends.' },
+        { k: 'ACTIVITY FEED', v: 'Check-ins, ratings and finished titles post to the channel you choose.' },
+        { k: 'COMMANDS', v: 'Look up a title, see what is up next, or log from chat without opening the app.' },
+      ],
+      joined: this.state.joined,
+      join: () => this.setState((s) => ({ joined: !s.joined })),
+      going: this.state.joined ? 5 : 4,
+      joinLabel: this.state.joined ? '✓ GOING' : 'JOIN',
+      joinBg: this.state.joined ? 'rgba(217,107,176,0.16)' : prism,
+      joinRing: this.state.joined ? 'inset 0 0 0 1px rgba(217,107,176,0.6)' : 'none',
+      joinFg: this.state.joined ? '#e58cc4' : '#14101a',
+
+      open: [
+        { k: 'OPEN SOURCE', v: 'GPL-3.0, developed in the open on GitHub.', code: '' },
+        { k: 'YOUR DATA', v: 'Full export at any time, in an open format.', code: '' },
+        { k: 'PUBLIC API', v: 'Everything the app does, documented from day one.', code: '' },
+        { k: 'SELF-HOST', v: 'Prefer your own instance? One command:', code: 'docker compose up' },
       ],
     };
   }
