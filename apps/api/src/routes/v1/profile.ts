@@ -7,11 +7,18 @@ import {
   AvatarResponseSchema,
   DeleteAccountBodySchema,
   DeleteAccountResponseSchema,
+  PROFILE_IN_PROGRESS_LIMIT,
   ProfileSummarySchema,
   UpdateProfileBodySchema,
 } from '@trackt/shared';
 import { countFriends, countIncomingRequests } from '../../lib/friends.js';
-import { loadActivity, loadFavorites, loadProfileStats } from '../../lib/me.js';
+import {
+  loadActivity,
+  loadFavorites,
+  loadInProgress,
+  loadProfileStats,
+  loadTaste,
+} from '../../lib/me.js';
 import { getSessionUser, toWebHeaders } from '../../lib/session.js';
 import { removeStoredUpload, storeUploadedImage } from '../../lib/uploads.js';
 
@@ -55,13 +62,16 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
         .from(users)
         .where(eq(users.id, user.id));
 
-      const [favorites, stats, activity, friendCount, incomingRequestCount] = await Promise.all([
-        loadFavorites(db, user.id),
-        loadProfileStats(db, user.id),
-        loadActivity(db, user.id, ACTIVITY_LIMIT),
-        countFriends(db, user.id),
-        countIncomingRequests(db, user.id),
-      ]);
+      const [favorites, stats, activity, inProgress, taste, friendCount, incomingRequestCount] =
+        await Promise.all([
+          loadFavorites(db, user.id),
+          loadProfileStats(db, user.id),
+          loadActivity(db, user.id, ACTIVITY_LIMIT),
+          loadInProgress(db, user.id, PROFILE_IN_PROGRESS_LIMIT),
+          loadTaste(db, user.id),
+          countFriends(db, user.id),
+          countIncomingRequests(db, user.id),
+        ]);
 
       return {
         user: {
@@ -75,6 +85,9 @@ export const profileRoutes: FastifyPluginAsyncZod = async (app) => {
         stats: { ...stats, friendCount, incomingRequestCount },
         favorites,
         activity,
+        inProgress: inProgress.entries,
+        inProgressCount: inProgress.total,
+        taste,
       };
     },
   );

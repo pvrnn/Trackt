@@ -12,6 +12,7 @@ import {
   rating,
   runMigrations,
   seedMedia,
+  setProgressUpTo,
   userMedia,
   users,
   type Db,
@@ -445,7 +446,7 @@ describe.runIf(available)('account import (postgres)', () => {
     it('is idempotent: a second run adds nothing and rewrites nothing', async () => {
       await runMal();
       const { report } = await runMal();
-      expect(report).toMatchObject({ created: 0, updated: 0, skippedExisting: 3 });
+      expect(report).toMatchObject({ created: 0, updated: 0, merged: 0, skippedExisting: 3 });
       const rows = await db.select().from(userMedia);
       expect(rows).toHaveLength(3);
     });
@@ -467,6 +468,90 @@ describe.runIf(available)('account import (postgres)', () => {
       const [rewritten] = await db.select().from(userMedia).where(eq(userMedia.mediaId, bebopId));
       expect(rewritten?.status).toBe('completed');
       expect(rewritten?.notes).toBe('the movie was better');
+    });
+
+    const bebopProgress = async () => {
+      const [row] = await db.execute<{ count: number }>(sql`
+        SELECT count(*)::int AS count FROM progress p
+        JOIN media_part mp ON mp.id = p.part_id
+        WHERE p.user_id = ${userId} AND mp.media_id = ${bebopId}
+      `);
+      return row?.count ?? 0;
+    };
+    const bebopTarget = { id: bebopId, kind: 'anime' as const, partCount: 26 };
+
+    it('merges into a log that exists: fills its gaps and moves it forward', async () => {
+      await db.insert(userMedia).values({ userId, mediaId: bebopId, status: 'in_progress' });
+      await setProgressUpTo(db, userId, bebopTarget, 5);
+
+      const { report } = await runMal();
+      expect(report).toMatchObject({ created: 2, merged: 1, skippedExisting: 0 });
+
+      const [bebop] = await db.select().from(userMedia).where(eq(userMedia.mediaId, bebopId));
+      expect(bebop).toMatchObject({
+        status: 'completed',
+        repeats: 1,
+        notes: 'the movie was better',
+        startedAt: '2019-04-01',
+        finishedAt: '2019-04-12',
+      });
+      expect(await bebopProgress()).toBe(26);
+      const [score] = await db.select().from(rating).where(eq(rating.targetId, bebopId));
+      expect(Number(score?.score)).toBe(8);
+    });
+
+    it('never takes back what the log already says', async () => {
+      await db.insert(userMedia).values({
+        userId,
+        mediaId: bebopId,
+        status: 'dropped',
+        startedAt: '2019-04-05',
+        notes: 'mine',
+      });
+      await db
+        .insert(rating)
+        .values({ userId, targetType: 'media', targetId: bebopId, score: '6' });
+
+      await runMal();
+      const [bebop] = await db.select().from(userMedia).where(eq(userMedia.mediaId, bebopId));
+      // completed ties with dropped, so the logged status stands; the start
+      // date and notes were there, the finish date was not.
+      expect(bebop).toMatchObject({
+        status: 'dropped',
+        startedAt: '2019-04-05',
+        finishedAt: '2019-04-12',
+        notes: 'mine',
+      });
+      const [score] = await db.select().from(rating).where(eq(rating.targetId, bebopId));
+      expect(Number(score?.score)).toBe(6);
+    });
+
+    it('does not lower progress or fill a date on the wrong side of the other', async () => {
+      await db
+        .insert(userMedia)
+        .values({ userId, mediaId: bebopId, status: 'completed', finishedAt: '2019-03-01' });
+      await setProgressUpTo(db, userId, { ...bebopTarget, partCount: 40 }, 26);
+      await db.execute(sql`
+        INSERT INTO media_part (media_id, kind, number) VALUES (${bebopId}, 'episode', 27)
+        ON CONFLICT DO NOTHING
+      `);
+      await db.execute(sql`
+        INSERT INTO progress (user_id, part_id)
+        SELECT ${userId}, id FROM media_part WHERE media_id = ${bebopId} AND number = 27
+      `);
+
+      try {
+        await runMal();
+      } finally {
+        // media_part outlives the test; episode 27 would skew every later count.
+        await db.execute(sql`DELETE FROM media_part WHERE media_id = ${bebopId} AND number = 27`);
+      }
+      const [bebop] = await db.select().from(userMedia).where(eq(userMedia.mediaId, bebopId));
+      // MAL's start (2019-04-01) is after the logged finish, so it is not taken.
+      expect(bebop?.startedAt).toBeNull();
+      expect(bebop?.finishedAt).toBe('2019-03-01');
+      // 26 left after the cleanup above: the import did not clear past its 26.
+      expect(await bebopProgress()).toBe(26);
     });
 
     it('will not target a work pulled from circulation', async () => {
@@ -1136,6 +1221,161 @@ describe.runIf(available)('account import (postgres)', () => {
     });
   });
 
+  describe('TV Time', () => {
+    const upload = {
+      showsFrom: 'json',
+      movies: [
+        {
+          tvdb: 169,
+          imdb: 'tt0133093',
+          uuid: null,
+          title: 'The Matrix',
+          year: 1999,
+          watched: true,
+          watchedAt: '2021-03-04',
+          favourite: true,
+          rewatches: 0,
+        },
+      ],
+      shows: [
+        {
+          tvdb: 81189,
+          imdb: null,
+          title: 'Breaking Bad',
+          status: 'continuing',
+          favourite: false,
+          watchedEpisodes: 10,
+          seasons: [
+            {
+              number: 1,
+              episodes: 7,
+              position: 7,
+              complete: true,
+              firstWatchedAt: '2020-01-05',
+              lastWatchedAt: '2020-01-09',
+              rewatches: 0,
+            },
+            {
+              number: 2,
+              episodes: 13,
+              position: 3,
+              complete: false,
+              firstWatchedAt: '2020-02-01',
+              lastWatchedAt: '2020-02-02',
+              rewatches: 0,
+            },
+          ],
+        },
+        {
+          // TV Time files anime as TVDB shows; the catalog files this one as anime.
+          tvdb: 76885,
+          imdb: null,
+          title: 'Cowboy Bebop',
+          status: 'up_to_date',
+          favourite: false,
+          watchedEpisodes: 26,
+          seasons: [
+            {
+              number: 1,
+              episodes: 26,
+              position: 26,
+              complete: true,
+              firstWatchedAt: '2019-05-01',
+              lastWatchedAt: '2019-05-20',
+              rewatches: 0,
+            },
+          ],
+        },
+      ],
+    };
+
+    const bebopHit = {
+      id: bebopId,
+      kind: 'anime',
+      title: 'Cowboy Bebop',
+      synonyms: [],
+      year: 1998,
+      status: 'ended',
+      genres: [],
+      partCount: 26,
+      seasonNumber: 1,
+      externalIds: { anilist: 1, mal: 1 },
+      metadata: {},
+      description: null,
+      coverUrl: null,
+      bannerUrl: null,
+      rank: 1,
+    };
+
+    /** The catalog answers the anime question only: no series row is called Cowboy Bebop. */
+    const kindsAsked: string[] = [];
+    const catalogFetch = (async (url: URL) => {
+      const kind = new URL(String(url)).searchParams.get('kind') ?? '';
+      kindsAsked.push(kind);
+      const results = kind === 'anime' ? [bebopHit] : [];
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({ results }),
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    it('logs seasons by TVDB id, films by IMDb, and an anime through its fallback kind', async () => {
+      kindsAsked.length = 0;
+      const { plan, report } = await runImport(db, {
+        userId,
+        source: 'tvtime',
+        profile: 'export 2026-07-07',
+        credentials: {},
+        upload,
+        catalogUrl: 'http://catalog.test',
+        catalogFetch,
+        catalogSpacingMs: 0,
+        now: NOW,
+      });
+
+      expect(plan.summary).toMatchObject({ total: 4, matched: 4, unmatched: 0 });
+      const bebop = plan.rows.find((row) => row.entry.title === 'Cowboy Bebop');
+      // The row is re-kinded, so the plan and the log say what it matched as.
+      expect(bebop?.entry.kind).toBe('anime');
+      expect(bebop?.target?.id).toBe(bebopId);
+      expect(kindsAsked).toEqual(['series', 'anime']);
+      expect(report).toMatchObject({ created: 4, favourites: 1 });
+
+      const logs = await db
+        .select({
+          mediaId: userMedia.mediaId,
+          status: userMedia.status,
+          startedAt: userMedia.startedAt,
+          finishedAt: userMedia.finishedAt,
+        })
+        .from(userMedia)
+        .where(eq(userMedia.userId, userId));
+      const byId = new Map(logs.map((row) => [row.mediaId, row]));
+      expect(byId.get(breakingBadS1Id)).toMatchObject({
+        status: 'completed',
+        startedAt: '2020-01-05',
+        finishedAt: '2020-01-09',
+      });
+      expect(byId.get(breakingBadS2Id)).toMatchObject({ status: 'in_progress', finishedAt: null });
+      expect(byId.get(bebopId)).toMatchObject({ status: 'completed', finishedAt: '2019-05-20' });
+
+      const checked = await db.execute(sql`
+        SELECT count(*)::int AS count FROM progress p
+        JOIN media_part mp ON mp.id = p.part_id
+        WHERE p.user_id = ${userId} AND mp.media_id = ${breakingBadS2Id}
+      `);
+      expect((checked[0] as { count: number }).count).toBe(3);
+    });
+
+    it('fails as malformed when the job carries no export', async () => {
+      await expect(
+        planImport(db, { userId, source: 'tvtime', profile: 'export', credentials: {} }),
+      ).rejects.toMatchObject({ kind: 'malformed' });
+    });
+  });
+
   describe('central catalog lookup', () => {
     const filmId = '3f7e1d3a-1a1f-5a0e-9a06-000000000042';
     const film = {
@@ -1351,7 +1591,8 @@ describe.runIf(available)('account import (postgres)', () => {
     });
 
     expect(runs.plan.summary).toMatchObject({ favourites: 1, existing: 1, pending: 0 });
-    expect(runs.report).toMatchObject({ favourites: 1, created: 0, skippedExisting: 1 });
+    // The log had no score, so the merge gives it the source's 7.
+    expect(runs.report).toMatchObject({ favourites: 1, created: 0, merged: 1, skippedExisting: 0 });
 
     const pinned = await db
       .select({ position: favorite.position })

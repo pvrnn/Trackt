@@ -170,7 +170,7 @@ export function EditProfileSheet({
               onPress={dropPhoto}
             />
           ) : null}
-          <Text style={[type.bodySm, text.faint]}>PNG, JPEG or WebP — 2MB max.</Text>
+          <Text style={[type.bodySm, text.dim]}>{t('profile.edit.photoHint')}</Text>
         </View>
       </View>
 

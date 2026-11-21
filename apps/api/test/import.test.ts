@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Auth } from '../src/auth.js';
 import { buildApp, type App } from '../src/app.js';
-import type { ImportQueue, ImportQueueAddOptions } from '../src/lib/import-queue.js';
 import { loadEnv, type Env } from '@trackt/shared';
-import type { ImportJobData, ImportJobResult } from '@trackt/imports';
+import type { ImportJobResult } from '@trackt/imports';
+import { fakeQueue, type StoredJob } from './fake-import-queue.js';
 
 /**
  * The producer half of the importer queue: the routes, with a fake queue and a
@@ -25,53 +25,6 @@ function fakeAuth(userId: string): Auth {
   } as unknown as Auth;
 }
 
-interface StoredJob {
-  data: unknown;
-  state: string;
-  progress: unknown;
-  returnvalue: unknown;
-  failedReason: string;
-}
-
-/** A BullMQ stand-in: enough of it that the routes cannot tell the difference. */
-function fakeQueue() {
-  const jobs = new Map<string, StoredJob>();
-  const adds: { data: ImportJobData; options: ImportQueueAddOptions }[] = [];
-
-  const read = (id: string, job: StoredJob) => ({
-    id,
-    data: job.data,
-    progress: job.progress,
-    returnvalue: job.returnvalue,
-    failedReason: job.failedReason,
-    getState: async () => job.state,
-    remove: async () => {
-      jobs.delete(id);
-    },
-  });
-
-  const queue: ImportQueue = {
-    async add(_name, data, options) {
-      adds.push({ data, options });
-      jobs.set(options.jobId, {
-        data,
-        state: 'waiting',
-        progress: 0,
-        returnvalue: null,
-        failedReason: '',
-      });
-      return read(options.jobId, jobs.get(options.jobId) as StoredJob);
-    },
-    async getJob(id) {
-      const job = jobs.get(id);
-      return job ? read(id, job) : undefined;
-    },
-    async close() {},
-  };
-
-  return { queue, jobs, adds };
-}
-
 const jobId = `${USER_ID}-anilist`;
 
 const result: ImportJobResult = {
@@ -80,6 +33,7 @@ const result: ImportJobResult = {
     profile: 'alice',
     created: 1,
     updated: 0,
+    merged: 0,
     skippedExisting: 0,
     withProgress: 1,
     ratings: 0,
@@ -187,10 +141,72 @@ describe('import routes', () => {
     expect(response.json().error).toContain('TRAKT_CLIENT_ID');
   });
 
+  describe('a file source', () => {
+    const movies = [
+      {
+        id: { tvdb: 169, imdb: 'tt0133093' },
+        title: 'The Matrix',
+        year: 1999,
+        watched_at: '2021-03-04T20:00:00Z',
+        is_watched: true,
+        is_favorite: false,
+        rewatch_count: 0,
+      },
+    ];
+
+    it('reads the upload at the door and queues only its compact form', async () => {
+      const response = await post({
+        source: 'tvtime',
+        dryRun: true,
+        files: [{ name: 'tvtime-movies-2026-07-07.json', content: JSON.stringify(movies) }],
+      });
+      expect(response.statusCode).toBe(202);
+      expect(response.json().jobId).toBe(`${USER_ID}-tvtime-preview`);
+
+      const added = queue.adds.at(-1);
+      expect(added?.data).toMatchObject({
+        userId: USER_ID,
+        source: 'tvtime',
+        profile: 'export 2026-07-07',
+        dryRun: true,
+        upload: {
+          showsFrom: null,
+          shows: null,
+          movies: [{ imdb: 'tt0133093', watched: true, watchedAt: '2021-03-04' }],
+        },
+      });
+      expect(added?.data).not.toHaveProperty('files');
+    });
+
+    it('refuses a file source without a file, and a file that is not the export', async () => {
+      expect((await post({ source: 'tvtime', profile: 'me' })).statusCode).toBe(400);
+      const wrong = await post({
+        source: 'tvtime',
+        files: [{ name: 'notes.json', content: '{}' }],
+      });
+      expect(wrong.statusCode).toBe(400);
+      expect(wrong.json().error).toMatch(/notes\.json is not a TV Time export/);
+    });
+
+    it('accepts an export larger than the default body limit', async () => {
+      const big = Array.from({ length: 12_000 }, (_, index) => ({
+        ...movies[0],
+        title: `Film ${index}`,
+      }));
+      const content = JSON.stringify(big);
+      expect(content.length).toBeGreaterThan(1024 * 1024);
+      const response = await post({
+        source: 'tvtime',
+        files: [{ name: 'tvtime-movies.json', content }],
+      });
+      expect(response.statusCode).toBe(202);
+    });
+  });
+
   it('enqueues a job and answers 202 with its id and state', async () => {
     const response = await post({ source: 'anilist', profile: '  alice  ' });
     expect(response.statusCode).toBe(202);
-    expect(response.json()).toEqual({ jobId, state: 'waiting' });
+    expect(response.json()).toEqual({ jobId, state: 'waiting', runId: null });
 
     // Trimmed, owned by the session, with a retry policy the plan promised.
     const added = queue.adds.at(-1);
@@ -209,7 +225,7 @@ describe('import routes', () => {
   it('queues a preview as its own job, so it cannot swallow the real run', async () => {
     const response = await post({ source: 'anilist', profile: 'alice', dryRun: true });
     expect(response.statusCode).toBe(202);
-    expect(response.json()).toEqual({ jobId: `${jobId}-preview`, state: 'waiting' });
+    expect(response.json()).toEqual({ jobId: `${jobId}-preview`, state: 'waiting', runId: null });
 
     const added = queue.adds.at(-1);
     expect(added?.data).toEqual({
@@ -308,6 +324,7 @@ describe('GET /v1/me/import/sources', () => {
       'letterboxd',
       'trakt',
       'steam',
+      'tvtime',
     ]);
 
     const byId = new Map(sources.map((source) => [source.id, source]));
@@ -333,6 +350,9 @@ describe('GET /v1/me/import/sources', () => {
       kinds: ['game'],
     });
     expect(byId.get('steam')?.reason).toContain('STEAM_API_KEY');
+
+    // An upload needs nothing from the operator.
+    expect(byId.get('tvtime')).toMatchObject({ available: true, access: 'file' });
 
     // A scrape source that plain HTTP is refused for is not runnable either.
     expect(byId.get('letterboxd')).toMatchObject({ available: false, requiresBrowser: true });

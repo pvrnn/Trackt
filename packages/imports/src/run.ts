@@ -6,15 +6,24 @@ import type { FetchLike, PageFetcher } from './http/fetch.js';
 import { fetchLetterboxdEntries } from './letterboxd/adapter.js';
 import { fetchMalEntries } from './mal/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
-import { entryKey, findLoggedMediaIds, resolveImportEntries } from './resolve.js';
+import {
+  entryKey,
+  findLoggedMediaIds,
+  resolveImportEntries,
+  type ImportTarget,
+} from './resolve.js';
 import { fetchSteamEntries } from './steam/adapter.js';
 import { fetchTraktEntries } from './trakt/adapter.js';
+import { fetchTvTimeEntries } from './tvtime/adapter.js';
+import type { UncertainMatch } from './uncertain.js';
 import { mergeUncertain } from './uncertain.js';
 import type {
   FetchedEntries,
   FetchEntriesOptions,
   ImportCredentials,
+  ImportEntry,
   ImportSource,
+  ImportWarning,
 } from './types.js';
 
 /**
@@ -27,8 +36,10 @@ export interface RunImportOptions {
   /** The Trackt user the log rows belong to. */
   userId: string;
   source: ImportSource;
-  /** The provider username whose list is imported. */
+  /** The provider username whose list is imported; a file source's label for the upload. */
   profile: string;
+  /** File sources: the compact export read off the upload (see `readImportUpload`). */
+  upload?: unknown;
   /** Source credentials resolved from env by the caller (CLI/worker): `traktClientId`. */
   credentials: ImportCredentials;
   /** Build the plan and stop. Nothing is written. */
@@ -75,31 +86,28 @@ const ADAPTERS: Record<ImportSource, (options: FetchEntriesOptions) => Promise<F
   letterboxd: fetchLetterboxdEntries,
   trakt: fetchTraktEntries,
   steam: fetchSteamEntries,
+  tvtime: fetchTvTimeEntries,
 };
 
-/** Fetch a source's lists and work out what the import would do. Reads, never writes. */
-export async function planImport(db: Db, options: RunImportOptions): Promise<ImportPlan> {
-  const fetched = await ADAPTERS[options.source]({
-    profile: options.profile,
-    credentials: options.credentials,
-    ...(options.now ? { now: options.now } : {}),
-    ...(options.fetch ? { fetch: options.fetch } : {}),
-    ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
-    ...(options.requestSpacingMs !== undefined
-      ? { requestSpacingMs: options.requestSpacingMs }
-      : {}),
-    ...(options.fetcher ? { fetcher: options.fetcher } : {}),
-    ...(options.enrichFilmPages ? { enrichFilmPages: options.enrichFilmPages } : {}),
-    ...(options.maxEnrich !== undefined ? { maxEnrich: options.maxEnrich } : {}),
-  });
+interface Resolution {
+  targets: Map<string, ImportTarget>;
+  warnings: ImportWarning[];
+  uncertain: Map<string, UncertainMatch>;
+}
 
-  const local = await resolveImportEntries(db, fetched.entries);
+/** Local rows first, then the central catalog for what the instance lacks. */
+async function resolveEntries(
+  db: Db,
+  entries: ImportEntry[],
+  options: RunImportOptions,
+): Promise<Resolution> {
+  const local = await resolveImportEntries(db, entries);
   const targets = local.targets;
   const warnings = [...local.warnings];
   const uncertain = new Map(local.uncertain);
 
   if (options.catalogUrl) {
-    const missing = fetched.entries.filter((entry) => !targets.has(entryKey(entry)));
+    const missing = entries.filter((entry) => !targets.has(entryKey(entry)));
     const catalog = await lookupCatalog(db, missing, {
       catalogUrl: options.catalogUrl,
       materialize: options.dryRun !== true,
@@ -119,6 +127,68 @@ export async function planImport(db: Db, options: RunImportOptions): Promise<Imp
     }
   }
 
+  return { targets, warnings, uncertain };
+}
+
+/**
+ * Entries still unmatched that name a `fallbackKind` are tried again as that
+ * kind; one that lands is replaced by its re-kinded self, so the plan, the
+ * report and the log all say what it was matched as.
+ */
+async function resolveFallbackKinds(
+  db: Db,
+  fetched: FetchedEntries,
+  resolution: Resolution,
+  options: RunImportOptions,
+): Promise<ImportEntry[]> {
+  const retry = fetched.entries
+    .filter((entry) => entry.fallbackKind && !resolution.targets.has(entryKey(entry)))
+    .map((entry) => {
+      const { fallbackKind, ...rest } = entry;
+      return { original: entry, retried: { ...rest, kind: fallbackKind! } };
+    });
+  if (retry.length === 0) return fetched.entries;
+
+  const second = await resolveEntries(
+    db,
+    retry.map(({ retried }) => retried),
+    options,
+  );
+  resolution.warnings.push(...second.warnings);
+
+  const replaced = new Map<ImportEntry, ImportEntry>();
+  for (const { original, retried } of retry) {
+    const target = second.targets.get(entryKey(retried));
+    if (!target) continue;
+    resolution.targets.set(entryKey(retried), target);
+    const rowWarnings = fetched.entryWarnings.get(entryKey(original));
+    if (rowWarnings) fetched.entryWarnings.set(entryKey(retried), rowWarnings);
+    replaced.set(original, retried);
+  }
+  return fetched.entries.map((entry) => replaced.get(entry) ?? entry);
+}
+
+/** Fetch a source's lists and work out what the import would do. Reads, never writes. */
+export async function planImport(db: Db, options: RunImportOptions): Promise<ImportPlan> {
+  const fetched = await ADAPTERS[options.source]({
+    profile: options.profile,
+    credentials: options.credentials,
+    ...(options.now ? { now: options.now } : {}),
+    ...(options.fetch ? { fetch: options.fetch } : {}),
+    ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+    ...(options.requestSpacingMs !== undefined
+      ? { requestSpacingMs: options.requestSpacingMs }
+      : {}),
+    ...(options.fetcher ? { fetcher: options.fetcher } : {}),
+    ...(options.enrichFilmPages ? { enrichFilmPages: options.enrichFilmPages } : {}),
+    ...(options.maxEnrich !== undefined ? { maxEnrich: options.maxEnrich } : {}),
+    ...(options.upload !== undefined ? { upload: options.upload } : {}),
+  });
+
+  const resolution = await resolveEntries(db, fetched.entries, options);
+  const entries = await resolveFallbackKinds(db, fetched, resolution, options);
+  const { targets, warnings, uncertain } = resolution;
+
   const loggedMediaIds = await findLoggedMediaIds(
     db,
     options.userId,
@@ -128,7 +198,7 @@ export async function planImport(db: Db, options: RunImportOptions): Promise<Imp
   return buildImportPlan({
     source: options.source,
     profile: options.profile,
-    entries: fetched.entries,
+    entries,
     targets,
     loggedMediaIds,
     entryWarnings: fetched.entryWarnings,

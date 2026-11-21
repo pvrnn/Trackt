@@ -2,13 +2,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
 import {
   AVATAR_MAX_BYTES,
   AVATAR_MIME_TYPES,
   normalizeSocialLink,
   SOCIAL_PLATFORM_KEYS,
   SOCIAL_PLATFORMS,
-  type ActivityEntry,
+  type Friend,
   type ProfileSummary,
   type SocialLinks,
   type SocialPlatform,
@@ -17,9 +18,18 @@ import {
 import { FeedbackDialog } from '../components/feedback/FeedbackDialog';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
-import { FavouriteShelves } from '../components/profile/FavouriteShelves';
+import { Favourites } from '../components/profile/Favourites';
 import { ImportDialog } from '../components/profile/ImportDialog';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
+import {
+  BadgesCard,
+  profileCardClass,
+  profileCardTitleClass,
+  RecentActivity,
+  ProfileTimeline,
+  RightNow,
+  TasteCard,
+} from '../components/profile/ProfileSections';
 import { AddFriendDialog } from '../components/social/AddFriendDialog';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
@@ -31,7 +41,6 @@ import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
 import {
   useFriends,
-  relativeTime,
   removeAvatar,
   updateProfile,
   uploadAvatar,
@@ -63,11 +72,6 @@ function ProfilePage() {
     refetch();
   };
 
-  const activityVerb = (entry: ActivityEntry) =>
-    entry.verb === 'checked_in'
-      ? labels.trackingVerb(entry.kind, 'past')
-      : t(entry.verb === 'rated' ? 'profile.recent.rated' : 'profile.recent.marked');
-
   return (
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
@@ -83,146 +87,86 @@ function ProfilePage() {
           <main className="h-40" aria-busy />
         ) : (
           <>
-            <ProfileHeader
-              user={summary.user}
-              stats={summary.stats}
-              linkYearStats
-              friendsMeta={
-                <button
-                  type="button"
-                  onClick={() => setAddingFriend(true)}
-                  className="cursor-pointer hover:text-fg"
-                >
-                  <span className="font-semibold text-fg">{summary.stats.friendCount}</span>{' '}
-                  {t('social.friendLabel', { count: summary.stats.friendCount })}
-                  {summary.stats.incomingRequestCount > 0 && (
-                    <span className="ml-1.5 rounded-full bg-pink px-1.5 py-0.5 text-[10px] font-bold text-on-prism">
-                      {summary.stats.incomingRequestCount}
-                    </span>
-                  )}
-                </button>
-              }
-              action={
-                <div className="flex flex-col items-stretch gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setSendingFeedback(true)}
-                    className="cursor-pointer rounded-full border border-glass-border bg-glass px-6 py-[11px] text-[13px] font-bold tracking-btn text-muted transition hover:border-pink hover:text-pink"
-                  >
-                    {t('profile.action.feedback')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImporting(true)}
-                    className="cursor-pointer rounded-full border border-glass-border bg-glass px-6 py-[11px] text-[13px] font-bold tracking-btn text-muted transition hover:border-pink hover:text-pink"
-                  >
-                    {t('profile.action.import')}
-                  </button>
+            <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-10 pt-11 pb-20">
+              <ProfileHeader
+                user={summary.user}
+                stats={summary.stats}
+                linkYearStats
+                friendsMeta={
+                  <a href="#friends" className="hover:text-fg">
+                    <span className="text-fg">{summary.stats.friendCount}</span>{' '}
+                    {t('social.friendLabel', { count: summary.stats.friendCount })}
+                  </a>
+                }
+                action={
                   <button
                     type="button"
                     onClick={() => setEditing(true)}
-                    className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-6 py-[11px] text-[13px] font-bold tracking-btn text-fg transition hover:border-pink hover:text-pink"
+                    className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-6 py-3 text-[13px] font-bold tracking-btn text-fg transition hover:border-pink hover:text-pink"
                   >
                     {t('profile.action.editProfile')}
                   </button>
-                </div>
-              }
-            />
-
-            <main className="mx-auto flex max-w-[1360px] flex-col gap-10 px-10 pt-10 pb-20">
-              <FavouriteShelves
-                favorites={summary.favorites}
-                own
-                emptyMessage={t('profile.favourites.emptyOwn')}
+                }
               />
 
-              <div className="grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
-                <section className="flex flex-col gap-4">
-                  <h2 className="font-heading text-[32px] uppercase">
-                    {t('profile.recent.title')}
-                  </h2>
-                  {summary.activity.length > 0 ? (
-                    <ul className="flex flex-col gap-2">
-                      {summary.activity.map((entry, index) => (
-                        <GlassCard
-                          as="li"
-                          key={`${entry.verb}-${entry.slug}-${index}`}
-                          className="flex items-center gap-3.5 rounded-card-sm px-4.5 py-3.5"
-                        >
-                          <p className="flex-1 text-sm text-muted">
-                            {activityVerb(entry)}{' '}
-                            <Link
-                              to="/media/$slug"
-                              params={{ slug: entry.slug }}
-                              className="font-semibold text-fg hover:text-pink"
-                            >
-                              {entry.title}
-                            </Link>{' '}
-                            <span className="font-bold text-pink">{entry.detail}</span>
-                          </p>
-                          <span className="font-label text-xs text-dim">
-                            {relativeTime(entry.at)}
-                          </span>
-                        </GlassCard>
-                      ))}
-                    </ul>
-                  ) : (
-                    <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                      {t('profile.recent.emptyOwn')}
-                    </GlassCard>
-                  )}
-                </section>
-                <div className="flex flex-col gap-10">
-                  <section className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="font-heading text-[32px] uppercase">{t('social.title')}</h2>
-                      <Button variant="ghost" onClick={() => setAddingFriend(true)}>
-                        {t('social.addFriend')}
-                      </Button>
-                    </div>
-                    {friendsOverview && friendsOverview.friends.length > 0 ? (
-                      <ul className="flex flex-wrap gap-3">
-                        {friendsOverview.friends.map((friend) => (
-                          <li key={friend.id}>
-                            <Link
-                              to="/users/$username"
-                              params={{ username: friend.username }}
-                              className="flex flex-col items-center gap-1.5 text-muted transition hover:text-pink"
-                            >
-                              <Avatar name={friend.username} src={friend.image} size={44} />
-                              <span className="max-w-16 truncate text-xs">{friend.username}</span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                        {t('social.friendsEmpty')}
-                      </GlassCard>
-                    )}
-                  </section>
-                  <section className="flex flex-col gap-4">
-                    <h2 className="font-heading text-[32px] uppercase">
-                      {t('profile.badges.title')}
-                    </h2>
-                    <GlassCard className="rounded-card-sm px-5 py-4 text-sm text-muted">
-                      {t('profile.badges.body')}
-                    </GlassCard>
-                    <GlassCard className="flex items-center justify-between rounded-card-sm px-5 py-4">
-                      <span className="font-label text-xs tracking-label text-dim">
-                        {t('profile.visibility.title')}
-                      </span>
-                      <Tooltip label={t('profile.visibility.tooltip')}>
-                        <span
-                          tabIndex={0}
-                          className="cursor-help font-label text-xs font-semibold text-dim/60"
-                        >
-                          {labels.visibility('public')}
-                        </span>
-                      </Tooltip>
-                    </GlassCard>
-                  </section>
+              <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <div className="flex min-w-0 flex-col gap-11">
+                  <Favourites
+                    favorites={summary.favorites}
+                    own
+                    emptyMessage={t('profile.favourites.emptyOwn')}
+                  />
+                  <RightNow entries={summary.inProgress} total={summary.inProgressCount} />
+                  <ProfileTimeline />
+                  <RecentActivity
+                    activity={summary.activity}
+                    emptyMessage={t('profile.recent.emptyOwn')}
+                  />
                 </div>
+
+                <aside className="flex min-w-0 flex-col gap-4">
+                  <TasteCard
+                    taste={summary.taste}
+                    meanRating={summary.stats.meanRating}
+                    emptyMessage={t('profile.taste.emptyOwn')}
+                  />
+                  <FriendsCard
+                    friends={friendsOverview?.friends ?? []}
+                    count={summary.stats.friendCount}
+                    requests={summary.stats.incomingRequestCount}
+                    onOpen={() => setAddingFriend(true)}
+                  />
+                  <BadgesCard />
+                  <div className="flex items-center justify-between px-1.5 py-1">
+                    <span className="font-label text-[11px] font-semibold tracking-[0.08em] text-dim">
+                      {t('profile.visibility.title')}
+                    </span>
+                    <Tooltip label={t('profile.visibility.tooltip')}>
+                      <span
+                        tabIndex={0}
+                        className="cursor-help font-label text-xs font-semibold text-dim/60"
+                      >
+                        {labels.visibility('public')}
+                      </span>
+                    </Tooltip>
+                  </div>
+                  <div className="flex flex-wrap gap-2.5 px-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setImporting(true)}
+                      className="cursor-pointer rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition hover:border-pink hover:text-pink"
+                    >
+                      {t('profile.action.import')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSendingFeedback(true)}
+                      className="cursor-pointer rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition hover:border-pink hover:text-pink"
+                    >
+                      {t('profile.action.feedback')}
+                    </button>
+                  </div>
+                </aside>
               </div>
             </main>
             {editing && (
@@ -239,6 +183,92 @@ function ProfilePage() {
         )}
       </div>
     </div>
+  );
+}
+
+const FRIENDS_SHOWN = 4;
+
+/** Own-profile friends: the first few, the rest on demand, and the request inbox. */
+function FriendsCard({
+  friends,
+  count,
+  requests,
+  onOpen,
+}: {
+  friends: Friend[];
+  count: number;
+  requests: number;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? friends : friends.slice(0, FRIENDS_SHOWN);
+  const actionClass =
+    'cursor-pointer font-label text-xs font-bold tracking-[0.08em] text-pink hover:text-fg';
+  return (
+    <GlassCard
+      as="section"
+      id="friends"
+      aria-labelledby="friends-heading"
+      className={clsx(profileCardClass, 'scroll-mt-24 gap-4')}
+    >
+      <div className="flex items-baseline gap-2.5">
+        <h2 id="friends-heading" className={profileCardTitleClass}>
+          {t('social.title')}
+        </h2>
+        <span className="font-label text-xs font-semibold text-dim">{count}</span>
+        <span className="flex-1" />
+        <button type="button" onClick={onOpen} className={actionClass}>
+          {t('social.addFriend')}
+        </button>
+      </div>
+      {shown.length > 0 ? (
+        <ul className="flex flex-col gap-3">
+          {shown.map((friend) => (
+            <li key={friend.id}>
+              <Link
+                to="/users/$username"
+                params={{ username: friend.username }}
+                className="flex min-w-0 items-center gap-3 hover:text-pink"
+              >
+                <Avatar name={friend.username} src={friend.image} size={32} className="size-9" />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-sm font-semibold">{friend.name}</span>
+                  <span className="truncate text-xs text-dim">@{friend.username}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted">{t('social.friendsEmpty')}</p>
+      )}
+      {(friends.length > FRIENDS_SHOWN || requests > 0) && (
+        <div className="flex flex-wrap items-center gap-3 pt-3.5 shadow-[inset_0_1px_0_var(--color-divider)]">
+          {friends.length > FRIENDS_SHOWN && (
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className={actionClass}
+            >
+              {expanded
+                ? t('profile.friends.showFewer')
+                : t('profile.friends.all', { count: friends.length })}
+            </button>
+          )}
+          <span className="flex-1" />
+          {requests > 0 && (
+            <button
+              type="button"
+              onClick={onOpen}
+              className="cursor-pointer rounded-full border border-gold/50 px-3 py-1.25 font-label text-[11px] font-bold tracking-[0.08em] text-gold transition hover:border-gold"
+            >
+              {t('profile.friends.requests', { count: requests })}
+            </button>
+          )}
+        </div>
+      )}
+    </GlassCard>
   );
 }
 

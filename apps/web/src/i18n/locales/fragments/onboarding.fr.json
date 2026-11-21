@@ -1,0 +1,95 @@
+{
+  "close": "Fermer la configuration et aller à l’accueil",
+  "closeHint": "Fermer — terminer plus tard",
+  "stepOf": "ÉTAPE {{n}} SUR {{total}}",
+  "stepNames": {
+    "import": "IMPORT",
+    "friends": "AMIS",
+    "done": "C’EST PARTI"
+  },
+  "steps": {
+    "import": "1 · IMPORT",
+    "friends": "2 · AMIS",
+    "done": "3 · C’EST PARTI"
+  },
+  "import": {
+    "title": "Ramenez votre historique",
+    "lede": "Vous suivez déjà ailleurs ? Connectez-le et votre journal démarre plein. Choisissez-en autant que vous voulez, ou aucun.",
+    "connect": "CONNECTER",
+    "upload": "ENVOYER L’EXPORT",
+    "add": "AJOUTER",
+    "connected": "CONNECTÉ",
+    "reading": "Lecture de votre export…",
+    "starting": "Lancement de l’import…",
+    "readError": "Impossible de lire {{name}}.",
+    "startError": "Impossible de lancer cet import.",
+    "files_one": "{{names}}",
+    "files_other": "{{count}} fichiers : {{names}}",
+    "sources": {
+      "tvtime": {
+        "idle": "Envoyez votre export de données TV Time"
+      },
+      "letterboxd": {
+        "idle": "Indiquez votre pseudo Letterboxd",
+        "placeholder": "Pseudo Letterboxd"
+      },
+      "mal": {
+        "idle": "Indiquez votre pseudo MyAnimeList",
+        "placeholder": "Pseudo MyAnimeList"
+      },
+      "anilist": {
+        "idle": "Indiquez votre pseudo AniList",
+        "placeholder": "Pseudo AniList"
+      },
+      "steam": {
+        "idle": "Collez le lien de votre profil",
+        "placeholder": "steamcommunity.com/id/…"
+      }
+    },
+    "foot_one": "{{count}} CONNECTÉ",
+    "foot_other": "{{count}} CONNECTÉS"
+  },
+  "friends": {
+    "title": "Trouvez vos proches",
+    "lede": "Trackt est meilleur entre amis : vous voyez ce qu’ils regardent, lisent et jouent, et les spoilers restent masqués tant que vous n’avez pas rattrapé.",
+    "search": "Trouver des personnes",
+    "invite": "COPIER LE LIEN D’INVITATION",
+    "copied": "LIEN COPIÉ",
+    "results": "RÉSULTATS",
+    "selected": "SÉLECTIONNÉS",
+    "add": "＋ AJOUTER",
+    "picked": "✓ SÉLECTIONNÉ",
+    "already": "✓ AMIS",
+    "pending": "EN ATTENTE",
+    "incoming": "VEUT VOUS AJOUTER",
+    "empty": "Cherchez par nom ou @pseudo pour trouver des personnes déjà sur Trackt, ou copiez votre lien d’invitation et envoyez-le-leur.",
+    "noMatches": "Personne ne correspond à « {{query}} ». Envoyez-lui plutôt votre lien d’invitation.",
+    "searchFailed": "La recherche est indisponible pour le moment.",
+    "sendFailed": "Certaines demandes n’ont pas abouti. Réessayez, ou passez et ajoutez-les plus tard.",
+    "foot_one": "{{count}} SÉLECTIONNÉ",
+    "foot_other": "{{count}} SÉLECTIONNÉS",
+    "send_one": "ENVOYER {{count}} DEMANDE",
+    "send_other": "ENVOYER {{count}} DEMANDES",
+    "sending": "ENVOI…",
+    "requested": "✓ DEMANDÉ",
+    "sentFoot_one": "{{count}} ENVOYÉE",
+    "sentFoot_other": "{{count}} ENVOYÉES"
+  },
+  "done": {
+    "title": "Tout est prêt",
+    "lede": "Tout ceci se modifie plus tard depuis votre profil.",
+    "sources": "IMPORT",
+    "sourcesNote": "depuis {{names}}",
+    "sourcesNone": "Rien de connecté. Importez quand vous voulez depuis votre profil.",
+    "requests": "DEMANDES D’AMI",
+    "requestsNote": "Ils apparaissent sur votre accueil une fois acceptées.",
+    "requestsNone": "Aucune envoyée. Trouvez des personnes quand vous voulez.",
+    "noteImport": "L’import tourne en arrière-plan et peut prendre quelques minutes. Votre accueil se remplit au fil des correspondances ; ce qui ne correspond à rien est listé pour que vous le vérifiiez.",
+    "noteEmpty": "Votre journal est vide pour l’instant. Ajoutez la première chose que vous avez regardée, lue ou jouée cette semaine.",
+    "addTitle": "AJOUTER UN TITRE",
+    "home": "ALLER À L’ACCUEIL"
+  },
+  "back": "RETOUR",
+  "skip": "PASSER CETTE ÉTAPE",
+  "continue": "CONTINUER"
+}

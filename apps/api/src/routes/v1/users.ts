@@ -6,6 +6,7 @@ import {
   ApiErrorSchema,
   HistoryPageSchema,
   HistoryQuerySchema,
+  PROFILE_IN_PROGRESS_LIMIT,
   PublicProfileSchema,
   UserSearchQuerySchema,
   UserSearchResultSchema,
@@ -13,7 +14,13 @@ import {
 } from '@trackt/shared';
 import { countFriends, friendStateFor, loadFriendshipRow, searchUsers } from '../../lib/friends.js';
 import { loadHistory } from '../../lib/history.js';
-import { loadActivity, loadFavorites, loadProfileStats } from '../../lib/me.js';
+import {
+  loadActivity,
+  loadFavorites,
+  loadInProgress,
+  loadProfileStats,
+  loadTaste,
+} from '../../lib/me.js';
 import { getSessionUser } from '../../lib/session.js';
 
 const PUBLIC_ACTIVITY_LIMIT = 10;
@@ -82,19 +89,22 @@ export const userRoutes: FastifyPluginAsyncZod = async (app) => {
         .where(eq(users.username, request.params.username.toLowerCase()));
       if (!account) return reply.status(404).send({ error: 'user not found' });
 
-      const [favorites, stats, activity, friendCount, friendState] = await Promise.all([
-        loadFavorites(db, account.id),
-        loadProfileStats(db, account.id),
-        loadActivity(db, account.id, PUBLIC_ACTIVITY_LIMIT),
-        countFriends(db, account.id),
-        viewer === null
-          ? Promise.resolve('none' as const)
-          : viewer.id === account.id
-            ? Promise.resolve('self' as const)
-            : loadFriendshipRow(db, viewer.id, account.id).then((row) =>
-                friendStateFor(row, viewer.id),
-              ),
-      ]);
+      const [favorites, stats, activity, inProgress, taste, friendCount, friendState] =
+        await Promise.all([
+          loadFavorites(db, account.id),
+          loadProfileStats(db, account.id),
+          loadActivity(db, account.id, PUBLIC_ACTIVITY_LIMIT),
+          loadInProgress(db, account.id, PROFILE_IN_PROGRESS_LIMIT),
+          loadTaste(db, account.id),
+          countFriends(db, account.id),
+          viewer === null
+            ? Promise.resolve('none' as const)
+            : viewer.id === account.id
+              ? Promise.resolve('self' as const)
+              : loadFriendshipRow(db, viewer.id, account.id).then((row) =>
+                  friendStateFor(row, viewer.id),
+                ),
+        ]);
 
       return {
         userId: account.id,
@@ -109,6 +119,9 @@ export const userRoutes: FastifyPluginAsyncZod = async (app) => {
         stats,
         favorites,
         activity,
+        inProgress: inProgress.entries,
+        inProgressCount: inProgress.total,
+        taste,
         friendState,
         friendCount,
       };

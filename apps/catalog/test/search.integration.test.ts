@@ -267,6 +267,89 @@ describe.runIf(available)('GET /v1/catalog/search (postgres)', () => {
       expect(results.map((result) => (result as { id: string }).id)).toContain(id);
     }
   });
+
+  it('sorts by newest and by title when asked, keeping only real matches', async () => {
+    await db.insert(catalogMedia).values([
+      {
+        id: '5b4f0a0e-de46-5e09-8a39-f9b076b9e346',
+        kind: 'movie',
+        title: 'The Matrix Resurrections',
+        synonyms: [],
+        year: 2021,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+      },
+      {
+        id: '6c5a1b1f-ef57-5f1a-9b4a-0ac187cae457',
+        kind: 'movie',
+        title: 'Matrix Reloaded',
+        synonyms: [],
+        year: 2003,
+        status: 'ended',
+        genres: [],
+        externalIds: {},
+      },
+    ]);
+    const ids = (results: unknown[]) => results.map((r) => (r as { title: string }).title);
+
+    const { results: newest } = await search('q=matrix&sort=newest');
+    expect(ids(newest)).toEqual(['The Matrix Resurrections', 'Matrix Reloaded', 'The Matrix']);
+    const { results: az } = await search('q=matrix&sort=az');
+    expect(ids(az)).toEqual(['Matrix Reloaded', 'The Matrix', 'The Matrix Resurrections']);
+
+    // A typo is relevance's job: under a reordering sort only hits that
+    // contain the query (or nearly spell it) survive.
+    const { results: fuzzy } = await search('q=cowbay%20bebop');
+    expect(ids(fuzzy)).toContain('Cowboy Bebop');
+    const { results: fuzzyNewest } = await search('q=bebxp&sort=newest');
+    expect(ids(fuzzyNewest)).not.toContain('Cowboy Bebop');
+  });
+
+  it('counts hits per kind, ignoring tombstones', async () => {
+    // Besides Cowboy Bebop, only the tombstoned movie contains an "o".
+    const response = await app.inject({ method: 'GET', url: '/v1/catalog/search/kinds?q=o' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ kinds: { anime: 1 } });
+
+    const matrix = await app.inject({ method: 'GET', url: '/v1/catalog/search/kinds?q=matrix' });
+    expect(matrix.json()).toEqual({ kinds: { movie: 1 } });
+    const none = await app.inject({
+      method: 'GET',
+      url: '/v1/catalog/search/kinds?q=matrix&year=1998',
+    });
+    expect(none.json()).toEqual({ kinds: {} });
+  });
+
+  it('narrows by every listed genre and by status, in hits and counts', async () => {
+    const titles = async (query: string) =>
+      (await search(query)).results.map((r) => (r as { title: string }).title);
+    expect(await titles('q=bebop&genres=action,sci-fi')).toEqual(['Cowboy Bebop']);
+    expect(await titles('q=bebop&genres=action,comedy')).toEqual([]);
+    expect(await titles('q=bebop&status=ended')).toEqual(['Cowboy Bebop']);
+    expect(await titles('q=bebop&status=ongoing')).toEqual([]);
+
+    const counts = await app.inject({
+      method: 'GET',
+      url: '/v1/catalog/search/kinds?q=o&genres=comedy',
+    });
+    expect(counts.json()).toEqual({ kinds: {} });
+  });
+
+  it('lists genres with counts, commonest first, ignoring tombstones', async () => {
+    const all = await app.inject({ method: 'GET', url: '/v1/catalog/genres' });
+    expect(all.statusCode).toBe(200);
+    expect(all.json()).toEqual({
+      genres: [
+        { genre: 'action', count: 2 },
+        { genre: 'sci-fi', count: 1 },
+      ],
+    });
+    const typed = await app.inject({ method: 'GET', url: '/v1/catalog/genres?q=%20FI' });
+    expect(typed.json()).toEqual({ genres: [{ genre: 'sci-fi', count: 1 }] });
+    const movies = await app.inject({ method: 'GET', url: '/v1/catalog/genres?kind=movie' });
+    expect(movies.json()).toEqual({ genres: [{ genre: 'action', count: 1 }] });
+  });
 });
 
 describe.runIf(!available)('GET /v1/catalog/search (postgres)', () => {

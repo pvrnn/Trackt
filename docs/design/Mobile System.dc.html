@@ -103,7 +103,7 @@
         <div style="background: rgba(14,12,16,0.82); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
           <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 12px;">
-              <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: {{ t.fg }};">{{ t.glyph }}</div>
+              <div style="width: 24px; height: 24px; background: {{ t.icon }} center / 24px 24px no-repeat;"></div>
               <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
               <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
             </div>
@@ -240,12 +240,91 @@
     <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 18px 22px; color: #b8b1c4; font-size: 14px; line-height: 1.7; max-width: 720px;">Haptics are reserved for state changes the user caused and cannot see confirmed elsewhere: a check-in commit (medium impact), crossing a swipe threshold (selection tick), and a failed sync (error notification). Never on scroll, never on tab change.</div>
   </div>
 
+  <!-- 08 controls -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">08 · Controls &amp; alignment</div>
+    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">The rules that keep screens from drifting. Each one exists because a screen broke it.</div>
+    <div style="display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap;">
+      <div style="width: 402px; display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- button ladder -->
+        <div style="background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">BUTTON LADDER</div>
+          <div style="height: 54px; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.1em;">PRIMARY · 54</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="height: 46px; border-radius: 999px; background: #1d1826; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;">SECONDARY · 46</div>
+            <div style="height: 46px; border-radius: 999px; background: #1d1826; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6); color: #e58cc4; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;">STATE · 46</div>
+          </div>
+        </div>
+
+        <!-- row actions share one width -->
+        <div style="background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; margin-bottom: 2px;">ROW ACTIONS · ONE WIDTH PER LIST</div>
+          <sc-for list="{{ rowDemo }}" as="x" hint-placeholder-count="3">
+            <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 12px;">
+              <div style="flex: 1; font-weight: 700; font-size: 15px;">{{ x.name }}</div>
+              <div style="width: 124px; height: 44px; border-radius: 999px; background: {{ x.bg }}; box-shadow: inset 0 0 0 1px {{ x.bd }}; color: {{ x.fg }}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; letter-spacing: 0.06em;">{{ x.btn }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- sheet header -->
+        <div style="background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 22px 22px 16px 16px; padding: 0 0 18px; display: flex; flex-direction: column;">
+          <div style="display: flex; justify-content: center; padding: 9px 0 6px;"><div style="width: 36px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.25);"></div></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 0 10px 0 20px; min-height: 44px;">
+            <div style="flex: 1; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">STEP 1 OF 3 <span style="color: #f0edf4;">· IMPORT</span></div>
+            <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;"><div style="width: 32px; height: 32px; border-radius: 999px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1;">✕</div></div>
+          </div>
+          <div style="display: flex; gap: 6px; padding: 6px 20px 0;">
+            <span style="flex: 1; height: 4px; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></span>
+            <span style="flex: 1; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.12);"></span>
+            <span style="flex: 1; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.12);"></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{ controlRules }}" as="r" hint-placeholder-count="8">
+          <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 16px;">
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; margin-bottom: 4px;">{{ r.k }}</div>
+            <div style="color: #b8b1c4; font-size: 13px; line-height: 1.55;">{{ r.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1200, &quot;height&quot;: 900}}">
+// tab icons: original line glyphs, drawn at 24, coloured per state (unicode symbols rendered at different sizes on every platform)
+const V2_ICON_PATHS = {
+  HOME: '<path d="M4 11.5 12 4.5l8 7V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>',
+  DISCOVER: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  NEWS: '<path d="M4.5 5.5h11v13a1.5 1.5 0 0 0 3 0V9.5h-3"/><path d="M4.5 5.5v12a2 2 0 0 0 2 2h10.5"/><path d="M7.5 9.5h5M7.5 13h5M7.5 16.5h3"/>',
+  PROFILE: '<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.6 3.7-5.4 7.2-5.4s6.3 1.8 7.2 5.4"/>',
+};
+const v2Icon = (name, color) => 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + V2_ICON_PATHS[name] + '</svg>') + '")';
+
 class Component extends DCLogic {
   renderVals() {
     return {
+      rowDemo: [
+        { name: 'Letterboxd', btn: 'UPLOAD', bg: 'rgba(255,255,255,0.06)', bd: 'rgba(255,255,255,0.22)', fg: '#f0edf4' },
+        { name: 'AniList', btn: '✓ CONNECTED', bg: 'rgba(217,107,176,0.16)', bd: 'rgba(217,107,176,0.55)', fg: '#e58cc4' },
+        { name: 'Steam profile', btn: 'CONNECT', bg: 'rgba(255,255,255,0.06)', bd: 'rgba(255,255,255,0.22)', fg: '#f0edf4' },
+      ],
+      controlRules: [
+        { k: 'BUTTON LADDER', v: 'Three heights and no others: 54 for the one primary action on a screen, 46–50 for secondary and state buttons, 44 for an action inside a row. Labels are centred both ways; the content box is flex, never text alignment.' },
+        { k: 'ONE WIDTH PER LIST', v: 'Every action in the same list has the same width, sized to its longest label in any state (Connect, Upload, ✓ Connected). The right edge of a list is a straight line.' },
+        { k: 'SHEET HEADER', v: 'Grabber, then one 44pt line: where you are on the left, the close target on the right, sharing a centre line. Progress bars go under that line, full width. Nothing else shares the row with the close button.' },
+        { k: 'CLOSE AND BACK', v: 'A 32pt visible disc inside a 44pt target. Back sits at the left edge of the header, close at the right. Over artwork the disc is opaque.' },
+        { k: 'ONE PRIMARY', v: 'The gradient marks the single way forward. If two things on a screen want it, one of them is secondary. It stays grey until the step has something to submit.' },
+        { k: 'SECTION SCALE', v: 'Screen title 34. Section 24. Card title 20. Body 14–16. Labels 10–11 in Space Grotesk, never smaller. A screen that needs a fourth heading size has too many levels.' },
+        { k: 'ARTWORK', v: 'Covers stay clean. Title, kind and dates sit under the cover or beside it. Anything on the art (rating, tracked mark, progress) gets an opaque backing.' },
+        { k: 'ACCENT', v: 'Pink is the only state colour: selected, connected, friends, in progress. Violet and gold live in the gradient and in kind dots, never on a control.' },
+        { k: 'TEXT GREYS', v: 'Two greys carry text on ink: B8B1C4 for secondary, 948DA1 for labels. Anything darker fails contrast and is not used for words or chevrons.' },
+      ],
       canvasSpecs: [
         { k: 'DESIGN WIDTH', v: '402pt (iPhone 16/17) · 412dp (Android)' },
         { k: 'CONTENT COLUMN', v: '362pt — 20pt gutters, never less' },
@@ -267,14 +346,15 @@ class Component extends DCLogic {
         { spec: 'STAT — ANTON 26, PRISM', family: 'Anton', size: '26px', weight: 400, lh: '1', ls: '0', color: '#d96bb0', sample: '186' },
       ],
       tabs: [
-        { label: 'HOME', glyph: '▤', fg: '#d96bb0', rule: '#d96bb0' },
-        { label: 'DISCOVER', glyph: '⌕', fg: '#948da1', rule: 'transparent' },
-        { label: 'NEWS', glyph: '◈', fg: '#948da1', rule: 'transparent' },
-        { label: 'PROFILE', glyph: '◍', fg: '#948da1', rule: 'transparent' },
+        { label: 'HOME', fg: '#e58cc4', rule: '#d96bb0', icon: v2Icon('HOME', '#e58cc4') },
+        { label: 'DISCOVER', fg: '#b8b1c4', rule: 'transparent', icon: v2Icon('DISCOVER', '#b8b1c4') },
+        { label: 'NEWS', fg: '#b8b1c4', rule: 'transparent', icon: v2Icon('NEWS', '#b8b1c4') },
+        { label: 'PROFILE', fg: '#b8b1c4', rule: 'transparent', icon: v2Icon('PROFILE', '#b8b1c4') },
       ],
       tabRules: [
         { k: 'WHY FOUR', v: 'Four 90pt targets clear the 44pt minimum with room for a mis-tap. A fifth tab would squeeze labels below 10px.' },
-        { k: 'ACTIVE STATE', v: 'Pink glyph + label + a 18×2 rule beneath. No filled pill — the aura already carries the colour load.' },
+        { k: 'ICONS', v: 'Line icons drawn at 24 on a 1.7 stroke, never unicode symbols: those render at a different size and weight on every platform.' },
+        { k: 'ACTIVE STATE', v: 'Pink icon + label + a 18×2 rule beneath. No filled pill — the aura already carries the colour load.' },
         { k: 'WHERE LISTS AND HISTORY LIVE', v: 'Inside Profile, as two rows directly under the stat band. Both are weekly, not daily.' },
         { k: 'NO CENTER BUTTON', v: 'Check-in is a swipe on the row you are already looking at, so a floating action button would duplicate it.' },
       ],

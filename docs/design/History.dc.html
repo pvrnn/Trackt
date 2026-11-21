@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>History</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -15,6 +16,48 @@
     body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    select option { background: #191520; color: #f0edf4; }
+    .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .poster .art { transition: transform 160ms ease, box-shadow 160ms ease; }
+    .poster:hover .art { transform: translateY(-4px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), 0 18px 36px -16px rgba(217,107,176,0.45), 0 10px 28px -14px rgba(0,0,0,0.9); }
+    .tl-item { color: #f0edf4; transition: filter 140ms ease; }
+    .tl-item:hover { color: #f0edf4; filter: brightness(1.25); z-index: 2; }
+    .tl-item:hover .tl-lbl { text-decoration: underline; text-underline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .poster .art, .tl-item { transition: none; } .poster:hover .art { transform: none; } }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
+    /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; }
+    .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
+    .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
+    .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fcell .dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 999px; }
+    .fcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-overflow: ellipsis; padding: 19px 22px 19px 0; margin-right: -4px; cursor: pointer; color-scheme: dark; }
+    .fcell select option { background: #191520; color: #f0edf4; }
+    .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
+    .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
+    /* kind strip: six colour dots, one per kind. The picked one (or the one under the pointer) opens into its name and count. */
+    .kcell { flex: 1 1 auto; padding-right: 14px; }
+    .kstrip { display: flex; align-items: center; gap: 2px; width: 366px; max-width: 100%; }
+    .kchip { height: 32px; min-width: 30px; padding: 0 9px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; white-space: nowrap; transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease; }
+    .kchip:hover { background: rgba(255,255,255,0.07); color: #f0edf4; }
+    .kchip[aria-pressed="true"] { color: #f0edf4; }
+    .kchip .kd { width: 9px; height: 9px; flex-shrink: 0; border-radius: 999px; transition: transform 160ms ease; }
+    .kchip:hover .kd { transform: scale(1.25); }
+    .kchip .kl { display: inline-flex; gap: 6px; max-width: 0; margin-left: 0; opacity: 0; overflow: hidden; transition: max-width 220ms ease, margin-left 220ms ease, opacity 160ms ease; }
+    .kchip .kn { font-weight: 500; color: #948da1; }
+    .kchip:hover .kl, .kchip[aria-pressed="true"] .kl { max-width: 120px; margin-left: 8px; opacity: 1; }
+    /* only one name open at a time, so the strip never changes width */
+    .kstrip:hover .kchip[aria-pressed="true"]:not(:hover) .kl { max-width: 0; margin-left: 0; opacity: 0; }
+    @media (prefers-reduced-motion: reduce) { .kchip, .kchip .kd, .kchip .kl { transition: none; } }
   </style>
 </helmet>
 
@@ -23,320 +66,305 @@
 
 <div style="position: relative;">
 <!-- nav -->
-<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
   <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
   <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
     <a href="Home.dc.html" style="color: #948da1;">HOME</a>
     <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
     <a href="News.dc.html" style="color: #948da1;">NEWS</a>
-    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
-    <a href="History.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">HISTORY</a>
-    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+    <a href="History.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">HISTORY</a>
+    <a href="Profile.dc.html" style="color: #948da1;">PROFILE</a>
   </div>
   <div style="flex: 1;"></div>
-  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
-  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
-</div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 14px 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span aria-hidden="true">⌕</span><span style="flex: 1;">Search titles or people…</span><span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 5px; padding: 2px 6px;">⌘K</span></a>
+  <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+  <a href="Profile.dc.html" aria-label="Your profile" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">M</a>
+</nav>
 
-<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 26px;">
-  <div style="display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;">
-    <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">History</div>
-    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700; letter-spacing: 0.06em;">{{ scopeLabel }}</div>
-  </div>
+<main style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 24px;">
 
-  <!-- filter row 1: years + seasons (season slot always reserved, so picking a year never shifts the layout) -->
-  <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-      <sc-for list="{{ yearChips }}" as="y" hint-placeholder-count="4">
-        <div onClick="{{ y.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: {{ y.bg }}; color: {{ y.fg }}; box-shadow: inset 0 0 0 1px {{ y.bd }}; cursor: pointer;">{{ y.label }}</div>
-      </sc-for>
-    </div>
-    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.12); opacity: {{ seasonOpacity }};"></div>
-    <div style="display: flex; gap: 6px; opacity: {{ seasonOpacity }}; pointer-events: {{ seasonEvents }};">
-      <sc-for list="{{ seasonChips }}" as="s" hint-placeholder-count="4">
-        <div onClick="{{ s.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.1em; padding: 7px 14px; border-radius: 999px; background: {{ s.bg }}; color: {{ s.fg }}; box-shadow: inset 0 0 0 1px {{ s.bd }}; cursor: pointer;">{{ s.label }}</div>
+  <!-- title + the two ways to read the same history -->
+  <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+    <h1 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 64px; line-height: 1; text-transform: uppercase;">History</h1>
+    <div style="margin-bottom: 8px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700; letter-spacing: 0.06em;">{{ scopeLabel }}</div>
+    <div style="flex: 1;"></div>
+    <div role="group" aria-label="View" style="display: flex; padding: 4px; border-radius: 10px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);">
+      <sc-for list="{{ views }}" as="v" hint-placeholder-count="2">
+        <button onClick="{{ v.pick }}" aria-pressed="{{ v.on }}" style="height: 36px; padding: 0 16px; border-radius: 7px; display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; background: {{ v.bg }}; color: {{ v.fg }};"><span aria-hidden="true">{{ v.glyph }}</span>{{ v.label }}</button>
       </sc-for>
     </div>
   </div>
 
-  <!-- filter row 2: kind tabs + status dropdown -->
-  <div style="display: flex; align-items: flex-end; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.09);">
-    <div style="display: flex; gap: 4px; flex: 1; min-width: 0; flex-wrap: wrap;">
-      <sc-for list="{{ kindTabs }}" as="t" hint-placeholder-count="6">
-        <div onClick="{{ t.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; padding: 12px 20px; color: {{ t.fg }}; border-bottom: 2px solid {{ t.line }}; margin-bottom: -1px; cursor: pointer;" style-hover="color: #f0edf4;">{{ t.label }}</div>
+  <!-- FILTER CONSOLE — every filter is the same cell; the numbers for what they select sit underneath -->
+  <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; backdrop-filter: blur(16px); display: flex; flex-direction: column; overflow: hidden;">
+    <div class="fbar">
+      <div class="fcell kcell" role="group" aria-label="Kind"><span class="lab">KIND</span><div class="kstrip">
+        <sc-for list="{{ kindChips }}" as="k" hint-placeholder-count="7"><button class="kchip" onClick="{{ k.pick }}" aria-pressed="{{ k.on }}" aria-label="{{ k.aria }}" title="{{ k.aria }}" style="background: {{ k.bg }}; box-shadow: {{ k.ring }}; opacity: {{ k.op }};"><span class="kd" aria-hidden="true" style="background: {{ k.dot }}; display: {{ k.dotDisplay }};"></span><span class="{{ k.lcls }}">{{ k.label }} <span class="kn">{{ k.count }}</span></span></button></sc-for>
+      </div></div>
+      <label class="fcell"><span class="lab">YEAR</span><select value="{{ year }}" onChange="{{ onYear }}"><sc-for list="{{ yearOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span class="chev" aria-hidden="true"></span></label>
+      <label class="fcell"><span class="lab">STATUS</span><select value="{{ status }}" onChange="{{ onStatus }}"><option value="ALL">All</option><option value="completed">Completed</option><option value="progress">In progress</option><option value="paused">Paused</option><option value="dropped">Dropped</option></select><span class="chev" aria-hidden="true"></span></label>
+      <sc-if value="{{ isGrid }}" hint-placeholder-val="{{ true }}">
+        <label class="fcell"><span class="lab">GROUP BY</span><select value="{{ group }}" onChange="{{ onGroup }}"><option value="month">Month</option><option value="year">Year</option></select><span class="chev" aria-hidden="true"></span></label>
+      </sc-if>
+    </div>
+    <!-- the numbers for whatever the filters select: one quiet row inside the console -->
+    <dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="padding: 14px 24px; display: flex; align-items: baseline; gap: 12px; box-shadow: {{ s.rule }}; min-width: 0;">
+          <dd style="margin: 0; font-family: Anton; font-size: 28px; line-height: 1; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ s.v }}</dd>
+          <dt style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #948da1;">{{ s.k }}</dt>
+        </div>
       </sc-for>
-    </div>
-    <div style="position: relative; margin-bottom: 8px;">
-      <div onClick="{{ toggleStatus }}" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px {{ statusRing }}; border-radius: 999px; padding: 8px 16px; cursor: pointer;">
-        <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">STATUS</span>
-        <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: {{ statusFg }};">{{ statusLabel }}</span>
-        <span style="font-size: 10px; color: #948da1;">▾</span>
-      </div>
-      <div style="position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; min-width: 190px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 20px 50px -12px rgba(0,0,0,0.85); border-radius: 14px; padding: 6px; display: {{ statusMenuDisplay }}; flex-direction: column; gap: 2px;">
-        <sc-for list="{{ statusOptions }}" as="o" hint-placeholder-count="5">
-          <div onClick="{{ o.pick }}" style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: {{ o.bg }}; cursor: pointer;" style-hover="background: rgba(255,255,255,0.07);">
-            <div style="width: 7px; height: 7px; border-radius: 999px; background: {{ o.dot }};"></div>
-            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; color: {{ o.fg }}; flex: 1;">{{ o.label }}</span>
-            <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #6a6478;">{{ o.count }}</span>
-          </div>
-        </sc-for>
-      </div>
-    </div>
+    </dl>
   </div>
 
-  <!-- stats -->
-  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-    <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
-      <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; display: flex; align-items: baseline; gap: 10px; backdrop-filter: blur(16px);">
-        <div style="font-family: Anton; font-size: 26px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; flex-shrink: 0;">{{ s.v }}</div>
-        <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
-          <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: #b8b1c4;">{{ s.k }}</div>
-          <div style="font-family: 'Space Grotesk'; font-size: 10px; letter-spacing: 0.06em; color: #948da1;">{{ s.note }}</div>
-        </div>
-      </div>
-    </sc-for>
-  </div>
-
-  <!-- list -->
-  <div style="display: flex; flex-direction: column; gap: 22px; opacity: {{ listOpacity }};">
-    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
-      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #948da1;">{{ countLabel }}</div>
-      <div style="display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; display: {{ busyDisplay }};">
-        <div style="width: 7px; height: 7px; border-radius: 999px; background: #d96bb0;"></div>{{ busyLabel }}
-      </div>
-    </div>
-
-    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="font-family: Anton; font-size: 26px; text-transform: uppercase; letter-spacing: 0.01em;">{{ g.label }}</div>
-          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6a6478;">{{ g.meta }}</div>
-          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.09);"></div>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); gap: 16px;">
-          <sc-for list="{{ g.rows }}" as="r">
-            <a href="Media Detail.dc.html" style="display: block; position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: {{ r.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 14px 34px -16px rgba(217,107,176,0.32), 0 4px 18px -6px rgba(0,0,0,0.85);" style-hover="box-shadow: inset 0 0 0 1px rgba(217,107,176,0.65), 0 16px 36px -12px rgba(217,107,176,0.42), 0 4px 18px -6px rgba(0,0,0,0.85);">
-              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,8,14,0.5) 0%, transparent 28%);"></div>
-              <div style="position: absolute; top: 8px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-                <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; padding: 4px 9px; border-radius: 999px; background: rgba(14,12,16,0.82); color: {{ r.stFg }}; box-shadow: inset 0 0 0 1px {{ r.stBd }};">{{ r.stLabel }}</div>
-                <div style="font-family: Anton; font-size: 15px; color: #f0edf4; padding: 2px 9px; border-radius: 999px; background: rgba(14,12,16,0.82); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); display: {{ r.scoreDisplay }};">{{ r.score }}</div>
-              </div>
-              <!-- at rest: solid plate carrying title + kind, so neither ever sits on raw artwork -->
-              <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 11px 13px 12px; background: #12101a; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); display: flex; flex-direction: column; gap: 5px;">
-                <div style="font-family: Anton; font-size: 16px; line-height: 1.08; text-transform: uppercase; color: #f0edf4; max-height: 35px; overflow: hidden;">{{ r.title }}</div>
-                <div style="display: flex; align-items: center; gap: 7px; min-width: 0;">
-                  <div style="width: 6px; height: 6px; border-radius: 999px; background: {{ r.dot }}; flex-shrink: 0;"></div>
-                  <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ r.kind }}</div>
-                </div>
-              </div>
-              <!-- on hover: the full record -->
-              <div style="position: absolute; inset: 0; background: #12101a; opacity: 0; transition: opacity 140ms ease; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; gap: 8px;" style-hover="opacity: 1;">
-                <div style="font-family: Anton; font-size: 20px; line-height: 1.05; text-transform: uppercase; color: #f0edf4;">{{ r.title }}</div>
-                <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 600; color: #f0edf4;">{{ r.range }}</div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <div style="width: 6px; height: 6px; border-radius: 999px; background: {{ r.dot }};"></div>
-                  <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">{{ r.kind }}</div>
-                  <div style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1; display: {{ r.progressDisplay }};">{{ r.progress }}</div>
-                </div>
-              </div>
-            </a>
-          </sc-for>
-        </div>
-      </div>
-    </sc-for>
-
-    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
-      <div style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 44px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
-        <div style="font-family: Anton; font-size: 32px; text-transform: uppercase; color: #6a6478;">{{ emptyTitle }}</div>
-        <div style="color: #b8b1c4; font-size: 14px; max-width: 460px; line-height: 1.6;">{{ emptyBody }}</div>
-        <div onClick="{{ emptyAction }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px; cursor: pointer; display: {{ emptyActionDisplay }};">{{ emptyActionLabel }}</div>
-        <a href="Search.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px; display: {{ emptyDiscoverDisplay }};">BROWSE DISCOVER →</a>
+  <div style="display: flex; flex-direction: column; gap: 26px; opacity: {{ listOpacity }};">
+    <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4;">
+        <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: #d96bb0;"></span>{{ busyLabel }}
       </div>
     </sc-if>
 
-    <div style="display: {{ moreDisplay }}; justify-content: center; margin-top: 6px;">
-      <div onClick="{{ loadMore }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 12px 28px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); color: #f0edf4; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">LOAD MORE</div>
-    </div>
+    <!-- ═══ TIMELINE ═══ the shared arrow of time; kind and status filter it, the year scrolls it -->
+    <sc-if value="{{ showTimeline }}" hint-placeholder-val="{{ false }}">
+      <dc-import name="Timeline" kind="{{ kind }}" status="{{ status }}" jump="{{ year }}" hint-size="100%,640px"></dc-import>
+    </sc-if>
+
+    <!-- ═══ GRID ═══ artwork clean, the record underneath: no hover needed to read it -->
+    <sc-if value="{{ showGrid }}" hint-placeholder-val="{{ true }}">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+        <section style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: baseline; gap: 14px;">
+            <h2 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 28px; text-transform: uppercase; letter-spacing: 0.01em;">{{ g.label }}</h2>
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #948da1;">{{ g.meta }}</div>
+            <div aria-hidden="true" style="flex: 1; height: 1px; background: rgba(255,255,255,0.09); align-self: center;"></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 26px 16px;">
+            <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="6">
+              <a href="Media Detail.dc.html" class="poster" style="display: flex; flex-direction: column; gap: 10px; min-width: 0;">
+                <div class="art" style="aspect-ratio: 2/3; border-radius: 10px; background: {{ r.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 28px -14px rgba(0,0,0,0.9); position: relative; overflow: hidden;">
+                  <sc-if value="{{ r.hasScore }}" hint-placeholder-val="{{ false }}">
+                    <div style="position: absolute; top: 8px; right: 8px; font-family: Anton; font-size: 15px; line-height: 1; color: #e58cc4; padding: 5px 9px; border-radius: 999px; background: #14101a; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);">{{ r.score }}</div>
+                  </sc-if>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0;">
+                  <div class="clamp2" style="font-weight: 600; font-size: 14px; line-height: 1.3;">{{ r.title }}</div>
+                  <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+                    <span aria-hidden="true" style="width: 7px; height: 7px; flex-shrink: 0; border-radius: 999px; background: {{ r.dot }};"></span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4;">{{ r.kind }}</span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{ r.stFg }};">· {{ r.stLabel }}</span>
+                  </div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #948da1;">{{ r.range }}</div>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+      </sc-for>
+
+      <div style="display: {{ moreDisplay }}; justify-content: center; margin-top: 6px;">
+        <button onClick="{{ loadMore }}" style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; padding: 13px 28px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">LOAD MORE</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 44px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+        <div style="font-family: Anton; font-size: 32px; text-transform: uppercase; color: #948da1;">{{ emptyTitle }}</div>
+        <div style="color: #b8b1c4; font-size: 14px; max-width: 460px; line-height: 1.6;">{{ emptyBody }}</div>
+        <sc-if value="{{ filteredOut }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ emptyAction }}" style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px; padding: 8px 4px;">CLEAR KIND &amp; STATUS</button>
+        </sc-if>
+        <sc-if value="{{ emptyAccount }}" hint-placeholder-val="{{ false }}">
+          <a href="Search.dc.html" style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px;">BROWSE DISCOVER →</a>
+        </sc-if>
+      </div>
+    </sc-if>
   </div>
-</div>
+</main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;emptyAccount&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;States&quot;}, &quot;loading&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;States&quot;}}">
+<script type="text/x-dc" data-dc-script data-props='{"emptyAccount":{"editor":"boolean","default":false,"tsType":"boolean","section":"States"},"loading":{"editor":"boolean","default":false,"tsType":"boolean","section":"States"}}'>
+// Placeholder artwork: light, flat and loud covers on purpose.
+const ARTS = [
+  'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
+  'radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%)',
+  'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+  'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)',
+  'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)',
+  'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)',
+  'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)',
+  'radial-gradient(46% 32% at 50% 40%, #e9e4f5 0%, transparent 72%), linear-gradient(180deg, #55309a 0%, #0d0817 100%)',
+  'linear-gradient(64deg, transparent 0 44%, rgba(255,255,255,0.85) 44% 47%, transparent 47%), linear-gradient(200deg, #c2202a 0%, #2a0608 78%)',
+  'radial-gradient(70% 50% at 40% 62%, #ff9bd0 0%, transparent 70%), linear-gradient(180deg, #1b3a2a 0%, #0a1510 100%)',
+  'linear-gradient(180deg, #ece6d6 0%, #b9ae95 58%, #5a5140 100%)',
+  'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)',
+];
+const TODAY = '2026-11-14';
+const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+const KINDS = [
+  { key: 'MOVIE', label: 'MOVIES', dot: '#8b5cf6' },
+  { key: 'SERIES', label: 'SERIES', dot: '#6d8bf0' },
+  { key: 'ANIME', label: 'ANIME', dot: '#d9a441' },
+  { key: 'MANGA', label: 'MANGA', dot: '#e8874a' },
+  { key: 'WEBTOON', label: 'WEBTOONS', dot: '#d96bb0' },
+  { key: 'GAME', label: 'GAMES', dot: '#3fbf8f' },
+];
+const DOT = KINDS.reduce((m, k) => { m[k.key] = k.dot; return m; }, {});
+const ST = {
+  completed: { label: 'COMPLETED', fg: '#b8b1c4' },
+  progress: { label: 'IN PROGRESS', fg: '#e58cc4' },
+  paused: { label: 'PAUSED', fg: '#d9a441' },
+  dropped: { label: 'DROPPED', fg: '#948da1' },
+};
+// start / end are the dates on the title. segs are the stretches with actual check-ins;
+// without segs the whole span counts as active. end: null = still going.
+const DATA = [
+  { t: 'Neon Harbor', k: 'SERIES', st: 'progress', start: '2026-07-12', end: null, segs: [['2026-07-12', '2026-08-02'], ['2026-10-20', '2026-11-12']], score: '', a: 0, ep: 9, ch: 0 },
+  { t: 'Moonlit Courier', k: 'WEBTOON', st: 'progress', start: '2026-02-02', end: null, segs: [['2026-02-02', '2026-03-15'], ['2026-05-01', '2026-05-20'], ['2026-08-10', '2026-09-05'], ['2026-11-01', '2026-11-13']], score: '9.5', a: 3, ep: 0, ch: 64 },
+  { t: 'Glass Orchard', k: 'ANIME', st: 'progress', start: '2026-10-04', end: null, score: '', a: 5, ep: 6, ch: 0 },
+  { t: 'Tidewalker', k: 'GAME', st: 'progress', start: '2026-09-06', end: null, segs: [['2026-09-06', '2026-09-28'], ['2026-10-18', '2026-11-09']], score: '', a: 11, ep: 0, ch: 0 },
+  { t: 'Paper Cities', k: 'MANGA', st: 'progress', start: '2025-03-10', end: null, segs: [['2025-03-10', '2025-04-20'], ['2026-07-02', '2026-08-15'], ['2026-10-28', '2026-11-13']], score: '', a: 4, ep: 0, ch: 31 },
+  { t: 'The Long Static', k: 'MOVIE', st: 'completed', start: '2026-07-04', end: '2026-07-04', score: '9.0', a: 2, ep: 1, ch: 0 },
+  { t: 'Ashfall Chronicle', k: 'ANIME', st: 'paused', start: '2026-05-03', end: '2026-06-21', score: '8.5', a: 1, ep: 18, ch: 0 },
+  { t: 'Copper Veil', k: 'WEBTOON', st: 'completed', start: '2026-04-14', end: '2026-06-08', score: '9.0', a: 9, ep: 0, ch: 88 },
+  { t: 'Hollow Signal', k: 'MOVIE', st: 'completed', start: '2026-05-30', end: '2026-05-30', score: '7.5', a: 7, ep: 1, ch: 0 },
+  { t: 'Sable Coast', k: 'SERIES', st: 'completed', start: '2026-04-02', end: '2026-05-11', score: '8.5', a: 6, ep: 10, ch: 0 },
+  { t: 'Static Bloom', k: 'ANIME', st: 'dropped', start: '2026-04-09', end: '2026-04-18', score: '5.0', a: 9, ep: 4, ch: 0 },
+  { t: 'Ninth Tide', k: 'MANGA', st: 'completed', start: '2026-01-11', end: '2026-03-27', score: '8.5', a: 8, ep: 0, ch: 141 },
+  { t: 'Emberfall', k: 'GAME', st: 'completed', start: '2026-02-20', end: '2026-03-08', score: '8.0', a: 1, ep: 0, ch: 0 },
+  { t: 'The Ferry Years', k: 'SERIES', st: 'completed', start: '2026-01-04', end: '2026-02-11', score: '9.5', a: 10, ep: 24, ch: 0 },
+  { t: 'Tidewrack', k: 'SERIES', st: 'dropped', start: '2026-01-28', end: '2026-02-03', score: '4.5', a: 2, ep: 2, ch: 0 },
+  { t: 'Salt & Signal', k: 'MOVIE', st: 'completed', start: '2026-01-19', end: '2026-01-19', score: '8.0', a: 0, ep: 1, ch: 0 },
+  { t: 'Lantern Quarter', k: 'WEBTOON', st: 'paused', start: '2026-01-02', end: '2026-01-06', score: '', a: 3, ep: 0, ch: 9 },
+  { t: 'Drowned Almanac', k: 'MANGA', st: 'completed', start: '2025-10-30', end: '2025-12-22', score: '9.0', a: 10, ep: 0, ch: 82 },
+  { t: 'Harbor Vigil', k: 'SERIES', st: 'completed', start: '2025-10-01', end: '2025-11-14', score: '8.0', a: 6, ep: 12, ch: 0 },
+  { t: 'Ash & Ivory', k: 'ANIME', st: 'completed', start: '2025-07-05', end: '2025-09-27', score: '9.5', a: 1, ep: 25, ch: 0 },
+  { t: 'The Quiet Fleet', k: 'MOVIE', st: 'completed', start: '2025-08-16', end: '2025-08-16', score: '7.0', a: 2, ep: 1, ch: 0 },
+  { t: 'Cinder Route', k: 'WEBTOON', st: 'dropped', start: '2025-05-20', end: '2025-06-02', score: '6.0', a: 9, ep: 0, ch: 14 },
+  { t: 'Nightjar', k: 'SERIES', st: 'completed', start: '2025-03-01', end: '2025-04-09', score: '8.5', a: 0, ep: 8, ch: 0 },
+  { t: 'Bell & Undertide', k: 'MANGA', st: 'paused', start: '2025-01-22', end: '2025-02-18', score: '', a: 5, ep: 0, ch: 47 },
+];
+const day = (iso) => { const p = iso.split('-').map(Number); return Date.UTC(p[0], p[1] - 1, p[2]) / 864e5; };
+const fmt = (iso, withYear) => iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1] + (withYear ? ' ' + iso.slice(0, 4) : '');
+const pc = (n) => (Math.round(n * 100) / 100) + '%';
+
 class Component extends DCLogic {
-  state = { year: 2026, season: 'ALL', kind: 'ALL', status: 'ALL', statusOpen: false, shown: 18 };
+  state = { view: 'timeline', year: '2026', kind: 'ALL', status: 'ALL', group: 'year', shown: 18 };
   PER = 18;
 
-  data() {
-    const G = {
-      violet: 'linear-gradient(160deg, #35296b, #0e0c1a)',
-      navy: 'linear-gradient(160deg, #2a4a8c, #080d17)',
-      blue: 'linear-gradient(160deg, #3a55b0, #080b17)',
-      plum: 'linear-gradient(160deg, #6b3aa0, #0f0817)',
-      magenta: 'linear-gradient(160deg, #8c2a6b, #170812)',
-      rose: 'linear-gradient(160deg, #a03a7a, #170812)',
-      gold: 'linear-gradient(160deg, #8a5c2a, #17100a)',
-      amber: 'linear-gradient(160deg, #c48a2a, #141008)',
-      copper: 'linear-gradient(160deg, #8c5a2a, #140f08)',
-      ochre: 'linear-gradient(160deg, #b0722a, #140e08)',
-    };
-    // filed = the date the row sorts and groups under (finish, else start)
-    return [
-      { t: 'Neon Harbor', k: 'SERIES', st: 'progress', filed: '2026-08-02', start: '12 JUL', end: '', prog: '9 / 22', score: '', g: G.violet, ep: 9, ch: 0 },
-      { t: 'Moonlit Courier', k: 'WEBTOON', st: 'progress', filed: '2026-08-01', start: '02 FEB', end: '', prog: '112 / 132', score: '9.5', g: G.magenta, ep: 0, ch: 64 },
-      { t: 'Glass Orchard', k: 'ANIME', st: 'progress', filed: '2026-07-28', start: '19 JUL', end: '', prog: '3 / 13', score: '', g: G.ochre, ep: 3, ch: 0 },
-      { t: 'The Long Static', k: 'MOVIE', st: 'completed', filed: '2026-07-04', start: '04 JUL', end: '04 JUL', prog: '', score: '9.0', g: G.blue, ep: 1, ch: 0 },
-      { t: 'Paper Cities', k: 'MANGA', st: 'progress', filed: '2026-07-02', start: '02 JUL', end: '', prog: '31 / 60', score: '', g: G.plum, ep: 0, ch: 31 },
-      { t: 'Ashfall Chronicle', k: 'ANIME', st: 'paused', filed: '2026-06-21', start: '03 MAY', end: '21 JUN', prog: '18 / 24', score: '8.5', g: G.gold, ep: 18, ch: 0 },
-      { t: 'Copper Veil', k: 'WEBTOON', st: 'completed', filed: '2026-06-08', start: '14 APR', end: '08 JUN', prog: '88 / 88', score: '9.0', g: G.rose, ep: 0, ch: 88 },
-      { t: 'Hollow Signal', k: 'MOVIE', st: 'completed', filed: '2026-05-30', start: '30 MAY', end: '30 MAY', prog: '', score: '7.5', g: G.plum, ep: 1, ch: 0 },
-      { t: 'Sable Coast', k: 'SERIES', st: 'completed', filed: '2026-05-11', start: '02 APR', end: '11 MAY', prog: '10 / 10', score: '8.5', g: G.navy, ep: 10, ch: 0 },
-      { t: 'Static Bloom', k: 'ANIME', st: 'dropped', filed: '2026-04-18', start: '09 APR', end: '18 APR', prog: '4 / 12', score: '5.0', g: G.amber, ep: 4, ch: 0 },
-      { t: 'Ninth Tide', k: 'MANGA', st: 'completed', filed: '2026-03-27', start: '11 JAN', end: '27 MAR', prog: '12 vols', score: '8.5', g: G.copper, ep: 0, ch: 141 },
-      { t: 'The Ferry Years', k: 'SERIES', st: 'completed', filed: '2026-02-11', start: '04 JAN', end: '11 FEB', prog: '24 / 24', score: '9.5', g: G.navy, ep: 24, ch: 0 },
-      { t: 'Tidewrack', k: 'SERIES', st: 'dropped', filed: '2026-02-03', start: '28 JAN', end: '03 FEB', prog: '2 / 8', score: '4.5', g: G.blue, ep: 2, ch: 0 },
-      { t: 'Salt & Signal', k: 'MOVIE', st: 'completed', filed: '2026-01-19', start: '19 JAN', end: '19 JAN', prog: '', score: '8.0', g: G.violet, ep: 1, ch: 0 },
-      { t: 'Lantern Quarter', k: 'WEBTOON', st: 'paused', filed: '2026-01-06', start: '02 JAN', end: '06 JAN', prog: '9 / 74', score: '', g: G.magenta, ep: 0, ch: 9 },
-      { t: 'Drowned Almanac', k: 'MANGA', st: 'completed', filed: '2025-12-22', start: '30 OCT', end: '22 DEC', prog: '7 vols', score: '9.0', g: G.copper, ep: 0, ch: 82 },
-      { t: 'Harbor Vigil', k: 'SERIES', st: 'completed', filed: '2025-11-14', start: '01 OCT', end: '14 NOV', prog: '12 / 12', score: '8.0', g: G.navy, ep: 12, ch: 0 },
-      { t: 'Ash & Ivory', k: 'ANIME', st: 'completed', filed: '2025-09-27', start: '05 JUL', end: '27 SEP', prog: '25 / 25', score: '9.5', g: G.gold, ep: 25, ch: 0 },
-      { t: 'The Quiet Fleet', k: 'MOVIE', st: 'completed', filed: '2025-08-16', start: '16 AUG', end: '16 AUG', prog: '', score: '7.0', g: G.blue, ep: 1, ch: 0 },
-      { t: 'Cinder Route', k: 'WEBTOON', st: 'dropped', filed: '2025-06-02', start: '20 MAY', end: '02 JUN', prog: '14 / 96', score: '6.0', g: G.rose, ep: 0, ch: 14 },
-      { t: 'Nightjar', k: 'SERIES', st: 'completed', filed: '2025-04-09', start: '01 MAR', end: '09 APR', prog: '8 / 8', score: '8.5', g: G.violet, ep: 8, ch: 0 },
-      { t: 'Bell & Undertide', k: 'MANGA', st: 'paused', filed: '2025-02-18', start: '22 JAN', end: '18 FEB', prog: '4 vols', score: '', g: G.ochre, ep: 0, ch: 47 },
-    ];
+  // every row with the derived dates the two views need
+  rows() {
+    return DATA.map((r) => {
+      const segs = r.segs || [[r.start, r.end || TODAY]];
+      const last = r.end || segs[segs.length - 1][1];      // the date it files under
+      return Object.assign({}, r, { segs, filed: last, endEff: r.end || TODAY, single: r.start === r.end });
+    });
   }
 
   renderVals() {
-    const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-    const KIND_DOT = { MOVIE: '#8b5cf6', SERIES: '#4a6ee8', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0' };
-    const ST = {
-      completed: { label: 'COMPLETED', bg: 'rgba(255,255,255,0.06)', fg: '#b8b1c4', bd: 'rgba(255,255,255,0.14)', dot: '#b8b1c4' },
-      progress: { label: 'IN PROGRESS', bg: 'rgba(217,107,176,0.16)', fg: '#d96bb0', bd: 'rgba(217,107,176,0.5)', dot: '#d96bb0' },
-      paused: { label: 'PAUSED', bg: 'rgba(217,164,65,0.14)', fg: '#d9a441', bd: 'rgba(217,164,65,0.4)', dot: '#d9a441' },
-      dropped: { label: 'DROPPED', bg: 'rgba(255,255,255,0.03)', fg: '#6a6478', bd: 'rgba(255,255,255,0.1)', dot: '#6a6478' },
-    };
+    const st = this.state;
     const empty = !!this.props.emptyAccount;
     const busy = !!this.props.loading;
-    const all = empty ? [] : this.data();
+    const all = empty ? [] : this.rows();
+    const isAll = st.year === 'ALL';
 
-    const yearsWithData = Array.from(new Set(all.map((r) => +r.filed.slice(0, 4)))).sort((a, b) => b - a);
-    const inYear = (r) => this.state.year === 'ALL' || +r.filed.slice(0, 4) === this.state.year;
-    const SEASON_MONTHS = { WINTER: [0,1,2], SPRING: [3,4,5], SUMMER: [6,7,8], AUTUMN: [9,10,11] };
-    const inSeason = (r) => this.state.season === 'ALL' || this.state.year === 'ALL' ||
-      SEASON_MONTHS[this.state.season].includes(+r.filed.slice(5, 7) - 1);
-    const KIND_MAP = { MOVIES: 'MOVIE', SERIES: 'SERIES', ANIME: 'ANIME', MANGA: 'MANGA', WEBTOONS: 'WEBTOON' };
-    const inKind = (r) => this.state.kind === 'ALL' || r.k === KIND_MAP[this.state.kind];
-    const inStatus = (r) => this.state.status === 'ALL' || r.st === this.state.status;
+    // the window the page is looking at
+    const years = Array.from(new Set(all.map((r) => r.filed.slice(0, 4)))).sort().reverse();
+    const firstYear = all.length ? Math.min.apply(null, all.map((r) => +r.start.slice(0, 4))) : 2026;
+    const y0 = isAll ? firstYear : +st.year, y1 = isAll ? +TODAY.slice(0, 4) : +st.year;
+    const w0 = day(y0 + '-01-01'), w1 = day((y1 + 1) + '-01-01');
+    const filedIn = (r) => isAll || r.filed.slice(0, 4) === st.year;        // a title files under the year it ended, or was last touched
+    const inScope = filedIn;
+    const inKind = (r) => st.kind === 'ALL' || r.k === st.kind;
+    const inStatus = (r) => st.status === 'ALL' || r.st === st.status;
 
-    const dateScoped = all.filter((r) => inYear(r) && inSeason(r));
-    const filtered = dateScoped.filter((r) => inKind(r) && inStatus(r))
-      .sort((a, b) => (a.filed < b.filed ? 1 : -1));
+    const scoped = all.filter(inScope);
+    const byStatus = scoped.filter(inStatus);
+    const filtered = byStatus.filter(inKind).sort((a, b) => (a.filed < b.filed ? 1 : -1));
+    const scope = isAll ? 'ALL TIME' : st.year;
 
-    const shown = filtered.slice(0, this.state.shown);
+    // grid
+    const shown = filtered.slice(0, st.shown);
     const groups = [];
     shown.forEach((r) => {
-      const key = r.filed.slice(0, 7);
-      const label = MONTHS[+r.filed.slice(5, 7) - 1] + (this.state.year === 'ALL' ? ' ' + r.filed.slice(0, 4) : '');
+      const key = st.group === 'year' ? r.filed.slice(0, 4) : r.filed.slice(0, 7);
+      const label = st.group === 'year' ? key : MONTHS[+r.filed.slice(5, 7) - 1] + (isAll ? ' ' + r.filed.slice(0, 4) : '');
       let g = groups.find((x) => x.key === key);
-      if (!g) { groups.push(g = { key, label, meta: '', rows: [] }); }
-      const s = ST[r.st];
-      const range = r.end ? (r.start === r.end ? r.start : r.start + ' → ' + r.end) : 'FROM ' + r.start;
+      if (!g) groups.push(g = { key, label, meta: '', rows: [] });
+      const wy = r.start.slice(0, 4) !== r.filed.slice(0, 4) || isAll;
+      const days = Math.round(day(r.endEff) - day(r.start)) + 1;
+      const range = r.single ? fmt(r.start, isAll)
+        : (r.end ? fmt(r.start, wy) + ' → ' + fmt(r.end, wy) : 'SINCE ' + fmt(r.start, wy)) + ' · ' + days + ' DAYS';
       g.rows.push({
-        title: r.t, kind: r.k, dot: KIND_DOT[r.k], grad: r.g,
-        stLabel: s.label, stBg: s.bg, stFg: s.fg, stBd: s.bd,
-        range, progress: r.prog,
-        progressDisplay: r.prog && r.st !== 'completed' ? 'block' : 'none',
-        score: r.score || '—',
-        scoreFg: r.score ? '#d96bb0' : '#3d3846',
-        scoreDisplay: r.score ? 'block' : 'none',
+        title: r.t, kind: r.k, dot: DOT[r.k], art: ARTS[r.a],
+        stLabel: ST[r.st].label, stFg: ST[r.st].fg, range,
+        hasScore: !!r.score, score: r.score,
       });
     });
     groups.forEach((g) => { g.meta = g.rows.length + (g.rows.length === 1 ? ' TITLE' : ' TITLES'); });
 
-    const completed = dateScoped.filter((r) => inKind(r) && r.st === 'completed').length;
-    const started = dateScoped.filter((r) => inKind(r)).length;
-    const eps = dateScoped.filter((r) => inKind(r)).reduce((n, r) => n + r.ep, 0);
-    const chs = dateScoped.filter((r) => inKind(r)).reduce((n, r) => n + r.ch, 0);
-
-    const scope = this.state.year === 'ALL' ? 'ALL TIME'
-      : (this.state.season === 'ALL' ? String(this.state.year) : this.state.season + ' ' + this.state.year);
-
-    const chip = (active) => ({
-      bg: active ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
-      fg: active ? '#d96bb0' : '#b8b1c4',
-      bd: active ? '#d96bb0' : 'rgba(255,255,255,0.12)',
-    });
-    const yearChips = yearsWithData.concat(['ALL']).map((y) => Object.assign({
-      label: y === 'ALL' ? 'ALL TIME' : String(y),
-      pick: () => this.setState({ year: y, season: 'ALL', shown: this.PER }),
-    }, chip(this.state.year === y)));
-    if (empty) yearChips.length = 0;
-
-    const seasonChips = ['WINTER', 'SPRING', 'SUMMER', 'AUTUMN'].map((s) => Object.assign({
-      label: s,
-      pick: () => this.setState({ season: this.state.season === s ? 'ALL' : s, shown: this.PER }),
-    }, chip(this.state.season === s)));
-
-    const kindTabs = ['ALL', 'MOVIES', 'SERIES', 'ANIME', 'MANGA', 'WEBTOONS'].map((k) => ({
-      label: k,
-      fg: this.state.kind === k ? '#f0edf4' : '#948da1',
-      line: this.state.kind === k ? '#d96bb0' : 'transparent',
-      pick: () => this.setState({ kind: k, shown: this.PER }),
-    }));
-
-    const statusOptions = [
-      { key: 'ALL', label: 'All statuses', dot: '#6a6478' },
-      { key: 'completed', label: 'Completed', dot: ST.completed.dot },
-      { key: 'progress', label: 'In progress', dot: ST.progress.dot },
-      { key: 'paused', label: 'Paused', dot: ST.paused.dot },
-      { key: 'dropped', label: 'Dropped', dot: ST.dropped.dot },
-    ].map((o) => ({
-      label: o.label, dot: o.dot,
-      count: o.key === 'ALL' ? dateScoped.filter((r) => inKind(r)).length
-        : dateScoped.filter((r) => inKind(r) && r.st === o.key).length,
-      bg: this.state.status === o.key ? 'rgba(217,107,176,0.16)' : 'transparent',
-      fg: this.state.status === o.key ? '#d96bb0' : '#b8b1c4',
-      pick: () => this.setState({ status: o.key, statusOpen: false, shown: this.PER }),
-    }));
-    const statusLabelMap = { ALL: 'All', completed: 'Completed', progress: 'In progress', paused: 'Paused', dropped: 'Dropped' };
-
-    const filteredOut = dateScoped.length > 0 && filtered.length === 0;
-    const emptyYear = !empty && dateScoped.length === 0;
-
+    const kindRows = scoped.filter(inStatus);
+    const filteredOut = scoped.length > 0 && filtered.length === 0;
+    const sel = filtered;
     return {
+      emptyAccount: empty, busy,
       scopeLabel: empty ? 'NOTHING TRACKED YET' : scope + ' · ' + filtered.length + (filtered.length === 1 ? ' TITLE' : ' TITLES'),
-      yearChips, seasonChips, kindTabs, statusOptions,
-      seasonOpacity: this.state.year === 'ALL' ? 0.25 : 1,
-      seasonEvents: this.state.year === 'ALL' ? 'none' : 'auto',
-      statusLabel: statusLabelMap[this.state.status],
-      statusFg: this.state.status === 'ALL' ? '#f0edf4' : '#d96bb0',
-      statusRing: this.state.status === 'ALL' ? 'rgba(255,255,255,0.12)' : '#d96bb0',
-      statusMenuDisplay: this.state.statusOpen ? 'flex' : 'none',
-      toggleStatus: () => this.setState({ statusOpen: !this.state.statusOpen }),
+      views: [['timeline', 'TIMELINE', '▬'], ['grid', 'GRID', '▦']].map((v) => ({
+        label: v[1], glyph: v[2], on: st.view === v[0],
+        bg: st.view === v[0] ? '#f0edf4' : 'transparent',
+        fg: st.view === v[0] ? '#14101a' : '#b8b1c4',
+        pick: () => this.setState({ view: v[0] }),
+      })),
+      isGrid: st.view === 'grid',
+      showGrid: st.view === 'grid' && filtered.length > 0,
+      showTimeline: st.view === 'timeline' && all.some((r) => inKind(r) && inStatus(r)),
+
+      // kind strip: ALL is always spelled out; the six kinds are dots that open into name + count. Picking the open one again clears it.
+      kindChips: [{ key: 'ALL', label: 'ALL' }].concat(KINDS).map((k) => {
+        const key = k.key, all = key === 'ALL', on = st.kind === key, c = k.dot;
+        const count = all ? kindRows.length : kindRows.filter((r) => r.k === key).length;
+        return {
+          label: k.label, count, on, aria: k.label + ' · ' + count,
+          dot: c || 'transparent', dotDisplay: all ? 'none' : 'block', lcls: all ? '' : 'kl',
+          bg: on ? (all ? 'rgba(255,255,255,0.1)' : c + '2b') : '', ring: on ? 'inset 0 0 0 1px ' + (all ? 'rgba(255,255,255,0.22)' : c + '99') : 'none',
+          op: count || on || all ? 1 : 0.4,
+          pick: () => this.setState({ kind: on ? 'ALL' : key, shown: this.PER }),
+        };
+      }),
+      year: st.year,
+      yearOpts: years.map((y) => ({ v: y, label: y })).concat([{ v: 'ALL', label: 'ALL TIME' }]),
+      onYear: (e) => this.setState({ year: e.target.value, shown: this.PER }),
+      status: st.status,
+      onStatus: (e) => this.setState({ status: e.target.value, shown: this.PER }),
+      group: st.group,
+      onGroup: (e) => this.setState({ group: e.target.value }),
+
       stats: [
-        { v: String(completed), k: 'TITLES COMPLETED', note: 'FINISHED · ' + scope },
-        { v: String(started), k: 'TITLES STARTED', note: 'BEGUN · ' + scope },
-        { v: String(eps), k: 'EPISODES', note: 'CHECK-INS · ' + scope },
-        { v: String(chs), k: 'CHAPTERS', note: 'CHECK-INS · ' + scope },
-      ],
-      groups,
-      countLabel: filtered.length === 0 ? '' : 'SHOWING ' + shown.length + ' OF ' + filtered.length,
+        { v: sel.filter((r) => r.st === 'completed').length, k: 'COMPLETED' },
+        { v: sel.length, k: 'TITLES' },
+        { v: sel.reduce((n, r) => n + r.ep, 0), k: 'EPISODES' },
+        { v: sel.reduce((n, r) => n + r.ch, 0), k: 'CHAPTERS' },
+      ].map((s, i) => ({ v: String(s.v), k: s.k, rule: i === 0 ? 'none' : 'inset 1px 0 0 rgba(255,255,255,0.09)' })),
+
       listOpacity: busy ? 0.45 : 1,
-      busyDisplay: busy ? 'flex' : 'none',
       busyLabel: 'LOADING ' + scope + '…',
-      isEmpty: filtered.length === 0,
+
+      kind: st.kind,
+
+      groups,
+      moreDisplay: st.view === 'grid' && filtered.length > shown.length ? 'flex' : 'none',
+      loadMore: () => this.setState({ shown: st.shown + this.PER }),
+
+      isEmpty: st.view === 'grid' ? filtered.length === 0 : !all.some((r) => inKind(r) && inStatus(r)),
+      filteredOut,
       emptyTitle: empty ? 'Nothing yet' : (filteredOut ? 'No matches' : 'Nothing in ' + scope),
       emptyBody: empty
-        ? 'Check in to something and it lands here — every episode and chapter, with the dates you watched them.'
+        ? 'Check in to something and it lands here: every title, with the dates you started and finished it.'
         : (filteredOut
-          ? 'Nothing in ' + scope + ' matches this kind and status. Clear one of them to widen the search.'
-          : 'You have history, just not in this window. Pick another year or season above.'),
-      emptyActionLabel: filteredOut ? 'CLEAR KIND & STATUS' : '',
-      emptyActionDisplay: filteredOut ? 'block' : 'none',
+          ? 'Nothing in ' + scope + ' matches this kind and status. Clear one of them to widen the view.'
+          : 'You have history, just not in this window. Pick another year above.'),
       emptyAction: () => this.setState({ kind: 'ALL', status: 'ALL', shown: this.PER }),
-      emptyDiscoverDisplay: empty ? 'block' : 'none',
-      moreDisplay: filtered.length > shown.length ? 'flex' : 'none',
-      loadMore: () => this.setState({ shown: this.state.shown + this.PER }),
     };
   }
 }

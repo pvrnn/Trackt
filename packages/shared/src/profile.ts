@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { FriendStateSchema } from './friends.js';
-import { ActivityEntrySchema } from './home.js';
+import { ActivityEntrySchema, InProgressEntrySchema } from './home.js';
 import { MediaKindSchema } from './media.js';
 
 /**
@@ -78,15 +78,38 @@ export const ProfileStatsSchema = z.object({
 });
 export type ProfileStats = z.infer<typeof ProfileStatsSchema>;
 
+/** How many in-progress titles the profile's RIGHT NOW row carries. */
+export const PROFILE_IN_PROGRESS_LIMIT = 3;
+
+/** What the subject tracks, in aggregate. Counts are of tracked titles, not time. */
+export const ProfileTasteSchema = z.object({
+  /** Largest first; kinds with nothing tracked are left out. */
+  kinds: z.array(z.object({ kind: MediaKindSchema, count: z.number().int().positive() })),
+  /** The most-tracked genres, largest first. */
+  genres: z.array(z.object({ name: z.string(), count: z.number().int().positive() })),
+  ratedCount: z.number().int().nonnegative(),
+  perfectTens: z.number().int().nonnegative(),
+});
+export type ProfileTaste = z.infer<typeof ProfileTasteSchema>;
+
+const ProfileBodyFields = {
+  favorites: z.array(FavoriteEntrySchema),
+  activity: z.array(ActivityEntrySchema),
+  /** Most recently touched first, capped at `PROFILE_IN_PROGRESS_LIMIT`. */
+  inProgress: z.array(InProgressEntrySchema),
+  /** Uncapped, so the page can say "3 OF 12". */
+  inProgressCount: z.number().int().nonnegative(),
+  taste: ProfileTasteSchema,
+};
+
 export const ProfileSummarySchema = z.object({
   user: ProfileUserSchema,
   stats: ProfileStatsSchema.extend({
     friendCount: z.number().int().nonnegative(),
     incomingRequestCount: z.number().int().nonnegative(),
   }),
-  /** Grouped client-side by kind; ordered by kind then rank. */
-  favorites: z.array(FavoriteEntrySchema),
-  activity: z.array(ActivityEntrySchema),
+  /** `favorites` is grouped client-side by kind; ordered by kind then rank. */
+  ...ProfileBodyFields,
 });
 export type ProfileSummary = z.infer<typeof ProfileSummarySchema>;
 
@@ -104,8 +127,7 @@ export const PublicProfileSchema = z.object({
   userId: z.uuid(),
   user: ProfileUserSchema,
   stats: ProfileStatsSchema,
-  favorites: z.array(FavoriteEntrySchema),
-  activity: z.array(ActivityEntrySchema),
+  ...ProfileBodyFields,
   friendState: FriendStateSchema,
   friendCount: z.number().int().nonnegative(),
 });

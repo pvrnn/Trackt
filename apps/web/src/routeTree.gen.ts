@@ -10,28 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
-import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewsRouteImport } from './routes/news'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as ListsRouteImport } from './routes/lists'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersUsernameRouteImport } from './routes/users.$username'
 import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
 import { Route as ListsIdRouteImport } from './routes/lists_.$id'
+import { Route as AuthRegisterRouteImport } from './routes/_auth.register'
+import { Route as AuthLoginRouteImport } from './routes/_auth.login'
 import { Route as UsersUsernameHistoryRouteImport } from './routes/users_.$username.history'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -42,11 +38,6 @@ const ProfileRoute = ProfileRouteImport.update({
 const NewsRoute = NewsRouteImport.update({
   id: '/news',
   path: '/news',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListsRoute = ListsRouteImport.update({
@@ -62,6 +53,10 @@ const HomeRoute = HomeRouteImport.update({
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -89,6 +84,16 @@ const ListsIdRoute = ListsIdRouteImport.update({
   path: '/lists/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
 const UsersUsernameHistoryRoute = UsersUsernameHistoryRouteImport.update({
   id: '/users_/$username/history',
   path: '/users/$username/history',
@@ -100,11 +105,11 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/lists': typeof ListsRoute
-  '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
-  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -116,11 +121,11 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/lists': typeof ListsRoute
-  '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
-  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -130,14 +135,15 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_auth': typeof AuthRouteWithChildren
   '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/lists': typeof ListsRoute
-  '/login': typeof LoginRoute
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
-  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/_auth/login': typeof AuthLoginRoute
+  '/_auth/register': typeof AuthRegisterRoute
   '/lists_/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
@@ -151,11 +157,11 @@ export interface FileRouteTypes {
     | '/history'
     | '/home'
     | '/lists'
-    | '/login'
     | '/news'
     | '/profile'
-    | '/register'
     | '/search'
+    | '/login'
+    | '/register'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -167,11 +173,11 @@ export interface FileRouteTypes {
     | '/history'
     | '/home'
     | '/lists'
-    | '/login'
     | '/news'
     | '/profile'
-    | '/register'
     | '/search'
+    | '/login'
+    | '/register'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -180,14 +186,15 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_auth'
     | '/history'
     | '/home'
     | '/lists'
-    | '/login'
     | '/news'
     | '/profile'
-    | '/register'
     | '/search'
+    | '/_auth/login'
+    | '/_auth/register'
     | '/lists_/$id'
     | '/media/$slug'
     | '/news_/$slug'
@@ -197,13 +204,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
   HistoryRoute: typeof HistoryRoute
   HomeRoute: typeof HomeRoute
   ListsRoute: typeof ListsRoute
-  LoginRoute: typeof LoginRoute
   NewsRoute: typeof NewsRoute
   ProfileRoute: typeof ProfileRoute
-  RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
   ListsIdRoute: typeof ListsIdRoute
   MediaSlugRoute: typeof MediaSlugRoute
@@ -221,13 +227,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -240,13 +239,6 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof NewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lists': {
@@ -268,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -305,6 +304,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/register': {
+      id: '/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/users_/$username/history': {
       id: '/users_/$username/history'
       path: '/users/$username/history'
@@ -315,15 +328,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthRouteChildren {
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
   HistoryRoute: HistoryRoute,
   HomeRoute: HomeRoute,
   ListsRoute: ListsRoute,
-  LoginRoute: LoginRoute,
   NewsRoute: NewsRoute,
   ProfileRoute: ProfileRoute,
-  RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
   ListsIdRoute: ListsIdRoute,
   MediaSlugRoute: MediaSlugRoute,

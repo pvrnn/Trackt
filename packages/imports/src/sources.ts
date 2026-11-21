@@ -14,7 +14,8 @@ export interface ImportSourceDefinition {
   /** `external_ids` keys, in the order the resolver tries them. */
   joinKeys: readonly string[];
   credential: { env: string; hint: string } | null;
-  access: 'api' | 'scrape';
+  /** `file`: the viewer uploads an export; there is no profile to read. */
+  access: 'api' | 'scrape' | 'file';
   /**
    * The source may need a real browser (Cloudflare); see http/fetch.ts.
    * `required` means plain HTTP is known to be refused, so the API reports the
@@ -89,6 +90,17 @@ export const IMPORT_SOURCES: Record<ImportSource, ImportSourceDefinition> = {
     // Most game seeds carry the appid IGDB states (60% of the current one), but
     // a Steam-exclusive or a re-release may not, and GetOwnedGames states no
     // year to separate two rows of the same name.
+    titleFallback: true,
+  },
+  tvtime: {
+    id: 'tvtime',
+    label: 'TV Time',
+    // Anime arrive as TVDB shows; season 1 falls back to the catalog's anime rows.
+    kinds: ['movie', 'series', 'anime'],
+    // Movies carry an IMDb id; shows only a TVDB one, which the TMDB series rows state.
+    joinKeys: ['tvdb', 'imdb'],
+    credential: null,
+    access: 'file',
     titleFallback: true,
   },
 };

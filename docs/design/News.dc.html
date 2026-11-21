@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>News</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -15,6 +16,50 @@
     body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    input::placeholder { color: #948da1; }
+    select option { background: #191520; color: #f0edf4; }
+    .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    input[type="date"] { flex: 1; min-width: 0; background: transparent; border: 0; outline-offset: 2px; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600; color-scheme: dark; padding: 0; }
+    .story .art { transition: filter 160ms ease; }
+    .story:hover .art { filter: brightness(1.08); }
+    .story h3 a:hover { color: #e58cc4; }
+    .act { transition: box-shadow 140ms ease, background 140ms ease; }
+    .act:hover { box-shadow: inset 0 0 0 1px #d96bb0; }
+    @media (prefers-reduced-motion: reduce) { .story .art, .act { transition: none; } }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
+    /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; }
+    .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
+    .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
+    .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fcell .dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 999px; }
+    .fcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-overflow: ellipsis; padding: 19px 22px 19px 0; margin-right: -4px; cursor: pointer; color-scheme: dark; }
+    .fcell select option { background: #191520; color: #f0edf4; }
+    .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
+    .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
+    /* kind strip: six colour dots, one per kind. The picked one (or the one under the pointer) opens into its name and count. */
+    .kcell { flex: 1 1 auto; padding-right: 14px; }
+    .kstrip { display: flex; align-items: center; gap: 2px; width: 366px; max-width: 100%; }
+    .kchip { height: 32px; min-width: 30px; padding: 0 9px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; white-space: nowrap; transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease; }
+    .kchip:hover { background: rgba(255,255,255,0.07); color: #f0edf4; }
+    .kchip[aria-pressed="true"] { color: #f0edf4; }
+    .kchip .kd { width: 9px; height: 9px; flex-shrink: 0; border-radius: 999px; transition: transform 160ms ease; }
+    .kchip:hover .kd { transform: scale(1.25); }
+    .kchip .kl { display: inline-flex; gap: 6px; max-width: 0; margin-left: 0; opacity: 0; overflow: hidden; transition: max-width 220ms ease, margin-left 220ms ease, opacity 160ms ease; }
+    .kchip .kn { font-weight: 500; color: #948da1; }
+    .kchip:hover .kl, .kchip[aria-pressed="true"] .kl { max-width: 120px; margin-left: 8px; opacity: 1; }
+    /* only one name open at a time, so the strip never changes width */
+    .kstrip:hover .kchip[aria-pressed="true"]:not(:hover) .kl { max-width: 0; margin-left: 0; opacity: 0; }
+    @media (prefers-reduced-motion: reduce) { .kchip, .kchip .kd, .kchip .kl { transition: none; } }
   </style>
 </helmet>
 
@@ -23,324 +68,305 @@
 
 <div style="position: relative;">
 <!-- nav -->
-<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
   <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
   <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
     <a href="Home.dc.html" style="color: #948da1;">HOME</a>
     <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
-    <a href="News.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">NEWS</a>
-    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
-    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+    <a href="News.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">NEWS</a>
+    <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
+    <a href="Profile.dc.html" style="color: #948da1;">PROFILE</a>
   </div>
   <div style="flex: 1;"></div>
-  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
-  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
-</div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 14px 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span aria-hidden="true">⌕</span><span style="flex: 1;">Search titles or people…</span><span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 5px; padding: 2px 6px;">⌘K</span></a>
+  <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+  <a href="Profile.dc.html" aria-label="Your profile" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">M</a>
+</nav>
 
-<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 28px;">
-  <div style="display: flex; align-items: baseline; gap: 16px;">
-    <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">News</div>
-    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700; letter-spacing: 0.06em;">{{ headerLabel }}</div>
+<main style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;">
+    <h1 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 64px; line-height: 1; text-transform: uppercase;">News</h1>
+    <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;">{{ headerLabel }}</div>
   </div>
 
-  <!-- media kind tabs -->
-  <div style="display: flex; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.09);">
-    <sc-for list="{{ kindTabs }}" as="t" hint-placeholder-count="6">
-      <div onClick="{{ t.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; padding: 12px 20px; color: {{ t.fg }}; border-bottom: 2px solid {{ t.line }}; margin-bottom: -1px; cursor: pointer;" style-hover="color: #d96bb0;">{{ t.label }}</div>
-    </sc-for>
-  </div>
-
-  <!-- date filter -->
-  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-    <div style="display: flex; gap: 8px;">
-      <sc-for list="{{ rangeChips }}" as="r" hint-placeholder-count="4">
-        <div onClick="{{ r.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: {{ r.bg }}; color: {{ r.fg }}; box-shadow: {{ r.ring }}; cursor: pointer;">{{ r.label }}</div>
-      </sc-for>
+  <!-- FILTER CONSOLE — every filter is the same cell, as on Discover and History -->
+  <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; backdrop-filter: blur(16px); display: flex; flex-direction: column; overflow: hidden;">
+    <div class="fbar">
+      <div class="fcell kcell" role="group" aria-label="Kind"><span class="lab">KIND</span><div class="kstrip">
+        <sc-for list="{{ kindChips }}" as="k" hint-placeholder-count="7"><button class="kchip" onClick="{{ k.pick }}" aria-pressed="{{ k.on }}" aria-label="{{ k.aria }}" title="{{ k.aria }}" style="background: {{ k.bg }}; box-shadow: {{ k.ring }}; opacity: {{ k.op }};"><span class="kd" aria-hidden="true" style="background: {{ k.dot }}; display: {{ k.dotDisplay }};"></span><span class="{{ k.lcls }}">{{ k.label }} <span class="kn">{{ k.count }}</span></span></button></sc-for>
+      </div></div>
+      <label class="fcell"><span class="lab">SHOW</span><select value="{{ scope }}" onChange="{{ onScope }}"><option value="all">Everything</option><option value="library">My library</option></select><span class="chev" aria-hidden="true"></span></label>
+      <label class="fcell"><span class="lab">WHEN</span><select value="{{ range }}" onChange="{{ onRange }}"><option value="all">Any time</option><option value="today">Today</option><option value="week">This week</option><option value="month">This month</option><option value="custom">Custom range</option></select><span class="chev" aria-hidden="true"></span></label>
     </div>
-    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.12);"></div>
-    <div style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 999px; padding: 6px 14px;">
-      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">FROM</span>
-      <input type="date" value="{{ from }}" onChange="{{ onFrom }}" style="background: transparent; border: none; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 12px; color-scheme: dark;">
-      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">TO</span>
-      <input type="date" value="{{ to }}" onChange="{{ onTo }}" style="background: transparent; border: none; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 12px; color-scheme: dark;">
-    </div>
-    <div onClick="{{ clearDates }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #948da1; cursor: pointer; display: {{ clearDisplay }};" style-hover="color: #d96bb0;">CLEAR</div>
-  </div>
-
-  <!-- masonry feed -->
-  <div style="display: flex; flex-direction: column; gap: 16px;">
-    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
-      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">{{ feedTitle }}</div>
-      <div style="font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: 0.08em; color: #948da1;">{{ rangeLabel }}</div>
-    </div>
-
-    <div style="display: flex; gap: 16px; align-items: flex-start; margin-top: 4px;">
-      <sc-for list="{{ columns }}" as="col" hint-placeholder-count="4">
-      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
-      <sc-for list="{{ col.items }}" as="n" hint-placeholder-count="3">
-        <div style="background: {{ n.cardBg }}; border-radius: 16px; overflow: hidden; backdrop-filter: blur(16px); box-shadow: {{ n.cardRing }}; position: relative;">
-          <sc-if value="{{ n.hasCover }}" hint-placeholder-val="{{ true }}">
-            <a href="Media Detail.dc.html" style="display: block; height: {{ n.coverH }}; background: {{ n.grad }}; position: relative;">
-              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(10,8,14,0.72) 100%);"></div>
-              <span style="position: absolute; left: 16px; right: 16px; bottom: 14px; font-family: Anton; font-size: {{ n.coverType }}; line-height: 1.08; text-transform: uppercase; color: #fff;">{{ n.title }}</span>
-              <div style="position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-                <sc-if value="{{ n.inLibrary }}" hint-placeholder-val="{{ false }}">
-                  <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; padding: {{ n.trackPad }}; border-radius: 999px; background: rgba(14,12,16,0.8); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.5);">
-                    <div style="width: 5px; height: 5px; border-radius: 999px; background: #d96bb0;"></div>
-                    <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0; display: {{ n.trackLabelDisplay }};">TRACKING</span>
-                  </div>
-                </sc-if>
-                <sc-if value="{{ n.countdown }}" hint-placeholder-val="{{ false }}">
-                  <div style="min-width: 0; padding: 4px 10px; border-radius: 999px; background: rgba(14,12,16,0.8); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.5); font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ n.countdown }}</div>
-                </sc-if>
-              </div>
-            </a>
-          </sc-if>
-          <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; padding: 3px 10px; border-radius: 999px; background: {{ n.tagBg }}; color: {{ n.tagFg }};">{{ n.tag }}</div>
-              <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">{{ n.kind }} · {{ n.date }}</div>
-            </div>
-            <a href="Media Detail.dc.html" style="font-weight: 700; font-size: {{ n.titleSize }}; line-height: 1.3;">{{ n.headline }}</a>
-            <div style="color: #b8b1c4; font-size: 13px; line-height: 1.55;">{{ n.body }}</div>
-            <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
-              <div onClick="{{ n.plan }}" style="background: {{ n.planBg }}; color: {{ n.planFg }}; box-shadow: {{ n.planRing }}; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; padding: 8px 16px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">{{ n.planLabel }}</div>
-              <div style="color: #948da1; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; cursor: pointer;" style-hover="color: #d96bb0;">DETAILS →</div>
-            </div>
-          </div>
-        </div>
-      </sc-for>
-      </div>
-      </sc-for>
-    </div>
-
-    <!-- empty state -->
-    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
-      <div style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 40px 32px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; backdrop-filter: blur(16px);">
-        <div style="font-family: Anton; font-size: 32px; text-transform: uppercase; color: #6a6478;">Nothing yet</div>
-        <div style="color: #b8b1c4; font-size: 14px; max-width: 420px;">{{ emptyBody }}</div>
-        <a href="Search.dc.html" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px;">BROWSE DISCOVER →</a>
+    <sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}">
+      <div class="fbar">
+        <label class="fcell"><span class="lab">FROM</span><input type="date" value="{{ from }}" onChange="{{ onFrom }}"></label>
+        <label class="fcell"><span class="lab">TO</span><input type="date" value="{{ to }}" onChange="{{ onTo }}"></label>
+        <div class="fcell" style="justify-content: flex-end;"><button onClick="{{ clearDates }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4; padding: 8px 0;">CLEAR RANGE</button></div>
       </div>
     </sc-if>
-
-    <!-- pagination -->
-    <div style="align-items: center; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; display: {{ pagerDisplay }};">
-      <div onClick="{{ goPrev }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 10px 20px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); color: {{ prevFg }}; cursor: {{ prevCursor }};" style-hover="color: #d96bb0;">← PREV</div>
-      <sc-for list="{{ pages }}" as="p" hint-placeholder-count="3">
-        <div onClick="{{ p.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; min-width: 38px; text-align: center; padding: 10px 0; border-radius: 999px; background: {{ p.bg }}; box-shadow: {{ p.ring }}; color: {{ p.fg }}; cursor: pointer;">{{ p.n }}</div>
-      </sc-for>
-      <div onClick="{{ goNext }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 10px 20px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); color: {{ nextFg }}; cursor: {{ nextCursor }};" style-hover="color: #d96bb0;">NEXT →</div>
-    </div>
   </div>
-</div>
+
+  <!-- FROM YOUR LIBRARY — what you already track leads; position says it, not a louder card -->
+  <sc-if value="{{ hasLibrary }}" hint-placeholder-val="{{ true }}">
+    <section style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+        <h2 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase;">From your library</h2>
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ libraryMeta }}</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+        <sc-for list="{{ library }}" as="n" hint-placeholder-count="3">
+        <article class="story" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; backdrop-filter: blur(16px); display: flex; flex-direction: column;">
+          <sc-if value="{{ n.hasCover }}" hint-placeholder-val="{{ true }}">
+            <!-- artwork stays clean: no headline on it, and anything that does sit on it gets an opaque backing -->
+            <a href="Media Detail.dc.html" aria-label="{{ n.title }}" class="art" style="display: block; height: {{ n.coverH }}; background: {{ n.art }}; position: relative; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.1);">
+              <sc-if value="{{ n.countdown }}" hint-placeholder-val="{{ false }}">
+                <span style="position: absolute; top: 10px; right: 10px; padding: 5px 9px; border-radius: 6px; background: #14101a; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6); font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4; white-space: nowrap;">{{ n.countdown }}</span>
+              </sc-if>
+            </a>
+          </sc-if>
+          <div style="padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 9px; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #f0edf4; background: rgba(255,255,255,0.09); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 5px; padding: 3px 7px;">{{ n.tag }}</span>
+              <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: {{ n.dot }};"></span>
+              <span style="color: #b8b1c4;">{{ n.kind }} <span style="color: #948da1; font-weight: 500;">· {{ n.date }}</span></span>
+            </div>
+            <h3 style="margin: 0; font-weight: 700; font-size: {{ n.titleSize }}; line-height: 1.3; text-wrap: pretty;"><a href="Media Detail.dc.html">{{ n.headline }}</a></h3>
+            <p style="margin: 0; color: #b8b1c4; font-size: 14px; line-height: 1.55; text-wrap: pretty;">{{ n.body }}</p>
+            <div style="flex: 1;"></div>
+            <div style="display: flex; gap: 14px; align-items: center; margin-top: 6px;">
+              <button class="act" onClick="{{ n.plan }}" aria-pressed="{{ n.planned }}" style="height: 36px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: {{ n.planBg }}; color: {{ n.planFg }}; box-shadow: {{ n.planRing }}; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; white-space: nowrap;">{{ n.planLabel }}</button>
+              <a href="Media Detail.dc.html" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;">DETAILS →</a>
+            </div>
+          </div>
+        </article>
+        </sc-for>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ hasFeed }}" hint-placeholder-val="{{ true }}">
+    <section style="display: flex; flex-direction: column; gap: 16px; margin-top: 8px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+        <h2 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase;">Latest</h2>
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1;">{{ rangeLabel }}</div>
+      </div>
+      <div style="display: flex; gap: 16px; align-items: flex-start;">
+        <sc-for list="{{ columns }}" as="col" hint-placeholder-count="4">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+            <sc-for list="{{ col.items }}" as="n" hint-placeholder-count="3">
+        <article class="story" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; backdrop-filter: blur(16px); display: flex; flex-direction: column;">
+          <sc-if value="{{ n.hasCover }}" hint-placeholder-val="{{ true }}">
+            <!-- artwork stays clean: no headline on it, and anything that does sit on it gets an opaque backing -->
+            <a href="Media Detail.dc.html" aria-label="{{ n.title }}" class="art" style="display: block; height: {{ n.coverH }}; background: {{ n.art }}; position: relative; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.1);">
+              <sc-if value="{{ n.countdown }}" hint-placeholder-val="{{ false }}">
+                <span style="position: absolute; top: 10px; right: 10px; padding: 5px 9px; border-radius: 6px; background: #14101a; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6); font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4; white-space: nowrap;">{{ n.countdown }}</span>
+              </sc-if>
+            </a>
+          </sc-if>
+          <div style="padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 9px; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #f0edf4; background: rgba(255,255,255,0.09); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 5px; padding: 3px 7px;">{{ n.tag }}</span>
+              <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: {{ n.dot }};"></span>
+              <span style="color: #b8b1c4;">{{ n.kind }} <span style="color: #948da1; font-weight: 500;">· {{ n.date }}</span></span>
+            </div>
+            <h3 style="margin: 0; font-weight: 700; font-size: {{ n.titleSize }}; line-height: 1.3; text-wrap: pretty;"><a href="Media Detail.dc.html">{{ n.headline }}</a></h3>
+            <p style="margin: 0; color: #b8b1c4; font-size: 14px; line-height: 1.55; text-wrap: pretty;">{{ n.body }}</p>
+            <div style="flex: 1;"></div>
+            <div style="display: flex; gap: 14px; align-items: center; margin-top: 6px;">
+              <button class="act" onClick="{{ n.plan }}" aria-pressed="{{ n.planned }}" style="height: 36px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: {{ n.planBg }}; color: {{ n.planFg }}; box-shadow: {{ n.planRing }}; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; white-space: nowrap;">{{ n.planLabel }}</button>
+              <a href="Media Detail.dc.html" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;">DETAILS →</a>
+            </div>
+          </div>
+        </article>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+
+      <nav aria-label="Pages" style="align-items: center; justify-content: center; gap: 6px; margin-top: 16px; flex-wrap: wrap; display: {{ pagerDisplay }};">
+        <button class="act" onClick="{{ goPrev }}" aria-disabled="{{ prevOff }}" style="height: 36px; padding: 0 14px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; color: #b8b1c4; opacity: {{ prevOp }};">← PREV</button>
+        <sc-for list="{{ pages }}" as="p" hint-placeholder-count="2">
+          <button class="act" onClick="{{ p.pick }}" aria-current="{{ p.current }}" style="width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: {{ p.bg }}; box-shadow: {{ p.ring }}; color: {{ p.fg }}; font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px;">{{ p.n }}</button>
+        </sc-for>
+        <button class="act" onClick="{{ goNext }}" aria-disabled="{{ nextOff }}" style="height: 36px; padding: 0 14px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; color: #b8b1c4; opacity: {{ nextOp }};">NEXT →</button>
+      </nav>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 44px 32px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase; color: #948da1;">Nothing here</div>
+      <div style="color: #b8b1c4; font-size: 14px; max-width: 440px;">{{ emptyBody }}</div>
+      <button onClick="{{ reset }}" style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; color: #e58cc4; margin-top: 8px; padding: 8px 4px;">RESET FILTERS</button>
+    </div>
+  </sc-if>
+</main>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script>
-class Component extends DCLogic {
-  state = { kindTab: 'ALL', planned: {}, page: 1, range: 'ALL TIME', from: '', to: '' };
-  PER_PAGE = 16;
-  TODAY = '2026-08-03';
+// Placeholder artwork, shared with Discover. Light, flat and loud covers on purpose:
+// nothing in a card may depend on what the artwork looks like.
+const ART = {
+  harbor: 'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
+  ash: 'radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%)',
+  static: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+  courier: 'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)',
+  paper: 'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)',
+  orchard: 'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)',
+  sable: 'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)',
+  hollow: 'radial-gradient(46% 32% at 50% 40%, #e9e4f5 0%, transparent 72%), linear-gradient(180deg, #55309a 0%, #0d0817 100%)',
+  ninth: 'linear-gradient(64deg, transparent 0 44%, rgba(255,255,255,0.85) 44% 47%, transparent 47%), linear-gradient(200deg, #c2202a 0%, #2a0608 78%)',
+  bloom: 'radial-gradient(70% 50% at 40% 62%, #ff9bd0 0%, transparent 70%), linear-gradient(180deg, #1b3a2a 0%, #0a1510 100%)',
+  ferry: 'linear-gradient(180deg, #ece6d6 0%, #b9ae95 58%, #5a5140 100%)',
+  tide: 'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)',
+};
+const DOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+const TAGS = { season: 'NEW SEASON', adaptation: 'ADAPTATION', announce: 'ANNOUNCED', date: 'RELEASE DATE', finale: 'FINALE', casting: 'CASTING' };
+const KINDS = [['ALL', 'ALL'], ['MOVIE', 'MOVIES'], ['SERIES', 'SERIES'], ['ANIME', 'ANIME'], ['MANGA', 'MANGA'], ['WEBTOON', 'WEBTOONS'], ['GAME', 'GAMES']];
+// k = the kind the story files under (an adaptation files under what it becomes); kind = what the card prints
+const STORIES = [
+  { id: 'nh3', lib: true, iso: '2026-08-01', title: 'Neon Harbor', k: 'SERIES', kind: 'SERIES', tag: 'season', date: 'AUG 1', art: 'harbor', countdown: 'IN 62 DAYS',
+    headline: 'Neon Harbor renewed for Season 3', body: 'Harbor Studios confirms a 10-episode third season. Production starts this fall; L. Okafor returns as showrunner.' },
+  { id: 'mca', lib: true, iso: '2026-07-30', title: 'Moonlit Courier', k: 'ANIME', kind: 'WEBTOON → ANIME', tag: 'adaptation', date: 'JUL 30', art: 'courier',
+    headline: 'Moonlit Courier gets an anime adaptation', body: 'The studio behind Glass Orchard adapts the first two arcs. The anime entry is already linked to your webtoon progress.' },
+  { id: 'ac2', lib: true, iso: '2026-07-28', title: 'Ashfall Chronicle', k: 'ANIME', kind: 'ANIME', tag: 'date', date: 'JUL 28', art: 'ash', countdown: 'IN 159 DAYS',
+    headline: 'Ashfall Chronicle S2 premieres January 9', body: 'The cour-two split is over: a full 24-episode second season with the original cast.' },
+  { id: 'sc2', iso: '2026-08-02', title: 'Sable Coast', k: 'SERIES', kind: 'SERIES', tag: 'season', date: 'AUG 2', size: 'L', art: 'sable',
+    headline: 'Sable Coast S2 confirmed for eight episodes', body: 'Same writing team returns, filming already underway on the north shore sets.' },
+  { id: 'tw', iso: '2026-08-02', title: 'Tidewalker', k: 'GAME', kind: 'GAME', tag: 'date', date: 'AUG 2', size: 'M', art: 'tide',
+    headline: 'Tidewalker expansion lands October 14', body: 'A new island chain and co-op for up to three players.' },
+  { id: 'pcf', iso: '2026-08-01', title: 'Paper Cities', k: 'SERIES', kind: 'MANGA → SERIES', tag: 'adaptation', date: 'AUG 1', size: 'M', art: 'paper',
+    headline: 'Paper Cities live-action series in development', body: 'A streaming original adapting volumes 1–3.' },
+  { id: 'hv', iso: '2026-07-31', title: 'Harbor Vigil', k: 'SERIES', kind: 'SERIES', tag: 'announce', date: 'JUL 31', size: 'S', art: 'static',
+    headline: 'New neo-noir “Harbor Vigil” announced', body: 'From the writers of The Long Static. 2027 target.' },
+  { id: 'cv', iso: '2026-07-29', title: 'Copper Veil', k: 'WEBTOON', kind: 'WEBTOON', tag: 'date', date: 'JUL 29', size: 'M', art: 'bloom',
+    headline: 'Copper Veil returns from hiatus September 4', body: 'Weekly chapters resume with a double release.' },
+  { id: 'go', iso: '2026-07-27', title: 'Glass Orchard', k: 'ANIME', kind: 'ANIME', tag: 'finale', date: 'JUL 27', size: 'L', art: 'orchard',
+    headline: 'Glass Orchard finale airs next week', body: 'Episode 13 closes the season; a film sequel is teased in the post-credits.' },
+  { id: 'nt', iso: '2026-07-25', title: 'Ninth Tide', k: 'MANGA', kind: 'MANGA', tag: 'announce', date: 'JUL 25', size: 'S', art: 'ninth',
+    headline: 'Ninth Tide author announces new series', body: 'Untitled maritime fantasy, serialization in winter.' },
+  { id: 'lsc', iso: '2026-07-24', title: 'The Long Static', k: 'MOVIE', kind: 'MOVIE', tag: 'casting', date: 'JUL 24', size: 'M', noCover: true,
+    headline: 'The Long Static sequel adds three to its cast', body: 'Two returning leads confirmed alongside a new antagonist.' },
+  { id: 'sb', iso: '2026-07-23', title: 'Static Bloom', k: 'ANIME', kind: 'WEBTOON → ANIME', tag: 'adaptation', date: 'JUL 23', size: 'L', art: 'bloom',
+    headline: 'Static Bloom anime slated for spring', body: 'Twelve episodes covering the first three arcs, directed by the Ashfall team.' },
+  { id: 'fy', iso: '2026-07-22', title: 'The Ferry Years', k: 'SERIES', kind: 'SERIES', tag: 'finale', date: 'JUL 22', size: 'S', art: 'ferry',
+    headline: 'The Ferry Years ends after five seasons', body: 'A 90-minute series finale in October.' },
+  { id: 'hs', iso: '2026-07-21', title: 'Hollow Signal', k: 'MOVIE', kind: 'MOVIE', tag: 'date', date: 'JUL 21', size: 'M', art: 'hollow',
+    headline: 'Hollow Signal hits streaming November 12', body: 'The festival cut arrives uncut, with a director commentary track.' },
+  { id: 'pc4', iso: '2026-07-20', title: 'Paper Cities', k: 'MANGA', kind: 'MANGA', tag: 'date', date: 'JUL 20', size: 'S', noCover: true,
+    headline: 'Paper Cities Vol 5 out August 19', body: 'Final arc begins.' },
+  { id: 'go2', iso: '2026-07-19', title: 'Glass Orchard', k: 'MOVIE', kind: 'ANIME → MOVIE', tag: 'announce', date: 'JUL 19', size: 'M', art: 'orchard',
+    headline: 'Glass Orchard film sequel greenlit', body: 'Original staff return for a theatrical continuation in 2028.' },
+  { id: 'nh0', iso: '2026-07-18', title: 'Neon Harbor', k: 'SERIES', kind: 'SERIES', tag: 'casting', date: 'JUL 18', size: 'S', noCover: true,
+    headline: 'Neon Harbor casts its S3 antagonist', body: 'A stage actor makes their screen debut.' },
+  { id: 'mcx', iso: '2026-07-17', title: 'Moonlit Courier', k: 'WEBTOON', kind: 'WEBTOON', tag: 'date', date: 'JUL 17', size: 'M', art: 'courier',
+    headline: 'Moonlit Courier chapter 133 drops Friday', body: 'The arc-closing chapter is double length.' },
+  { id: 'ntm', iso: '2026-07-16', title: 'Ninth Tide', k: 'ANIME', kind: 'MANGA → ANIME', tag: 'adaptation', date: 'JUL 16', size: 'L', art: 'ninth',
+    headline: 'Ninth Tide anime adaptation confirmed', body: 'A 24-episode run covering the full manga, airing next autumn.' },
+  { id: 'sca', iso: '2026-07-15', title: 'Sable Coast', k: 'SERIES', kind: 'SERIES', tag: 'announce', date: 'JUL 15', size: 'S', noCover: true,
+    headline: 'Sable Coast spin-off in early talks', body: 'Focused on the harbor patrol crew.' },
+];
+const TODAY = '2026-08-03';
+const PER_PAGE = 12;
+const SIZES = { S: ['130px', '15px'], M: ['180px', '16px'], L: ['240px', '17px'], LIB: ['200px', '18px'] };
 
-  // shortest-column-first packing so recency still reads left-to-right
+class Component extends DCLogic {
+  state = { kind: 'ALL', scope: 'all', range: 'all', from: '', to: '', planned: {}, page: 1 };
+
+  // shortest-column-first packing so recency still reads left to right
   packColumns(items, n) {
     const cols = Array.from({ length: n }, () => ({ items: [], h: 0 }));
     items.forEach((it) => {
-      const cover = it.hasCover ? parseInt(it.coverH, 10) : 0;
-      const est = cover + 150 + Math.ceil((it.headline.length + it.body.length) / 42) * 20;
+      const est = (it.hasCover ? parseInt(it.coverH, 10) : 0) + 150 + Math.ceil((it.headline.length + it.body.length) / 42) * 20;
       let target = cols[0];
       for (const c of cols) if (c.h < target.h) target = c;
       target.items.push(it);
-      target.h += est + 14;
+      target.h += est + 16;
     });
     return cols;
   }
 
   renderVals() {
-    const TAGS = {
-      season: { label: 'NEW SEASON', bg: 'rgba(217,107,176,0.18)', fg: '#d96bb0' },
-      adaptation: { label: 'ADAPTATION', bg: 'rgba(139,92,246,0.2)', fg: '#b298ff' },
-      announce: { label: 'ANNOUNCED', bg: 'rgba(217,164,65,0.18)', fg: '#d9a441' },
-      date: { label: 'RELEASE DATE', bg: 'rgba(74,110,232,0.2)', fg: '#8fa5f0' },
-      finale: { label: 'FINALE', bg: 'rgba(255,255,255,0.1)', fg: '#b8b1c4' },
-      casting: { label: 'CASTING', bg: 'rgba(232,135,74,0.18)', fg: '#e8874a' },
-    };
-    const G = {
-      violet: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)',
-      blue: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
-      navy: 'linear-gradient(160deg, #2a4a8c 0%, #080d17 100%)',
-      indigo: 'linear-gradient(160deg, #2a3a8c 0%, #0a0c17 100%)',
-      purple: 'linear-gradient(160deg, #55309a 0%, #0d0817 100%)',
-      plum: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)',
-      gold: 'linear-gradient(160deg, #8a5c2a 20%, #17100a 100%)',
-      amber: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)',
-      bronze: 'linear-gradient(160deg, #8c5a2a 0%, #140f08 100%)',
-      brass: 'linear-gradient(160deg, #c48a2a 0%, #141008 100%)',
-      magenta: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)',
-      rose: 'linear-gradient(160deg, #a03a7a 0%, #170812 100%)',
-    };
-    const lib = [
-      { id: 'nh3', iso: '2026-08-01', title: 'Neon Harbor', kind: 'SERIES', tag: 'season', date: 'AUG 1',
-        headline: 'Neon Harbor renewed for Season 3', countdown: 'IN 62 DAYS',
-        body: 'Harbor Studios confirms a 10-episode third season. Production starts this fall; L. Okafor returns as showrunner.',
-        grad: G.violet },
-      { id: 'mca', iso: '2026-07-30', title: 'Moonlit Courier', kind: 'WEBTOON → ANIME', tag: 'adaptation', date: 'JUL 30',
-        headline: 'Moonlit Courier gets an anime adaptation', countdown: '',
-        body: 'The studio behind Glass Orchard adapts the webtoon\'s first two arcs. The anime entry is already linked to your webtoon progress.',
-        grad: G.magenta },
-      { id: 'ac2', iso: '2026-07-28', title: 'Ashfall Chronicle', kind: 'ANIME', tag: 'date', date: 'JUL 28',
-        headline: 'Ashfall Chronicle S2 premieres January 9', countdown: 'IN 159 DAYS',
-        body: 'The cour-two split is over — a full 24-episode second season with the original cast.',
-        grad: G.gold },
-    ];
-    const rest = [
-      { id: 'sc2', iso: '2026-08-02', title: 'Sable Coast', kind: 'SERIES', tag: 'season', date: 'AUG 2', size: 'L',
-        headline: 'Sable Coast S2 confirmed for eight episodes', body: 'Same writing team returns, filming already underway on the north shore sets.', grad: G.navy },
-      { id: 'pcf', iso: '2026-08-01', title: 'Paper Cities', kind: 'MANGA → SERIES', tag: 'adaptation', date: 'AUG 1', size: 'M',
-        headline: 'Paper Cities live-action series in development', body: 'A streaming original adapting volumes 1–3.', grad: G.plum },
-      { id: 'hv', iso: '2026-07-31', title: 'Harbor Vigil', kind: 'SERIES', tag: 'announce', date: 'JUL 31', size: 'S',
-        headline: 'New neo-noir "Harbor Vigil" announced', body: 'From the writers of The Long Static. 2027 target.', grad: G.blue },
-      { id: 'cv', iso: '2026-07-29', title: 'Copper Veil', kind: 'WEBTOON', tag: 'date', date: 'JUL 29', size: 'M',
-        headline: 'Copper Veil returns from hiatus September 4', body: 'Weekly chapters resume with a double release.', grad: G.rose },
-      { id: 'go', iso: '2026-07-27', title: 'Glass Orchard', kind: 'ANIME', tag: 'finale', date: 'JUL 27', size: 'L',
-        headline: 'Glass Orchard finale airs next week', body: 'Episode 13 closes the season; a film sequel is teased in the post-credits.', grad: G.amber },
-      { id: 'nt', iso: '2026-07-25', title: 'Ninth Tide', kind: 'MANGA', tag: 'announce', date: 'JUL 25', size: 'S',
-        headline: 'Ninth Tide author announces new series', body: 'Untitled maritime fantasy, serialization in winter.', grad: G.bronze },
-      { id: 'lsc', iso: '2026-07-24', title: 'The Long Static', kind: 'MOVIE', tag: 'casting', date: 'JUL 24', size: 'M',
-        headline: 'The Long Static sequel adds three to its cast', body: 'Two returning leads confirmed alongside a new antagonist.', grad: G.blue, noCover: true },
-      { id: 'sb', iso: '2026-07-23', title: 'Static Bloom', kind: 'WEBTOON → ANIME', tag: 'adaptation', date: 'JUL 23', size: 'L',
-        headline: 'Static Bloom anime slated for spring', body: 'Twelve episodes covering the first three arcs, directed by the Ashfall team.', grad: G.brass },
-      { id: 'fy', iso: '2026-07-22', title: 'The Ferry Years', kind: 'SERIES', tag: 'finale', date: 'JUL 22', size: 'S',
-        headline: 'The Ferry Years ends after five seasons', body: 'A 90-minute series finale in October.', grad: G.indigo },
-      { id: 'hs', iso: '2026-07-21', title: 'Hollow Signal', kind: 'MOVIE', tag: 'date', date: 'JUL 21', size: 'M',
-        headline: 'Hollow Signal hits streaming November 12', body: 'The festival cut arrives uncut, with a director commentary track.', grad: G.purple },
-      { id: 'pc4', iso: '2026-07-20', title: 'Paper Cities', kind: 'MANGA', tag: 'date', date: 'JUL 20', size: 'S',
-        headline: 'Paper Cities Vol 5 out August 19', body: 'Final arc begins.', grad: G.plum, noCover: true },
-      { id: 'go2', iso: '2026-07-19', title: 'Glass Orchard', kind: 'ANIME', tag: 'announce', date: 'JUL 19', size: 'M',
-        headline: 'Glass Orchard film sequel greenlit', body: 'Original staff return for a theatrical continuation in 2028.', grad: G.amber },
-      { id: 'nh0', iso: '2026-07-18', title: 'Neon Harbor', kind: 'SERIES', tag: 'casting', date: 'JUL 18', size: 'S',
-        headline: 'Neon Harbor casts its S3 antagonist', body: 'A stage actor makes their screen debut.', grad: G.violet, noCover: true },
-      { id: 'mcx', iso: '2026-07-17', title: 'Moonlit Courier', kind: 'WEBTOON', tag: 'date', date: 'JUL 17', size: 'M',
-        headline: 'Moonlit Courier chapter 133 drops Friday', body: 'The arc-closing chapter is double length.', grad: G.magenta },
-      { id: 'ntm', iso: '2026-07-16', title: 'Ninth Tide', kind: 'MANGA → ANIME', tag: 'adaptation', date: 'JUL 16', size: 'L',
-        headline: 'Ninth Tide anime adaptation confirmed', body: 'A 24-episode run covering the full manga, airing next autumn.', grad: G.bronze },
-      { id: 'sca', iso: '2026-07-15', title: 'Sable Coast', kind: 'SERIES', tag: 'announce', date: 'JUL 15', size: 'S',
-        headline: 'Sable Coast spin-off in early talks', body: 'Focused on the harbor patrol crew.', grad: G.navy, noCover: true },
-    ];
+    const st = this.state;
+    const shift = (days) => { const d = new Date(TODAY + 'T00:00:00'); d.setDate(d.getDate() - days); return d.toISOString().slice(0, 10); };
+    let lo = '', hi = '';
+    if (st.range === 'custom') { lo = st.from; hi = st.to; }
+    else if (st.range !== 'all') { lo = shift({ today: 0, week: 7, month: 30 }[st.range]); hi = TODAY; }
 
-    const kt = this.state.kindTab;
-    const kindOf = (n) => {
-      const k = n.kind.toUpperCase();
-      if (k.includes('WEBTOON')) return 'WEBTOONS';
-      if (k.includes('ANIME')) return 'ANIME';
-      if (k.includes('MANGA')) return 'MANGA';
-      if (k.includes('MOVIE')) return 'MOVIES';
-      return 'SERIES';
-    };
-    const match = (n) => kt === 'ALL' || kindOf(n) === kt;
+    // date and scope narrow first, so the kind tabs can show honest counts
+    let pool = STORIES.filter((n) => (!lo || n.iso >= lo) && (!hi || n.iso <= hi));
+    if (st.scope === 'library') pool = pool.filter((n) => n.lib);
+    const shown = st.kind === 'ALL' ? pool : pool.filter((n) => n.k === st.kind);
 
-    const SIZES = { S: { h: '130px', t: '17px', ts: '15px' }, M: { h: '180px', t: '20px', ts: '15px' }, L: { h: '250px', t: '25px', ts: '17px' } };
     const decorate = (n) => {
-      const t = TAGS[n.tag];
-      const s = SIZES[n.size || 'M'];
-      const planned = this.state.planned[n.id];
+      const s = SIZES[n.lib ? 'LIB' : (n.size || 'M')];
+      const planned = !!st.planned[n.id];
       return Object.assign({}, n, {
-        tag: t.label, tagBg: t.bg, tagFg: t.fg,
-        hasCover: !n.noCover,
-        trackLabelDisplay: n.countdown ? 'none' : 'inline',
-        trackPad: n.countdown ? '5px' : '4px 10px 4px 8px',
-        coverH: s.h, coverType: s.t, titleSize: s.ts,
-        cardBg: n.inLibrary ? 'rgba(217,107,176,0.06)' : 'rgba(255,255,255,0.05)',
-        cardRing: n.inLibrary
-          ? 'inset 0 0 0 1.5px rgba(217,107,176,0.85)'
-          : 'inset 0 0 0 1px rgba(255,255,255,0.1)',
-        planLabel: planned ? '✓ PLANNED' : '＋ PLAN TO WATCH',
-        planBg: planned
-          ? 'rgba(217,107,176,0.18)'
-          : (n.inLibrary ? 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)' : 'rgba(255,255,255,0.06)'),
-        planFg: planned ? '#d96bb0' : (n.inLibrary ? '#14101a' : '#f0edf4'),
-        planRing: planned
-          ? 'inset 0 0 0 1px rgba(217,107,176,0.5)'
-          : (n.inLibrary ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.15)'),
+        tag: TAGS[n.tag], dot: DOT[n.k], art: ART[n.art] || 'none', hasCover: !n.noCover,
+        coverH: s[0], titleSize: s[1], countdown: n.countdown || '',
+        planned,
+        planLabel: planned ? '✓ PLANNED' : '＋ PLAN TO ' + ({ MANGA: 'READ', WEBTOON: 'READ', GAME: 'PLAY' }[n.k] || 'WATCH'),
+        planBg: planned ? 'rgba(217,107,176,0.16)' : 'rgba(255,255,255,0.06)',
+        planFg: planned ? '#e58cc4' : '#f0edf4',
+        planRing: planned ? 'inset 0 0 0 1px rgba(217,107,176,0.55)' : 'inset 0 0 0 1px rgba(255,255,255,0.16)',
         plan: () => this.setState((s2) => ({ planned: Object.assign({}, s2.planned, { [n.id]: !s2.planned[n.id] }) })),
       });
     };
 
-    const kindTabs = ['ALL', 'SERIES', 'MOVIES', 'ANIME', 'MANGA', 'WEBTOONS'].map((k) => ({
-      label: k,
-      fg: k === kt ? '#f0edf4' : '#948da1',
-      line: k === kt ? '#d96bb0' : 'transparent',
-      pick: () => this.setState({ kindTab: k, page: 1 }),
-    }));
-
-    const shift = (days) => {
-      const d = new Date(this.TODAY + 'T00:00:00');
-      d.setDate(d.getDate() - days);
-      return d.toISOString().slice(0, 10);
-    };
-    const RANGES = { 'TODAY': 0, 'THIS WEEK': 7, 'THIS MONTH': 30 };
-    const st = this.state;
-    let lo = st.from, hi = st.to;
-    if (!lo && !hi && st.range !== 'ALL TIME') { lo = shift(RANGES[st.range]); hi = this.TODAY; }
-    const inRange = (n) => (!lo || n.iso >= lo) && (!hi || n.iso <= hi);
-
-    const rangeChips = ['TODAY', 'THIS WEEK', 'THIS MONTH', 'ALL TIME'].map((r) => {
-      const on = !st.from && !st.to && st.range === r;
-      return {
-        label: r,
-        bg: on ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
-        fg: on ? '#d96bb0' : '#b8b1c4',
-        ring: on ? 'inset 0 0 0 1px #d96bb0' : 'inset 0 0 0 1px rgba(255,255,255,0.12)',
-        pick: () => this.setState({ range: r, from: '', to: '', page: 1 }),
-      };
-    });
-
-    const libItems = lib.map((n) => Object.assign({ inLibrary: true, size: 'L' }, n));
-    const allFeed = libItems.concat(rest).filter(match).filter(inRange);
-    const libraryNews = libItems.filter(match).filter(inRange);
-
-    const per = this.PER_PAGE;
-    const pageCount = Math.max(1, Math.ceil(allFeed.length / per));
+    const library = shown.filter((n) => n.lib);
+    const feed = shown.filter((n) => !n.lib);
+    const pageCount = Math.max(1, Math.ceil(feed.length / PER_PAGE));
     const page = Math.min(st.page, pageCount);
-    const start = (page - 1) * per;
-    const pageItems = allFeed.slice(start, start + per);
-    const pages = Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => ({
-      n: String(n),
-      bg: n === page ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
-      ring: n === page ? 'inset 0 0 0 1px #d96bb0' : 'inset 0 0 0 1px rgba(255,255,255,0.12)',
-      fg: n === page ? '#d96bb0' : '#b8b1c4',
-      pick: () => this.setState({ page: n }),
-    }));
+    const start = (page - 1) * PER_PAGE;
+    const pageItems = feed.slice(start, start + PER_PAGE);
+    const libAll = STORIES.filter((n) => n.lib).length;
 
     return {
-      kindTabs,
-      headerLabel: libraryNews.length
-        ? libraryNews.length + (libraryNews.length === 1 ? ' UPDATE' : ' UPDATES') + ' FROM YOUR LIBRARY'
-        : 'NOTHING FROM YOUR LIBRARY',
-      feedTitle: 'Latest',
-      columns: this.packColumns(pageItems.map(decorate), 4),
-      rangeChips,
+      headerLabel: libAll + (libAll === 1 ? ' UPDATE' : ' UPDATES') + ' FROM YOUR LIBRARY',
+      // kind strip: ALL is always spelled out; the six kinds are dots that open into name + count. Picking the open one again clears it.
+      kindChips: KINDS.map((k) => {
+        const key = k[0], all = key === 'ALL', on = st.kind === key, c = DOT[key];
+        const count = all ? pool.length : pool.filter((r) => r.k === key).length;
+        return {
+          label: k[1], count, on, aria: k[1] + ' · ' + count,
+          dot: c || 'transparent', dotDisplay: all ? 'none' : 'block', lcls: all ? '' : 'kl',
+          bg: on ? (all ? 'rgba(255,255,255,0.1)' : c + '2b') : '', ring: on ? 'inset 0 0 0 1px ' + (all ? 'rgba(255,255,255,0.22)' : c + '99') : 'none',
+          op: count || on || all ? 1 : 0.4,
+          pick: () => this.setState({ kind: on ? 'ALL' : key, page: 1 }),
+        };
+      }),
+      scope: st.scope, onScope: (e) => this.setState({ scope: e.target.value, page: 1 }),
+      range: st.range, onRange: (e) => this.setState({ range: e.target.value, page: 1 }),
+      isCustom: st.range === 'custom',
       from: st.from, to: st.to,
       onFrom: (e) => this.setState({ from: e.target.value, page: 1 }),
       onTo: (e) => this.setState({ to: e.target.value, page: 1 }),
-      clearDates: () => this.setState({ from: '', to: '', range: 'ALL TIME', page: 1 }),
-      clearDisplay: (st.from || st.to) ? 'block' : 'none',
-      rangeLabel: allFeed.length
-        ? (start + 1) + '–' + (start + pageItems.length) + ' OF ' + allFeed.length + (allFeed.length === 1 ? ' STORY' : ' STORIES')
-        : '',
+      clearDates: () => this.setState({ from: '', to: '', range: 'all', page: 1 }),
+      reset: () => this.setState({ kind: 'ALL', scope: 'all', range: 'all', from: '', to: '', page: 1 }),
+
+      hasLibrary: library.length > 0,
+      library: library.map(decorate),
+      libraryMeta: library.length + (library.length === 1 ? ' STORY' : ' STORIES'),
+      hasFeed: feed.length > 0,
+      columns: this.packColumns(pageItems.map(decorate), 4),
+      rangeLabel: (start + 1) + '–' + (start + pageItems.length) + ' OF ' + feed.length + (feed.length === 1 ? ' STORY' : ' STORIES'),
       pagerDisplay: pageCount > 1 ? 'flex' : 'none',
-      pages,
+      pages: Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => ({
+        n: String(n), current: n === page ? 'page' : null,
+        bg: n === page ? 'rgba(217,107,176,0.16)' : 'transparent',
+        ring: n === page ? 'inset 0 0 0 1px rgba(217,107,176,0.7)' : 'inset 0 0 0 1px rgba(255,255,255,0.14)',
+        fg: n === page ? '#e58cc4' : '#b8b1c4',
+        pick: () => this.setState({ page: n }),
+      })),
       goPrev: page > 1 ? () => this.setState({ page: page - 1 }) : null,
       goNext: page < pageCount ? () => this.setState({ page: page + 1 }) : null,
-      prevFg: page > 1 ? '#b8b1c4' : '#4a4550',
-      nextFg: page < pageCount ? '#b8b1c4' : '#4a4550',
-      prevCursor: page > 1 ? 'pointer' : 'default',
-      nextCursor: page < pageCount ? 'pointer' : 'default',
-      isEmpty: allFeed.length === 0,
-      emptyBody: (lo || hi)
-        ? 'No news in this date range. Widen the dates or clear the filter.'
-        : kt === 'ALL'
-        ? 'No news in the feed right now. Check back soon, or follow more titles to get updates here.'
-        : 'No ' + ({ MOVIES: 'movie', SERIES: 'series', ANIME: 'anime', MANGA: 'manga', WEBTOONS: 'webtoon' }[kt] || 'related') + ' news right now. Track more titles and their announcements will land here.',
+      prevOff: page <= 1, nextOff: page >= pageCount,
+      prevOp: page > 1 ? 1 : 0.4, nextOp: page < pageCount ? 1 : 0.4,
+      isEmpty: shown.length === 0,
+      emptyBody: st.scope === 'library'
+        ? 'Nothing from the titles you track matches these filters. Widen the dates, or show everything.'
+        : 'No stories match these filters. Widen the dates or pick another kind.',
     };
   }
 }

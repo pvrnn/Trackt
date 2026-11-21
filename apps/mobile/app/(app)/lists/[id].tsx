@@ -113,7 +113,7 @@ export default function ListScreen() {
           </View>
         ) : null}
         {reorderable ? (
-          <Text style={[type.eyebrow, text.dim]}>USE THE ARROWS TO REORDER</Text>
+          <Text style={[type.eyebrow, text.dim]}>{t('lists.detail.reorderHint')}</Text>
         ) : null}
       </View>
 

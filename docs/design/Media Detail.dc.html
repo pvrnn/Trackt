@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Media Detail</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -15,11 +16,22 @@
     body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    .clamp3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .rate-wrap:focus-within { outline: 2px solid #d96bb0; outline-offset: 6px; border-radius: 6px; }
     input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
     input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 14px rgba(0,0,0,0.7); cursor: grab; }
     input[type=range]::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); }
     input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border: none; border-radius: 999px; background: #f0edf4; box-shadow: 0 4px 14px rgba(0,0,0,0.7); }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
   </style>
 </helmet>
 
@@ -28,95 +40,121 @@
 
 <div style="position: relative;">
 <!-- nav -->
-<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
   <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
   <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
     <a href="Home.dc.html" style="color: #948da1;">HOME</a>
     <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
     <a href="News.dc.html" style="color: #948da1;">NEWS</a>
-    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
     <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
-    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+    <a href="Profile.dc.html" style="color: #948da1;">PROFILE</a>
   </div>
   <div style="flex: 1;"></div>
-  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span>⌕</span> Search titles…</a>
-  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
-</div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 14px 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span aria-hidden="true">⌕</span><span style="flex: 1;">Search titles or people…</span><span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 5px; padding: 2px 6px;">⌘K</span></a>
+  <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+  <a href="Profile.dc.html" aria-label="Your profile" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">M</a>
+</nav>
 
 <!-- date editor modal -->
-<div style="position: fixed; inset: 0; z-index: 50; background: rgba(8,6,12,0.72); backdrop-filter: blur(6px); align-items: center; justify-content: center; display: {{ modalDisplay }};">
+<div role="dialog" aria-modal="true" aria-label="Viewing dates" style="position: fixed; inset: 0; z-index: 50; background: rgba(8,6,12,0.72); backdrop-filter: blur(6px); align-items: center; justify-content: center; display: {{ modalDisplay }};">
   <div style="width: 420px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 40px 90px -20px rgba(0,0,0,0.9); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 18px;">
     <div style="display: flex; flex-direction: column; gap: 6px;">
       <div style="font-family: Anton; font-size: 28px; text-transform: uppercase; line-height: 1;">Viewing dates</div>
       <div style="color: #b8b1c4; font-size: 14px; line-height: 1.55;">When you started and finished. Leave the finish date empty if you are still going.</div>
     </div>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">STARTED</div>
-        <input type="date" value="{{ startVal }}" onChange="{{ onStart }}" style="background: rgba(255,255,255,0.06); border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 10px; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 13px; padding: 11px 14px; color-scheme: dark;">
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">FINISHED</div>
-        <input type="date" value="{{ finishVal }}" onChange="{{ onFinish }}" style="background: rgba(255,255,255,0.06); border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 10px; outline: none; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 13px; padding: 11px 14px; color-scheme: dark;">
-      </div>
+      <label style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">STARTED</span>
+        <input type="date" value="{{ startVal }}" onChange="{{ onStart }}" style="background: rgba(255,255,255,0.06); border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 10px; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 13px; padding: 11px 14px; color-scheme: dark;">
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">FINISHED</span>
+        <input type="date" value="{{ finishVal }}" onChange="{{ onFinish }}" style="background: rgba(255,255,255,0.06); border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 10px; color: #f0edf4; font-family: 'Space Grotesk'; font-size: 13px; padding: 11px 14px; color-scheme: dark;">
+      </label>
     </div>
     <div style="display: flex; align-items: center; gap: 12px;">
-      <div onClick="{{ closeDates }}" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 26px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">SAVE</div>
-      <div onClick="{{ clearDates }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #948da1; cursor: pointer;" style-hover="color: #d96bb0;">CLEAR</div>
+      <button onClick="{{ closeDates }}" style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 26px; border-radius: 999px;" style-hover="filter: brightness(1.15);">SAVE</button>
+      <button onClick="{{ clearDates }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #948da1; padding: 10px 4px;" style-hover="color: #d96bb0;">CLEAR</button>
       <div style="flex: 1;"></div>
-      <div onClick="{{ closeDates }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #948da1; cursor: pointer;" style-hover="color: #f0edf4;">CANCEL</div>
+      <button onClick="{{ closeDates }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; color: #948da1; padding: 10px 4px;" style-hover="color: #f0edf4;">CANCEL</button>
     </div>
   </div>
 </div>
 
-<!-- hero: full-bleed backdrop, the artwork carries the page -->
-<div style="position: relative; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,0.09);">
-  <div style="position: absolute; inset: 0; background: linear-gradient(150deg, #4a3f8f 0%, #2a2150 38%, #14101a 72%, #0e0c10 100%);"></div>
-  <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.4; mix-blend-mode: overlay;"></div>
-  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,12,16,0.35) 0%, rgba(14,12,16,0.55) 45%, rgba(14,12,16,0.92) 100%);"></div>
+<!-- HERO — the banner is whatever the source gives us, so the page brings its own contrast:
+     a reading-side scrim under the text column, the artwork left clear on the right. -->
+<header style="position: relative; z-index: 2;">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: {{ bannerArt }};"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(14,12,16,0.95) 0%, rgba(14,12,16,0.9) max(860px, calc(50% + 170px)), rgba(14,12,16,0.24) max(1180px, calc(50% + 490px)), rgba(14,12,16,0.1) 100%);"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,12,16,0.3) 0%, rgba(14,12,16,0) 22%, rgba(14,12,16,0) 66%, #0e0c10 100%);"></div>
 
-  <div style="position: relative; max-width: 1360px; margin: 0 auto; padding: 64px 40px 44px; display: flex; gap: 40px; align-items: flex-end;">
-    <div style="width: 240px; height: 360px; flex-shrink: 0; border-radius: 8px; background: linear-gradient(160deg, #35296b 0%, #0e0c1a 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 24px 60px -18px rgba(217,107,176,0.35), 0 8px 40px -10px rgba(0,0,0,0.9);"></div>
+  <div style="position: relative; max-width: 1360px; margin: 0 auto; padding: 60px 40px 36px; display: flex; gap: 36px; align-items: flex-end;">
+    <div aria-hidden="true" style="width: 220px; height: 330px; flex-shrink: 0; border-radius: 10px; background: radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 24px 60px -18px rgba(0,0,0,0.9);"></div>
 
-    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
-      <!-- kind · year · genres, one line, no separate genre section -->
+    <div style="flex: 1; min-width: 0; max-width: 600px; display: flex; flex-direction: column; gap: 14px;">
       <div style="display: flex; align-items: center; gap: 9px;">
-        <div style="width: 7px; height: 7px; border-radius: 999px; background: #4a6ee8;"></div>
-        <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #b8b1c4;">SERIES · 2024 · NEO-NOIR, DRAMA</div>
+        <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: #6d8bf0;"></span>
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #cfc9d8;">SERIES · 2024 · NEO-NOIR, DRAMA</div>
       </div>
-      <div style="font-family: Anton; font-size: 78px; line-height: 0.94; text-transform: uppercase;">Neon Harbor</div>
-      <div style="color: #b8b1c4; font-size: 16px; line-height: 1.6; max-width: 620px;">A dockworker in a drowned port city moonlights as a courier for the last honest smuggler on the coast. Slow-burn neo-noir about tides, debts, and the people who keep other people's secrets.</div>
+      <h1 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 76px; line-height: 0.94; text-transform: uppercase; text-shadow: 0 2px 30px rgba(14,12,16,0.7);">Neon Harbor</h1>
+      <div class="clamp3" style="color: #cfc9d8; font-size: 16px; line-height: 1.6; text-wrap: pretty;">A dockworker in a drowned port city moonlights as a courier for the last honest smuggler on the coast. Slow-burn neo-noir about tides, debts, and the people who keep other people's secrets.</div>
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4;">AIRING · 2 SEASONS · 22 EPISODES</div>
 
-      <!-- status and dates are facts, not buttons. The date segment opens the editor. -->
-      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 14px; border-radius: 999px; background: rgba(217,107,176,0.18); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); cursor: pointer;">
-          <div style="width: 6px; height: 6px; border-radius: 999px; background: #d96bb0;"></div>
-          <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">IN PROGRESS</span>
-          <span style="font-size: 9px; color: #d96bb0;">▾</span>
-        </div>
-        <div onClick="{{ openDates }}" style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4; cursor: pointer;" style-hover="color: #d96bb0;">{{ datesLabel }}</div>
-        <span style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1;">·</span>
-        <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">AIRING · 2 SEASONS · 22 EPISODES</span>
-      </div>
-
-      <!-- one primary, three secondaries. Nothing else competes. -->
-      <div style="display: flex; gap: 12px; align-items: center; margin-top: 4px;">
-        <div onClick="{{ watchNext }}" style="background: {{ ctaBg }}; box-shadow: {{ ctaRing }}; color: {{ ctaFg }}; border-radius: 999px; height: 52px; padding: 0 28px; display: flex; align-items: center; gap: 10px; cursor: pointer;" style-hover="filter: brightness(1.08);">
-          <span style="font-size: 15px; line-height: 1;">{{ ctaGlyph }}</span>
+      <!-- three controls, in the order you use them: do the next thing, change the state, love it -->
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px;">
+        <button onClick="{{ watchNext }}" style="background: {{ ctaBg }}; box-shadow: {{ ctaRing }}; color: {{ ctaFg }}; border-radius: 999px; height: 52px; padding: 0 28px; display: flex; align-items: center; gap: 10px;" style-hover="filter: brightness(1.08);">
+          <span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ ctaGlyph }}</span>
           <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; white-space: nowrap;">{{ ctaLabel }}</span>
+        </button>
+
+        <div style="position: relative;">
+          <button onClick="{{ toggleStatus }}" aria-haspopup="menu" aria-expanded="{{ statusOpen }}" style="height: 52px; padding: 0 20px; border-radius: 999px; background: #1d1826; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6); display: flex; align-items: center; gap: 9px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
+            <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: #d96bb0;"></span>
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4; white-space: nowrap;">{{ statusLabel }}</span>
+            <span aria-hidden="true" style="font-size: 9px; color: #e58cc4;">▾</span>
+          </button>
+          <sc-if value="{{ statusOpen }}" hint-placeholder-val="{{ false }}">
+            <div role="menu" aria-label="Status" style="position: absolute; top: 60px; left: 0; min-width: 210px; background: #191520; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 24px 60px -16px rgba(0,0,0,0.9); border-radius: 14px; padding: 6px; z-index: 30; display: flex; flex-direction: column;">
+              <sc-for list="{{ statuses }}" as="st" hint-placeholder-count="5">
+                <button role="menuitemradio" aria-checked="{{ st.on }}" onClick="{{ st.pick }}" style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 9px; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: {{ st.fg }}; background: {{ st.bg }};" style-hover="background: rgba(255,255,255,0.07);">
+                  <span aria-hidden="true" style="width: 12px; color: #d96bb0;">{{ st.check }}</span>
+                  <span>{{ st.label }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
         </div>
-        <sc-for list="{{ iconActions }}" as="a" hint-placeholder-count="3">
-          <div onClick="{{ a.toggle }}" style="height: 52px; padding: 0 20px; border-radius: 999px; background: {{ a.bg }}; box-shadow: inset 0 0 0 1px {{ a.bd }}; display: flex; align-items: center; gap: 9px; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
-            <span style="font-size: 15px; line-height: 1; color: {{ a.fg }};">{{ a.glyph }}</span>
-            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: {{ a.labelFg }};">{{ a.label }}</span>
-          </div>
-        </sc-for>
+
+        <button onClick="{{ toggleFav }}" aria-pressed="{{ fav }}" style="height: 52px; padding: 0 20px; border-radius: 999px; background: #1d1826; box-shadow: inset 0 0 0 1px {{ favBd }}; display: flex; align-items: center; gap: 9px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">
+          <span aria-hidden="true" style="font-size: 15px; line-height: 1; color: {{ favFg }};">{{ favGlyph }}</span>
+          <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: {{ favFg }};">{{ favLabel }}</span>
+        </button>
       </div>
     </div>
   </div>
+</header>
+
+<!-- FACTS — a strip, not a table. What the thing is, at reading speed. -->
+<div style="max-width: 1360px; margin: 0 auto; padding: 4px 40px 0; display: flex; flex-direction: column; gap: 12px;">
+  <dl style="margin: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; backdrop-filter: blur(16px);">
+    <sc-for list="{{ facts }}" as="d" hint-placeholder-count="6">
+      <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 6px; box-shadow: {{ d.rule }}; min-width: 0;">
+        <dt style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">{{ d.k }}</dt>
+        <dd style="margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3; color: {{ d.fg }};">{{ d.v }}</dd>
+      </div>
+    </sc-for>
+  </dl>
+  <div style="display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 0 4px;">
+    <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">ALSO ON</span>
+    <a href="https://www.themoviedb.org" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">TMDB ↗</a>
+    <a href="https://www.tvmaze.com" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">TVMAZE ↗</a>
+    <div style="flex: 1;"></div>
+    <span style="font-family: 'Space Grotesk'; font-size: 11px; color: #948da1;">Metadata from TMDB. Not endorsed or certified by TMDB.</span>
+    <button onClick="{{ report }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {{ reportFg }}; padding: 6px 2px;" style-hover="color: #d96bb0;">{{ reportLabel }}</button>
+  </div>
 </div>
 
-<div style="max-width: 1360px; margin: 0 auto; padding: 40px 40px 80px; display: grid; grid-template-columns: 2fr 1fr; gap: 48px; align-items: start;">
+<div style="max-width: 1360px; margin: 0 auto; padding: 36px 40px 80px; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 48px; align-items: start;">
 
   <!-- LEFT -->
   <div style="display: flex; flex-direction: column; gap: 32px; min-width: 0;">
@@ -141,17 +179,17 @@
         </div>
         <div style="display: flex; align-items: center; gap: 20px;">
           <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px;">
-            <input value="{{ val }}" onChange="{{ onInput }}" onFocus="{{ onFocus }}" onBlur="{{ onBlur }}" inputMode="numeric" style="font-family: Anton; font-size: 52px; line-height: 1; width: {{ inputWidth }}; background: transparent; border: none; outline: none; padding: 0; color: #f0edf4; box-shadow: inset 0 -2px 0 {{ underline }}; transition: box-shadow 140ms ease;">
+            <input value="{{ val }}" onChange="{{ onInput }}" onFocus="{{ onFocus }}" onBlur="{{ onBlur }}" inputMode="numeric" aria-label="Episodes watched" style="font-family: Anton; font-size: 52px; line-height: 1; width: {{ inputWidth }}; background: transparent; border: none; outline: none; padding: 0; color: #f0edf4; box-shadow: inset 0 -2px 0 {{ underline }}; transition: box-shadow 140ms ease;">
             <span style="font-family: Anton; font-size: 26px; color: #948da1; flex-shrink: 0;">/ {{ total }}</span>
           </div>
           <div style="flex: 2; min-width: 0; position: relative; height: 26px; display: flex; align-items: center;">
             <div style="position: absolute; left: 0; right: 0; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1);"></div>
             <div style="position: absolute; left: 0; height: 6px; width: {{ pct }}; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
-            <input type="range" min="0" max="{{ reachable }}" value="{{ num }}" onChange="{{ onSlide }}" style="position: relative; width: 100%; margin: 0; height: 26px; cursor: grab;">
+            <input type="range" min="0" max="{{ total }}" value="{{ num }}" onChange="{{ onSlide }}" aria-label="Episodes watched" style="position: relative; width: 100%; margin: 0; height: 26px; cursor: grab;">
           </div>
           <div style="display: flex; gap: 8px; flex-shrink: 0;">
-            <div onClick="{{ dec }}" style="width: 46px; height: 46px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #b8b1c4; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">−</div>
-            <div onClick="{{ inc }}" style="width: 46px; height: 46px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #14101a; cursor: pointer;" style-hover="filter: brightness(1.1);">+</div>
+            <button onClick="{{ dec }}" aria-label="One episode back" style="width: 46px; height: 46px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #b8b1c4;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #d96bb0;">−</button>
+            <button onClick="{{ inc }}" aria-label="One episode forward" style="width: 46px; height: 46px; border-radius: 999px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #14101a;" style-hover="filter: brightness(1.1);">+</button>
           </div>
         </div>
       </div>
@@ -170,53 +208,79 @@
   </div>
 
   <!-- RIGHT -->
-  <div style="display: flex; flex-direction: column; gap: 32px;">
-    <!-- rating: the work, not the episode -->
-    <div style="display: flex; gap: 10px;">
-      <div style="flex: 1; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 14px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; backdrop-filter: blur(16px);">
-        <div style="font-family: Anton; font-size: 38px; line-height: 1; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
-        <div style="display: flex; flex-direction: column; gap: 2px;">
-          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">YOUR RATING</div>
-          <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.06em; color: #948da1;">9.4 FROM 1,204 HERE</div>
+  <aside style="display: flex; flex-direction: column; gap: 32px; min-width: 0;">
+
+    <!-- YOUR LOG — everything that is about you and this title lives in one card:
+         a row each for rating, dates and review, every row ending in its one action. -->
+    <section aria-labelledby="h-log" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px 22px 8px; display: flex; flex-direction: column; backdrop-filter: blur(16px);">
+      <h2 id="h-log" style="margin: 0 0 18px; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">Your log</h2>
+
+      <!-- rating: drag or click the meter, half points -->
+      <div style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">YOUR RATING</div>
+          <sc-if value="{{ rated }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ clearRating }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #948da1; padding: 2px;" style-hover="color: #d96bb0;">CLEAR</button>
+          </sc-if>
         </div>
-      </div>
-      <div style="width: 56px; flex-shrink: 0; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #d96bb0; cursor: pointer;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">✎</div>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 14px;">
-      <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Details</div>
-      <div style="display: flex; flex-direction: column;">
-        <sc-for list="{{ details }}" as="d" hint-placeholder-count="6">
-          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 12px 0; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.07);">
-            <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; flex-shrink: 0;">{{ d.k }}</span>
-            <span style="font-size: 13px; color: #f0edf4; text-align: right;">{{ d.v }}</span>
+        <div style="display: flex; align-items: flex-end; gap: 18px;">
+          <div style="width: 72px; flex-shrink: 0; font-family: Anton; font-size: 48px; line-height: 0.9; background-image: {{ ratingInk }}; -webkit-background-clip: text; background-clip: text; color: transparent;">{{ ratingText }}</div>
+          <div class="rate-wrap" style="flex: 1; min-width: 0; position: relative; height: 44px;">
+            <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 4px;">
+              <sc-for list="{{ bars }}" as="b" hint-placeholder-count="10">
+                <div style="flex: 1; height: {{ b.h }}; border-radius: 3px; background: {{ b.bg }};"></div>
+              </sc-for>
+            </div>
+            <input type="range" min="0" max="10" step="0.5" value="{{ rating }}" onChange="{{ onRate }}" aria-label="Your rating, out of 10" style="position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer;">
           </div>
-        </sc-for>
+        </div>
+        <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #b8b1c4;">{{ ratingCaption }}</div>
       </div>
-      <div style="font-family: 'Space Grotesk'; font-size: 11px; line-height: 1.6; color: #6a6478;">Metadata from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
-    </div>
 
-    <div style="display: flex; flex-direction: column; gap: 14px;">
-      <div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Related</div>
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 14px; padding: 14px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
+        <div style="width: 58px; flex-shrink: 0; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">DATES</div>
+        <div style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: {{ datesFg }};">{{ datesLabel }}</div>
+        <button onClick="{{ openDates }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; padding: 8px 2px;">{{ datesAction }}</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px; padding: 14px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
+        <div style="width: 58px; flex-shrink: 0; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">REVIEW</div>
+        <div style="flex: 1; min-width: 0; font-size: 14px; color: #b8b1c4;">Nothing written yet</div>
+        <button style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0; padding: 8px 2px;">✎ WRITE</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-related" style="display: flex; flex-direction: column; gap: 14px;">
+      <h2 id="h-related" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">Related</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
         <sc-for list="{{ related }}" as="r" hint-placeholder-count="3">
-          <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 7px;">
-            <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ r.grad }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 28px -12px rgba(217,107,176,0.28), 0 4px 18px -6px rgba(0,0,0,0.85);"></div>
-            <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">{{ r.rel }}</div>
-            <div style="font-size: 12px; font-weight: 600; line-height: 1.25;">{{ r.title }}</div>
+          <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 7px; min-width: 0;">
+            <div aria-hidden="true" style="aspect-ratio: 2/3; border-radius: 9px; background: {{ r.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 26px -14px rgba(0,0,0,0.9);"></div>
+            <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4;">{{ r.rel }}</div>
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.25;">{{ r.title }}</div>
           </a>
         </sc-for>
       </div>
-    </div>
-  </div>
+    </section>
+  </aside>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script>
+<script type="text/x-dc" data-dc-script data-props='{"banner":{"editor":"enum","options":["light","vivid","dark"],"default":"light","section":"Banner stress test"}}'>
+// Stand-ins for whatever artwork the source returns. "light" is the hard case:
+// a pale, busy banner like a manga spread. The hero must read on all three.
+const BANNERS = {
+  light: 'linear-gradient(72deg, transparent 0 63%, #1a1622 63% 63.5%, transparent 63.5%), linear-gradient(108deg, transparent 0 78%, #1a1622 78% 78.3%, transparent 78.3%), repeating-linear-gradient(115deg, rgba(20,16,26,0.08) 0 2px, transparent 2px 22px), radial-gradient(34% 70% at 80% 42%, #ffffff 0%, transparent 72%), linear-gradient(100deg, #c9d6cf 0%, #f3f0e8 46%, #dfe6f2 100%)',
+  vivid: 'conic-gradient(from 210deg at 72% 46%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff5fa8, #ff7a59)',
+  dark: 'radial-gradient(40% 80% at 78% 30%, #6b5fd0 0%, transparent 70%), linear-gradient(150deg, #4a3f8f 0%, #2a2150 38%, #14101a 72%, #0e0c10 100%)',
+};
+const STATUSES = ['IN PROGRESS', 'PLANNED', 'COMPLETED', 'PAUSED', 'DROPPED'];
+const STOPS = [[217, 164, 65], [217, 107, 176], [139, 92, 246]];
+
 class Component extends DCLogic {
   state = {
     num: 4, draft: null, focus: false, season: 2,
-    fav: false, listed: false,
+    fav: false, status: 'IN PROGRESS', statusOpen: false,
+    rating: 8.5, reported: false,
     start: '2026-07-12', finish: '', datesOpen: false,
   };
 
@@ -256,6 +320,15 @@ class Component extends DCLogic {
   }
   clamp(n, max) { return Math.max(0, Math.min(max, n)); }
 
+  // colour of the prism at t in 0..1, so each meter bar takes its slice of the gradient
+  prismAt(t) {
+    const seg = t < 0.5 ? 0 : 1;
+    const u = seg === 0 ? t / 0.5 : (t - 0.5) / 0.5;
+    const a = STOPS[seg], b = STOPS[seg + 1];
+    const c = a.map((v, i) => Math.round(v + (b[i] - v) * u));
+    return 'rgb(' + c.join(',') + ')';
+  }
+
   renderVals() {
     const eps = this.EPS[this.state.season];
     const max = eps.length;
@@ -265,12 +338,18 @@ class Component extends DCLogic {
     const next = eps.find((e) => e.n === n + 1 && !e.future);
     const grad = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
 
-    const has = !!(this.state.start || this.state.finish);
     const dateLabel = this.state.start && this.state.finish
       ? this.fmt(this.state.start) + ' → ' + this.fmt(this.state.finish)
-      : (this.state.start ? 'FROM ' + this.fmt(this.state.start) : '＋ ADD DATES');
+      : (this.state.start ? 'Since ' + this.fmt(this.state.start) : 'Not set');
+    const hasDates = !!(this.state.start || this.state.finish);
+
+    const rating = this.state.rating;
+    const rated = rating > 0;
+    const empty = 'rgba(255,255,255,0.12)';
 
     return {
+      bannerArt: BANNERS[this.props.banner ?? 'light'] || BANNERS.light,
+
       unitLabel: aired < max ? 'EPISODES WATCHED · ' + aired + ' AIRED SO FAR' : 'EPISODES WATCHED',
       total: max,
       reachable: aired,
@@ -292,27 +371,56 @@ class Component extends DCLogic {
 
       ctaLabel: next ? 'WATCH S' + this.state.season + ' E' + next.n : (n >= aired ? 'UP TO DATE' : 'WATCH NEXT'),
       ctaGlyph: next ? '✓' : '★',
-      ctaBg: next ? grad : 'rgba(255,255,255,0.05)',
+      ctaBg: next ? grad : '#1d1826',
       ctaFg: next ? '#14101a' : '#b8b1c4',
-      ctaRing: next ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.15)',
+      ctaRing: next ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.18)',
       watchNext: () => { if (next) this.setState({ num: next.n }); },
 
-      iconActions: [
-        { glyph: this.state.fav ? '♥' : '♡', label: 'FAVOURITE',
-          fg: this.state.fav ? '#d96bb0' : '#b8b1c4',
-          labelFg: this.state.fav ? '#d96bb0' : '#b8b1c4',
-          bg: this.state.fav ? 'rgba(217,107,176,0.16)' : 'rgba(255,255,255,0.05)',
-          bd: this.state.fav ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.15)',
-          toggle: () => this.setState({ fav: !this.state.fav }) },
-        { glyph: this.state.listed ? '☰' : '＋', label: 'LIST',
-          fg: this.state.listed ? '#d96bb0' : '#b8b1c4',
-          labelFg: this.state.listed ? '#d96bb0' : '#b8b1c4',
-          bg: this.state.listed ? 'rgba(217,107,176,0.16)' : 'rgba(255,255,255,0.05)',
-          bd: this.state.listed ? 'rgba(217,107,176,0.5)' : 'rgba(255,255,255,0.15)',
-          toggle: () => this.setState({ listed: !this.state.listed }) },
-        { glyph: '↗', label: 'SHARE', fg: '#b8b1c4', labelFg: '#b8b1c4',
-          bg: 'rgba(255,255,255,0.05)', bd: 'rgba(255,255,255,0.15)', toggle: null },
-      ],
+      statusLabel: this.state.status,
+      statusOpen: this.state.statusOpen,
+      toggleStatus: () => this.setState((s) => ({ statusOpen: !s.statusOpen })),
+      statuses: STATUSES.map((label) => {
+        const on = label === this.state.status;
+        return {
+          label, on,
+          check: on ? '✓' : '',
+          fg: on ? '#f0edf4' : '#b8b1c4',
+          bg: on ? 'rgba(217,107,176,0.14)' : 'transparent',
+          pick: () => this.setState({ status: label, statusOpen: false }),
+        };
+      }),
+
+      fav: this.state.fav,
+      toggleFav: () => this.setState((s) => ({ fav: !s.fav })),
+      favGlyph: this.state.fav ? '♥' : '♡',
+      favLabel: this.state.fav ? 'FAVOURITED' : 'FAVOURITE',
+      favFg: this.state.fav ? '#e58cc4' : '#cfc9d8',
+      favBd: this.state.fav ? 'rgba(217,107,176,0.6)' : 'rgba(255,255,255,0.18)',
+
+      facts: [
+        { k: 'STATUS', v: 'Airing weekly', fg: '#e58cc4' },
+        { k: 'NEXT EPISODE', v: 'S2 E6 · 11 Jul' },
+        { k: 'NETWORK', v: 'Harbor Studios' },
+        { k: 'CREATED BY', v: 'L. Okafor, D. Marsh' },
+        { k: 'FIRST AIRED', v: '2 Feb 2024' },
+        { k: 'RUNTIME', v: '43 min average' },
+      ].map((d, i) => ({ k: d.k, v: d.v, fg: d.fg || '#f0edf4', rule: i === 0 ? 'none' : 'inset 1px 0 0 rgba(255,255,255,0.09)' })),
+      report: () => this.setState({ reported: true }),
+      reportLabel: this.state.reported ? '✓ REPORT SENT' : '⚑ REPORT AN ISSUE',
+      reportFg: this.state.reported ? '#e58cc4' : '#b8b1c4',
+
+      rating,
+      rated,
+      ratingText: rated ? rating.toFixed(1) : '—',
+      ratingInk: rated ? grad : 'linear-gradient(90deg, #948da1, #948da1)',
+      ratingCaption: rated ? '9.4 FROM 1,204 RATINGS ON THIS INSTANCE' : 'SLIDE TO RATE · 9.4 FROM 1,204 RATINGS HERE',
+      onRate: (e) => this.setState({ rating: parseFloat(e.target.value) }),
+      clearRating: () => this.setState({ rating: 0 }),
+      bars: Array.from({ length: 10 }, (_, i) => {
+        const col = this.prismAt(i / 9);
+        const fill = rating >= i + 1 ? col : (rating >= i + 0.5 ? 'linear-gradient(90deg, ' + col + ' 50%, ' + empty + ' 50%)' : empty);
+        return { h: (46 + i * 6) + '%', bg: fill };
+      }),
 
       seasons: [1, 2].map((s) => ({
         label: 'S' + s,
@@ -344,6 +452,8 @@ class Component extends DCLogic {
       }),
 
       datesLabel: dateLabel,
+      datesFg: hasDates ? '#f0edf4' : '#b8b1c4',
+      datesAction: hasDates ? 'EDIT' : '＋ ADD',
       openDates: () => this.setState({ datesOpen: true }),
       closeDates: () => this.setState({ datesOpen: false }),
       clearDates: () => this.setState({ start: '', finish: '', datesOpen: false }),
@@ -353,18 +463,10 @@ class Component extends DCLogic {
       finishVal: this.state.finish,
       modalDisplay: this.state.datesOpen ? 'flex' : 'none',
 
-      details: [
-        { k: 'STATUS', v: 'Airing · weekly' },
-        { k: 'NETWORK', v: 'Harbor Studios' },
-        { k: 'CREATED BY', v: 'L. Okafor, D. Marsh' },
-        { k: 'FIRST AIRED', v: '2 February 2024' },
-        { k: 'RUNTIME', v: '43 min average' },
-        { k: 'EXTERNAL', v: 'TMDB · TVmaze' },
-      ],
       related: [
-        { rel: 'SAME CREATOR', title: 'The Long Static', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
-        { rel: 'SIMILAR', title: 'Glass Orchard', grad: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)' },
-        { rel: 'SIMILAR', title: 'Sable Coast', grad: 'linear-gradient(160deg, #2a4a8c 0%, #080d17 100%)' },
+        { rel: 'SAME CREATOR', title: 'The Long Static', art: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
+        { rel: 'SIMILAR', title: 'Glass Orchard', art: 'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)' },
+        { rel: 'SIMILAR', title: 'Sable Coast', art: 'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)' },
       ],
     };
   }

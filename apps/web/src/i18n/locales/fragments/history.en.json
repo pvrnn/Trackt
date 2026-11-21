@@ -9,10 +9,7 @@
     "allStatuses": "ALL STATUSES",
     "year": "YEAR",
     "status": "STATUS",
-    "group": "GROUP",
-    "yearAria": "filter by year",
-    "statusAria": "filter by status",
-    "groupAria": "group entries by"
+    "group": "GROUP BY"
   },
   "grouping": {
     "year": "YEAR",
@@ -26,13 +23,10 @@
     "autumn": "AUTUMN"
   },
   "stats": {
-    "completed": "Titles completed",
-    "completedNote": "FINISHED · {{scope}}",
-    "inView": "Titles in view",
-    "inViewNote": "FILED · {{scope}}",
+    "completed": "Completed",
     "episodes": "Episodes",
     "chapters": "Chapters",
-    "checkInsNote": "CHECK-INS · {{scope}}"
+    "titles": "Titles"
   },
   "loading": "Loading {{scope}}…",
   "loadMore": "LOAD MORE",
@@ -53,5 +47,35 @@
     "windowBody": "You have history, just not in this window. Pick another year above, or ALL TIME.",
     "clear": "CLEAR KIND & STATUS",
     "browse": "BROWSE DISCOVER →"
+  },
+  "view": {
+    "aria": "View",
+    "timeline": "TIMELINE",
+    "grid": "GRID"
+  },
+  "timeline": {
+    "zoomAria": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "zoom": {
+      "years": "YEARS",
+      "months": "MONTHS",
+      "weeks": "WEEKS"
+    },
+    "moveAria": "Move through time",
+    "earlier": "Earlier",
+    "later": "Later",
+    "toToday": "TODAY →",
+    "todayMark": "TODAY",
+    "region": "Timeline. Scroll sideways to move through time.",
+    "days_one": "{{count}} DAY",
+    "days_other": "{{count}} DAYS",
+    "key": {
+      "logged": "DAYS YOU LOGGED",
+      "gap": "GAP BETWEEN SESSIONS",
+      "single": "ONE SITTING",
+      "ongoing": "STILL GOING"
+    },
+    "hint": "SCROLL SIDEWAYS OR USE ‹ › TO MOVE THROUGH TIME"
   }
 }

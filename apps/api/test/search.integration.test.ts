@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
 import {
   SearchResultSchema,
@@ -308,6 +308,68 @@ describe.runIf(available)('GET /api/v1/search (postgres)', () => {
     expect(none).toEqual([]);
   });
 
+  it('narrows by genre (every one listed) and by status', async () => {
+    const titles = async (query: string) =>
+      (await search(`q=Breaking%20Bad&${query}`)).results.map(
+        (r) => (r as { title: string }).title,
+      );
+    expect(await titles('genres=crime')).toContain('Breaking Bad');
+    expect(await titles('genres=Crime,drama')).toContain('Breaking Bad');
+    expect(await titles('genres=crime,comedy')).toEqual([]);
+    expect(await titles('status=ended')).toContain('Breaking Bad');
+    expect(await titles('status=ongoing')).toEqual([]);
+    expect((await search('q=Breaking%20Bad&status=airing')).statusCode).toBe(400);
+  });
+
+  it('applies the genre and status filters to the kind counts', async () => {
+    const counts = async (query: string) =>
+      (
+        await app.inject({ method: 'GET', url: `/api/v1/search/kinds?q=Breaking%20Bad&${query}` })
+      ).json() as { kinds: Record<string, number> };
+    expect((await counts('genres=crime')).kinds.series).toBeGreaterThan(0);
+    expect(await counts('genres=comedy')).toEqual({ kinds: {} });
+  });
+
+  it('narrows the browse shelf by genre and status', async () => {
+    const shelf = async (query: string) =>
+      (await app.inject({ method: 'GET', url: `/api/v1/media/showcase?${query}` })).json() as {
+        id: string;
+      }[];
+    const crime = await shelf('genres=crime');
+    expect(crime.length).toBeGreaterThan(0);
+    const rows = await db
+      .select({ genres: media.genres })
+      .from(media)
+      .where(
+        inArray(
+          media.id,
+          crime.map((row) => row.id),
+        ),
+      );
+    for (const row of rows) expect(row.genres).toContain('crime');
+    expect(await shelf('status=ongoing&genres=crime,comedy')).toEqual([]);
+  });
+
+  it('lists the genres on this instance, commonest first, per kind', async () => {
+    const list = async (query = '') =>
+      (
+        (await app.inject({ method: 'GET', url: `/api/v1/search/genres${query}` })).json() as {
+          genres: string[];
+        }
+      ).genres;
+    const all = await list();
+    expect(all).toEqual(expect.arrayContaining(['crime', 'drama', 'action']));
+    expect(new Set(all).size).toBe(all.length);
+    expect(await list('?kind=anime')).toContain('action');
+    expect(await list('?kind=anime')).not.toContain('crime');
+    // Typed lookups: substring matches only, the ones starting with the text first.
+    const typed = await list('?q=RI');
+    expect(typed.length).toBeGreaterThan(0);
+    for (const genre of typed) expect(genre).toContain('ri');
+    expect(typed[0]!.startsWith('ri') || !typed.some((genre) => genre.startsWith('ri'))).toBe(true);
+    expect(await list('?q=zzzz')).toEqual([]);
+  });
+
   it('respects the limit', async () => {
     const { results } = await search('q=a&limit=2');
     expect(results.length).toBeLessThanOrEqual(2);
@@ -370,9 +432,23 @@ describe.runIf(!available)('search (postgres)', () => {
 /** Minimal central-catalog stub serving the /v1/catalog/search contract (ADR-0002). */
 function catalogStub(
   handler: (query: URLSearchParams) => { results: unknown[] } | 'timeout' | 'error',
+  /** Serves `/v1/catalog/search/kinds` when given; otherwise it 404s like a catalog that predates it. */
+  kinds?: Record<string, number>,
+  /** Serves `/v1/catalog/genres` when given, the same way. */
+  genres?: { genre: string; count: number }[],
 ): Server {
   return createServer((req, res) => {
     const url = new URL(req.url!, 'http://localhost');
+    if (url.pathname === '/v1/catalog/genres' && genres) {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ genres }));
+      return;
+    }
+    if (url.pathname === '/v1/catalog/search/kinds' && kinds) {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ kinds }));
+      return;
+    }
     if (url.pathname !== '/v1/catalog/search') {
       res.writeHead(404).end();
       return;
@@ -401,6 +477,7 @@ const slugOwnerLocalId = '1a2b3c4d-5e6f-4a8b-9c0d-1e2f3a4b5c6d';
 const existingUnderOtherSlugId = '2f3e4d5c-6b7a-4980-8b1c-2d3e4f5a6b7c';
 const softDeletedId = '6c7f1a2b-3d4e-4f5a-9b8c-1d2e3f4a5b6c';
 const bannerHitId = '3a4b5c6d-7e8f-4a1b-9c2d-3e4f5a6b7c8d';
+const sequelHitId = '4b5c6d7e-8f9a-4b2c-8d3e-4f5a6b7c8d9e';
 
 /** Full central-catalog hit with only the fields under test varying. */
 function slimHit(overrides: {
@@ -410,6 +487,8 @@ function slimHit(overrides: {
   year?: number;
   rank?: number;
   bannerUrl?: string | null;
+  genres?: string[];
+  status?: string | null;
 }): Record<string, unknown> {
   return {
     kind: 'movie',
@@ -453,6 +532,7 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
       existingUnderOtherSlugId,
       softDeletedId,
       bannerHitId,
+      sequelHitId,
     ]) {
       await db.delete(media).where(eq(media.id, id));
     }
@@ -680,6 +760,106 @@ describe.runIf(available)('GET /api/v1/search — federated with central catalog
     const response = await app.inject({ method: 'GET', url: '/api/v1/search?q=Neon&year=1999' });
     expect(response.statusCode).toBe(200);
     expect(seen).toBe('1999');
+  });
+
+  it('merges both sources in the requested sort and forwards it', async () => {
+    let seen: string | null = null;
+    server = catalogStub((params) => {
+      seen = params.get('sort');
+      return {
+        results: [
+          slimHit({ id: sequelHitId, title: 'Breaking Bad Returns', year: 2031, rank: 4.6 }),
+        ],
+      };
+    });
+    app = await buildAppWithCatalog(await listen(server));
+
+    const titles = async (query: string) => {
+      const response = await app.inject({ method: 'GET', url: `/api/v1/search?${query}` });
+      return (response.json() as { title: string }[]).map((r) => r.title);
+    };
+    expect((await titles('q=Breaking%20Bad'))[0]).toBe('Breaking Bad');
+    expect(seen).toBeNull();
+    expect((await titles('q=Breaking%20Bad&sort=newest'))[0]).toBe('Breaking Bad Returns');
+    expect(seen).toBe('newest');
+  });
+
+  it('forwards genre and status, and drops hits an older catalog failed to filter', async () => {
+    let seen: URLSearchParams | null = null;
+    server = catalogStub((params) => {
+      seen = params;
+      // A catalog that predates the filters answers as if none were asked.
+      return {
+        results: [
+          slimHit({ id: centralOnlyId, title: 'Neon Crime', genres: ['crime', 'drama'] }),
+          slimHit({ id: bannerHitId, title: 'Neon Comedy', genres: ['comedy'] }),
+          slimHit({ id: sequelHitId, title: 'Neon Soon', genres: ['crime'], status: 'announced' }),
+        ],
+      };
+    });
+    app = await buildAppWithCatalog(await listen(server));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/search?q=Neon&genres=crime&status=ended',
+    });
+    expect(response.statusCode).toBe(200);
+    expect(seen!.get('genres')).toBe('crime');
+    expect(seen!.get('status')).toBe('ended');
+    // By id: an earlier test materialized this one under another title.
+    expect((response.json() as { id: string }[]).map((r) => r.id)).toEqual([centralOnlyId]);
+  });
+
+  it("merges the catalog's genres with ones only local entries carry", async () => {
+    const localOnlyId = '8e9f0a1b-2c3d-4e5f-9a0b-1c2d3e4f5a6b';
+    await db.insert(media).values({
+      id: localOnlyId,
+      kind: 'movie',
+      title: 'Genre Probe',
+      slug: 'genre-probe',
+      source: 'user',
+      moderation: 'verified',
+      genres: ['tokusatsu'],
+    });
+    try {
+      server = catalogStub(() => ({ results: [] }), undefined, [
+        { genre: 'drama', count: 90 },
+        { genre: 'comedy', count: 40 },
+      ]);
+      app = await buildAppWithCatalog(await listen(server));
+      const response = await app.inject({ method: 'GET', url: '/api/v1/search/genres' });
+      // Provider rows are catalog copies and not counted twice; the user entry's tag is added.
+      expect(response.json()).toEqual({ genres: ['drama', 'comedy', 'tokusatsu'] });
+      // A catalog older than `?q=` lists every genre; the instance narrows it itself.
+      const typed = await app.inject({ method: 'GET', url: '/api/v1/search/genres?q=com' });
+      expect(typed.json()).toEqual({ genres: ['comedy'] });
+    } finally {
+      await db.delete(media).where(eq(media.id, localOnlyId));
+    }
+  });
+
+  it('adds the catalog kind counts to local user entries only', async () => {
+    server = catalogStub(() => ({ results: [] }), { movie: 7, vinyl: 2 });
+    app = await buildAppWithCatalog(await listen(server));
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/search/kinds?q=Breaking%20Bad',
+    });
+    expect(response.statusCode).toBe(200);
+    // The seeded Breaking Bad rows are provider copies, already in the catalog's
+    // count; a kind this build does not know is dropped.
+    expect(response.json()).toEqual({ kinds: { movie: 7 } });
+  });
+
+  it('counts every local row when the catalog predates kind counts', async () => {
+    server = catalogStub(() => ({ results: [] }));
+    app = await buildAppWithCatalog(await listen(server));
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/search/kinds?q=Breaking%20Bad',
+    });
+    const { kinds } = response.json() as { kinds: Record<string, number> };
+    expect(kinds.series).toBeGreaterThan(0);
   });
 
   it('degrades to local-only results when the central catalog errors', async () => {

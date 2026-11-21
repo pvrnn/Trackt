@@ -1,5 +1,7 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { queryOptions, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import {
+  MEDIA_KINDS,
   NewsArticleDetailSchema,
   NewsListResponseSchema,
   type MediaKind,
@@ -50,6 +52,8 @@ export interface NewsFilters {
   /** Inclusive ISO date bounds (YYYY-MM-DD). */
   from?: string | undefined;
   to?: string | undefined;
+  /** Stories per request; the server's default when absent. */
+  limit?: number | undefined;
 }
 
 function toSearchParams(filters: NewsFilters): Record<string, string> {
@@ -58,7 +62,7 @@ function toSearchParams(filters: NewsFilters): Record<string, string> {
     if (Array.isArray(value)) {
       if (value.length > 0) params[key] = value.join(',');
     } else if (value) {
-      params[key] = value;
+      params[key] = String(value);
     }
   }
   return params;
@@ -66,6 +70,16 @@ function toSearchParams(filters: NewsFilters): Record<string, string> {
 
 export interface NewsFeedState {
   articles: NewsArticleSummary[];
+  /** The articles of each page fetched so far, in order. */
+  pages: NewsArticleSummary[][];
+  /**
+   * The feed's size and per-kind counts, from its first page. Undefined while
+   * loading or when the catalog does not count; `kinds` holds only kinds this
+   * build knows.
+   */
+  facets: { total: number; anyKind: number; kinds: Partial<Record<MediaKind, number>> } | undefined;
+  /** Fetches forward until `count` pages are loaded or the feed ends. */
+  loadPages: (count: number) => void;
   isLoading: boolean;
   isError: boolean;
   /** True while a "load more" page is in flight. */
@@ -95,15 +109,17 @@ export interface NewsFeedState {
  * `getPreviousPageParam` because the contract cannot page backwards.
  */
 export function useNewsFeed(filters: NewsFilters): NewsFeedState {
+  const queryKey = [
+    'news',
+    // Sorted so two orderings of the same selection are one cache entry.
+    [...(filters.kinds ?? [])].sort().join(',') || undefined,
+    filters.topic,
+    filters.from,
+    filters.to,
+    filters.limit,
+  ];
   const query = useInfiniteQuery({
-    queryKey: [
-      'news',
-      // Sorted so two orderings of the same selection are one cache entry.
-      [...(filters.kinds ?? [])].sort().join(',') || undefined,
-      filters.topic,
-      filters.from,
-      filters.to,
-    ],
+    queryKey,
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam, signal }) => {
       const searchParams = toSearchParams(filters);
@@ -114,9 +130,49 @@ export function useNewsFeed(filters: NewsFilters): NewsFeedState {
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
+  const raw = query.data?.pages[0]?.facets;
+  const facets = raw
+    ? {
+        total: raw.total,
+        anyKind: raw.anyKind,
+        kinds: Object.fromEntries(
+          MEDIA_KINDS.filter((kind) => raw.kinds[kind] !== undefined).map((kind) => [
+            kind,
+            raw.kinds[kind],
+          ]),
+        ) as Partial<Record<MediaKind, number>>,
+      }
+    : undefined;
+  const loaded = query.data?.pages.length ?? 0;
+
+  // A numbered page is the Nth cursor hop: walk forward one page per render
+  // until the asked-for page is in, so the keyset contract never becomes OFFSET.
+  // Scoped to the filters: a new feed starts again from its first page.
+  const feedKey = JSON.stringify(queryKey);
+  const [target, setTarget] = useState({ feedKey, count: 1 });
+  const wanted = target.feedKey === feedKey ? target.count : 1;
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+  // Stable, and a no-op when nothing changes: callers ask for a page from an effect.
+  const loadPages = useCallback(
+    (count: number) =>
+      setTarget((current) => {
+        const next = Math.max(current.feedKey === feedKey ? current.count : 1, count);
+        return current.feedKey === feedKey && current.count === next
+          ? current
+          : { feedKey, count: next };
+      }),
+    [feedKey],
+  );
+  useEffect(() => {
+    if (loaded > 0 && loaded < wanted && hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [loaded, wanted, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return {
     updatedAt: query.dataUpdatedAt,
     articles: query.data?.pages.flatMap((page) => page.articles) ?? [],
+    pages: query.data?.pages.map((page) => page.articles) ?? [],
+    facets,
+    loadPages,
     isLoading: query.isPending,
     isError: query.isError,
     isLoadingMore: query.isFetchingNextPage,
@@ -143,8 +199,8 @@ export function useNewsFeed(filters: NewsFilters): NewsFeedState {
  * news and an instance whose catalog is down look the same, which is what lets
  * the caller simply omit the section.
  */
-export function useMediaNews(mediaId: string) {
-  return useQuery({
+function mediaNewsQuery(mediaId: string) {
+  return queryOptions({
     queryKey: ['news', 'by-media', mediaId],
     queryFn: async ({ signal }): Promise<NewsArticleSummary[]> => {
       const json = await http()
@@ -152,6 +208,44 @@ export function useMediaNews(mediaId: string) {
         .json();
       return NewsListResponseSchema.parse(json).articles;
     },
+  });
+}
+
+export function useMediaNews(mediaId: string) {
+  return useQuery(mediaNewsQuery(mediaId));
+}
+
+/** Newest first, and one copy of a story that touches several of the works. */
+export function mergeNewsLists(
+  lists: readonly (readonly NewsArticleSummary[])[],
+  limit: number,
+): NewsArticleSummary[] {
+  const byId = new Map<string, NewsArticleSummary>();
+  for (const list of lists) for (const article of list) byId.set(article.id, article);
+  return [...byId.values()]
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+    .slice(0, limit);
+}
+
+/**
+ * News about a handful of works the viewer tracks — mobile home's "from what
+ * you track". There is no per-viewer feed endpoint, so this is one by-media read
+ * per work (sharing the media page's cache entries): keep `mediaIds` short, the
+ * route is rate-limited.
+ */
+export function useTrackedNews(mediaIds: readonly string[], limit: number) {
+  return useQueries({
+    queries: mediaIds.map(mediaNewsQuery),
+    combine: (results) => ({
+      articles: mergeNewsLists(
+        results.map((result) => result.data ?? []),
+        limit,
+      ),
+      isPending: results.some((result) => result.isPending),
+      refetch: () => {
+        for (const result of results) void result.refetch();
+      },
+    }),
   });
 }
 

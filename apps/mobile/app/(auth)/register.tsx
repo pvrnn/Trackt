@@ -72,7 +72,7 @@ export default function Register() {
       setFormError(error.message ?? t('errors.signUpFailed'));
       return;
     }
-    router.replace('/home');
+    router.replace('/onboarding');
   }
 
   return (

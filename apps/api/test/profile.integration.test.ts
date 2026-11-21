@@ -327,6 +327,24 @@ describe.runIf(available)('profile + favourites (postgres)', () => {
     expect(profile.activity.length).toBeGreaterThan(0);
   });
 
+  it('carries the in-progress row and the taste aggregates', async () => {
+    for (const [method, url, payload] of [
+      ['PUT', `/api/v1/media/${frierenId}/progress/1`, undefined],
+      ['PUT', `/api/v1/media/${bebopId}/rating`, { score: 10 }],
+    ] as const) {
+      const response = await app.inject({ method, url, headers: { cookie }, payload });
+      expect(response.statusCode, url).toBe(200);
+    }
+    const profile = await getProfile();
+    expect(profile.inProgress).toEqual([
+      expect.objectContaining({ id: frierenId, kind: 'anime', watched: 1 }),
+    ]);
+    expect(profile.inProgressCount).toBe(1);
+    expect(profile.taste.kinds).toEqual([{ kind: 'anime', count: 2 }]);
+    expect(profile.taste.genres).toContainEqual({ name: 'action', count: 1 });
+    expect(profile.taste).toMatchObject({ ratedCount: 2, perfectTens: 1 });
+  });
+
   describe('account deletion (DELETE /me)', () => {
     /**
      * On its own account, not the suite's: the point of the endpoint is that

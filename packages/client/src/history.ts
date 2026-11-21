@@ -25,6 +25,10 @@ export interface HistoryFilters {
   year?: number | undefined;
   kind?: MediaKind | undefined;
   status?: LogStatus | undefined;
+  /** Page size; the timeline asks for the largest so it fills in fewer trips. */
+  limit?: number | undefined;
+  /** False holds the request; not part of the key. */
+  enabled?: boolean | undefined;
 }
 
 export const historyKey = (filters: HistoryFilters) =>
@@ -34,12 +38,15 @@ export const historyKey = (filters: HistoryFilters) =>
     filters.year ?? 'all',
     filters.kind,
     filters.status,
+    filters.limit ?? null,
   ] as const;
 
 export interface HistoryState {
   entries: HistoryEntry[];
   /** Every year the viewer has anything in, newest first. Never year-filtered. */
   years: { year: number; count: number }[];
+  /** Per-kind counts for the current year and status. Never kind-filtered. */
+  kinds: Partial<Record<MediaKind, number>>;
   totals: HistoryTotals;
   isLoading: boolean;
   isError: boolean;
@@ -64,7 +71,7 @@ export function useHistory(filters: HistoryFilters): HistoryState {
   // viewer's own is not.
   const query = useInfiniteQuery({
     queryKey: historyKey(filters),
-    enabled: username !== undefined || isAuthed,
+    enabled: filters.enabled !== false && (username !== undefined || isAuthed),
     initialPageParam: undefined as string | undefined,
     // Switching year re-fetches; without this the whole page blanks between
     // the click and the response, including the year chips you clicked from.
@@ -74,6 +81,7 @@ export function useHistory(filters: HistoryFilters): HistoryState {
       if (filters.year !== undefined) searchParams.year = String(filters.year);
       if (filters.kind) searchParams.kind = filters.kind;
       if (filters.status) searchParams.status = filters.status;
+      if (filters.limit) searchParams.limit = String(filters.limit);
       if (pageParam) searchParams.cursor = pageParam;
       const path =
         username !== undefined ? `users/${encodeURIComponent(username)}/history` : 'me/history';
@@ -90,6 +98,7 @@ export function useHistory(filters: HistoryFilters): HistoryState {
     updatedAt: query.dataUpdatedAt,
     entries: query.data?.pages.flatMap((page) => page.entries) ?? [],
     years: first?.years ?? [],
+    kinds: Object.fromEntries((first?.kinds ?? []).map((entry) => [entry.kind, entry.count])),
     totals: first?.totals ?? EMPTY_TOTALS,
     isLoading: query.isPending,
     isError: query.isError,

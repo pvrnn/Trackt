@@ -109,6 +109,8 @@ function App() {
                 animate as a fade; a push should read as a push, so the pushed
                 routes take the platform's native stack animation. */}
               <Stack.Screen name="(app)/(tabs)" />
+              {/* First run, replaced into from register: there is nothing behind it to go back to. */}
+              <Stack.Screen name="(app)/onboarding" options={{ gestureEnabled: false }} />
               <Stack.Screen name="(app)/media/[slug]" options={PUSHED} />
               <Stack.Screen name="(app)/news/[slug]" options={PUSHED} />
               <Stack.Screen name="(app)/lists/index" options={PUSHED} />

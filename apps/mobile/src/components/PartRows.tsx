@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PRISM, color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
-import { type } from '../theme/typography';
+import { font, type } from '../theme/typography';
 import { Icon } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
 
@@ -78,7 +78,7 @@ export function PartBlockRow({
           ) : null}
         </View>
       </View>
-      <Text style={[type.eyebrow, block.done > 0 ? text.pink : text.dim]}>
+      <Text style={[type.eyebrow, block.done > 0 ? text.pinkInk : text.dim]}>
         {block.done}/{block.size}
       </Text>
     </AnimatedPressable>
@@ -111,10 +111,15 @@ export function PartRow({
       android_ripple={ripple()}
       style={[styles.partRow, isNext && styles.partRowNext, press.animatedStyle]}
     >
-      <Marker complete={done} partial={false} outlined={isNext} size={20} />
-      <Text style={[type.label, done ? text.muted : text.fg, styles.partLabel]}>{label}</Text>
+      <Marker complete={done} partial={false} outlined={isNext} size={22} />
+      <Text
+        style={[styles.partLabel, isNext && styles.partLabelNext, done ? text.muted : text.fg]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
       {done || isNext ? (
-        <Text style={[type.eyebrow, isNext ? text.pink : text.dim]}>
+        <Text style={[type.eyebrow, isNext ? text.pinkInk : text.dim]}>
           {done ? t('media.part.done') : t('media.part.next')}
         </Text>
       ) : null}
@@ -164,7 +169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.md,
     paddingVertical: space.md,
-    paddingHorizontal: space.md,
+    paddingHorizontal: 14,
     borderRadius: radius.cover,
     borderWidth: stroke,
     borderColor: surface.glassBorder,
@@ -201,8 +206,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.md,
     minHeight: layout.touchTarget,
-    paddingHorizontal: space.md,
-    borderRadius: radius.thumb,
+    paddingVertical: space.md,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
@@ -213,6 +219,12 @@ const styles = StyleSheet.create({
   },
   partLabel: {
     flex: 1,
+    fontFamily: font.body,
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  partLabelNext: {
+    fontFamily: font.bodySemibold,
   },
   marker: {
     alignItems: 'center',

@@ -6,13 +6,24 @@ import {
   type Db,
 } from '@trackt/db';
 import {
+  MEDIA_KINDS,
+  compareSearchHits,
+  GENRE_SUGGESTION_LIMIT,
+  fetchCatalogGenres,
   fetchCatalogSearch,
+  fetchCatalogSearchKinds,
+  mediaStatusesFor,
   type CatalogSearchHit,
+  type MediaKind,
+  type SearchGenres,
+  type SearchGenresQuery,
+  type SearchKindCounts,
+  type SearchKindsQuery,
   type SearchQuery,
   type SearchResult,
 } from '@trackt/shared';
 import type { SessionUser } from './session.js';
-import { searchLocalMedia } from './search.js';
+import { countLocalGenres, countLocalMediaKinds, searchLocalMedia } from './search.js';
 
 /**
  * Federated catalog search (ADR-0002): queries the instance's local `media`
@@ -39,6 +50,9 @@ async function searchCentralSafe(
     const response = await fetchCatalogSearch(catalogUrl, query.q, {
       kind: query.kind,
       year: query.year,
+      genres: query.genres,
+      status: query.status,
+      sort: query.sort,
       limit: query.limit,
       timeoutMs: options.timeoutMs,
       fetchImpl: options.fetchImpl,
@@ -51,11 +65,20 @@ async function searchCentralSafe(
         'skipping central catalog hits that do not match this build (upgrade to pick them up)',
       );
     }
-    return response.results;
+    // A catalog older than the genre/status filters ignores them and answers unfiltered.
+    return response.results.filter((hit) => matchesFilters(hit, query));
   } catch (error) {
     options.logger.warn({ err: error }, 'central catalog search failed, degrading to local-only');
     return [];
   }
+}
+
+function matchesFilters(hit: CatalogSearchHit, { genres, status }: SearchQuery): boolean {
+  if (genres && !genres.every((genre) => hit.genres.includes(genre))) return false;
+  if (status && (hit.status === null || !mediaStatusesFor(status).includes(hit.status))) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -129,8 +152,10 @@ export async function searchFederated(
       const centralHit = centralById.get(result.id);
       return {
         source: 'local' as const,
+        id: result.id,
         rank: result.rank,
         title: result.title,
+        year: result.year,
         result: centralHit
           ? {
               ...result,
@@ -141,14 +166,13 @@ export async function searchFederated(
     }),
     ...insertable.map((result) => ({
       source: 'central' as const,
+      id: result.id,
       rank: result.rank,
       title: result.title,
+      year: result.year,
       result,
     })),
-  ].sort(
-    (a, b) =>
-      b.rank - a.rank || a.title.localeCompare(b.title) || a.result.id.localeCompare(b.result.id),
-  );
+  ].sort(compareSearchHits(query.sort));
   const page = merged.slice(query.offset, query.offset + query.limit + 1);
   const hasMore = page.length > query.limit;
   const visiblePage = page.slice(0, query.limit);
@@ -165,4 +189,77 @@ export async function searchFederated(
     return result ? [result] : [];
   });
   return { results, hasMore };
+}
+
+/**
+ * Hits per kind for the Discover kind strip: the central catalog's counts plus
+ * the entries this instance created itself (its provider rows are copies of
+ * catalog rows, already counted there). Without a reachable catalog that knows
+ * the route, every local row counts, which is the search the viewer would get.
+ * A soft-deleted local copy of a catalog row still counts on the catalog side,
+ * so ALL can run a hit or two over what paging the results would reach.
+ */
+export async function countSearchKinds(
+  db: Db,
+  catalogUrl: string | undefined,
+  query: SearchKindsQuery,
+  options: SearchFederatedOptions,
+): Promise<SearchKindCounts> {
+  const central = catalogUrl
+    ? await fetchCatalogSearchKinds(catalogUrl, query.q, {
+        year: query.year,
+        sort: query.sort,
+        genres: query.genres,
+        status: query.status,
+        timeoutMs: options.timeoutMs,
+        fetchImpl: options.fetchImpl,
+      }).catch((error: unknown) => {
+        options.logger.warn({ err: error }, 'central catalog kind counts failed, counting locally');
+        return null;
+      })
+    : null;
+  const local = await countLocalMediaKinds(db, query, { userOnly: central !== null });
+  const kinds: Partial<Record<MediaKind, number>> = {};
+  for (const kind of MEDIA_KINDS) {
+    const count = (central?.[kind] ?? 0) + (local[kind] ?? 0);
+    if (count > 0) kinds[kind] = count;
+  }
+  return { kinds };
+}
+
+/**
+ * The genre vocabulary for Discover's filter panel: the catalog's tags plus any
+ * only this instance's own entries carry, commonest first. Local-only when the
+ * catalog is unreachable or predates the route.
+ */
+export async function listSearchGenres(
+  db: Db,
+  catalogUrl: string | undefined,
+  { kind, q }: SearchGenresQuery,
+  options: SearchFederatedOptions,
+): Promise<SearchGenres> {
+  const central = catalogUrl
+    ? await fetchCatalogGenres(catalogUrl, {
+        kind,
+        q,
+        timeoutMs: options.timeoutMs,
+        fetchImpl: options.fetchImpl,
+      }).catch((error: unknown) => {
+        options.logger.warn({ err: error }, 'central catalog genres failed, listing locally');
+        return null;
+      })
+    : null;
+  const counts = await countLocalGenres(db, { kind, q }, { userOnly: central !== null });
+  for (const { genre, count } of central ?? []) {
+    // A catalog older than `q` answers with every genre.
+    if (q && !genre.includes(q)) continue;
+    counts.set(genre, (counts.get(genre) ?? 0) + count);
+  }
+  const prefix = (genre: string) => (q && genre.startsWith(q) ? 1 : 0);
+  const genres = [...counts]
+    .sort(
+      ([a, countA], [b, countB]) => prefix(b) - prefix(a) || countB - countA || a.localeCompare(b),
+    )
+    .map(([genre]) => genre);
+  return { genres: q ? genres.slice(0, GENRE_SUGGESTION_LIMIT) : genres };
 }

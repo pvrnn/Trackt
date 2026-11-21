@@ -12,14 +12,26 @@ export const color = {
   dim: '#948da1',
   faint: '#6a6478',
   pink: '#d96bb0',
+  /** Pink lifted for small text and line icons, where #d96bb0 reads too dark. */
+  pinkInk: '#e58cc4',
   gold: '#d9a441',
   onPrism: '#14101a',
   kindMovie: '#8b5cf6',
-  kindGame: '#58a68a',
+  kindGame: '#3fbf8f',
   kindSeries: '#4a6ee8',
   kindAnime: '#d9a441',
   kindManga: '#e8874a',
   kindWebtoon: '#d96bb0',
+} as const;
+
+/**
+ * Native-only inks (`Mobile System.dc.html` §08). Text on ink uses only
+ * `muted` and `dim`; `faint` is for marks and disabled fills, never words or
+ * chevrons. `pinkInk` is pink lifted for text and line icons, where #d96bb0
+ * reads too dark at 10–11px.
+ */
+export const nativeInk = {
+  pinkInk: color.pinkInk,
 } as const;
 
 /**
@@ -35,6 +47,7 @@ export const text = {
   pink: { color: color.pink },
   gold: { color: color.gold },
   onPrism: { color: color.onPrism },
+  pinkInk: { color: nativeInk.pinkInk },
 } as const;
 
 /** The translucent surfaces — `rgba()`, so outside the drift guard. */
@@ -114,6 +127,18 @@ export const layout = {
   touchTarget: 44,
   /** Bar only; the home indicator is whatever `useSafeAreaInsets().bottom` says. */
   tabBarHeight: 64,
+} as const;
+
+/**
+ * The button ladder (§08): three heights and no others — the one primary
+ * action, a secondary or state button, an action inside a row.
+ */
+export const control = {
+  primary: 54,
+  secondary: 46,
+  inRow: 44,
+  /** The visible disc of a close or back button, centred in a 44pt target. */
+  disc: 32,
 } as const;
 
 /**

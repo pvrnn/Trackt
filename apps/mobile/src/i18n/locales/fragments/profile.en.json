@@ -33,7 +33,12 @@
     "series": "Favourite series",
     "anime": "Favourite anime",
     "manga": "Favourite manga",
-    "webtoon": "Favourite webtoons"
+    "webtoon": "Favourite webtoons",
+    "total_one": "{{count}} IN ALL",
+    "total_other": "{{count}} IN ALL",
+    "topPicks": "TOP PICKS",
+    "topOf": "TOP {{kind}}",
+    "rank": "NO. {{rank}}"
   },
   "recent": {
     "title": "Recent",
@@ -92,5 +97,28 @@
     "passwordRequired": "Enter your password to confirm.",
     "failed": "That didn’t work — try again.",
     "confirm": "Delete account"
-  }
+  },
+  "rightNow": {
+    "title": "Right now",
+    "count_one": "{{shown}} OF {{count}} IN PROGRESS",
+    "count_other": "{{shown}} OF {{count}} IN PROGRESS",
+    "episode_one": "{{count}} episode watched",
+    "episode_other": "{{count}} episodes watched",
+    "chapter_one": "{{count}} chapter read",
+    "chapter_other": "{{count}} chapters read",
+    "episodeOfTotal_one": "Episode {{count}} of {{total}}",
+    "episodeOfTotal_other": "Episode {{count}} of {{total}}",
+    "chapterOfTotal_one": "Chapter {{count}} of {{total}}",
+    "chapterOfTotal_other": "Chapter {{count}} of {{total}}"
+  },
+  "timeline": {
+    "title": "Timeline",
+    "open": "HISTORY"
+  },
+  "taste": {
+    "title": "Taste",
+    "kinds": "WHAT GETS TRACKED",
+    "genres": "KEEPS COMING BACK TO"
+  },
+  "friendsMeta": "{{count}} · {{requests}} REQUESTS"
 }

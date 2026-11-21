@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import {
   ExternalIdsSchema,
+  GenreListSchema,
+  GenreQuerySchema,
   MediaKindSchema,
   MediaRelationTypeSchema,
   MediaStatusSchema,
   RelationDirectionSchema,
+  StatusFilterSchema,
 } from './media.js';
+import { SEARCH_SORTS } from './search-rank.js';
 
 /** Free-form lowercase genre tags — deliberately not an enum, sources disagree too much. */
 export const GenreSchema = z.string().min(1).max(64);
@@ -72,11 +76,42 @@ export const CatalogSearchQuerySchema = z.object({
   kind: MediaKindSchema.optional(),
   /** Optional release-year filter, mirroring the instance-side query. */
   year: z.coerce.number().int().min(1800).max(2200).optional(),
+  genres: GenreListSchema.optional(),
+  status: StatusFilterSchema.optional(),
+  sort: z.enum(SEARCH_SORTS).default('relevance'),
   // Instances may request the ranked prefix needed to page across their local
   // and central catalogs before merging the two result streams.
   limit: z.coerce.number().int().min(1).max(1051).default(20),
 });
 export type CatalogSearchQuery = z.infer<typeof CatalogSearchQuerySchema>;
+
+/** `GET /v1/catalog/search/kinds`: per-kind hit counts for the same match. */
+export const CatalogSearchKindsQuerySchema = CatalogSearchQuerySchema.pick({
+  q: true,
+  year: true,
+  sort: true,
+  genres: true,
+  status: true,
+});
+export type CatalogSearchKindsQuery = z.infer<typeof CatalogSearchKindsQuerySchema>;
+
+/** Keyed by plain string: a newer catalog may count a kind this build has never heard of. */
+export const CatalogSearchKindsResponseSchema = z.object({
+  kinds: z.record(z.string(), z.number().int().nonnegative()),
+});
+export type CatalogSearchKindsResponse = z.infer<typeof CatalogSearchKindsResponseSchema>;
+
+/** `GET /v1/catalog/genres`: every genre tag in use, with how many works carry it. */
+export const CatalogGenresQuerySchema = z.object({
+  kind: MediaKindSchema.optional(),
+  q: GenreQuerySchema.optional(),
+});
+export type CatalogGenresQuery = z.infer<typeof CatalogGenresQuerySchema>;
+
+export const CatalogGenresResponseSchema = z.object({
+  genres: z.array(z.object({ genre: GenreSchema, count: z.number().int().nonnegative() })),
+});
+export type CatalogGenresResponse = z.infer<typeof CatalogGenresResponseSchema>;
 
 /** A central-catalog search hit; `rank` lets callers merge-sort against local results. */
 export const CatalogSearchHitSchema = SlimMediaSchema.extend({

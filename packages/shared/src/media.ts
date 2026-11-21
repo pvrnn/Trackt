@@ -10,6 +10,38 @@ export const MEDIA_STATUSES = ['announced', 'airing', 'publishing', 'ended', 'ca
 export const MediaStatusSchema = z.enum(MEDIA_STATUSES);
 export type MediaStatus = z.infer<typeof MediaStatusSchema>;
 
+/**
+ * Discover's status filter. `ongoing` is airing and publishing together: the
+ * catalog stores running manga as `airing`, so a print-only value would miss them.
+ */
+export const STATUS_FILTERS = ['announced', 'ongoing', 'ended', 'cancelled'] as const;
+export const StatusFilterSchema = z.enum(STATUS_FILTERS);
+export type StatusFilter = z.infer<typeof StatusFilterSchema>;
+
+export function mediaStatusesFor(filter: StatusFilter): MediaStatus[] {
+  return filter === 'ongoing' ? ['airing', 'publishing'] : [filter];
+}
+
+/** Most genre suggestions one `?q=` lookup returns. */
+export const GENRE_SUGGESTION_LIMIT = 12;
+
+/** A genre lookup's text: matched anywhere in the tag, case-insensitively. */
+export const GenreQuerySchema = z.string().trim().toLowerCase().pipe(z.string().min(1).max(64));
+
+/** How many genres one search may require at once; each one narrows further. */
+export const MAX_GENRE_FILTERS = 5;
+
+/** Genres as a CSV (`?genres=action,comedy`). Genre tags are lowercase and comma-free. */
+export const GenreListSchema = z
+  .string()
+  .transform((value) =>
+    value
+      .split(',')
+      .map((part) => part.trim().toLowerCase())
+      .filter(Boolean),
+  )
+  .pipe(z.array(z.string().min(1).max(64)).min(1).max(MAX_GENRE_FILTERS));
+
 /** Where a catalog entry came from: an upstream metadata provider or a user. */
 export const MEDIA_SOURCES = ['provider', 'user'] as const;
 export const MediaSourceSchema = z.enum(MEDIA_SOURCES);

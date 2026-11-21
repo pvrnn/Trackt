@@ -2,6 +2,7 @@ import { createAuthClient } from 'better-auth/react';
 import { inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
+import { safeRedirect } from '@trackt/client';
 import type { AppNavUser } from '../components/layout/AppNav';
 
 /**
@@ -34,6 +35,8 @@ export interface AuthedPage {
  * Replaces the guard `useEffect` + `navUser` object that used to be
  * copy-pasted across the app routes.
  */
+const AUTH_PAGE = /^\/(login|register)\/?$/;
+
 export function useAuthedPage(): AuthedPage {
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,15 +45,18 @@ export function useAuthedPage(): AuthedPage {
   const returnTo = location.href;
 
   useEffect(() => {
-    if (isPending) return;
-    if (!session) {
-      navigate({
-        to: '/login',
-        search: returnTo === '/home' ? {} : { redirect: returnTo },
-        replace: true,
-      });
-    }
-  }, [isPending, session, navigate, returnTo]);
+    if (isPending || session) return;
+    // A page signing out stays mounted until the navigation it started lands, and
+    // this hook reads the router's *current* location: on /login it would wrap
+    // /login into a fresh ?redirect= on every pass and loop without bound.
+    if (AUTH_PAGE.test(location.pathname)) return;
+    const redirect = safeRedirect(returnTo);
+    navigate({
+      to: '/login',
+      search: redirect && redirect !== '/home' ? { redirect } : {},
+      replace: true,
+    });
+  }, [isPending, session, navigate, returnTo, location.pathname]);
 
   const navUser: AppNavUser | null = session
     ? {

@@ -90,10 +90,18 @@ export function NavSearch() {
     { kind: 'all' },
   ];
 
-  // ⌘K / Ctrl-K focuses the pill from anywhere, including /search.
+  // ⌘K / Ctrl-K focuses the pill from anywhere; on /search, Discover's own
+  // query field (`data-discover-query`) takes it instead, as its ⌘K chip says.
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+      const discover = document.querySelector<HTMLInputElement>('[data-discover-query]');
+      if (discover && discover.offsetParent !== null) {
+        event.preventDefault();
+        discover.focus();
+        discover.select();
+        return;
+      }
       // The pill is `lg:flex`-only. Focusing a `display:none` input does
       // nothing, so below that breakpoint leave the browser's own Ctrl-K alone
       // rather than swallowing it for a shortcut that can't land.

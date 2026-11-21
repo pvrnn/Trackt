@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discover</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -15,6 +16,80 @@
     body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    input::placeholder { color: #948da1; }
+    select option { background: #191520; color: #f0edf4; }
+    .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .poster .art { transition: transform 160ms ease, box-shadow 160ms ease; }
+    .poster:hover .art { transform: translateY(-4px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), 0 18px 36px -16px rgba(217,107,176,0.45), 0 10px 28px -14px rgba(0,0,0,0.9); }
+    @media (prefers-reduced-motion: reduce) { .poster .art { transition: none; } .poster:hover .art { transform: none; } }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
+    /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; container-type: inline-size; }
+    .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
+    .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
+    .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fcell .dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 999px; }
+    .fcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-overflow: ellipsis; padding: 19px 22px 19px 0; margin-right: -4px; cursor: pointer; color-scheme: dark; }
+    .fcell select option { background: #191520; color: #f0edf4; }
+    .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
+    .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
+    /* kind: the same grammar as every other cell. KIND label, a value that names the pick, then the picker itself.
+       The picker is the six kind dots plus a hollow ring for All; hovering or focusing a dot previews it in the value. Nothing resizes. */
+    .kcell { flex: 0 0 auto; padding-right: 12px; }
+    .kval { width: 100px; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 120ms ease; }
+    .kval .kn { font-weight: 500; color: #948da1; }
+    .kdots { display: flex; align-items: center; }
+    .kdot { width: 28px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    .kdot > span { width: 10px; height: 10px; border-radius: 999px; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .kdot:hover > span, .kdot:focus-visible > span { transform: scale(1.3); }
+    .kdot:focus-visible { outline-offset: -2px; }
+    @media (prefers-reduced-motion: reduce) { .kval, .kdot > span { transition: none; } }
+    /* filters panel: everything that doesn't fit in the bar. Same chips, same labels, same counts as the bar. */
+    .fyear { flex: 0 1 170px; }
+    .fmore { flex: 0 1 250px; text-align: left; }
+    .fmore .val { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 22px; }
+    .fpanel { position: absolute; top: calc(100% + 8px); right: 0; width: min(440px, 100%); z-index: 26; background: #17131d; border-radius: 16px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.13), 0 28px 60px -18px rgba(0,0,0,0.95); display: flex; flex-direction: column; }
+    .fsec { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+    .fsec + .fsec { box-shadow: inset 0 1px 0 rgba(255,255,255,0.09); }
+    .fhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .flab { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fmeta { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #948da1; }
+    .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .opt { height: 32px; padding: 0 11px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); white-space: nowrap; transition: background 140ms ease, box-shadow 140ms ease, color 140ms ease; }
+    .opt:hover { color: #f0edf4; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+    .opt[aria-checked="true"], .opt[aria-pressed="true"] { color: #f0edf4; background: rgba(217,107,176,0.16); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6); }
+    .opt .kn { font-weight: 500; color: #948da1; }
+    .opt .ck { color: #e58cc4; }
+    .fsearch { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 10px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); cursor: text; transition: box-shadow 140ms ease; }
+    .fsearch:focus-within { box-shadow: inset 0 0 0 1px #d96bb0, 0 0 0 4px rgba(217,107,176,0.14); }
+    .fsearch input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: Archivo, sans-serif; font-size: 14px; padding: 0; }
+    .ffoot { display: flex; align-items: center; gap: 12px; padding: 14px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09); }
+    .ftext { height: 36px; font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+    .fshow { height: 36px; padding: 0 16px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: #f0edf4; color: #14101a; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; transition: filter 140ms ease; }
+    .fshow:hover { filter: brightness(0.9); }
+    /* active filters the bar can't show: one token each, removable */
+    .tok { height: 30px; display: inline-flex; align-items: center; gap: 7px; padding: 0 3px 0 11px; border-radius: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; white-space: nowrap; }
+    .tok .tl { color: #948da1; }
+    .tok button { width: 24px; height: 24px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-family: Archivo, sans-serif; font-size: 15px; line-height: 1; color: #b8b1c4; }
+    .tok button:hover { background: rgba(255,255,255,0.1); color: #f0edf4; }
+    /* sort orders results, it doesn't narrow them: it lives with the result count, as a quiet menu */
+    .qsel { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border-radius: 8px; cursor: pointer; transition: background 140ms ease; }
+    .qsel:hover, .qsel:focus-within { background: rgba(255,255,255,0.07); }
+    .qsel select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 9px 16px 9px 0; cursor: pointer; color-scheme: dark; }
+    .qsel .caret { position: absolute; right: 10px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .opt, .fsearch, .fshow, .qsel { transition: none; } }
+    /* once the bar wraps, the cells on each row share it; on a phone-width bar the value slot goes and the dots stay */
+    @container (max-width: 1130px) { .kcell, .fyear, .fmore { flex-grow: 1; } }
+    @container (max-width: 440px) { .kval { display: none; } }
   </style>
 </helmet>
 
@@ -23,100 +98,287 @@
 
 <div style="position: relative;">
 <!-- nav -->
-<div style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 10;">
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
   <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
   <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
     <a href="Home.dc.html" style="color: #948da1;">HOME</a>
-    <a href="Search.dc.html" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">DISCOVER</a>
-    <a href="Lists.dc.html" style="color: #948da1;">LISTS</a>
-    <a href="Profile.dc.html" style="color: #948da1;">ACTIVITY</a>
+    <a href="Search.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">DISCOVER</a>
+    <a href="News.dc.html" style="color: #948da1;">NEWS</a>
+    <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
+    <a href="Profile.dc.html" style="color: #948da1;">PROFILE</a>
   </div>
   <div style="flex: 1;"></div>
-  <a href="Profile.dc.html" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">M</a>
-</div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 14px 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span aria-hidden="true">⌕</span><span style="flex: 1;">Search titles or people…</span><span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 5px; padding: 2px 6px;">⌘K</span></a>
+  <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+  <a href="Profile.dc.html" aria-label="Your profile" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">M</a>
+</nav>
 
-<div style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 28px;">
-  <div style="font-family: Anton; font-size: 64px; line-height: 1; text-transform: uppercase;">Discover</div>
+<main style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: flex; flex-direction: column; gap: 28px;">
+  <h1 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 64px; line-height: 1; text-transform: uppercase;">Discover</h1>
 
-  <div style="display: flex; flex-direction: column; gap: 14px;">
-    <div style="display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 16px 24px; font-size: 17px; backdrop-filter: blur(16px);">
-      <span style="color: #948da1; font-size: 18px;">⌕</span>
-      <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search titles, people, lists…" style="background: transparent; border: none; outline: none; color: #f0edf4; font-family: Archivo; font-size: 17px; flex: 1;">
-      <span style="font-family: 'Space Grotesk'; font-size: 12px; color: #6a6478; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px;">⌘K</span>
-    </div>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="6">
-        <div onClick="{{ f.pick }}" style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 18px; border-radius: 999px; background: {{ f.bg }}; color: {{ f.fg }}; border: 1px solid {{ f.bd }}; cursor: pointer;">{{ f.label }}</div>
-      </sc-for>
-    </div>
+  <!-- SEARCH CONSOLE — one row: the query, then every filter as the same cell. Wraps to two rows, then a stack, as it narrows.
+       What doesn't fit (status, genres) is one more cell that opens a panel; whatever is set in there shows as tokens under the bar. -->
+  <div style="position: relative;" onKeyDown="{{ onKey }}">
+  <div class="fbar" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px {{ consoleRing }}; border-radius: 18px; backdrop-filter: blur(16px); transition: box-shadow 140ms ease;">
+    <label class="fcell" style="flex: 4 1 320px; gap: 14px; cursor: text;">
+      <span aria-hidden="true" style="font-size: 20px; line-height: 1; color: #948da1;">⌕</span>
+      <input value="{{ query }}" onChange="{{ onQuery }}" onFocus="{{ onFocus }}" onBlur="{{ onBlur }}" aria-label="Search titles" placeholder="Search titles, studios, authors…" style="flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #f0edf4; font-family: Archivo, sans-serif; font-weight: 500; font-size: 17px; padding: 0;">
+    </label>
+    <div class="fcell kcell" role="radiogroup" aria-label="Kind" onMouseLeave="{{ kindUnhover }}"><span class="lab">KIND</span><span class="kval" style="color: {{ kindValFg }};">{{ kindValue }} <span class="kn">{{ kindValCount }}</span></span><div class="kdots">
+      <sc-for list="{{ kindDots }}" as="k" hint-placeholder-count="7"><button class="kdot" role="radio" aria-checked="{{ k.on }}" aria-label="{{ k.aria }}" title="{{ k.aria }}" onClick="{{ k.pick }}" onMouseEnter="{{ k.hover }}" onFocus="{{ k.hover }}" onBlur="{{ kindUnhover }}" style="opacity: {{ k.op }};"><span style="background: {{ k.fill }}; box-shadow: {{ k.ring }};"></span></button></sc-for>
+    </div></div>
+    <label class="fcell fyear"><span class="lab">YEAR</span><select value="{{ year }}" onChange="{{ onYear }}"><option value="any">Any</option><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="older">Earlier</option></select><span class="chev" aria-hidden="true"></span></label>
+    <!-- the last cell has the same grammar as Year: label, value, chevron. Its value says what's inside until something is set. -->
+    <button class="fcell fmore" onClick="{{ togglePanel }}" aria-expanded="{{ panelOpen }}" aria-haspopup="dialog" style="background: {{ moreBg }};"><span class="lab">FILTERS</span><span class="val" style="color: {{ moreFg }};">{{ moreValue }}</span><span class="chev" aria-hidden="true" style="transform: rotate({{ chevRot }}); margin-top: {{ chevMt }};"></span></button>
   </div>
 
-  <div style="display: flex; align-items: baseline; justify-content: space-between;">
-    <div style="font-family: Anton; font-size: 32px; text-transform: uppercase;">{{ sectionTitle }}</div>
-    <div style="font-family: 'Space Grotesk'; font-size: 13px; color: #948da1;">{{ resultMeta }}</div>
-  </div>
-  <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;">
-    <sc-for list="{{ results }}" as="r" hint-placeholder-count="12">
-      <a href="Media Detail.dc.html" style="display: flex; flex-direction: column; gap: 8px;">
-        <div style="aspect-ratio: 2/3; border-radius: 12px; background: {{ r.grad }}; display: flex; align-items: flex-end; padding: 12px; overflow: hidden;">
-          <span style="font-family: Anton; font-size: 16px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ r.title }}</span>
+  <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ true }}">
+    <div aria-hidden="true" onClick="{{ closePanel }}" style="position: fixed; inset: 0; z-index: 25;"></div>
+    <div role="dialog" aria-label="More filters" class="fpanel">
+      <div class="fsec">
+        <div class="fhead"><span class="flab">STATUS</span><span class="fmeta">{{ statusMeta }}</span></div>
+        <div class="opts" role="radiogroup" aria-label="Status">
+          <sc-for list="{{ statusOpts }}" as="o" hint-placeholder-count="6"><button class="opt" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="opacity: {{ o.op }};">{{ o.label }} <span class="kn">{{ o.count }}</span></button></sc-for>
         </div>
-        <div style="display: flex; align-items: center; gap: 7px;">
-          <div style="width: 7px; height: 7px; border-radius: 999px; background: {{ r.dot }};"></div>
-          <div style="font-family: 'Space Grotesk'; font-size: 11px; letter-spacing: 0.08em; color: #948da1;">{{ r.kind }} · {{ r.year }}</div>
+      </div>
+      <div class="fsec">
+        <div class="fhead"><span class="flab">GENRES</span><span class="fmeta">{{ genreMeta }}</span></div>
+        <label class="fsearch"><span aria-hidden="true" style="font-size: 16px; line-height: 1; color: #948da1;">⌕</span><input value="{{ genreQuery }}" onChange="{{ onGenreQuery }}" aria-label="Search genres" placeholder="Search genres…"></label>
+        <div class="opts">
+          <sc-for list="{{ genreOpts }}" as="o" hint-placeholder-count="11"><button class="opt" aria-pressed="{{ o.on }}" onClick="{{ o.pick }}" style="opacity: {{ o.op }};"><span class="ck" aria-hidden="true" style="display: {{ o.ckDisplay }};">✓</span>{{ o.label }} <span class="kn">{{ o.count }}</span></button></sc-for>
+        </div>
+        <sc-if value="{{ noGenre }}" hint-placeholder-val="{{ false }}"><div style="color: #948da1; font-size: 13px;">No genre matches “{{ genreQuery }}”.</div></sc-if>
+      </div>
+      <div class="ffoot">
+        <button class="ftext" onClick="{{ clearPanel }}" aria-disabled="{{ panelClean }}" style="color: {{ resetFg }};">RESET</button>
+        <div style="flex: 1;"></div>
+        <button class="fshow" onClick="{{ closePanel }}">{{ showLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+  </div>
+
+  <sc-if value="{{ hasTokens }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: -14px;">
+      <sc-for list="{{ tokens }}" as="t" hint-placeholder-count="2"><span class="tok"><span class="tl">{{ t.label }}</span>{{ t.value }}<button onClick="{{ t.remove }}" aria-label="{{ t.aria }}">×</button></span></sc-for>
+      <button class="ftext" onClick="{{ clearPanel }}" style="color: #e58cc4; padding: 0 8px;">CLEAR</button>
+    </div>
+  </sc-if>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 4px;">
+    <h2 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase;">{{ sectionTitle }}</h2>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #948da1; padding-right: 10px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.12);">{{ resultMeta }}</div>
+      <label class="qsel"><span class="lab" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">SORT</span><select value="{{ sort }}" onChange="{{ onSort }}"><option value="trending">Trending</option><option value="newest">Newest</option><option value="az">A–Z</option></select><span class="caret" aria-hidden="true"></span></label>
+    </div>
+  </div>
+
+  <!-- POSTER GRID — artwork stays clean; everything you read sits under it -->
+  <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 28px 16px;">
+    <sc-for list="{{ results }}" as="r" hint-placeholder-count="12">
+      <a href="Media Detail.dc.html" class="poster" style="display: flex; flex-direction: column; gap: 10px; min-width: 0;">
+        <div class="art" style="aspect-ratio: 2/3; border-radius: 10px; background: {{ r.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 28px -14px rgba(0,0,0,0.9); position: relative; overflow: hidden;">
+          <sc-if value="{{ r.tracked }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; background: #14101a; box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6);">
+              <span aria-hidden="true" style="width: 5px; height: 5px; border-radius: 999px; background: #d96bb0;"></span>
+              <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #e58cc4;">{{ r.trackedLabel }}</span>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+          <div class="clamp2" style="font-weight: 600; font-size: 14px; line-height: 1.3; text-wrap: pretty;">{{ r.title }}</div>
+          <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+            <span aria-hidden="true" style="width: 7px; height: 7px; flex-shrink: 0; border-radius: 999px; background: {{ r.dot }};"></span>
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #b8b1c4; white-space: nowrap;">{{ r.kind }} <span style="color: #948da1; font-weight: 500;">· {{ r.year }}</span></span>
+            <sc-if value="{{ r.hasSpan }}" hint-placeholder-val="{{ false }}">
+              <span title="{{ r.spanTitle }}" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; background: rgba(255,255,255,0.09); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 5px; padding: 2px 7px; white-space: nowrap;">{{ r.span }}</span>
+            </sc-if>
+          </div>
         </div>
       </a>
     </sc-for>
   </div>
 
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 44px 32px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+      <div style="font-family: Anton; font-size: 32px; text-transform: uppercase; color: #948da1;">Nothing matches</div>
+      <div style="color: #b8b1c4; font-size: 14px;">Loosen the filters, or add the title yourself below.</div>
+      <button onClick="{{ reset }}" style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; color: #d96bb0; margin-top: 8px; padding: 8px 4px;">RESET FILTERS</button>
+    </div>
+  </sc-if>
+
   <div style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 24px; margin-top: 12px; backdrop-filter: blur(16px);">
-    <div style="font-family: Anton; font-size: 40px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">＋</div>
+    <div aria-hidden="true" style="font-family: Anton; font-size: 40px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">＋</div>
     <div style="flex: 1;">
       <div style="font-weight: 700; font-size: 16px;">Can't find it?</div>
       <div style="color: #b8b1c4; font-size: 14px; margin-top: 2px;">Add it yourself — webtoons and obscure titles welcome. Usable immediately, verified by moderators.</div>
     </div>
-    <div style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px; cursor: pointer;" style-hover="filter: brightness(1.15);">CREATE ENTRY</div>
+    <button style="background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; padding: 12px 24px; border-radius: 999px;" style-hover="filter: brightness(1.15);">CREATE ENTRY</button>
   </div>
-</div>
+</main>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script>
+// Placeholder artwork. Deliberately includes light, flat and loud covers:
+// nothing in the card may depend on what the artwork looks like.
+const ART = {
+  harbor: 'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
+  ash: 'radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%)',
+  static: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+  courier: 'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)',
+  paper: 'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)',
+  orchard: 'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)',
+  sable: 'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)',
+  hollow: 'radial-gradient(46% 32% at 50% 40%, #e9e4f5 0%, transparent 72%), linear-gradient(180deg, #55309a 0%, #0d0817 100%)',
+  ninth: 'linear-gradient(64deg, transparent 0 44%, rgba(255,255,255,0.85) 44% 47%, transparent 47%), linear-gradient(200deg, #c2202a 0%, #2a0608 78%)',
+  bloom: 'radial-gradient(70% 50% at 40% 62%, #ff9bd0 0%, transparent 70%), linear-gradient(180deg, #1b3a2a 0%, #0a1510 100%)',
+  ferry: 'linear-gradient(180deg, #ece6d6 0%, #b9ae95 58%, #5a5140 100%)',
+  tide: 'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)',
+};
+const DOT = { MOVIE: '#8b5cf6', SERIES: '#4a6ee8', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+// span: a count ("3 SEASONS", "12 VOL") when one entry holds several,
+// or the season itself ("S2") when the entry IS one season of a franchise.
+const TITLES = [
+  { title: 'Neon Harbor', rel: 'RELEASING', genres: ['CRIME', 'DRAMA', 'SCI-FI'], kind: 'SERIES', year: 2024, span: '2 SEASONS', art: 'harbor', tracked: 'IN PROGRESS' },
+  { title: 'Ashfall Chronicle: The Cinder Arc', rel: 'RELEASING', genres: ['ACTION', 'FANTASY', 'DRAMA'], kind: 'ANIME', year: 2025, span: 'S2', spanTitle: 'Season 2', art: 'ash', tracked: 'IN PROGRESS' },
+  { title: 'The Long Static', rel: 'FINISHED', genres: ['SCI-FI', 'MYSTERY'], kind: 'MOVIE', year: 2023, art: 'static', tracked: 'COMPLETED' },
+  { title: 'Moonlit Courier', rel: 'RELEASING', genres: ['ROMANCE', 'FANTASY'], kind: 'WEBTOON', year: 2022, span: '3 SEASONS', art: 'courier' },
+  { title: 'Paper Cities', rel: 'FINISHED', genres: ['DRAMA', 'SLICE OF LIFE'], kind: 'MANGA', year: 2019, span: '12 VOL', art: 'paper' },
+  { title: 'Glass Orchard', rel: 'UPCOMING', genres: ['FANTASY', 'SLICE OF LIFE'], kind: 'ANIME', year: 2026, art: 'orchard' },
+  { title: 'Sable Coast', rel: 'RELEASING', genres: ['CRIME', 'MYSTERY'], kind: 'SERIES', year: 2025, art: 'sable' },
+  { title: 'Hollow Signal', rel: 'FINISHED', genres: ['HORROR', 'SCI-FI'], kind: 'MOVIE', year: 2024, art: 'hollow' },
+  { title: 'Ninth Tide', rel: 'HIATUS', genres: ['ACTION', 'ADVENTURE', 'FANTASY'], kind: 'MANGA', year: 2021, span: '31 VOL', art: 'ninth' },
+  { title: 'Static Bloom', rel: 'FINISHED', genres: ['ROMANCE', 'DRAMA'], kind: 'ANIME', year: 2024, span: 'S3', spanTitle: 'Season 3', art: 'bloom' },
+  { title: 'The Ferry Years', rel: 'FINISHED', genres: ['DRAMA', 'COMEDY'], kind: 'SERIES', year: 2020, span: '5 SEASONS', art: 'ferry' },
+  { title: 'Tidewalker', rel: 'UPCOMING', genres: ['ADVENTURE', 'ACTION'], kind: 'GAME', year: 2026, art: 'tide' },
+];
+const STATUSES = [['ANY', 'ANY'], ['RELEASING', 'RELEASING'], ['FINISHED', 'FINISHED'], ['UPCOMING', 'UPCOMING'], ['HIATUS', 'ON HIATUS'], ['CANCELLED', 'CANCELLED']];
+const GENRES = ['ACTION', 'ADVENTURE', 'COMEDY', 'CRIME', 'DRAMA', 'FANTASY', 'HORROR', 'MYSTERY', 'ROMANCE', 'SCI-FI', 'SLICE OF LIFE'];
+const KINDS = [
+  { key: 'ALL', label: 'ALL' },
+  { key: 'MOVIE', label: 'MOVIES' },
+  { key: 'SERIES', label: 'SERIES' },
+  { key: 'ANIME', label: 'ANIME' },
+  { key: 'MANGA', label: 'MANGA' },
+  { key: 'WEBTOON', label: 'WEBTOONS' },
+  { key: 'GAME', label: 'GAMES' },
+];
+
 class Component extends DCLogic {
-  state = { query: '', filter: 'ALL' };
+  // opens on the panel with one status and one genre set, so the review shows every part of the pattern
+  state = { query: '', filter: 'ALL', year: 'any', sort: 'trending', focus: false, status: 'FINISHED', genres: ['DRAMA'], genreQuery: '', panel: true };
+
   renderVals() {
-    const all = [
-      { title: 'Neon Harbor', kind: 'SERIES', year: '2024', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)' },
-      { title: 'Ashfall Chronicle', kind: 'ANIME', year: '2025', dot: '#d9a441', grad: 'linear-gradient(160deg, #8a5c2a 0%, #17100a 100%)' },
-      { title: 'The Long Static', kind: 'MOVIE', year: '2023', dot: '#8b5cf6', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
-      { title: 'Moonlit Courier', kind: 'WEBTOON', year: '2022', dot: '#d96bb0', grad: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)' },
-      { title: 'Paper Cities', kind: 'MANGA', year: '2019', dot: '#e8874a', grad: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)' },
-      { title: 'Glass Orchard', kind: 'ANIME', year: '2026', dot: '#d9a441', grad: 'linear-gradient(160deg, #b0722a 0%, #140e08 100%)' },
-      { title: 'Sable Coast', kind: 'SERIES', year: '2025', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #2a4a8c 0%, #080d17 100%)' },
-      { title: 'Hollow Signal', kind: 'MOVIE', year: '2024', dot: '#8b5cf6', grad: 'linear-gradient(160deg, #55309a 0%, #0d0817 100%)' },
-      { title: 'Ninth Tide', kind: 'MANGA', year: '2021', dot: '#e8874a', grad: 'linear-gradient(160deg, #8c5a2a 0%, #140f08 100%)' },
-      { title: 'Copper Veil', kind: 'WEBTOON', year: '2023', dot: '#d96bb0', grad: 'linear-gradient(160deg, #a03a7a 0%, #170812 100%)' },
-      { title: 'Static Bloom', kind: 'ANIME', year: '2024', dot: '#d9a441', grad: 'linear-gradient(160deg, #c48a2a 0%, #141008 100%)' },
-      { title: 'The Ferry Years', kind: 'SERIES', year: '2020', dot: '#4a6ee8', grad: 'linear-gradient(160deg, #2a3a8c 0%, #0a0c17 100%)' },
-    ];
-    const kinds = ['ALL', 'MOVIES', 'SERIES', 'ANIME', 'MANGA', 'WEBTOONS'];
-    const map = { MOVIES: 'MOVIE', SERIES: 'SERIES', ANIME: 'ANIME', MANGA: 'MANGA', WEBTOONS: 'WEBTOON' };
-    const q = this.state.query.trim().toLowerCase();
-    let results = all;
-    if (this.state.filter !== 'ALL') results = results.filter((r) => r.kind === map[this.state.filter]);
-    if (q) results = results.filter((r) => r.title.toLowerCase().includes(q));
+    const s = this.state;
+    const q = s.query.trim().toLowerCase();
+
+    // each facet counts against every other filter but itself, so a count is always "what you'd get if you picked this"
+    const by = {
+      q: (t) => !q || t.title.toLowerCase().includes(q),
+      year: (t) => s.year === 'any' || (s.year === 'older' ? t.year <= 2023 : String(t.year) === s.year),
+      kind: (t) => s.filter === 'ALL' || t.kind === s.filter,
+      status: (t) => s.status === 'ANY' || t.rel === s.status,
+      genres: (t) => s.genres.every((g) => t.genres.indexOf(g) >= 0),
+    };
+    const without = (skip) => TITLES.filter((t) => Object.keys(by).every((k) => k === skip || by[k](t)));
+    const pool = without('kind');
+
+    let results = without(null);
+    if (s.sort === 'newest') results = results.slice().sort((a, b) => b.year - a.year);
+    if (s.sort === 'az') results = results.slice().sort((a, b) => a.title.localeCompare(b.title));
+
+    const statusPool = without('status');
+    const panelCount = (s.status === 'ANY' ? 0 : 1) + s.genres.length;
+    const gq = s.genreQuery.trim().toLowerCase();
+    const shownGenres = GENRES.filter((g) => !gq || g.toLowerCase().includes(gq));
+    const toggleGenre = (g) => this.setState((st) => ({ genres: st.genres.indexOf(g) >= 0 ? st.genres.filter((x) => x !== g) : st.genres.concat([g]) }));
+    const statusLabel = (STATUSES.find((x) => x[0] === s.status) || ['', ''])[1];
+    const n = results.length;
+
+    const narrowed = q || s.filter !== 'ALL' || s.year !== 'any' || panelCount > 0;
     return {
-      query: this.state.query,
+      query: s.query,
       onQuery: (e) => this.setState({ query: e.target.value }),
-      filters: kinds.map((k) => ({
-        label: k,
-        bg: k === this.state.filter ? 'rgba(217,107,176,0.18)' : 'rgba(255,255,255,0.05)',
-        fg: k === this.state.filter ? '#d96bb0' : '#b8b1c4',
-        bd: k === this.state.filter ? '#d96bb0' : 'rgba(255,255,255,0.12)',
-        pick: () => this.setState({ filter: k }),
+      onFocus: () => this.setState({ focus: true }),
+      onBlur: () => this.setState({ focus: false }),
+      consoleRing: s.focus ? 'rgba(217,107,176,0.7)' : 'rgba(255,255,255,0.1)',
+      year: s.year,
+      onYear: (e) => this.setState({ year: e.target.value }),
+      sort: s.sort,
+      onSort: (e) => this.setState({ sort: e.target.value }),
+      reset: () => this.setState({ query: '', filter: 'ALL', year: 'any', status: 'ANY', genres: [], genreQuery: '' }),
+
+      panelOpen: s.panel,
+      togglePanel: () => this.setState((st) => ({ panel: !st.panel })),
+      closePanel: () => this.setState({ panel: false }),
+      onKey: (e) => { if (e.key === 'Escape' && this.state.panel) this.setState({ panel: false }); },
+      moreValue: panelCount ? panelCount + ' ACTIVE' : 'STATUS · GENRES',
+      moreFg: panelCount ? '#e58cc4' : '#b8b1c4',
+      moreBg: s.panel ? 'rgba(255,255,255,0.06)' : '',
+      chevRot: s.panel ? '225deg' : '45deg',
+      chevMt: s.panel ? '-1px' : '-5px',
+      statusMeta: 'PICK ONE',
+      statusOpts: STATUSES.map((o) => {
+        const on = s.status === o[0];
+        const count = o[0] === 'ANY' ? statusPool.length : statusPool.filter((t) => t.rel === o[0]).length;
+        return { label: o[1], count, on, op: count || on ? 1 : 0.4, pick: () => this.setState({ status: o[0] }) };
+      }),
+      genreMeta: s.genres.length ? s.genres.length + ' SELECTED · MATCH ALL' : 'PICK ANY',
+      genreQuery: s.genreQuery,
+      onGenreQuery: (e) => this.setState({ genreQuery: e.target.value }),
+      noGenre: shownGenres.length === 0,
+      genreOpts: shownGenres.map((g) => {
+        const on = s.genres.indexOf(g) >= 0;
+        const count = results.filter((t) => t.genres.indexOf(g) >= 0).length;
+        return { label: g, count, on, ckDisplay: on ? 'inline' : 'none', op: count || on ? 1 : 0.4, pick: () => toggleGenre(g) };
+      }),
+      panelClean: panelCount === 0,
+      resetFg: panelCount ? '#e58cc4' : '#948da1',
+      clearPanel: () => this.setState({ status: 'ANY', genres: [], genreQuery: '' }),
+      showLabel: n ? 'SHOW ' + n + (n === 1 ? ' TITLE' : ' TITLES') : 'NO MATCHES',
+      hasTokens: panelCount > 0,
+      tokens: (s.status === 'ANY' ? [] : [{ label: 'STATUS', value: statusLabel, aria: 'Remove status ' + statusLabel, remove: () => this.setState({ status: 'ANY' }) }])
+        .concat(s.genres.map((g) => ({ label: 'GENRE', value: g, aria: 'Remove genre ' + g, remove: () => toggleGenre(g) }))),
+
+      // kind: the value names the pick (or, dimmer, the dot under the pointer); the dots pick. The hollow ring is All, and picking the picked dot again also goes back to All.
+      ...(() => {
+        const list = KINDS;
+        const cur = s.filter, hv = this.state.hoverKind || null;
+        const countOf = (key) => key === 'ALL' ? pool.length : pool.filter((r) => r.kind === key).length;
+        const nameOf = (k) => k.key === 'ALL' ? 'ALL KINDS' : k.label;
+        const shown = list.find((k) => k.key === (hv || cur)) || list[0];
+        return {
+          kindValue: nameOf(shown), kindValCount: countOf(shown.key),
+          kindValFg: hv && hv !== cur ? '#b8b1c4' : '#f0edf4',
+          kindUnhover: () => { if (this.state.hoverKind) this.setState({ hoverKind: null }); },
+          kindDots: list.map((k) => {
+            const key = k.key, all = key === 'ALL', on = cur === key, count = countOf(key);
+            const c = all ? '#f0edf4' : DOT[key];
+            const ring = (all ? ['inset 0 0 0 1.5px ' + (on ? '#f0edf4' : '#b8b1c4')] : []).concat(on ? ['0 0 0 2.5px #1b1820', '0 0 0 4px ' + c] : []);
+            return {
+              on, aria: nameOf(k) + ' · ' + count, op: count || on || all ? 1 : 0.35,
+              fill: all ? 'transparent' : c, ring: ring.join(', ') || 'none',
+              pick: () => this.setState({ filter: on ? 'ALL' : key }),
+              hover: () => { if (this.state.hoverKind !== key) this.setState({ hoverKind: key }); },
+            };
+          }),
+        };
+      })(),
+      sectionTitle: narrowed ? 'Results' : 'On this instance',
+      resultMeta: results.length + (results.length === 1 ? ' TITLE' : ' TITLES'),
+      isEmpty: results.length === 0,
+      results: results.map((t) => ({
+        title: t.title,
+        kind: t.kind,
+        year: t.year,
+        dot: DOT[t.kind],
+        art: ART[t.art],
+        hasSpan: !!t.span,
+        span: t.span || '',
+        spanTitle: t.spanTitle || t.span || '',
+        tracked: !!t.tracked,
+        trackedLabel: t.tracked || '',
       })),
-      sectionTitle: q ? 'Results' : 'Trending on this instance',
-      resultMeta: results.length + ' TITLES',
-      results,
     };
   }
 }

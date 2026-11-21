@@ -7,7 +7,7 @@ import type { Ref } from 'react';
 import type { View as RNView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon, type TabName } from '../../../src/components/TabIcon';
-import { color, layout, space, stroke, surface } from '../../../src/theme/tokens';
+import { color, layout, nativeInk, space, stroke, surface } from '../../../src/theme/tokens';
 import { useTranslation } from 'react-i18next';
 import { type } from '../../../src/theme/typography';
 
@@ -19,7 +19,7 @@ import { type } from '../../../src/theme/typography';
  * destinations inside Profile**; both are weekly, not daily.
  *
  * Headless `expo-router/ui` tabs rather than the drop-in `Tabs` navigator: the
- * bar is glass over the aura with a gradient-free active state (a pink glyph, a
+ * bar is glass over the aura with a gradient-free active state (a pink icon, a
  * pink label and an 18×2 rule), which is not a tint the navigator's options can
  * express.
  */
@@ -72,7 +72,7 @@ const TabButton = forwardRef(function TabButton(
   }: TabTriggerSlotProps & { icon: TabName; label: string },
   ref: Ref<RNView>,
 ) {
-  const tint = isFocused ? color.pink : color.dim;
+  const tint = isFocused ? nativeInk.pinkInk : color.muted;
   return (
     <Pressable
       ref={ref}

@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { dateToIso, isoToDate } from '../lib/dates';
-import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
+import { color, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
-import { Icon } from './Icon';
+import { CloseButton } from './HeaderControls';
 import { PrismButton } from './PrismButton';
 import { Sheet, SheetError, useSheetController } from './Sheet';
 
@@ -79,10 +79,7 @@ export function LogDatesSheet({
         />
       </View>
 
-      <Text style={[type.bodySm, styles.hint]}>
-        A finish date is what files a title under a year on your history; an unfinished one files
-        under its start.
-      </Text>
+      <Text style={styles.hint}>{t('media.dates.hint')}</Text>
 
       {error ? <SheetError message={error} /> : null}
 
@@ -144,25 +141,22 @@ function DateRow({
     <View style={styles.row}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value ? shortDate(value) : 'not set'}`}
+        accessibilityLabel={`${label}: ${value ? shortDate(value) : t('media.log.noDates')}`}
         onPress={onPress}
         android_ripple={{ color: 'rgba(217,107,176,0.12)' }}
         style={({ pressed }) => [styles.rowMain, { opacity: pressed ? 0.7 : 1 }]}
       >
         <Text style={[type.eyebrow, text.dim]}>{label.toUpperCase()}</Text>
-        <Text style={[type.button, value ? text.pink : text.faint]}>
+        <Text style={[styles.value, value ? text.pinkInk : text.dim]}>
           {value ? `${shortDate(value)} ${value.slice(0, 4)}` : t('media.dates.setDate')}
         </Text>
       </Pressable>
       {value ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Clear ${label.toLowerCase()} date`}
+        <CloseButton
+          label={`Clear ${label.toLowerCase()} date`}
           onPress={onClear}
-          style={({ pressed }) => [styles.clear, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Icon name="close" color={color.dim} size={16} />
-        </Pressable>
+          style={styles.clear}
+        />
       ) : null}
     </View>
   );
@@ -175,9 +169,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: radius.cover,
+    borderRadius: radius.cardSm,
     borderWidth: stroke,
-    borderColor: surface.glassBorder,
+    borderColor: 'rgba(255,255,255,0.12)',
     backgroundColor: surface.glass,
   },
   rowMain: {
@@ -185,17 +179,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: layout.touchTarget + 8,
+    minHeight: 56,
     paddingHorizontal: space.lg,
   },
   clear: {
-    minWidth: layout.touchTarget,
-    minHeight: layout.touchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: space.xs,
   },
   hint: {
-    color: color.dim,
+    fontFamily: type.body.fontFamily,
+    fontSize: 13,
+    lineHeight: 20,
+    color: color.muted,
+  },
+  value: {
+    fontFamily: type.button.fontFamily,
+    fontSize: 14,
+    letterSpacing: 0.84,
   },
   actions: {
     flexDirection: 'row',

@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { importMatch } from '@trackt/db';
+import { importMatch, importRun, isUniqueViolation, type Db } from '@trackt/db';
 import { ApiErrorSchema, MediaKindSchema } from '@trackt/shared';
 import {
   IMPORT_SOURCES,
@@ -9,9 +9,13 @@ import {
   ImportJobDataSchema,
   ImportJobResultSchema,
   ImportRequestSchema,
+  MAX_IMPORT_FILE_BYTES,
+  MAX_IMPORT_FILES,
   UncertainMatchListSchema,
   credentialsFromEnv,
   importJobId,
+  isFileSource,
+  readImportUpload,
   type ImportJobData,
   type ImportJobResult,
   type ImportSource,
@@ -34,13 +38,52 @@ const JOB_STATES = ['waiting', 'active', 'completed', 'failed', 'delayed', 'unkn
 const ImportJobStateSchema = z.enum(JOB_STATES);
 type ImportJobState = (typeof JOB_STATES)[number];
 
-const ImportQueuedSchema = z.object({ jobId: z.string(), state: ImportJobStateSchema });
+const ImportQueuedSchema = z.object({
+  jobId: z.string(),
+  state: ImportJobStateSchema,
+  /** The `import_run` row tracking this import; null for a preview or without a database. */
+  runId: z.string().nullable(),
+});
+
+const ImportRunSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  profile: z.string(),
+  state: z.enum(['queued', 'running', 'completed', 'failed']),
+  progress: z.object({ done: z.number(), total: z.number() }),
+  result: ImportJobResultSchema.nullable(),
+  errorKind: z.string().nullable(),
+  error: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+  startedAt: z.iso.datetime().nullable(),
+  finishedAt: z.iso.datetime().nullable(),
+});
+
+const ImportRunListSchema = z.object({ runs: z.array(ImportRunSchema) });
+
+const LIVE_RUN_STATES = ['queued', 'running'] as const;
+
+async function liveRunId(db: Db, userId: string, source: ImportSource): Promise<string | null> {
+  const [row] = await db
+    .select({ id: importRun.id })
+    .from(importRun)
+    .where(
+      and(
+        eq(importRun.userId, userId),
+        eq(importRun.source, source),
+        inArray(importRun.state, LIVE_RUN_STATES),
+      ),
+    )
+    .limit(1);
+  return row?.id ?? null;
+}
 
 const ImportSourceStatusSchema = z.object({
   id: z.string(),
   label: z.string(),
   kinds: z.array(MediaKindSchema),
-  access: z.enum(['api', 'scrape']),
+  /** `file`: the viewer uploads an export (`files` on the request) instead of naming a profile. */
+  access: z.enum(['api', 'scrape', 'file']),
   requiresBrowser: z.boolean(),
   available: z.boolean(),
   /** Why it is unavailable — the env var to set, never a value. */
@@ -148,6 +191,8 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/me/import',
     {
+      // A file source's export travels in the body (a TV Time series export runs to megabytes).
+      bodyLimit: MAX_IMPORT_FILE_BYTES * MAX_IMPORT_FILES,
       schema: {
         tags: ['imports'],
         body: ImportRequestSchema,
@@ -166,7 +211,7 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = await getSessionUser(app, request);
       if (!user) return reply.status(401).send({ error: 'authentication required' });
 
-      const { source, profile, overwrite, dryRun } = request.body;
+      const { source, overwrite, dryRun, files } = request.body;
 
       // Refuse at the door rather than after the job has been claimed and failed:
       // the operator can fix this, the viewer cannot.
@@ -177,37 +222,140 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
         throw error;
       }
 
-      const data: ImportJobData = ImportJobDataSchema.parse({
-        userId: user.id,
-        source,
-        profile,
-        ...(overwrite === undefined ? {} : { overwrite }),
-        ...(dryRun === undefined ? {} : { dryRun }),
-      });
+      // A file is read here, not in the worker: one that is not the export is the
+      // viewer's to fix, and the job carries only its compact form.
+      let profile = request.body.profile;
+      let upload: unknown;
+      if (isFileSource(source)) {
+        if (!files)
+          return reply.status(400).send({ error: 'this source imports a file: attach it' });
+        try {
+          ({ upload, profile } = readImportUpload(source, files));
+        } catch (error) {
+          if (error instanceof ImportError) return reply.status(400).send({ error: error.message });
+          throw error;
+        }
+      } else if (!profile) {
+        return reply.status(400).send({ error: 'profile is required for this source' });
+      }
+
+      const db = app.deps.db;
       // A preview is not the run it previews: distinct ids keep one from
       // joining (and swallowing) the other in the queue.
       const jobId = importJobId(user.id, source, dryRun ?? false);
+      const tracked = db !== undefined && !dryRun;
 
       const existing = await queue.getJob(jobId);
       if (existing) {
         const state = normalizeState(await existing.getState());
         // Waiting, running or scheduled: this IS the job the viewer meant.
         if (state !== 'completed' && state !== 'failed' && state !== 'unknown') {
-          return reply.status(202).send({ jobId, state });
+          const runId = tracked ? await liveRunId(db, user.id, source) : null;
+          return reply.status(202).send({ jobId, state, runId });
         }
         // Finished jobs keep their id forever (BullMQ retains them so the result
         // can be read), so a re-run has to clear the id before re-adding it.
         await existing.remove();
       }
 
-      const job = await queue.add('import', data, {
-        jobId,
-        attempts: 2,
-        backoff: { type: 'exponential', delay: 10_000 },
+      let runId: string | null = null;
+      if (tracked) {
+        // No live job, so a live row is one the queue lost (a Redis flush, a
+        // worker killed mid-run): close it, or it would hold the unique index.
+        await db
+          .update(importRun)
+          .set({
+            state: 'failed',
+            errorKind: 'lost',
+            error: 'the import queue lost this job',
+            finishedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(importRun.userId, user.id),
+              eq(importRun.source, source),
+              inArray(importRun.state, LIVE_RUN_STATES),
+            ),
+          );
+        try {
+          const [row] = await db
+            .insert(importRun)
+            .values({ userId: user.id, source, profile, overwrite: overwrite ?? false, jobId })
+            .returning({ id: importRun.id });
+          runId = row!.id;
+        } catch (error) {
+          // A concurrent request for the same source won the race: join its run.
+          if (!isUniqueViolation(error)) throw error;
+          return reply
+            .status(202)
+            .send({ jobId, state: 'waiting', runId: await liveRunId(db, user.id, source) });
+        }
+      }
+
+      const data: ImportJobData = ImportJobDataSchema.parse({
+        userId: user.id,
+        source,
+        profile,
+        ...(upload === undefined ? {} : { upload }),
+        ...(overwrite === undefined ? {} : { overwrite }),
+        ...(dryRun === undefined ? {} : { dryRun }),
+        ...(runId === null ? {} : { runId }),
       });
+
+      let job;
+      try {
+        job = await queue.add('import', data, {
+          jobId,
+          attempts: 2,
+          backoff: { type: 'exponential', delay: 10_000 },
+        });
+      } catch (error) {
+        // Never leave a live row behind for a job that was never queued.
+        if (db && runId) await db.delete(importRun).where(eq(importRun.id, runId));
+        throw error;
+      }
       return reply
         .status(202)
-        .send({ jobId: job.id ?? jobId, state: normalizeState(await job.getState()) });
+        .send({ jobId: job.id ?? jobId, state: normalizeState(await job.getState()), runId });
+    },
+  );
+
+  app.get(
+    '/me/import/runs',
+    {
+      schema: {
+        tags: ['imports'],
+        response: { 200: ImportRunListSchema, 401: ApiErrorSchema, 503: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const user = await getSessionUser(app, request);
+      if (!user) return reply.status(401).send({ error: 'authentication required' });
+
+      const rows = await db
+        .select()
+        .from(importRun)
+        .where(eq(importRun.userId, user.id))
+        .orderBy(desc(importRun.createdAt))
+        .limit(50);
+
+      return {
+        runs: rows.map((row) => ({
+          id: row.id,
+          source: row.source,
+          profile: row.profile,
+          state: row.state,
+          progress: { done: row.done, total: row.total },
+          result: readResult(row.result),
+          errorKind: row.errorKind,
+          error: row.error,
+          createdAt: row.createdAt.toISOString(),
+          startedAt: row.startedAt?.toISOString() ?? null,
+          finishedAt: row.finishedAt?.toISOString() ?? null,
+        })),
+      };
     },
   );
 

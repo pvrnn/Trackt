@@ -492,6 +492,27 @@ describe.runIf(available)('news (postgres)', () => {
       expect(result.articles.map((a) => a.title).sort()).toEqual(['Anime story', 'Manga story']);
     });
 
+    it('counts the feed on its first page only', async () => {
+      await publishMany(2, { kinds: ['series'] });
+      await publishMany(1, { title: 'Crossover story', kinds: ['manga', 'anime'] });
+      const first = await feed('limit=1');
+      expect(first.facets).toEqual({
+        total: 3,
+        anyKind: 3,
+        kinds: { series: 2, manga: 1, anime: 1 },
+      });
+      // The kind filter narrows the total but not the per-kind counts, so the
+      // strip still says what every other kind holds.
+      expect((await feed('kinds=anime')).facets).toEqual({
+        total: 1,
+        anyKind: 3,
+        kinds: { series: 2, manga: 1, anime: 1 },
+      });
+      expect(
+        (await feed(`limit=1&cursor=${encodeURIComponent(first.nextCursor ?? '')}`)).facets,
+      ).toBeUndefined();
+    });
+
     it('rejects a kind list this build does not know', async () => {
       const response = await app.inject({ method: 'GET', url: '/v1/news?kinds=anime,vinyl' });
       expect(response.statusCode).toBe(400);
