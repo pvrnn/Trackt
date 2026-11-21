@@ -5,7 +5,14 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NewsFilterBar } from '../../../src/components/NewsFilterBar';
+import { FilterBar } from '../../../src/components/FilterBar';
+import {
+  FilterSlab,
+  KindDock,
+  SlabCell,
+  SlabNote,
+  SlabRow,
+} from '../../../src/components/FilterSlab';
 import { NewsRow } from '../../../src/components/NewsRow';
 import {
   EmptyState,
@@ -20,11 +27,12 @@ import {
 import {
   WINDOWS,
   kindsFilter,
+  useWindowCounts,
   storyCount,
   windowStart,
   type WindowKey,
 } from '../../../src/lib/news-filters';
-import { color, gutter, space, text } from '../../../src/theme/tokens';
+import { color, gutter, layout, space, text } from '../../../src/theme/tokens';
 import { type } from '../../../src/theme/typography';
 
 /**
@@ -34,8 +42,9 @@ import { type } from '../../../src/theme/typography';
  * to render and no way back.
  */
 export default function NewsTab() {
-  /** Empty is ALL KINDS: its own row in the menu, not every other row ticked. */
-  const [kinds, setKinds] = useState<MediaKind[]>([]);
+  /** Undefined is every kind: the dock's ring, as on Discover. */
+  const [kind, setKind] = useState<MediaKind | undefined>(undefined);
+  const kinds = useMemo(() => (kind ? [kind] : []), [kind]);
   const [window, setWindow] = useState<WindowKey>('all');
   const { t } = useTranslation();
   const bottomInset = useTabContentInset();
@@ -56,7 +65,10 @@ export default function NewsTab() {
     loadMore,
     refresh,
     isRefreshing,
+    facets,
   } = useNewsFeed(filters);
+  const windowCounts = useWindowCounts(kinds);
+  const current = WINDOWS.find((entry) => entry.key === window) ?? WINDOWS[3];
 
   return (
     <PageFrame fadeOnFocus>
@@ -75,15 +87,33 @@ export default function NewsTab() {
               <PageTitle title={t('news.title')} />
               <StaleNotice updatedAt={updatedAt} />
             </View>
-            <View style={styles.secondRow}>
-              <NewsFilterBar
-                kinds={kinds}
-                onKinds={setKinds}
-                window={window}
-                onWindow={setWindow}
-                summary={isLoading ? undefined : storyCount(articles.length, hasMore)}
-              />
-            </View>
+            {/* Discover's slab: the kind dock, then a cell per remaining filter. */}
+            <FilterSlab style={styles.slab}>
+              <KindDock kind={kind} onKind={setKind} counts={facets?.kinds} first />
+              <SlabRow row>
+                <SlabCell>
+                  <FilterBar
+                    variant="slab"
+                    filters={[
+                      {
+                        key: 'window',
+                        icon: 'clock',
+                        caption: t('news.when'),
+                        label: t(current.labelKey),
+                        rows: WINDOWS.map((entry) => ({
+                          key: entry.key,
+                          label: t(entry.labelKey),
+                          count: windowCounts[entry.key],
+                          selected: entry.key === window,
+                        })),
+                        onSelect: (key) => setWindow(key as WindowKey),
+                      },
+                    ]}
+                  />
+                </SlabCell>
+                {isLoading ? null : <SlabNote>{storyCount(articles.length, hasMore)}</SlabNote>}
+              </SlabRow>
+            </FilterSlab>
           </View>
         }
         ListEmptyComponent={
@@ -110,7 +140,7 @@ export default function NewsTab() {
           isLoadingMore ? (
             <ActivityIndicator color={color.pink} style={styles.footer} />
           ) : articles.length > 0 && !hasMore ? (
-            <Text style={[type.eyebrow, text.faint, styles.end]}>END OF THE FEED</Text>
+            <Text style={[type.eyebrow, text.dim, styles.end]}>{t('news.endOfFeed')}</Text>
           ) : null
         }
         renderItem={({ item }) => <NewsRow article={item} />}
@@ -120,9 +150,10 @@ export default function NewsTab() {
 }
 
 const styles = StyleSheet.create({
-  secondRow: {
+  slab: {
     marginTop: space.md,
     marginBottom: space.lg,
+    marginHorizontal: layout.gutter,
   },
   footer: {
     paddingVertical: space.xl,

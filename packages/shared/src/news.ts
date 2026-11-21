@@ -187,10 +187,25 @@ export function newsQueryKinds(query: Pick<NewsListQuery, 'kind' | 'kinds'>): Me
   return [...new Set([...(query.kinds ?? []), ...(query.kind ? [query.kind] : [])])];
 }
 
+/**
+ * Counts for the feed's first page only. `total` honours every filter;
+ * `anyKind` and `kinds` ignore the kind filter, so the strip can count every
+ * option, and `kinds` counts a story once per kind it touches. Keys are plain
+ * strings: a newer catalog may count a kind this build does not know.
+ */
+export const NewsFeedFacetsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  anyKind: z.number().int().nonnegative(),
+  kinds: z.record(z.string(), z.number().int().nonnegative()),
+});
+export type NewsFeedFacets = z.infer<typeof NewsFeedFacetsSchema>;
+
 export const NewsListResponseSchema = z.object({
   articles: z.array(NewsArticleSummarySchema),
   /** null on the last page. Opaque — decode only via {@link decodeNewsCursor}. */
   nextCursor: z.string().nullable(),
+  /** Present on a first page (no `cursor`) from a catalog that counts. */
+  facets: NewsFeedFacetsSchema.optional(),
 });
 export type NewsListResponse = z.infer<typeof NewsListResponseSchema>;
 
@@ -198,8 +213,8 @@ export type NewsListResponse = z.infer<typeof NewsListResponseSchema>;
  * Keyset cursor over `(published_at DESC, id DESC)` — the repo's first paginated
  * endpoint (ADR-0005). Offset pagination would drift as articles publish under a
  * reader mid-scroll and would make Postgres count past every skipped row; a
- * keyset does neither, at the cost of losing numbered pages (a deliberate
- * deviation from `News.dc.html`, which draws a numbered pager).
+ * keyset does neither. Numbered pages are drawn over it from `facets.total`:
+ * page N is the Nth cursor hop, never an OFFSET.
  *
  * Base64url of `publishedAt|id`. Opaque to clients by contract, not by
  * encryption: it carries only values the same page already returned.

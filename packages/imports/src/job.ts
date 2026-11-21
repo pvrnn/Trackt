@@ -4,6 +4,7 @@ import { ImportError, type ImportErrorKind } from './errors.js';
 import type { ImportRun } from './run.js';
 import { IMPORT_SOURCES } from './sources.js';
 import type { ImportCredentials, ImportSource, ImportWarningCode } from './types.js';
+import { ImportFileSchema, MAX_IMPORT_FILES } from './upload.js';
 
 /**
  * The `importer` queue's contract, declared once: the API produces it, the
@@ -21,23 +22,39 @@ export interface ImportJobData {
   userId: string;
   source: ImportSource;
   profile: string;
+  /** File sources: the compact export, read and validated by the API (`readImportUpload`). */
+  upload?: unknown;
   overwrite?: boolean;
   dryRun?: boolean;
+  /** The `import_run` row the worker keeps current; absent on previews and CLI runs. */
+  runId?: string;
 }
 
-const importJobData = z.object({
+/** The provider username; a wizard passes what the viewer typed, trimmed. */
+const ProfileSchema = z.string().trim().min(1).max(100);
+
+export const ImportJobDataSchema: z.ZodType<ImportJobData> = z.object({
   userId: z.string().min(1),
   source: ImportSourceSchema,
-  /** The provider username; a wizard passes what the viewer typed, trimmed. */
-  profile: z.string().trim().min(1).max(100),
+  profile: ProfileSchema,
+  upload: z.unknown().optional(),
+  overwrite: z.boolean().optional(),
+  dryRun: z.boolean().optional(),
+  runId: z.uuid().optional(),
+});
+
+/**
+ * The API's body: the session supplies `userId`; `dryRun` asks for a preview.
+ * A profile source needs `profile`; a file source (`access: 'file'`) needs
+ * `files` instead, and the API names the run after them.
+ */
+export const ImportRequestSchema = z.object({
+  source: ImportSourceSchema,
+  profile: ProfileSchema.optional(),
+  files: z.array(ImportFileSchema).min(1).max(MAX_IMPORT_FILES).optional(),
   overwrite: z.boolean().optional(),
   dryRun: z.boolean().optional(),
 });
-
-export const ImportJobDataSchema: z.ZodType<ImportJobData> = importJobData;
-
-/** The API's body: the session supplies `userId`; `dryRun` asks for a preview. */
-export const ImportRequestSchema = importJobData.omit({ userId: true });
 export type ImportRequest = z.infer<typeof ImportRequestSchema>;
 
 /**
@@ -134,6 +151,7 @@ export const ImportReportSchema = z.object({
   profile: z.string(),
   created: z.number(),
   updated: z.number(),
+  merged: z.number().default(0),
   skippedExisting: z.number(),
   withProgress: z.number(),
   ratings: z.number(),

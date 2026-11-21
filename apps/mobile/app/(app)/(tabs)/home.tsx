@@ -1,40 +1,37 @@
 import { useMutation } from '@tanstack/react-query';
-import { upNextPartKey, useHomeSummary } from '@trackt/client';
-import { IN_PROGRESS_LIMIT, type UpNextEntry } from '@trackt/shared';
+import { upNextPartKey, useHomeSummary, useTrackedNews } from '@trackt/client';
+import { IN_PROGRESS_LIMIT, type HomeSummary, type UpNextEntry } from '@trackt/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
+import type { TFunction } from 'i18next';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GlassCard } from '../../../src/components/GlassCard';
+import { Avatar } from '../../../src/components/Avatar';
+import { HomeLink, HomeSectionHead, NewsBrief, NewsLead } from '../../../src/components/HomeNews';
+import { Icon } from '../../../src/components/Icon';
 import {
   EmptyState,
   Loading,
   PageFrame,
-  PageTitle,
   QueryState,
-  SectionTitle,
   pullToRefresh,
   useTabContentInset,
 } from '../../../src/components/Page';
-import {
-  ActivityRow,
-  UpNextRow,
-  checkInWrite,
-  partLabel,
-  undoWrite,
-} from '../../../src/components/HomeRows';
-import { Shelf, ShelfItem } from '../../../src/components/Shelf';
-import { Stat, Stats } from '../../../src/components/Stat';
+import { PrismText } from '../../../src/components/PrismText';
+import { UpNextRow, checkInWrite, partLabel, undoWrite } from '../../../src/components/HomeRows';
 import { SkeletonRows } from '../../../src/components/Skeleton';
+import { Touchable } from '../../../src/components/Touchable';
 import { commitHaptic, errorHaptic } from '../../../src/lib/haptics';
-import { duration, staggerDelay } from '../../../src/lib/motion';
 import { useIsOnline } from '../../../src/lib/network';
 import { TRACKING_MUTATION_KEY, type PartWrite } from '../../../src/lib/offline';
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
-import { color, layout, space } from '../../../src/theme/tokens';
-import { type } from '../../../src/theme/typography';
+import { color, layout, space, text } from '../../../src/theme/tokens';
+import { font, type } from '../../../src/theme/typography';
+
+/** How many in-progress titles feed "news from what you track": one read each. */
+const NEWS_SOURCES = 4;
+const NEWS_SHOWN = 3;
 
 /**
  * The home dashboard (`GET /me/home`) — and the app's daily action.
@@ -55,6 +52,10 @@ import { type } from '../../../src/theme/typography';
 export default function HomeTab() {
   const { user, isPending: sessionPending } = useAuthedScreen();
   const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useHomeSummary();
+  const news = useTrackedNews(
+    (data?.inProgress ?? []).slice(0, NEWS_SOURCES).map((entry) => entry.id),
+    NEWS_SHOWN,
+  );
   const bottomInset = useTabContentInset();
   const insets = useSafeAreaInsets();
   const isOnline = useIsOnline();
@@ -83,7 +84,10 @@ export default function HomeTab() {
   const commit = (entry: UpNextEntry, queued: boolean) => {
     commitHaptic();
     toast({
-      message: `${entry.title} — ${partLabel(entry)} checked in${queued ? ' · will sync' : ''}`,
+      message: t(queued ? 'home.checkedInQueued' : 'home.checkedIn', {
+        title: entry.title,
+        part: partLabel(entry),
+      }),
       action: { label: t('home.undo'), onPress: () => uncheck.mutate(undoWrite(entry)) },
     });
   };
@@ -146,6 +150,14 @@ export default function HomeTab() {
     );
   }
 
+  const android = Platform.OS === 'android';
+  const subtitle = data ? waitingLabel(t, data.upNext) : '';
+  const avatar = (size: number) => (
+    <Touchable href="/profile" style={styles.target} accessibilityLabel={t('home.profile')}>
+      <Avatar name={user.name} image={user.image} size={size} />
+    </Touchable>
+  );
+
   return (
     <PageFrame fadeOnFocus>
       <ScrollView
@@ -153,12 +165,42 @@ export default function HomeTab() {
           styles.content,
           { paddingTop: insets.top + space.lg, paddingBottom: bottomInset },
         ]}
-        refreshControl={pullToRefresh(isRefetching, () => void refetch())}
+        refreshControl={pullToRefresh(isRefetching, () => {
+          void refetch();
+          news.refetch();
+        })}
       >
-        <PageTitle
-          title={t('home.title')}
-          count={data ? `${data.upNext.length} waiting on you` : undefined}
-        />
+        {android ? (
+          <View style={styles.appBar}>
+            <PrismText style={styles.wordmark}>TRACKT</PrismText>
+            <View style={styles.appBarActions}>
+              <Touchable
+                href="/discover"
+                style={styles.target}
+                accessibilityLabel={t('home.search')}
+              >
+                <Icon name="search" color={color.dim} />
+              </Touchable>
+              {avatar(32)}
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={[type.title, text.fg]}>{t('home.title').toUpperCase()}</Text>
+            {subtitle ? (
+              android ? (
+                <Text style={[type.eyebrow, text.dim]}>{subtitle}</Text>
+              ) : (
+                <View style={styles.shrink}>
+                  <PrismText style={type.eyebrow}>{subtitle}</PrismText>
+                </View>
+              )
+            ) : null}
+          </View>
+          {android ? null : avatar(36)}
+        </View>
 
         <QueryState
           query={{ data, isPending, isError, dataUpdatedAt }}
@@ -187,60 +229,30 @@ export default function HomeTab() {
               )}
 
               {data.inProgress.length > 0 ? (
-                <View style={styles.section}>
-                  <SectionTitle title={t('home.inProgress.title')} />
-                  <Shelf padding="right">
-                    {data.inProgress.map((entry, index) => (
-                      <Animated.View
-                        key={entry.id}
-                        entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
-                        layout={LinearTransition.duration(duration.commit)}
-                      >
-                        <ShelfItem
-                          href={`/media/${entry.slug}`}
-                          kind={entry.kind}
-                          title={entry.title}
-                          coverUrl={entry.coverUrl}
-                          progress={entry.total ? entry.watched / entry.total : undefined}
-                          note={
-                            entry.total ? `${entry.watched} / ${entry.total}` : `${entry.watched}`
-                          }
-                        />
-                      </Animated.View>
-                    ))}
-                  </Shelf>
-                  {data.inProgress.length === IN_PROGRESS_LIMIT ? (
-                    <Text style={[type.eyebrow, styles.shelfNote]}>
-                      FIRST {IN_PROGRESS_LIMIT} · SEE HISTORY FOR THE REST
-                    </Text>
-                  ) : null}
+                <View style={styles.library}>
+                  <Text style={[type.eyebrow, text.dim]}>
+                    {data.inProgress.length >= IN_PROGRESS_LIMIT
+                      ? t('home.inProgressMore', { count: IN_PROGRESS_LIMIT })
+                      : t('home.inProgressCount', { count: data.inProgress.length })}
+                  </Text>
+                  <HomeLink href="/history?status=in_progress" label={t('home.seeAll')} />
                 </View>
               ) : null}
 
-              <View style={styles.section}>
-                <SectionTitle title={t('home.stats.title')} />
-                <Stats>
-                  <Stat value={data.stats.episodesThisYear} label={t('home.stats.episodes')} />
-                  <Stat value={data.stats.chaptersThisYear} label={t('home.stats.chapters')} />
-                  <Stat value={data.stats.completedThisYear} label={t('home.stats.completed')} />
-                  <Stat value={data.stats.dayStreak} label={t('home.stats.dayStreak')} />
-                </Stats>
-              </View>
-
-              {data.activity.length > 0 ? (
+              {news.articles.length > 0 ? (
                 <View style={styles.section}>
-                  <SectionTitle title={t('home.activity.title')} />
-                  <GlassCard style={styles.activityCard}>
-                    {data.activity.map((entry, index) => (
-                      <Animated.View
-                        key={`${entry.slug}-${entry.at}-${index}`}
-                        entering={FadeIn.delay(staggerDelay(index)).duration(duration.commit)}
-                        layout={LinearTransition.duration(duration.commit)}
-                      >
-                        <ActivityRow entry={entry} first={index === 0} />
-                      </Animated.View>
-                    ))}
-                  </GlassCard>
+                  <HomeSectionHead
+                    title={t('home.news.title')}
+                    caption={t('home.news.caption')}
+                    action={<HomeLink href="/news" label={t('home.news.all')} />}
+                  />
+                  {news.articles.map((article, index) =>
+                    index === 0 ? (
+                      <NewsLead key={article.id} article={article} />
+                    ) : (
+                      <NewsBrief key={article.id} article={article} />
+                    ),
+                  )}
                 </View>
               ) : null}
             </>
@@ -251,35 +263,72 @@ export default function HomeTab() {
   );
 }
 
-/** 'E13' / 'CH204' — the part a row's check-in targets, in the row's own words. */
-/** The two writes an up-next row can produce, as values (`lib/offline.ts`). */
+/** '2 EPISODES · 1 CHAPTER' — what the up-next rows hold, by part. */
+function waitingLabel(t: TFunction, upNext: HomeSummary['upNext']): string {
+  const episodes = upNext.filter((entry) => entry.partKind === 'episode').length;
+  const chapters = upNext.length - episodes;
+  return [
+    episodes ? t('home.pending.episodes', { count: episodes }) : null,
+    chapters ? t('home.pending.chapters', { count: chapters }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: layout.gutter,
   },
-  section: {
-    marginTop: layout.sectionGap,
+  appBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: space.sm,
+  },
+  wordmark: {
+    fontFamily: font.display,
+    fontSize: 26,
+    lineHeight: 30,
+  },
+  appBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  target: {
+    minWidth: layout.touchTarget,
+    minHeight: layout.touchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: space.md,
+    paddingBottom: space.lg,
+  },
+  headerText: {
+    flexShrink: 1,
+    gap: 3,
+  },
+  // PrismText sizes itself to its mask, so it needs a shrink-to-fit parent.
+  shrink: {
+    alignSelf: 'flex-start',
   },
   rows: {
     // No `gap`: each row owns its own 8pt bottom margin, because a collapsing
-    // row has to take its spacing with it — a `gap` would leave an 8pt hole
-    // where the checked-in row used to be. The negative margin cancels the
-    // trailing one so the next section keeps its 28.
+    // row has to take its spacing with it. The negative margin cancels the
+    // trailing one.
     marginBottom: -space.sm,
   },
-  // No pill, no fill, no border. `Mobile System.dc.html` §04 ends this row with
-  // a `›` in #3d3846 — "a dim chevron is the only affordance" — because the
-  // swipe is the action and the row is already a link. A filled 44pt pink disc
-  // sitting beside a 40×56 cover reads as the loudest thing in the row, which
-  // inverts that. What stays is the 44pt target and the tick, because the glyph
-  // has to say *check in* rather than *open* — a chevron here would name the
-  // wrong action. The weight comes off; the control does not.
-
-  shelfNote: {
-    color: color.faint,
-    marginTop: space.md,
+  library: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: space.xs,
   },
-  activityCard: {
-    paddingHorizontal: space.lg,
+  section: {
+    marginTop: layout.sectionGap,
+    gap: space.md,
   },
 });

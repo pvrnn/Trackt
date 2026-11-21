@@ -14,7 +14,12 @@ export interface HistorySearchParams {
   status?: LogStatus;
   /** How the list breaks into headed blocks. Absent means year. */
   group?: HistoryGrouping;
+  /** Timeline or poster grid. Absent means timeline. */
+  view?: HistoryViewMode;
 }
+
+export const HISTORY_VIEWS = ['timeline', 'grid'] as const;
+export type HistoryViewMode = (typeof HISTORY_VIEWS)[number];
 
 export const ALL_YEARS = 'all';
 export const ALL_KINDS = 'all';
@@ -38,6 +43,9 @@ export function validateHistorySearch(search: Record<string, unknown>): HistoryS
       : undefined,
     group: HISTORY_GROUPINGS.includes(search.group as HistoryGrouping)
       ? (search.group as HistoryGrouping)
+      : undefined,
+    view: HISTORY_VIEWS.includes(search.view as HistoryViewMode)
+      ? (search.view as HistoryViewMode)
       : undefined,
   };
 }

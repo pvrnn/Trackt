@@ -64,7 +64,8 @@ export interface Filter {
  * `pills` is content-width with an icon, and wraps. `columns` divides the line
  * into equal cells naming their axis above their value: three pills do not fit
  * one line, and the caption is what lets three values be short enough that they
- * do.
+ * do. `slab` is `columns` without the boxes, caption beside value, for a row
+ * inside a host's own glass panel; it brings no gutter of its own.
  */
 export function FilterBar({
   filters,
@@ -73,7 +74,7 @@ export function FilterBar({
 }: {
   filters: Filter[];
   summary?: string | undefined;
-  variant?: 'pills' | 'columns';
+  variant?: Variant;
 }) {
   // One menu at a time: they are all anchored to the same row.
   const [open, setOpen] = useState<string | null>(null);
@@ -131,11 +132,21 @@ export function FilterBar({
   };
 
   return (
-    <View style={styles.filter}>
-      <View ref={row} style={variant === 'columns' ? styles.filterColumns : styles.filterRow}>
-        {filters.map((filter) => (
+    <View style={variant === 'slab' ? null : styles.filter}>
+      <View
+        ref={row}
+        style={
+          variant === 'slab'
+            ? styles.filterSlab
+            : variant === 'columns'
+              ? styles.filterColumns
+              : styles.filterRow
+        }
+      >
+        {filters.map((filter, index) => (
           <FilterPill
             key={filter.key}
+            first={index === 0}
             icon={filter.icon}
             label={filter.label}
             caption={filter.caption}
@@ -172,6 +183,8 @@ export function FilterBar({
     </View>
   );
 }
+
+type Variant = 'pills' | 'columns' | 'slab';
 
 /** Where a menu hangs: window coordinates of the row it belongs to. */
 interface Anchor {
@@ -233,6 +246,7 @@ function FilterPill({
   label,
   caption,
   variant,
+  first,
   open,
   disabled,
   onLayout,
@@ -241,7 +255,8 @@ function FilterPill({
   icon: IconName;
   label: string;
   caption?: string | undefined;
-  variant: 'pills' | 'columns';
+  variant: Variant;
+  first: boolean;
   open: boolean;
   disabled: boolean;
   onLayout: (event: LayoutChangeEvent) => void;
@@ -249,6 +264,39 @@ function FilterPill({
 }) {
   const { caretStyle } = useDisclosure(open);
   const ink = disabled ? color.faint : color.muted;
+
+  if (variant === 'slab') {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={caption ? `${caption}: ${label}` : label}
+        accessibilityState={{ expanded: open, disabled }}
+        disabled={disabled}
+        onLayout={onLayout}
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.slabCell,
+          !first && styles.slabCellDivided,
+          { opacity: disabled ? 0.4 : pressed ? 0.7 : 1 },
+        ]}
+      >
+        {caption ? (
+          <Text numberOfLines={1} style={styles.slabCaption}>
+            {caption.toUpperCase()}
+          </Text>
+        ) : null}
+        <Text
+          numberOfLines={1}
+          style={[styles.slabValue, { color: disabled ? color.faint : color.fg }]}
+        >
+          {label.toUpperCase()}
+        </Text>
+        <Animated.View style={caretStyle}>
+          <Icon name="caret-down" color={ink} size={10} />
+        </Animated.View>
+      </Pressable>
+    );
+  }
 
   if (variant === 'columns') {
     return (
@@ -416,6 +464,36 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: space.sm,
   },
+  filterSlab: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  slabCell: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minHeight: 46,
+    paddingLeft: space.lg,
+    paddingRight: space.md,
+  },
+  slabCellDivided: {
+    borderLeftWidth: stroke,
+    borderLeftColor: surface.divider,
+  },
+  slabCaption: {
+    fontFamily: font.label,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: color.dim,
+  },
+  slabValue: {
+    flex: 1,
+    fontFamily: font.label,
+    fontSize: 12,
+    letterSpacing: 0.72,
+  },
   /** An equal share of the line, so the row cannot wrap. */
   filterCell: {
     flex: 1,
@@ -431,9 +509,7 @@ const styles = StyleSheet.create({
     backgroundColor: surface.glass,
   },
   filterCaption: {
-    color: color.faint,
-    fontSize: 9,
-    letterSpacing: 0.9,
+    color: color.dim,
   },
   filterValueRow: {
     flexDirection: 'row',
@@ -459,7 +535,7 @@ const styles = StyleSheet.create({
     fontFamily: font.label,
     fontSize: 10,
     letterSpacing: 1,
-    color: color.faint,
+    color: color.dim,
   },
   summaryEnd: {
     flexShrink: 1,

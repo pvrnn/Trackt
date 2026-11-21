@@ -6,9 +6,15 @@ import {
   type ImportJobProgress,
   type ImportPlan,
   type ImportReport,
+  type ImportRunPatch,
   type RunImportOptions,
 } from '@trackt/imports';
-import { createImportProcessor, type ImportJobLike, type RunImportFn } from '../src/importer.js';
+import {
+  createImportProcessor,
+  type ImportJobLike,
+  type ImportRunStore,
+  type RunImportFn,
+} from '../src/importer.js';
 
 /**
  * The queue wiring, without Redis or a provider: a fake job, a stubbed pipeline.
@@ -107,6 +113,7 @@ const report: ImportReport = {
   profile: 'alice',
   created: 2,
   updated: 0,
+  merged: 0,
   skippedExisting: 0,
   withProgress: 2,
   ratings: 0,
@@ -244,5 +251,72 @@ describe('createImportProcessor', () => {
     expect(seen[0]).toMatchObject({ overwrite: true, dryRun: true });
     // A dry run writes nothing, so there is no report to show.
     expect(result.report).toBeNull();
+  });
+
+  describe('the import_run row', () => {
+    const runId = '7f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b';
+
+    function recorder(): ImportRunStore & { writes: [string, ImportRunPatch][] } {
+      const writes: [string, ImportRunPatch][] = [];
+      return {
+        writes,
+        async update(id, patch) {
+          writes.push([id, patch]);
+        },
+      };
+    }
+
+    it('moves from running to completed with the result', async () => {
+      const { runImport } = stubRun();
+      const runs = recorder();
+      const processor = createImportProcessor({ db, env: {}, runImport, runs });
+
+      await processor(fakeJob({ ...validJob, runId }));
+
+      expect(runs.writes.every(([id]) => id === runId)).toBe(true);
+      expect(runs.writes[0]![1]).toMatchObject({ state: 'running' });
+      const last = runs.writes.at(-1)![1];
+      expect(last).toMatchObject({ state: 'completed', done: 3, total: 3 });
+      expect(last.result).toMatchObject({ plan: { total: 3 } });
+      expect(last.finishedAt).toBeInstanceOf(Date);
+    });
+
+    it('goes back to queued while BullMQ will retry, and fails on the last attempt', async () => {
+      const runImport: RunImportFn = async () => {
+        throw new ImportError('profile is private', 'private');
+      };
+      const runs = recorder();
+      const processor = createImportProcessor({ db, env: {}, runImport, runs });
+      const job = { ...fakeJob({ ...validJob, runId }), opts: { attempts: 2 } };
+
+      await processor({ ...job, attemptsMade: 0 }).catch(() => undefined);
+      expect(runs.writes.at(-1)![1]).toMatchObject({ state: 'queued', errorKind: 'private' });
+
+      await processor({ ...job, attemptsMade: 1 }).catch(() => undefined);
+      expect(runs.writes.at(-1)![1]).toMatchObject({
+        state: 'failed',
+        errorKind: 'private',
+        error: 'profile is private',
+      });
+    });
+
+    it('does not fail the import when the row cannot be written', async () => {
+      const { runImport } = stubRun();
+      const runs: ImportRunStore = {
+        update: () => Promise.reject(new Error('db down')),
+      };
+      const processor = createImportProcessor({ db, env: {}, runImport, runs });
+
+      const result = await processor(fakeJob({ ...validJob, runId }));
+
+      expect(result.plan.total).toBe(3);
+    });
+
+    it('writes nothing for a job without a run (a preview, the CLI)', async () => {
+      const { runImport } = stubRun();
+      const runs = recorder();
+      await createImportProcessor({ db, env: {}, runImport, runs })(fakeJob(validJob));
+      expect(runs.writes).toHaveLength(0);
+    });
   });
 });

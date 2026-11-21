@@ -21,8 +21,12 @@ export interface SelectProps {
   value: string;
   onChange: (value: string) => void;
   items: SelectItem[];
-  /** `pill` sits in an action row (media detail); `field` sits in a form well. */
-  variant?: 'pill' | 'field';
+  /**
+   * `pill` sits in an action row (media detail); `field` sits in a form well;
+   * `bare` is a captioned value docked in a console that draws its own edges;
+   * `cell` fills a `FilterCell`, which draws the label and the chevron.
+   */
+  variant?: 'pill' | 'field' | 'bare' | 'cell';
   /** `pill` only: paints the trigger pink to signal an active choice. */
   selected?: boolean;
   /**
@@ -62,7 +66,7 @@ export function Select({
   className,
   ...props
 }: SelectProps) {
-  const pill = variant === 'pill';
+  const pill = variant === 'pill' || variant === 'bare';
   return (
     <SelectPrimitive.Root
       value={toRadix(value)}
@@ -76,19 +80,30 @@ export function Select({
         className={clsx(
           'cursor-pointer transition outline-none',
           disabled && 'pointer-events-none opacity-40',
-          pill
+          variant === 'cell'
             ? [
-                'inline-flex items-center gap-2 rounded-full border py-[11px] pr-4 pl-5',
-                'font-label text-xs font-semibold tracking-label',
-                selected
-                  ? 'border-pink bg-pink-selected text-pink'
-                  : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
+                'fcell-select min-w-0 flex-1 self-stretch truncate py-[19px] pr-[22px] text-left',
+                'font-label text-xs font-bold tracking-[0.06em] text-fg uppercase',
               ]
-            : [
-                'flex w-full items-center justify-between gap-2 rounded-cover border border-white/12',
-                'bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg',
-                'focus:border-pink/60 data-[state=open]:border-pink/60',
-              ],
+            : variant === 'bare'
+              ? [
+                  'inline-flex items-center gap-2 py-3 pr-3 pl-4 font-label text-xs font-bold tracking-label',
+                  'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-pink',
+                  selected ? 'text-pink' : 'text-fg hover:text-pink',
+                ]
+              : pill
+                ? [
+                    'inline-flex items-center gap-2 rounded-full border py-[11px] pr-4 pl-5',
+                    'font-label text-xs font-semibold tracking-label',
+                    selected
+                      ? 'border-pink bg-pink-selected text-pink'
+                      : 'border-glass-border-strong bg-glass text-fg hover:border-pink hover:text-pink',
+                  ]
+                : [
+                    'flex w-full items-center justify-between gap-2 rounded-cover border border-white/12',
+                    'bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg',
+                    'focus:border-pink/60 data-[state=open]:border-pink/60',
+                  ],
           className,
         )}
       >
@@ -98,11 +113,16 @@ export function Select({
           </span>
         )}
         <SelectPrimitive.Value />
-        <SelectPrimitive.Icon
-          className={clsx('text-[10px]', pill ? (selected ? 'text-pink' : 'text-dim') : 'text-dim')}
-        >
-          ▾
-        </SelectPrimitive.Icon>
+        {variant !== 'cell' && (
+          <SelectPrimitive.Icon
+            className={clsx(
+              'text-[10px]',
+              pill ? (selected ? 'text-pink' : 'text-dim') : 'text-dim',
+            )}
+          >
+            ▾
+          </SelectPrimitive.Icon>
+        )}
       </SelectPrimitive.Trigger>
 
       <SelectPrimitive.Portal>

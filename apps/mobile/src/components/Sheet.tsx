@@ -1,6 +1,15 @@
 import { BlurView } from 'expo-blur';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Keyboard,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -13,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
+import { StepHeader } from './HeaderControls';
 import { duration, springBack } from '../lib/motion';
 import { color, nativeSurface, space } from '../theme/tokens';
 import { type } from '../theme/typography';
@@ -87,12 +97,29 @@ export function Sheet({
   children,
   /** 92% for pickers with a long list; the default 60% suits a short form. */
   tall = false,
+  step,
+  action,
 }: {
   title: string;
   subtitle?: string | undefined;
   controller: SheetController;
   children: ReactNode;
   tall?: boolean;
+  /** A control on the title's line, right-aligned: a sheet-wide RESET, say. */
+  action?: ReactNode;
+  /**
+   * The §08 header line under the grabber: location left, close right,
+   * progress under it. The title block still follows it.
+   */
+  step?:
+    | {
+        label: string;
+        emphasis?: string | undefined;
+        progress?: { step: number; total: number } | undefined;
+        /** Default true. */
+        closable?: boolean | undefined;
+      }
+    | undefined;
 }) {
   const insets = useSafeAreaInsets();
   const { progress, drag, dismiss } = controller;
@@ -105,6 +132,8 @@ export function Sheet({
   useEffect(() => {
     progress.value = withTiming(1, { duration: duration.commit });
   }, [progress]);
+
+  const keyboard = useKeyboardHeight();
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
 
@@ -143,7 +172,7 @@ export function Sheet({
       {/* Android renders a `Modal` into its own window, which is outside the
           root view in `app/_layout.tsx`; without a second root here the pan
           detector below never receives a touch. */}
-      <GestureHandlerRootView style={styles.root}>
+      <GestureHandlerRootView style={[styles.root, { paddingBottom: keyboard }]}>
         {/* Tap-to-dismiss, per §05. Labelled rather than left as bare chrome:
             with the sheet up it is the only other thing on screen. */}
         <AnimatedPressable
@@ -174,8 +203,20 @@ export function Sheet({
                 importantForAccessibility="no"
                 style={styles.grabber}
               />
-              <View style={styles.head}>
-                <Text style={[type.section, styles.title]}>{title.toUpperCase()}</Text>
+              {step ? (
+                <StepHeader
+                  label={step.label}
+                  emphasis={step.emphasis}
+                  progress={step.progress}
+                  onClose={step.closable === false ? undefined : dismiss}
+                  style={styles.step}
+                />
+              ) : null}
+              <View style={[styles.head, step ? styles.headAfterStep : null]}>
+                <View style={styles.titleRow}>
+                  <Text style={[type.section, styles.title]}>{title.toUpperCase()}</Text>
+                  {action}
+                </View>
                 {subtitle ? (
                   <Text style={[type.bodySm, styles.subtitle]} numberOfLines={2}>
                     {subtitle}
@@ -198,6 +239,30 @@ export function Sheet({
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/**
+ * The open keyboard's height. A `Modal` is its own window, which neither
+ * platform resizes for the keyboard, so a sheet with a field in it lifts itself
+ * or types blind.
+ */
+function useKeyboardHeight(): number {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => setHeight(event.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setHeight(0),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return height;
+}
 
 /** The error line a sheet shows when the write came back rejected. */
 export function SheetError({ message }: { message: string }) {
@@ -251,6 +316,18 @@ const styles = StyleSheet.create({
     gap: space.xs,
     paddingTop: space.lg,
     paddingBottom: space.md,
+  },
+  step: {
+    paddingTop: 6,
+  },
+  headAfterStep: {
+    paddingTop: space.md,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.md,
   },
   title: {
     color: color.fg,

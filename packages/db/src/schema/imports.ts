@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -10,6 +11,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { logStatusEnum, mediaKindEnum } from './enums.js';
 import { users } from './auth.js';
 import { media } from './media.js';
@@ -90,5 +92,54 @@ export const importMatch = pgTable(
     uniqueIndex('import_match_subject_idx').on(t.userId, t.source, t.entryKey),
     // The picker's query: this viewer's unanswered rows, newest first.
     index('import_match_open_idx').on(t.userId, t.resolvedAt),
+  ],
+);
+
+/**
+ * One account import the viewer asked for, as it moves through the `importer`
+ * queue. BullMQ's own job is the work item and is reaped or reused per
+ * (viewer, source); this row is the record a client reads back afterwards.
+ * Previews (`dryRun`) are not recorded: they are discarded once read.
+ */
+export const IMPORT_RUN_STATES = ['queued', 'running', 'completed', 'failed'] as const;
+export type ImportRunState = (typeof IMPORT_RUN_STATES)[number];
+export const importRunStateEnum = pgEnum('import_run_state', IMPORT_RUN_STATES);
+
+export const importRun = pgTable(
+  'import_run',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Registry id; text so a new source needs no migration. */
+    source: text('source').notNull(),
+    /** The provider username, or a file source's label (`export 2026-07-07`). */
+    profile: text('profile').notNull(),
+    overwrite: boolean('overwrite').notNull().default(false),
+    state: importRunStateEnum('state').notNull().default('queued'),
+    /** The BullMQ job carrying this run; stable per (viewer, source), so not unique. */
+    jobId: text('job_id').notNull(),
+    done: integer('done').notNull().default(0),
+    total: integer('total').notNull().default(0),
+    /** `ImportJobResult` once completed. */
+    result: jsonb('result').$type<Record<string, unknown>>(),
+    /** `ImportError.kind`, or `lost` when the queue dropped the job. */
+    errorKind: text('error_kind'),
+    error: text('error'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index('import_run_user_idx').on(t.userId, t.createdAt),
+    // Mirrors the queue's one-job-per-(viewer, source): at most one live run.
+    uniqueIndex('import_run_live_idx')
+      .on(t.userId, t.source)
+      .where(sql`${t.state} in ('queued', 'running')`),
   ],
 );

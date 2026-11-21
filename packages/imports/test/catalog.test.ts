@@ -133,6 +133,58 @@ describe('central catalog lookup', () => {
     expect(outcome.matches[0]?.hit.title).toBe('Donkey Skin');
   });
 
+  it('takes a hit its own provider id pins, whatever the title says', async () => {
+    // TV Time names a show by its TVDB id and states no year; the catalog row
+    // carries the same id under another title.
+    const outcome = await findCatalogMatches(
+      [
+        entry({
+          source: 'tvtime',
+          kind: 'series',
+          title: 'Married at First Sight (FR)',
+          year: null,
+          seasonNumber: 2,
+          externalIds: { tvdb: 4242 },
+        }),
+      ],
+      {
+        catalogUrl: 'http://catalog.test',
+        fetchImpl: stub([
+          () =>
+            ok([
+              hit({
+                id: '3f7e1d3a-1a1f-5a0e-9a06-0000000000a1',
+                kind: 'series',
+                title: 'Mariés au premier regard',
+                seasonNumber: 1,
+                externalIds: { tvdb: 4242 },
+              }),
+              hit({
+                id: '3f7e1d3a-1a1f-5a0e-9a06-0000000000a2',
+                kind: 'series',
+                title: 'Mariés au premier regard',
+                seasonNumber: 2,
+                externalIds: { tvdb: 4242 },
+              }),
+              hit({
+                id: '3f7e1d3a-1a1f-5a0e-9a06-0000000000a3',
+                kind: 'series',
+                title: 'Married at First Sight (FR)',
+                seasonNumber: 2,
+                externalIds: { tvdb: 1 },
+              }),
+            ]),
+        ]),
+        spacingMs: 0,
+      },
+    );
+
+    expect(outcome.matches.map((match) => [match.hit.id, match.matchScore])).toEqual([
+      ['3f7e1d3a-1a1f-5a0e-9a06-0000000000a2', 1],
+    ]);
+    expect(outcome.warnings).toEqual([]);
+  });
+
   it('refuses a near title for a yearless row, which has nothing to corroborate it', async () => {
     const outcome = await findCatalogMatches(
       [entry({ source: 'steam', kind: 'game', year: null, title: 'Donkey Ski' })],

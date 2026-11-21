@@ -9,10 +9,7 @@
     "allStatuses": "TOUS LES STATUTS",
     "year": "ANNÉE",
     "status": "STATUT",
-    "group": "GROUPER",
-    "yearAria": "filtrer par année",
-    "statusAria": "filtrer par statut",
-    "groupAria": "grouper les entrées par"
+    "group": "GROUPER"
   },
   "grouping": {
     "year": "ANNÉE",
@@ -26,13 +23,10 @@
     "autumn": "AUTOMNE"
   },
   "stats": {
-    "completed": "Titres terminés",
-    "completedNote": "TERMINÉS · {{scope}}",
-    "inView": "Titres affichés",
-    "inViewNote": "CLASSÉS · {{scope}}",
+    "completed": "Terminés",
     "episodes": "Épisodes",
     "chapters": "Chapitres",
-    "checkInsNote": "SUIVIS · {{scope}}"
+    "titles": "Titres"
   },
   "loading": "Chargement de {{scope}}…",
   "loadMore": "CHARGER PLUS",
@@ -53,5 +47,35 @@
     "windowBody": "Vous avez un historique, mais pas dans cette période. Choisissez une autre année ci-dessus, ou TOUT LE TEMPS.",
     "clear": "EFFACER TYPE ET STATUT",
     "browse": "PARCOURIR DÉCOUVRIR →"
+  },
+  "view": {
+    "aria": "Vue",
+    "timeline": "FRISE",
+    "grid": "GRILLE"
+  },
+  "timeline": {
+    "zoomAria": "Zoom",
+    "zoomIn": "Zoomer",
+    "zoomOut": "Dézoomer",
+    "zoom": {
+      "years": "ANNÉES",
+      "months": "MOIS",
+      "weeks": "SEMAINES"
+    },
+    "moveAria": "Se déplacer dans le temps",
+    "earlier": "Plus tôt",
+    "later": "Plus tard",
+    "toToday": "AUJOURD’HUI →",
+    "todayMark": "AUJOURD’HUI",
+    "region": "Frise. Faites défiler latéralement pour vous déplacer dans le temps.",
+    "days_one": "{{count}} JOUR",
+    "days_other": "{{count}} JOURS",
+    "key": {
+      "logged": "JOURS SUIVIS",
+      "gap": "PAUSE ENTRE LES SESSIONS",
+      "single": "D’UNE TRAITE",
+      "ongoing": "EN COURS"
+    },
+    "hint": "FAITES DÉFILER OU UTILISEZ ‹ › POUR VOUS DÉPLACER DANS LE TEMPS"
   }
 }

@@ -155,7 +155,7 @@ export function PartsSection({
         <View style={styles.rule} />
       </View>
       <View style={styles.rows}>{window.map(row)}</View>
-      <Text style={[type.eyebrow, text.faint]}>
+      <Text style={[type.eyebrow, text.dim]}>
         {t(volumed ? 'media.browseNote.volume' : 'media.browseNote.block')}
       </Text>
     </View>

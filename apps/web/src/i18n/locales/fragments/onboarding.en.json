@@ -1,0 +1,95 @@
+{
+  "close": "Close setup and go to home",
+  "closeHint": "Close — finish this later",
+  "stepOf": "STEP {{n}} OF {{total}}",
+  "stepNames": {
+    "import": "IMPORT",
+    "friends": "FRIENDS",
+    "done": "START"
+  },
+  "steps": {
+    "import": "1 · IMPORT",
+    "friends": "2 · FRIENDS",
+    "done": "3 · START"
+  },
+  "import": {
+    "title": "Bring your history",
+    "lede": "Already tracking somewhere else? Connect it and your log starts full. Pick as many as you like, or none.",
+    "connect": "CONNECT",
+    "upload": "UPLOAD EXPORT",
+    "add": "ADD",
+    "connected": "CONNECTED",
+    "reading": "Reading your export…",
+    "starting": "Starting your import…",
+    "readError": "Could not read {{name}}.",
+    "startError": "Could not start this import.",
+    "files_one": "{{names}}",
+    "files_other": "{{count}} files: {{names}}",
+    "sources": {
+      "tvtime": {
+        "idle": "Upload your TV Time data export"
+      },
+      "letterboxd": {
+        "idle": "Give your Letterboxd username",
+        "placeholder": "Letterboxd username"
+      },
+      "mal": {
+        "idle": "Give your MyAnimeList username",
+        "placeholder": "MyAnimeList username"
+      },
+      "anilist": {
+        "idle": "Give your AniList username",
+        "placeholder": "AniList username"
+      },
+      "steam": {
+        "idle": "Paste your profile link",
+        "placeholder": "steamcommunity.com/id/…"
+      }
+    },
+    "foot_one": "{{count}} CONNECTED",
+    "foot_other": "{{count}} CONNECTED"
+  },
+  "friends": {
+    "title": "Find your people",
+    "lede": "Trackt is better with a few friends: you see what they watch, read and play, and spoilers stay hidden until you catch up.",
+    "search": "Find people",
+    "invite": "COPY INVITE LINK",
+    "copied": "LINK COPIED",
+    "results": "RESULTS",
+    "selected": "SELECTED",
+    "add": "＋ ADD FRIEND",
+    "picked": "✓ SELECTED",
+    "already": "✓ FRIENDS",
+    "pending": "PENDING",
+    "incoming": "WANTS TO ADD YOU",
+    "empty": "Search by name or @handle to find people already on Trackt, or copy your invite link and send it to them.",
+    "noMatches": "No one matches “{{query}}”. Send them your invite link instead.",
+    "searchFailed": "Search is unavailable right now.",
+    "sendFailed": "Some requests did not go through. Try again, or skip and add them later.",
+    "foot_one": "{{count}} SELECTED",
+    "foot_other": "{{count}} SELECTED",
+    "send_one": "SEND {{count}} REQUEST",
+    "send_other": "SEND {{count}} REQUESTS",
+    "sending": "SENDING…",
+    "requested": "✓ REQUESTED",
+    "sentFoot_one": "{{count}} SENT",
+    "sentFoot_other": "{{count}} SENT"
+  },
+  "done": {
+    "title": "You are set",
+    "lede": "Everything here can be changed later from your profile.",
+    "sources": "IMPORTING",
+    "sourcesNote": "from {{names}}",
+    "sourcesNone": "Nothing connected. Import any time from your profile.",
+    "requests": "FRIEND REQUESTS",
+    "requestsNote": "They show up on your home once accepted.",
+    "requestsNone": "None sent. Find people any time.",
+    "noteImport": "The import runs in the background and can take a few minutes. Your home fills in as titles are matched; anything we cannot match is listed for you to review.",
+    "noteEmpty": "Your log is empty for now. Add the first thing you watched, read or played this week.",
+    "addTitle": "ADD A TITLE",
+    "home": "GO TO MY HOME"
+  },
+  "back": "BACK",
+  "skip": "SKIP THIS STEP",
+  "continue": "CONTINUE"
+}

@@ -44,5 +44,6 @@
   },
   "offlineTitle": "Actualités hors ligne",
   "offlineBody": "Cette instance n'a pas pu joindre le fil d'actualités du catalogue.",
-  "endOfFeed": "FIN DU FIL"
+  "endOfFeed": "FIN DU FIL",
+  "when": "QUAND"
 }

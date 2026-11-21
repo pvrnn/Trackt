@@ -49,5 +49,22 @@
     "clear": "EFFACER TYPE ET STATUT",
     "browse": "PARCOURIR DÉCOUVRIR →"
   },
-  "loadError": "L'instance n'a pas répondu."
+  "loadError": "L'instance n'a pas répondu.",
+  "row": {
+    "since": "DEPUIS LE {{date}}"
+  },
+  "strip": {
+    "completed": "TERMINÉS",
+    "titles": "TITRES",
+    "episodes": "ÉPISODES",
+    "chapters": "CHAPITRES"
+  },
+  "timeline": {
+    "region": "Frise chronologique. Balayez de côté pour remonter le temps.",
+    "earlier": "Plus tôt",
+    "later": "Plus tard",
+    "todayMark": "AUJOURD’HUI",
+    "days_one": "{{count}} JOUR",
+    "days_other": "{{count}} JOURS"
+  }
 }

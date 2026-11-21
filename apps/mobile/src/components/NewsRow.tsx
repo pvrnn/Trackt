@@ -34,7 +34,7 @@ export function NewsRow({ article }: { article: NewsArticleSummary }) {
             {formatNewsDate(article.publishedAt, intlLocale(i18n.language))}
           </Text>
         </View>
-        <Text style={[type.cardTitle, text.fg]} numberOfLines={3}>
+        <Text style={[type.cardTitle, styles.headline, text.fg]} numberOfLines={3}>
           {article.title}
         </Text>
         {article.dek ? (
@@ -62,6 +62,10 @@ const styles = StyleSheet.create({
   cardBody: {
     flex: 1,
     gap: space.sm,
+  },
+  headline: {
+    fontSize: 18,
+    lineHeight: 22,
   },
   metaRow: {
     flexDirection: 'row',

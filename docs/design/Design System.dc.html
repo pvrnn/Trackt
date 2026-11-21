@@ -15,6 +15,32 @@
     body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
     a { color: #d96bb0; text-decoration: none; }
     a:hover { color: #e88cc4; }
+    /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; }
+    .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
+    .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
+    .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fcell .dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 999px; }
+    .fcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-overflow: ellipsis; padding: 19px 22px 19px 0; margin-right: -4px; cursor: pointer; color-scheme: dark; }
+    .fcell select option { background: #191520; color: #f0edf4; }
+    .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
+    .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
+    /* kind strip: six colour dots, one per kind. The picked one (or the one under the pointer) opens into its name and count. */
+    .kcell { flex: 1 1 auto; padding-right: 14px; }
+    .kstrip { display: flex; align-items: center; gap: 2px; width: 366px; max-width: 100%; }
+    .kchip { height: 32px; min-width: 30px; padding: 0 9px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; white-space: nowrap; transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease; }
+    .kchip:hover { background: rgba(255,255,255,0.07); color: #f0edf4; }
+    .kchip[aria-pressed="true"] { color: #f0edf4; }
+    .kchip .kd { width: 9px; height: 9px; flex-shrink: 0; border-radius: 999px; transition: transform 160ms ease; }
+    .kchip:hover .kd { transform: scale(1.25); }
+    .kchip .kl { display: inline-flex; gap: 6px; max-width: 0; margin-left: 0; opacity: 0; overflow: hidden; transition: max-width 220ms ease, margin-left 220ms ease, opacity 160ms ease; }
+    .kchip .kn { font-weight: 500; color: #948da1; }
+    .kchip:hover .kl, .kchip[aria-pressed="true"] .kl { max-width: 120px; margin-left: 8px; opacity: 1; }
+    /* only one name open at a time, so the strip never changes width */
+    .kstrip:hover .kchip[aria-pressed="true"]:not(:hover) .kl { max-width: 0; margin-left: 0; opacity: 0; }
+    @media (prefers-reduced-motion: reduce) { .kchip, .kchip .kd, .kchip .kl { transition: none; } }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
   </style>
 </helmet>
 
@@ -120,22 +146,45 @@
         <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; padding: 8px 16px; border-radius: 999px; background: {{ ch.bg }}; color: {{ ch.fg }}; border: 1px solid {{ ch.bd }}; cursor: pointer;">{{ ch.label }}</div>
       </sc-for>
     </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">FILTER CONSOLE — query and everything that narrows it, one glass slab. Hover or click the dots.</div>
+      <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; backdrop-filter: blur(16px); display: flex; flex-direction: column; max-width: 860px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 16px; padding: 18px 24px;">
+          <span style="font-size: 22px; line-height: 1; color: #948da1;">⌕</span>
+          <span style="flex: 1; font-weight: 500; font-size: 20px; color: #948da1;">Search titles, studios, authors…</span>
+          <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; color: #948da1; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px;">⌘K</span>
+        </div>
+        <div class="fbar" style="box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
+          <div class="fcell kcell"><span class="lab">KIND</span><div class="kstrip">
+            <sc-for list="{{ kchips }}" as="k" hint-placeholder-count="7"><button class="kchip" onClick="{{ k.pick }}" aria-pressed="{{ k.on }}" title="{{ k.label }}" style="background: {{ k.bg }}; box-shadow: {{ k.ring }};"><span class="kd" style="background: {{ k.dot }}; display: {{ k.dotDisplay }};"></span><span class="{{ k.lcls }}">{{ k.label }} <span class="kn">{{ k.count }}</span></span></button></sc-for>
+          </div></div>
+          <div class="fcell"><span class="lab">YEAR</span><span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">ANY</span><span class="chev"></span></div>
+          <div class="fcell"><span class="lab">SORT</span><span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">TRENDING</span><span class="chev"></span></div>
+        </div>
+      </div>
+      <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">Rule: pills are for actions and status. Everything that narrows a list lives in one bar of equal-height cells that wrap as the page narrows. Kind is a strip of the six kind dots: the picked one, or the one under the pointer, opens into its name and count, and picking it again goes back to All. Year, sort and status are dropdown cells in the same bar.</div>
+    </div>
   </div>
 
   <!-- covers -->
   <div style="display: flex; flex-direction: column; gap: 24px;">
     <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">04 · Covers &amp; kinds</div>
-    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">Generated covers are two-stop gradients seeded by the media kind's hue — violet-blues for series/movies, golds for anime/manga, magentas for webtoons — with the title in Anton, bottom-left. Real artwork replaces the gradient; the progress bar and title treatment stay.</div>
-    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;">
-      <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="5">
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="aspect-ratio: 2/3; border-radius: 12px; background: {{ k.grad }}; display: flex; align-items: flex-end; padding: 12px; position: relative; overflow: hidden;">
-            <span style="font-family: Anton; font-size: 17px; line-height: 1.1; text-transform: uppercase; color: rgba(255,255,255,0.94);">{{ k.sample }}</span>
-            <div style="position: absolute; left: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); width: {{ k.pct }};"></div>
+    <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">Artwork stays clean. No title and no wash on the cover: real covers carry their own lettering and can be any colour, so nothing we need to read depends on them. Under the art: title (Archivo 600 / 14, two lines max), then kind dot + KIND · YEAR, then a square span chip — a count when one entry holds several (3 SEASONS, 12 VOL), the season itself when the entry is one season (S2). Whatever must sit on the art — progress, TRACKING — gets an opaque #14101A backing.</div>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;">
+      <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="6">
+        <div style="display: flex; flex-direction: column; gap: 10px; min-width: 0;">
+          <div style="aspect-ratio: 2/3; border-radius: 10px; background: {{ k.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 28px -14px rgba(0,0,0,0.9); position: relative; overflow: hidden;">
+            <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: #14101a;">
+              <div style="height: 100%; width: {{ k.pct }}; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6);"></div>
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 8px; height: 8px; border-radius: 999px; background: {{ k.dot }};"></div>
-            <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; color: #b8b1c4;">{{ k.label }}</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+            <div style="font-weight: 600; font-size: 14px; line-height: 1.3;">{{ k.sample }}</div>
+            <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+              <div style="width: 7px; height: 7px; flex-shrink: 0; border-radius: 999px; background: {{ k.dot }};"></div>
+              <div style="font-family: 'Space Grotesk'; font-weight: 600; font-size: 11px; letter-spacing: 0.08em; color: #b8b1c4; white-space: nowrap;">{{ k.label }} <span style="color: #948da1; font-weight: 500;">· {{ k.year }}</span></div>
+              <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; background: rgba(255,255,255,0.09); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); border-radius: 5px; padding: 2px 7px; white-space: nowrap; display: {{ k.spanDisplay }};">{{ k.span }}</div>
+            </div>
           </div>
         </div>
       </sc-for>
@@ -149,9 +198,7 @@
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">UP-NEXT CARD — the 2-tap check-in</div>
         <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; display: flex; overflow: hidden; max-width: 460px; backdrop-filter: blur(16px);">
-          <div style="width: 96px; height: 136px; flex-shrink: 0; background: linear-gradient(160deg, #8a5c2a 20%, #17100a 100%); display: flex; align-items: flex-end; padding: 8px;">
-            <span style="font-family: Anton; font-size: 12px; line-height: 1.15; text-transform: uppercase; color: rgba(255,255,255,0.92);">Ashfall Chronicle</span>
-          </div>
+          <div style="width: 96px; height: 136px; flex-shrink: 0; background: radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%);"></div>
           <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
             <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">ANIME</div>
             <div style="font-weight: 700; font-size: 16px;">Ashfall Chronicle</div>
@@ -214,6 +261,44 @@
           </div>
         </div>
       </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">RATING INPUT + LOG ROWS — label, value, one action per row</div>
+        <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 22px 6px; max-width: 460px; display: flex; flex-direction: column; backdrop-filter: blur(16px);">
+          <div style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 18px;">
+            <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">YOUR RATING</div>
+            <div style="display: flex; align-items: flex-end; gap: 18px;">
+              <div style="width: 72px; flex-shrink: 0; font-family: Anton; font-size: 48px; line-height: 0.9; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">8.5</div>
+              <div style="flex: 1; height: 44px; display: flex; align-items: flex-end; gap: 4px;">
+                <sc-for list="{{ meter }}" as="m" hint-placeholder-count="10">
+                  <div style="flex: 1; height: {{ m.h }}; border-radius: 3px; background: {{ m.bg }};"></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 13px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
+            <div style="width: 58px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">DATES</div>
+            <div style="flex: 1; font-size: 14px; font-weight: 600;">Since 12 JUL</div>
+            <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #d96bb0;">EDIT</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'Space Grotesk'; font-size: 12px; color: #948da1; letter-spacing: 0.1em;">FACT STRIP — replaces key/value tables</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; max-width: 460px; backdrop-filter: blur(16px);">
+          <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">STATUS</div>
+            <div style="font-size: 15px; font-weight: 600; color: #e58cc4;">Airing weekly</div>
+          </div>
+          <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; box-shadow: inset 1px 0 0 rgba(255,255,255,0.09);">
+            <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">NEXT EPISODE</div>
+            <div style="font-size: 15px; font-weight: 600;">S2 E6 · 11 Jul</div>
+          </div>
+          <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; box-shadow: inset 1px 0 0 rgba(255,255,255,0.09);">
+            <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">RUNTIME</div>
+            <div style="font-size: 15px; font-weight: 600;">43 min</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -247,12 +332,37 @@
     </div>
   </div>
 
+  <!-- text and artwork -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div style="font-family: Anton; font-size: 36px; text-transform: uppercase;">08 · Text and artwork</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div style="height: 220px; border-radius: 14px; position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(72deg, transparent 0 63%, #1a1622 63% 63.6%, transparent 63.6%), repeating-linear-gradient(115deg, rgba(20,16,26,0.08) 0 2px, transparent 2px 22px), radial-gradient(34% 70% at 80% 42%, #ffffff 0%, transparent 72%), linear-gradient(100deg, #c9d6cf 0%, #f3f0e8 46%, #dfe6f2 100%);"></div>
+        <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(14,12,16,0.95) 0%, rgba(14,12,16,0.9) 58%, rgba(14,12,16,0.24) 88%, rgba(14,12,16,0.1) 100%);"></div>
+        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,12,16,0) 62%, #0e0c10 100%);"></div>
+        <div style="position: absolute; left: 24px; bottom: 28px; max-width: 54%; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: Anton; font-size: 36px; line-height: 0.95; text-transform: uppercase;">Neon Harbor</div>
+          <div style="font-size: 13px; line-height: 1.5; color: #cfc9d8;">Body copy sits on the reading-side scrim, never on the banner itself.</div>
+        </div>
+      </div>
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px 24px; color: #b8b1c4; font-size: 14px; line-height: 1.7; backdrop-filter: blur(16px);">We do not choose the artwork, so the layout brings its own contrast. Posters: nothing readable on the art, text goes underneath. Banners: a horizontal scrim at 0.9 or more under the whole text column, easing to 0.25 or less only where there is no text, plus a bottom fade into Ink. Chips and progress on art: opaque #14101A backing, never translucent glass. Test every banner surface against a white, busy image.</div>
+    </div>
+  </div>
+
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
+  state = { kind: 'ANIME' };
   renderVals() {
+    const cur = this.state.kind;
     return {
+      kchips: [['ALL', 'ALL', 17], ['MOVIE', 'MOVIES', 3, '#8b5cf6'], ['SERIES', 'SERIES', 4, '#6d8bf0'], ['ANIME', 'ANIME', 3, '#d9a441'], ['MANGA', 'MANGA', 2, '#e8874a'], ['WEBTOON', 'WEBTOONS', 3, '#d96bb0'], ['GAME', 'GAMES', 2, '#3fbf8f']].map((k) => {
+        const all = k[0] === 'ALL', on = cur === k[0];
+        return { label: k[1], count: k[2], on, dot: k[3] || 'transparent', dotDisplay: all ? 'none' : 'block', lcls: all ? '' : 'kl',
+          bg: on ? (all ? 'rgba(255,255,255,0.1)' : k[3] + '2b') : '', ring: on ? 'inset 0 0 0 1px ' + (all ? 'rgba(255,255,255,0.22)' : k[3] + '99') : 'none',
+          pick: () => this.setState({ kind: on ? 'ALL' : k[0] }) };
+      }),
       colors: [
         { name: 'Ink', hex: '#0E0C10', use: 'page background' },
         { name: 'Glass', hex: 'rgba(255,255,255,0.05)', use: 'cards, rows (over aura)' },
@@ -271,12 +381,17 @@ class Component extends DCLogic {
         { label: 'DROPPED', bg: 'rgba(255,255,255,0.05)', fg: '#948da1', bd: 'rgba(255,255,255,0.12)' },
       ],
       kinds: [
-        { label: 'MOVIE', dot: '#8b5cf6', sample: 'The Long Static', pct: '100%', grad: 'linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
-        { label: 'SERIES', dot: '#4a6ee8', sample: 'Neon Harbor', pct: '38%', grad: 'linear-gradient(160deg, #35296b 0%, #0e0c1a 100%)' },
-        { label: 'ANIME', dot: '#d9a441', sample: 'Ashfall Chronicle', pct: '75%', grad: 'linear-gradient(160deg, #8a5c2a 0%, #17100a 100%)' },
-        { label: 'MANGA', dot: '#e8874a', sample: 'Paper Cities', pct: '62%', grad: 'linear-gradient(160deg, #6b3aa0 0%, #0f0817 100%)' },
-        { label: 'WEBTOON', dot: '#d96bb0', sample: 'Moonlit Courier', pct: '84%', grad: 'linear-gradient(160deg, #8c2a6b 0%, #170812 100%)' },
-      ],
+        { label: 'MOVIE', year: '2023', dot: '#8b5cf6', sample: 'The Long Static', pct: '100%', span: '', art: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)' },
+        { label: 'SERIES', year: '2024', dot: '#4a6ee8', sample: 'Neon Harbor', pct: '38%', span: '2 SEASONS', art: 'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)' },
+        { label: 'ANIME', year: '2025', dot: '#d9a441', sample: 'Ashfall Chronicle', pct: '75%', span: 'S2', art: 'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)' },
+        { label: 'MANGA', year: '2019', dot: '#e8874a', sample: 'Paper Cities', pct: '62%', span: '12 VOL', art: 'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)' },
+        { label: 'WEBTOON', year: '2022', dot: '#d96bb0', sample: 'Moonlit Courier', pct: '84%', span: '3 SEASONS', art: 'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)' },
+        { label: 'GAME', year: '2026', dot: '#3fbf8f', sample: 'Tidewalker', pct: '20%', span: '', art: 'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)' },
+      ].map((k) => Object.assign({}, k, { spanDisplay: k.span ? 'block' : 'none' })),
+      meter: ['#d9a441', '#d99857', '#d98b70', '#d97e89', '#d971a3', '#d06aba', '#bf67c9', '#ad63d9', '#9c60e8', '#8b5cf6'].map((c, i) => ({
+        h: (46 + i * 6) + '%',
+        bg: i < 8 ? c : (i === 8 ? 'linear-gradient(90deg, ' + c + ' 50%, rgba(255,255,255,0.12) 50%)' : 'rgba(255,255,255,0.12)'),
+      })),
       heat: [
         { v: '45%', c: '#5a3f63' }, { v: '60%', c: '#7a5183' }, { v: '52%', c: '#6b4873' },
         { v: '75%', c: '#a95f96' }, { v: '90%', c: '#c46ba5' }, { v: '68%', c: '#8f5789' },

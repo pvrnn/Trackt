@@ -17,33 +17,37 @@ import { KindDot } from '../ui/KindDot';
  * and a button that only looks like it works is worse than no button. The
  * headline links through to the article, which links to the work.
  */
-export function NewsCard({ article }: { article: NewsArticleSummary }) {
+export function NewsCard({
+  article,
+  coverHeight = 180,
+}: {
+  article: NewsArticleSummary;
+  /** The feed varies it so the masonry has something to pack. */
+  coverHeight?: number;
+}) {
   const labels = useLabels();
   const format = useFormat();
   const coverKind = article.kinds[0];
   return (
     <article className="overflow-hidden rounded-card border border-glass-border bg-glass backdrop-blur-[16px]">
+      {/* The artwork stays clean: real covers carry their own lettering and can
+          be any colour, so nothing to read sits on them. */}
       <Link
         to="/news/$slug"
         params={{ slug: article.slug }}
-        className="relative flex h-[150px] items-end p-4"
-        style={
-          article.coverUrl
-            ? { backgroundImage: `url(${article.coverUrl})`, backgroundSize: 'cover' }
+        aria-hidden
+        tabIndex={-1}
+        className="block bg-cover bg-center"
+        style={{
+          height: coverHeight,
+          ...(article.coverUrl
+            ? { backgroundImage: `url(${article.coverUrl})` }
             : // No cover art yet (sourcing is a later phase): the generated
               // gradient placeholder the plan calls for, seeded like every other
               // cover in the app so it is stable across renders.
-              { background: coverGradient(coverKind ?? 'movie', article.title) }
-        }
-      >
-        <span
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-ink/75"
-        />
-        <span className="relative font-display text-[20px] leading-[1.08] text-white uppercase">
-          {article.title}
-        </span>
-      </Link>
+              { background: coverGradient(coverKind ?? 'movie', article.title) }),
+        }}
+      />
 
       <div className="flex flex-col gap-2 px-4.5 py-4">
         <div className="flex flex-wrap items-center gap-2">

@@ -1,49 +1,58 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
-import { type } from '../theme/typography';
-import { Icon, type IconName } from './Icon';
+import { commitHaptic, selectionHaptic } from '../lib/haptics';
+import {
+  PRISM,
+  color,
+  control,
+  nativeInk,
+  nativeSurface,
+  radius,
+  space,
+  stroke,
+  surface,
+  text,
+} from '../theme/tokens';
+import { font, type } from '../theme/typography';
+import { Icon } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
 import { PrismText } from './PrismText';
 
 /**
- * The action row: one primary, two satellites (`Mobile Media.dc.html`).
- *
- * The primary names the *next unit* and nothing more — "READ CH 113", "WATCH
- * E4" — because that is the sentence someone opens this screen to say. It is
- * the one PRISM surface on the page. Beside it sit favourite and add-to-list as
- * 52pt discs with two-line captions: recognisable without being loud, and
- * reachable with the same thumb.
- *
- * The old pill row this replaces carried five equal-weight pills — log, dates,
- * rate, favourite, list — which made the daily action look like one option of
- * five. Status and dates moved into the hero (they are state, not actions),
- * rating became its own card below (it has a value to show), and what is left
- * here is what you press.
+ * The screen's one primary — the next unit, "WATCH E5" — and under it the two
+ * state buttons side by side: where the log stands, and whether it is a
+ * favourite (`Mobile App.dc.html` §MEDIA DETAIL).
  */
-export function MediaActionRow({
+export function MediaActions({
   label,
   caughtUp,
+  statusLabel,
   favorited,
   onPrimary,
+  onEditStatus,
   onToggleFavorite,
-  onAddToList,
 }: {
   /** 'READ CH 113' / 'WATCH E4' / 'CAUGHT UP' — already in caps. */
   label: string;
   /** Nothing left to check in: the button stops being the PRISM one. */
   caughtUp: boolean;
+  /** 'IN PROGRESS', or null when nothing is logged. */
+  statusLabel: string | null;
   favorited: boolean;
   onPrimary: () => void;
+  onEditStatus: () => void;
   onToggleFavorite: () => void;
-  onAddToList?: () => void;
 }) {
-  const press = usePressMotion();
   const { t } = useTranslation();
+  const press = usePressMotion();
 
   return (
-    <View style={styles.row}>
+    <View style={styles.actions}>
       <AnimatedPressable
         accessibilityRole="button"
         accessibilityLabel={label.toLowerCase()}
@@ -54,7 +63,7 @@ export function MediaActionRow({
         style={[styles.primary, press.animatedStyle]}
       >
         {/* Painted by a child, never by the Pressable: `android_ripple` swaps
-            the view's own background drawable (as `ProgressCard` found). */}
+            the view's own background drawable. */}
         {caughtUp ? (
           <View style={[styles.primaryInner, styles.primaryDone]}>
             <Icon name="star-filled" color={color.muted} size={15} />
@@ -75,78 +84,127 @@ export function MediaActionRow({
         )}
       </AnimatedPressable>
 
-      <SatelliteButton
-        icon={favorited ? 'heart-filled' : 'heart'}
-        caption={t('media.actions.fav')}
-        active={favorited}
-        label={
-          favorited ? t('media.actions.removeFromFavourites') : t('media.actions.addToFavourites')
-        }
-        onPress={onToggleFavorite}
-      />
-      {onAddToList ? (
-        <SatelliteButton
-          icon="plus"
-          caption={t('media.list')}
-          label={t('media.actions.addToList')}
-          onPress={onAddToList}
-        />
-      ) : null}
+      <View style={styles.pair}>
+        <StateButton
+          active={statusLabel !== null}
+          label={
+            statusLabel
+              ? t('media.hero.statusChange', { status: statusLabel.toLowerCase() })
+              : t('media.hero.addToLog')
+          }
+          onPress={onEditStatus}
+        >
+          {statusLabel ? (
+            <View style={styles.statusDot} />
+          ) : (
+            <Icon name="plus" color={color.fg} size={14} />
+          )}
+          <Text style={[styles.stateText, statusLabel ? text.pinkInk : text.fg]} numberOfLines={1}>
+            {statusLabel ?? t('media.hero.addToLogLabel')}
+          </Text>
+          <Icon name="caret-down" color={statusLabel ? nativeInk.pinkInk : color.muted} size={12} />
+        </StateButton>
+
+        <StateButton
+          active={favorited}
+          selected={favorited}
+          label={
+            favorited ? t('media.actions.removeFromFavourites') : t('media.actions.addToFavourites')
+          }
+          onPress={onToggleFavorite}
+        >
+          <Icon
+            name={favorited ? 'heart-filled' : 'heart'}
+            color={favorited ? nativeInk.pinkInk : color.muted}
+            size={15}
+          />
+          <Text style={[styles.stateText, favorited ? text.pinkInk : text.muted]} numberOfLines={1}>
+            {favorited ? t('media.favourited') : t('media.favourite')}
+          </Text>
+        </StateButton>
+      </View>
     </View>
   );
 }
 
-function SatelliteButton({
-  icon,
-  caption,
+function StateButton({
+  active,
+  selected,
   label,
-  active = false,
   onPress,
+  children,
 }: {
-  icon: IconName;
-  caption: string;
+  active: boolean;
+  selected?: boolean;
   label: string;
-  active?: boolean;
   onPress: () => void;
+  children: ReactNode;
 }) {
   const press = usePressMotion();
   return (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ selected: active }}
+      {...(selected !== undefined ? { accessibilityState: { selected } } : {})}
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       android_ripple={ripple(true)}
-      style={[styles.satellite, press.animatedStyle]}
+      style={[styles.state, press.animatedStyle]}
     >
-      <View style={[styles.satelliteFace, active && styles.satelliteActive]}>
-        <Icon name={icon} color={active ? color.pink : color.muted} size={15} />
-        <Text style={[styles.caption, active ? text.pink : text.dim]}>{caption}</Text>
-      </View>
+      <View style={[styles.stateFace, active && styles.stateActive]}>{children}</View>
     </AnimatedPressable>
   );
 }
 
+/** 0–10 in half steps — exactly what `RatingScoreSchema` admits. */
+const STEP = 0.5;
+const MAX = 10;
+const BARS = 10;
+const BAR_EMPTY = 'rgba(255,255,255,0.12)';
+
+function hexChannels(hex: string): [number, number, number] {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** The PRISM gradient sampled at `t` in [0, 1], so each bar wears its own slice. */
+function prismAt(t: number): string {
+  const segment = t < 0.5 ? 0 : 1;
+  const u = segment === 0 ? t / 0.5 : (t - 0.5) / 0.5;
+  const a = hexChannels(PRISM[segment]);
+  const b = hexChannels(PRISM[segment + 1]!);
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i]! - v) * u)).join(',')})`;
+}
+
+const BAR_COLORS = Array.from({ length: BARS }, (_, i) => prismAt(i / (BARS - 1)));
+
 /**
- * The rating, as a readout you can edit rather than a pill that opens a sheet:
- * your score in PRISM at 30, what the instance thinks under it, and a pencil.
- *
- * Community score sits *inside* the same card because the two numbers are only
- * meaningful next to each other — 9.5 against a 9.1 average is a different
- * statement from 9.5 against a 6.2 one.
+ * YOUR LOG: rating, dates, lists — one row each, one action each. The rating is
+ * scrubbed in place across ten rising bars and written once, on release;
+ * sliding to zero is how a rating comes back off.
  */
-export function RatingCard({
+export function LogCard({
   score,
   communityScore,
   ratingCount,
-  onPress,
+  onRate,
+  datesLabel,
+  onEditDates,
+  onAddToList,
 }: {
   score: number | null;
   communityScore: number | null;
   ratingCount: number;
-  onPress: () => void;
+  /** `null` clears the rating. */
+  onRate: (score: number | null) => void;
+  /**
+   * '12 JUL → 03 AUG', null for a log with no dates, undefined when nothing is
+   * logged — there is no log row to date yet.
+   */
+  datesLabel?: string | null | undefined;
+  onEditDates: () => void;
+  onAddToList?: (() => void) | undefined;
 }) {
   const { t } = useTranslation();
   const community =
@@ -155,56 +213,193 @@ export function RatingCard({
       : t('media.rating.none');
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={
-        score !== null
-          ? t('media.rating.yourRatingChange', { score: score.toFixed(1) })
-          : t('media.rating.rateThis')
-      }
-      onPress={onPress}
-      android_ripple={{ color: surface.pinkRow }}
-      style={({ pressed }) => [styles.rating, { opacity: pressed ? 0.75 : 1 }]}
-    >
-      {/* The number keeps its slot whether or not there is one, so the two
-          lines beside it start at the same x either way. Unrated fills it with
-          an outline star rather than a dash: Anton's dash glyph is a short low
-          bar that reads as a rendering fault, and a star at the number's own
-          size says *rate me* while holding the same geometry. */}
-      <View style={styles.scoreSlot}>
-        {score !== null ? (
-          <PrismText style={styles.score}>{score.toFixed(1)}</PrismText>
-        ) : (
-          <Icon name="star" color={color.faint} size={30} />
-        )}
-      </View>
-      <View style={styles.ratingText}>
-        {/* "YOUR RATING" over nothing is a label for a value that does not
-            exist; unrated, the card says what it is for instead. */}
-        <Text style={styles.ratingLabel}>
-          {score !== null ? t('media.rating.yours') : t('media.rating.rate')}
-        </Text>
-        <Text style={styles.ratingMeta} numberOfLines={1}>
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{t('media.log.title').toUpperCase()}</Text>
+
+      <View style={styles.ratingBlock}>
+        <Text style={styles.label}>{t('media.rating.yours')}</Text>
+        {/* Keyed so a score that moves underneath (a queued write landing)
+            resets the draft rather than being mirrored by an effect. */}
+        <RatingBars key={score ?? -1} score={score} onCommit={onRate} />
+        <Text style={styles.community} numberOfLines={1}>
           {community}
         </Text>
       </View>
-      {/* The pencil stays as the *mark* that this readout is editable — the
-          mockup's own affordance — but not as a second button beside a card
-          that already opens the same sheet. One control, one target, and the
-          target is the whole card rather than a 52pt box at the end of it. */}
-      <Icon name="pencil" color={color.pink} size={17} />
+
+      {datesLabel !== undefined ? (
+        <LogRow
+          label={t('media.log.dates')}
+          value={datesLabel}
+          action={t('media.log.edit')}
+          accessibilityLabel={
+            datesLabel
+              ? t('media.hero.datesChange', { dates: datesLabel })
+              : t('media.hero.setDates')
+          }
+          onPress={onEditDates}
+        />
+      ) : null}
+
+      {onAddToList ? (
+        <LogRow
+          label={t('media.log.lists')}
+          value={t('media.log.listsValue')}
+          muted
+          action={t('media.log.add')}
+          accessibilityLabel={t('media.actions.addToList')}
+          onPress={onAddToList}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function RatingBars({
+  score,
+  onCommit,
+}: {
+  score: number | null;
+  onCommit: (score: number | null) => void;
+}) {
+  const { t } = useTranslation();
+  const [value, setValue] = useState(score ?? 0);
+  const width = useSharedValue(0);
+  const dragged = useSharedValue(score ?? 0);
+
+  const commit = (next: number) => {
+    setValue(next);
+    if (next === 0) {
+      if (score !== null) {
+        commitHaptic();
+        onCommit(null);
+      }
+      return;
+    }
+    if (next !== score) {
+      commitHaptic();
+      onCommit(next);
+    }
+  };
+
+  const scrub = (x: number) => {
+    'worklet';
+    if (width.value <= 0) return;
+    const ratio = Math.min(Math.max(x, 0), width.value) / width.value;
+    const next = Math.round((ratio * MAX) / STEP) * STEP;
+    if (next === dragged.value) return;
+    dragged.value = next;
+    runOnJS(selectionHaptic)();
+    runOnJS(setValue)(next);
+  };
+
+  // Raced, and the pan needs horizontal travel to activate: this sits in a
+  // scroll view, and a pan that wins on touch would steal every scroll that
+  // starts on the bars (the same trap `ProgressCard` documents).
+  const tap = Gesture.Tap().onEnd((event) => {
+    scrub(event.x);
+    runOnJS(commit)(dragged.value);
+  });
+  const pan = Gesture.Pan()
+    .activeOffsetX([-4, 4])
+    .failOffsetY([-10, 10])
+    .onUpdate((event) => scrub(event.x))
+    .onEnd(() => {
+      runOnJS(commit)(dragged.value);
+    })
+    .onFinalize((_event, success) => {
+      if (!success) {
+        dragged.value = score ?? 0;
+        runOnJS(setValue)(score ?? 0);
+      }
+    });
+
+  const step = (delta: number) => {
+    const next = Math.min(MAX, Math.max(0, value + delta));
+    dragged.value = next;
+    commit(next);
+  };
+
+  return (
+    <View style={styles.ratingRow}>
+      <View style={styles.scoreSlot}>
+        {value > 0 ? (
+          <PrismText style={styles.score}>{value.toFixed(1)}</PrismText>
+        ) : (
+          <Icon name="star" color={color.dim} size={30} />
+        )}
+      </View>
+      <GestureDetector gesture={Gesture.Race(tap, pan)}>
+        <View
+          accessibilityRole="adjustable"
+          accessibilityLabel={t('media.rating.scrub')}
+          accessibilityValue={{ min: 0, max: MAX, now: value, text: value.toFixed(1) }}
+          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === 'increment') step(STEP);
+            if (event.nativeEvent.actionName === 'decrement') step(-STEP);
+          }}
+          onLayout={(event: LayoutChangeEvent) => {
+            width.value = event.nativeEvent.layout.width;
+          }}
+          style={styles.bars}
+        >
+          {BAR_COLORS.map((fill, i) => {
+            const share = value >= i + 1 ? '100%' : value >= i + STEP ? '50%' : '0%';
+            return (
+              <View key={i} style={[styles.bar, { height: `${46 + i * 6}%` }]}>
+                <View style={[styles.barFill, { width: share, backgroundColor: fill }]} />
+              </View>
+            );
+          })}
+        </View>
+      </GestureDetector>
+    </View>
+  );
+}
+
+function LogRow({
+  label,
+  value,
+  muted = false,
+  action,
+  accessibilityLabel,
+  onPress,
+}: {
+  label: string;
+  /** Null shows the row's empty state. */
+  value: string | null;
+  muted?: boolean;
+  action: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      android_ripple={{ color: surface.pinkRow }}
+      style={({ pressed }) => [styles.logRow, { opacity: pressed ? 0.7 : 1 }]}
+    >
+      <Text style={[styles.label, styles.rowLabel]}>{label}</Text>
+      <Text
+        style={[styles.rowValue, muted || value === null ? text.muted : text.fg]}
+        numberOfLines={1}
+      >
+        {value ?? t('media.log.noDates')}
+      </Text>
+      <Text style={[styles.rowAction, text.pinkInk]}>{action}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: space.sm,
+  actions: {
+    gap: space.md,
   },
   primary: {
-    flex: 1,
-    height: 52,
+    height: control.primary,
   },
   primaryDone: {
     borderWidth: stroke,
@@ -220,71 +415,128 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     // The rounding lives here, not on the Pressable: clipping a child to a
     // rounded `overflow: 'hidden'` parent that Reanimated drives leaves it laid
-    // out and painting nothing — an invisible button.
+    // out and painting nothing.
     borderRadius: radius.pill,
     overflow: 'hidden',
   },
-  satellite: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.pill,
+  pair: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  satelliteFace: {
+  state: {
     flex: 1,
+    height: control.secondary,
+  },
+  stateFace: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 1,
+    gap: space.sm,
+    paddingHorizontal: space.lg,
     borderRadius: radius.pill,
     borderWidth: stroke,
     borderColor: surface.glassBorderStrong,
-    backgroundColor: surface.glass,
+    backgroundColor: nativeSurface.row,
   },
-  satelliteActive: {
-    borderColor: color.pink,
-    backgroundColor: surface.pinkSelected,
+  stateActive: {
+    borderColor: surface.pinkBorderStrong,
   },
-  caption: {
-    fontFamily: type.eyebrow.fontFamily,
-    fontSize: 8,
-    letterSpacing: 0.64,
+  stateText: {
+    ...type.eyebrow,
+    flexShrink: 1,
+    letterSpacing: 1.1,
   },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.md,
-    paddingHorizontal: space.lg,
-    borderRadius: radius.cover,
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: color.pink,
+  },
+  card: {
+    paddingTop: space.lg,
+    paddingHorizontal: 18,
+    paddingBottom: space.xs,
+    borderRadius: radius.card,
     borderWidth: stroke,
     borderColor: surface.glassBorder,
     backgroundColor: surface.glass,
   },
-  /** Wide enough for '10.0', so the label column never shifts. */
+  cardTitle: {
+    fontFamily: font.display,
+    fontSize: 20,
+    lineHeight: 22,
+    color: color.fg,
+    marginBottom: 14,
+  },
+  ratingBlock: {
+    gap: 10,
+    paddingBottom: space.lg,
+  },
+  label: {
+    fontFamily: font.label,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: color.dim,
+    includeFontPadding: false,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 14,
+  },
+  /** Wide enough for '10.0', so the bars never shift. */
   scoreSlot: {
-    minWidth: 54,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    width: 64,
+    height: 40,
+    justifyContent: 'flex-end',
   },
   score: {
-    fontFamily: type.stat.fontFamily,
-    fontSize: 30,
-    lineHeight: 32,
+    fontFamily: font.display,
+    fontSize: 42,
+    lineHeight: 40,
   },
-  ratingText: {
+  bars: {
     flex: 1,
-    gap: 1,
+    height: control.inRow,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 3,
   },
-  /** The mockup's two lines: 10/0.1em bold muted over 10/0.06em dim. */
-  ratingLabel: {
-    fontFamily: type.eyebrow.fontFamily,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: color.muted,
+  bar: {
+    flex: 1,
+    borderRadius: 3,
+    overflow: 'hidden',
+    backgroundColor: BAR_EMPTY,
   },
-  ratingMeta: {
-    fontFamily: type.eyebrow.fontFamily,
+  barFill: {
+    height: '100%',
+  },
+  community: {
+    fontFamily: font.label,
     fontSize: 10,
     letterSpacing: 0.6,
-    color: color.dim,
+    color: color.muted,
+  },
+  logRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    minHeight: 50,
+    borderTopWidth: stroke,
+    borderTopColor: surface.divider,
+  },
+  rowLabel: {
+    width: 54,
+  },
+  rowValue: {
+    flex: 1,
+    fontFamily: font.bodySemibold,
+    fontSize: 14,
+  },
+  rowAction: {
+    fontFamily: font.label,
+    fontSize: 11,
+    letterSpacing: 0.88,
   },
 });

@@ -28,8 +28,11 @@ export interface DatePickerProps {
   /** ISO bounds, inclusive. Days outside them render inert and won't commit. */
   min?: string;
   max?: string;
-  /** `pill` sits in an action/filter row; `field` sits in a form well. */
-  variant?: 'pill' | 'field';
+  /**
+   * `pill` sits in an action row; `field` sits in a form well; `cell` fills a
+   * `FilterBar` cell, which draws the edges.
+   */
+  variant?: 'pill' | 'field' | 'cell';
   placeholder?: string;
   disabled?: boolean;
   id?: string;
@@ -105,22 +108,33 @@ export function DatePicker({
         ref={wellRef}
         className={clsx(
           'flex items-center gap-2 transition',
-          field
-            ? 'w-full rounded-cover border bg-white/6 px-[18px] py-3.5'
-            : 'rounded-full border px-3.5 py-2',
-          typed.invalid
-            ? 'border-red-400/60'
-            : open
-              ? 'border-pink'
-              : field
-                ? 'border-white/12 hover:border-white/20'
-                : 'border-glass-border-strong bg-glass hover:border-pink',
+          variant === 'cell'
+            ? 'min-w-0 flex-1 self-stretch'
+            : field
+              ? 'w-full rounded-cover border bg-white/6 px-[18px] py-3.5'
+              : 'rounded-full border px-3.5 py-2',
+          variant === 'cell'
+            ? typed.invalid && 'text-red-400'
+            : typed.invalid
+              ? 'border-red-400/60'
+              : open
+                ? 'border-pink'
+                : field
+                  ? 'border-white/12 hover:border-white/20'
+                  : 'border-glass-border-strong bg-glass hover:border-pink',
           disabled && 'pointer-events-none opacity-40',
           className,
         )}
       >
         {!field && label && (
-          <span id={captionId} className="font-label text-[10px] font-bold tracking-label text-dim">
+          <span
+            id={captionId}
+            className={clsx(
+              variant === 'cell'
+                ? 'fcell-label'
+                : 'font-label text-[10px] font-bold tracking-label text-dim',
+            )}
+          >
             {label}
           </span>
         )}
@@ -147,7 +161,11 @@ export function DatePicker({
           }
           className={clsx(
             'min-w-0 bg-transparent outline-none placeholder:text-faint',
-            field ? 'w-full font-sans text-[15px]' : 'font-label text-xs',
+            field
+              ? 'w-full font-sans text-[15px]'
+              : variant === 'cell'
+                ? 'flex-1 py-4 font-label text-xs font-bold tracking-[0.06em]'
+                : 'font-label text-xs',
             typed.text ? 'text-fg' : 'text-faint',
           )}
         />

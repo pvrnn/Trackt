@@ -1,28 +1,27 @@
 {
   "title": "Actus",
-  "allKinds": "TOUS",
-  "filterAria": "filtrer par type de média",
-  "range": {
-    "today": "AUJOURD’HUI",
-    "week": "CETTE SEMAINE",
-    "month": "CE MOIS-CI",
-    "allTime": "DEPUIS TOUJOURS"
-  },
   "from": "DU",
   "to": "AU",
-  "clear": "EFFACER",
   "latest": "Dernières actus",
   "storyCount_one": "{{count}} ACTU",
   "storyCount_other": "{{count}} ACTUS",
   "loadingFeed": "Chargement du fil…",
   "feedError": "Impossible de charger les actus. L’API de cette instance est-elle joignable ? Réessayez dans un instant.",
-  "loadMore": "CHARGER PLUS",
+  "pager": {
+    "label": "Pages",
+    "prev": "← PRÉC.",
+    "next": "SUIV. →",
+    "page": "Page {{page}}"
+  },
+  "range_one": "{{from}}–{{to}} SUR {{count}} ACTU",
+  "range_other": "{{from}}–{{to}} SUR {{count}} ACTUS",
   "loadingMore": "CHARGEMENT…",
   "empty": {
-    "title": "Rien pour l’instant",
+    "title": "Rien ici",
     "filtered": "Aucune actu ne correspond à ces filtres. Élargissez les dates ou retirez le type.",
     "unfiltered": "Aucune actu n’a encore été publiée. Les actus apparaîtront ici dès que le catalogue central commencera à en publier.",
-    "browse": "DÉCOUVRIR →"
+    "browse": "DÉCOUVRIR →",
+    "library": "Aucune actu sur ce que vous suivez ne correspond à ces filtres."
   },
   "article": {
     "back": "← TOUTES LES ACTUS",
@@ -34,10 +33,21 @@
     "backToNews": "RETOUR AUX ACTUS →"
   },
   "mediaHeading": "Dans l’actualité",
-  "widget": {
-    "heading": "Dernières actus",
-    "viewAll": "TOUT VOIR →",
-    "error": "Impossible de charger les actus pour le moment.",
-    "empty": "Rien à signaler pour l’instant. Revenez bientôt."
+  "show": {
+    "label": "AFFICHER",
+    "all": "Tout",
+    "library": "Ma bibliothèque"
+  },
+  "when": {
+    "label": "QUAND",
+    "all": "Toute période",
+    "today": "Aujourd’hui",
+    "week": "Cette semaine",
+    "month": "Ce mois-ci",
+    "custom": "Personnalisé"
+  },
+  "clearRange": "EFFACER LES DATES",
+  "library": {
+    "title": "De votre bibliothèque"
   }
 }

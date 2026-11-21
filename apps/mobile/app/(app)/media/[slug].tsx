@@ -26,13 +26,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToListSheet } from '../../../src/components/AddToListSheet';
 import { CollapsingHeader } from '../../../src/components/CollapsingHeader';
 import { LogDatesSheet } from '../../../src/components/LogDatesSheet';
-import { MediaActionRow, RatingCard } from '../../../src/components/MediaActions';
-import { MediaFooter } from '../../../src/components/MediaFooter';
+import { LogCard, MediaActions } from '../../../src/components/MediaActions';
+import { FactsStrip, MediaFooter } from '../../../src/components/MediaFooter';
 import { MediaHero } from '../../../src/components/MediaHero';
 import { PageFrame, ScreenState, StaleNotice } from '../../../src/components/Page';
 import { PartsSection, partNoun } from '../../../src/components/PartsSection';
 import { ProgressCard } from '../../../src/components/ProgressCard';
-import { RatingSheet } from '../../../src/components/RatingSheet';
 import { StatusSheet } from '../../../src/components/StatusSheet';
 import { Synopsis } from '../../../src/components/Synopsis';
 import { EMPTY_VIEWER, patchViewer, trackingPatch } from '../../../src/lib/offline';
@@ -41,10 +40,10 @@ import { useViewerMutation } from '../../../src/lib/tracking';
 import { gutter, space } from '../../../src/theme/tokens';
 
 /** Which sheet is up, if any. One at a time — they are all modal. */
-type OpenSheet = 'status' | 'rating' | 'list' | null;
+type OpenSheet = 'status' | 'list' | null;
 
 /**
- * The media screen (`docs/design/Mobile Media.dc.html`).
+ * The media screen (`docs/design/Mobile App.dc.html` §MEDIA DETAIL).
  *
  * The counter is the source of truth: progress is one integer, not a set of
  * ticked boxes, so typing the number, dragging the slider, tapping −/+ and
@@ -146,6 +145,15 @@ export default function MediaScreen() {
           onPress: () => setStatus('completed'),
         };
 
+  const datesLabel = (() => {
+    const { startedAt: st, finishedAt: fi } = viewer;
+    if (st === null && fi === null) return null;
+    if (st === null) return t('media.log.until', { date: shortDate(fi!, loc) });
+    if (fi === null) return t('media.log.since', { date: shortDate(st, loc) });
+    if (st === fi) return shortDate(st, loc);
+    return `${shortDate(st, loc)} → ${shortDate(fi, loc)}`;
+  })();
+
   return (
     <PageFrame>
       <Animated.ScrollView
@@ -155,42 +163,21 @@ export default function MediaScreen() {
         }}
         contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }}
       >
-        <MediaHero
-          media={detail}
-          scrollY={scrollY}
-          statusLabel={viewer.status ? labels.status(viewer.status).toUpperCase() : null}
-          dateLabel={(() => {
-            const st = viewer.startedAt;
-            const fi = viewer.finishedAt;
-            if (st === null && fi === null) return null;
-            if (st === null) return t('date.until', { date: shortDate(fi!, loc) });
-            if (fi === null) return t('date.from', { date: shortDate(st, loc) });
-            if (st === fi) return shortDate(st, loc);
-            return `${shortDate(st, loc)} → ${shortDate(fi, loc)}`;
-          })()}
-          onEditStatus={() => setSheet('status')}
-          onEditDates={() => setEditingDates({ ...viewer })}
-        />
+        <MediaHero media={detail} scrollY={scrollY} />
 
         <View style={[gutter, styles.body]}>
           <StaleNotice updatedAt={dataUpdatedAt} />
 
-          <MediaActionRow
+          <MediaActions
             label={primary.label}
             caughtUp={primary.caughtUp}
+            statusLabel={viewer.status ? labels.status(viewer.status).toUpperCase() : null}
             favorited={viewer.favorited}
             onPrimary={primary.onPress}
+            onEditStatus={() => setSheet('status')}
             onToggleFavorite={() =>
               apply({ op: viewer.favorited ? 'unfavorite' : 'favorite', id: detail.id })
             }
-            onAddToList={listsOn ? () => setSheet('list') : undefined}
-          />
-
-          <RatingCard
-            score={viewer.score}
-            communityScore={detail.community.averageScore}
-            ratingCount={detail.community.ratingCount}
-            onPress={() => setSheet('rating')}
           />
 
           {hasParts && total !== null ? (
@@ -207,7 +194,27 @@ export default function MediaScreen() {
             />
           ) : null}
 
+          <LogCard
+            score={viewer.score}
+            communityScore={detail.community.averageScore}
+            ratingCount={detail.community.ratingCount}
+            onRate={(score) =>
+              apply(
+                score === null
+                  ? { op: 'clearScore', id: detail.id }
+                  : { op: 'setScore', id: detail.id, score },
+              )
+            }
+            // Dates live on the log row, so there is nothing to date until one
+            // exists — the same rule web applies.
+            datesLabel={viewer.status ? datesLabel : undefined}
+            onEditDates={() => setEditingDates({ ...viewer })}
+            onAddToList={listsOn ? () => setSheet('list') : undefined}
+          />
+
           {detail.description ? <Synopsis key={detail.id} text={detail.description} /> : null}
+
+          <FactsStrip media={detail} />
         </View>
 
         {hasParts ? (
@@ -226,28 +233,13 @@ export default function MediaScreen() {
         <MediaFooter media={detail} />
       </Animated.ScrollView>
 
-      <CollapsingHeader title={detail.title} scrollY={scrollY} />
+      <CollapsingHeader title={detail.title} scrollY={scrollY} back="disc" />
 
       {sheet === 'status' ? (
         <StatusSheet
           current={viewer.status}
           mediaTitle={detail.title}
           onPick={setStatus}
-          onClose={() => setSheet(null)}
-        />
-      ) : null}
-
-      {sheet === 'rating' ? (
-        <RatingSheet
-          score={viewer.score}
-          mediaTitle={detail.title}
-          onSave={(score) =>
-            apply(
-              score === null
-                ? { op: 'clearScore', id: detail.id }
-                : { op: 'setScore', id: detail.id, score },
-            )
-          }
           onClose={() => setSheet(null)}
         />
       ) : null}
@@ -282,7 +274,7 @@ export default function MediaScreen() {
 
 const styles = StyleSheet.create({
   body: {
-    gap: space.lg,
+    gap: 14,
     paddingTop: space.lg,
   },
 });

@@ -33,7 +33,12 @@
     "series": "Séries favorites",
     "anime": "Animés favoris",
     "manga": "Mangas favoris",
-    "webtoon": "Webtoons favoris"
+    "webtoon": "Webtoons favoris",
+    "total_one": "{{count}} AU TOTAL",
+    "total_other": "{{count}} AU TOTAL",
+    "topPicks": "COUPS DE CŒUR",
+    "topOf": "TOP {{kind}}",
+    "rank": "N° {{rank}}"
   },
   "recent": {
     "title": "Récents",
@@ -92,5 +97,28 @@
     "passwordRequired": "Saisissez votre mot de passe pour confirmer.",
     "failed": "Ça n'a pas fonctionné — réessayez.",
     "confirm": "Supprimer le compte"
-  }
+  },
+  "rightNow": {
+    "title": "En ce moment",
+    "count_one": "{{shown}} SUR {{count}} EN COURS",
+    "count_other": "{{shown}} SUR {{count}} EN COURS",
+    "episode_one": "{{count}} épisode vu",
+    "episode_other": "{{count}} épisodes vus",
+    "chapter_one": "{{count}} chapitre lu",
+    "chapter_other": "{{count}} chapitres lus",
+    "episodeOfTotal_one": "Épisode {{count}} sur {{total}}",
+    "episodeOfTotal_other": "Épisode {{count}} sur {{total}}",
+    "chapterOfTotal_one": "Chapitre {{count}} sur {{total}}",
+    "chapterOfTotal_other": "Chapitre {{count}} sur {{total}}"
+  },
+  "timeline": {
+    "title": "Frise",
+    "open": "HISTORIQUE"
+  },
+  "taste": {
+    "title": "Goûts",
+    "kinds": "CE QUI EST SUIVI",
+    "genres": "Y REVIENT TOUJOURS"
+  },
+  "friendsMeta": "{{count}} · {{requests}} DEMANDES"
 }

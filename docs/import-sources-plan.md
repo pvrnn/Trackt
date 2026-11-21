@@ -12,6 +12,7 @@ the MyAnimeList importer shipped in `@trackt/imports` (ROADMAP "Done").
 | Letterboxd | HTML scrape | movie | `external_ids.tmdb` / `.imdb`, else title+year | none |
 | Trakt | API v2, `trakt-api-key` | movie, series (per season) | `external_ids.tmdb` (+ `season_number`) | `TRAKT_CLIENT_ID` |
 | Steam | Web API v1, keyed | game | `external_ids.steam`, else title | `STEAM_API_KEY` |
+| TV Time | uploaded export (TV Time Out JSON pair or HTML summary) | movie, series (per season), anime | `external_ids.tvdb` / `.imdb`, else title | none |
 
 Everything runs through one pipeline — fetch → map → resolve → plan → apply — and one
 CLI (`pnpm import -- --source <id> --user <email|uuid> --profile <name>`), plus an
@@ -30,8 +31,9 @@ machine on 2026-10-30 (plain `fetch`, browser user-agent).
   (Cloudflare). Scraping it needs a real browser plus a per-site parser that
   breaks on their deploys. Trakt covers the same ground (TV) with a documented
   API.
-- **TV Time** — no public API; the app's own endpoints are authenticated and
-  unofficial, and their GDPR export is an email. Out of reach by design.
+- **TV Time** (as a live source) — no public API; the app's own endpoints are
+  authenticated and unofficial, and their GDPR export is an email. It ships as
+  a **file** source instead: see below.
 - **Kitsu** — real public API, but a library entry names an *anime id we do not
   store*; the MAL/AniList mapping is one request per title
   (`/anime/{id}/mappings`), so a 500-entry list is 500 requests against a
@@ -41,6 +43,52 @@ machine on 2026-10-30 (plain `fetch`, browser user-agent).
   exports or Cloudflare-gated HTML; Backloggd renders client-side with no
   server-side grid. Backloggd (games) is the one worth revisiting, with a
   browser, if game imports matter.
+
+## TV Time: an export, not a profile
+
+There is nothing to fetch, so TV Time is the first `access: 'file'` source. What
+people actually hold is the export of the **TV Time Out** tool (Refract): two
+JSON files (`tvtime-movies-*.json`, `tvtime-series-*.json`) and an HTML summary
+that embeds a lossier copy of both as `var SHOWS = […]` / `var MOVIES = […]`.
+
+- **The API reads the file, not the worker.** `POST /v1/me/import` takes
+  `files: [{ name, content }]` instead of `profile` (body limit raised on that
+  route only), `readImportUpload` refuses a file that is not the export with a
+  400, and the job carries only the compact form (`TvTimeExportSchema`) — a
+  300-show series export is 7 MB of episode names and ~165 KB compacted. The
+  run is named after the export date (`export 2026-07-07`). The CLI takes
+  `--file <path>` (repeatable).
+- **Either format, or both.** Files are told apart by content (an empty JSON
+  array by its name); a JSON file wins over the summary for the half it carries.
+- **Shows → one entry per season seen** (ADR-0003): completed when every listed
+  regular episode is seen, `dropped` when TV Time says `stopped`, in progress
+  otherwise; position is the highest episode seen, dates the first/last watch
+  (UTC day). Specials (season 0, or flagged inside a season) are dropped. A show
+  with nothing seen but on the list is **planned as season 1** — unlike a Trakt
+  watchlist show, the export lists the seasons, so that is not a guess. The
+  favourite heart lands on the first logged season only.
+- **The HTML summary keeps no dates and no per-season counts**, only the unseen
+  regular episodes. Seasons are inferred where that is sound — a season below
+  the last one with an unseen episode and absent from that list is complete; a
+  season with unseen episodes is seen up to its first one; a show with nothing
+  unseen claims season 1 only — and seasons past the last unseen episode are not
+  guessed. A run from the summary says so in one warning.
+- **Ids.** Shows carry only a TVDB id, which the TMDB series rows state
+  (`external_ids.tvdb`). Movies carry a TVDB *movie* id (a separate namespace —
+  not joined on) and an IMDb id. The catalog lookup also gained an id pin that
+  benefits every source: a search hit whose own `externalIds` equal one of the
+  entry's join keys is taken outright, so a yearless TVDB show matches even when
+  its title is not the catalog's.
+- **Anime.** TV Time files anime as TVDB shows and anime films as movies; the
+  catalog files both as `anime` per AniList entry, with no TVDB id. Season-1 and
+  movie entries carry `fallbackKind: 'anime'`: an entry no row of its own kind
+  answers is resolved again as anime and, if that lands, replaced by its
+  re-kinded self. Later anime seasons have no sound mapping (AniList splits by
+  cour, TVDB by season) and stay unmatched — a TVDB→AniList mapping table
+  (e.g. the community `anime-lists`) is the follow-up that would place them.
+- **Measured on a real export** (333 shows, 62 movies; dev catalog): 593
+  entries, **427 matched** (359 from the catalog, 217 through the anime
+  fallback), 166 not — 125 of those are anime seasons after the first.
 
 ## Steam: keyed, because the public page is gone
 
@@ -409,8 +457,9 @@ interface ImportJobData {
   which is the only field the API can read back on a failed job; the client can
   then say *why* (wrong profile name, private list, missing credential,
   rate-limited) instead of "import failed".
-- Retries: 2, exponential. A job is idempotent per row (existing logs are left
-  alone unless `overwrite`), which is what makes a retry safe.
+- Retries: 2, exponential. A job is idempotent per row (an existing log is
+  merged — gaps filled, progress and status only raised — unless `overwrite`),
+  which is what makes a retry safe: a second merge of the same row adds nothing.
 
 ## Testing
 

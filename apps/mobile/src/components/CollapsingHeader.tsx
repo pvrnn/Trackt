@@ -6,8 +6,9 @@ import type { AnimatedStyle, SharedValue } from 'react-native-reanimated';
 import type { StyleProp, TextStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { BackButton } from './HeaderControls';
 import { Icon } from './Icon';
-import { color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
+import { color, control, layout, radius, space, stroke, surface, text } from '../theme/tokens';
 import { type } from '../theme/typography';
 
 /** The collapsed bar `Mobile System.dc.html` fixes for both platforms: 44pt. */
@@ -29,6 +30,10 @@ const TITLE_FADE = [175, 220] as const;
  * the row's own padding is not applied for us.
  */
 const TITLE_INSET = layout.gutter + 16 + space.xs + space.md;
+
+/** The disc's 44pt target is pulled left so the visible 32pt disc sits on the gutter. */
+const DISC_PULL = (layout.touchTarget - control.disc) / 2;
+const DISC_TITLE_INSET = layout.gutter - DISC_PULL + layout.touchTarget + space.xs;
 
 /**
  * Keyed by route name with `(group)` segments stripped. Parameterised routes
@@ -134,12 +139,16 @@ export function BackLink({
 export function CollapsingHeader({
   title,
   scrollY,
+  back = 'label',
 }: {
   /** The screen's own title, which fades in as the in-flow one leaves. */
   title?: string | undefined;
   scrollY: SharedValue<number>;
+  /** `disc` for a screen that opens on full-bleed art. */
+  back?: 'label' | 'disc';
 }) {
   const insets = useSafeAreaInsets();
+  const backLabel = useBackLabel();
 
   const glassStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [...GLASS_FADE], [0, 1], 'clamp'),
@@ -174,27 +183,34 @@ export function CollapsingHeader({
         <View style={styles.headerRule} />
       </Animated.View>
       <View style={styles.headerRow}>
-        <View>
-          <Animated.View
-            style={[StyleSheet.absoluteFill, styles.backPillSlot, floatStyle]}
-            pointerEvents="none"
-          >
-            {/* The clipping is on this inner view, not the animated one above:
+        {back === 'disc' ? (
+          <BackButton opaque label={`Back to ${backLabel}`} style={styles.discTarget} />
+        ) : (
+          <View>
+            <Animated.View
+              style={[StyleSheet.absoluteFill, styles.backPillSlot, floatStyle]}
+              pointerEvents="none"
+            >
+              {/* The clipping is on this inner view, not the animated one above:
                 a rounded `overflow: 'hidden'` on a node Reanimated drives
                 drops its child's paint on Android (see `MediaActions`). */}
-            <View style={styles.backPillFace}>
-              <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
-              <View style={[StyleSheet.absoluteFill, styles.backPillTint]} />
-            </View>
-          </Animated.View>
-          {/* Only steps aside when there is a title to step aside for, or a
+              <View style={styles.backPillFace}>
+                <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+                <View style={[StyleSheet.absoluteFill, styles.backPillTint]} />
+              </View>
+            </Animated.View>
+            {/* Only steps aside when there is a title to step aside for, or a
               failed screen would scroll to a bare chevron. */}
-          <BackLink {...(title ? { labelStyle: floatStyle } : {})} />
-        </View>
+            <BackLink {...(title ? { labelStyle: floatStyle } : {})} />
+          </View>
+        )}
         {/* Out of the flow, over the label's own space: the two are never both
             visible, so the title gets the whole bar. */}
         {title ? (
-          <Animated.View style={[styles.titleSlot, titleStyle]} pointerEvents="none">
+          <Animated.View
+            style={[styles.titleSlot, back === 'disc' && styles.titleSlotDisc, titleStyle]}
+            pointerEvents="none"
+          >
             <Text numberOfLines={1} style={[type.section, text.fg]}>
               {title.toUpperCase()}
             </Text>
@@ -244,6 +260,12 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
+  },
+  titleSlotDisc: {
+    left: DISC_TITLE_INSET,
+  },
+  discTarget: {
+    marginLeft: -DISC_PULL,
   },
   backPillSlot: {
     marginVertical: space.xs,

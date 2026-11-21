@@ -24,7 +24,7 @@ export function Field({
       <TextInput
         accessibilityLabel={label}
         accessibilityHint={error}
-        placeholderTextColor={color.faint}
+        placeholderTextColor={color.dim}
         style={[styles.input, type.body, error ? styles.inputError : null, style]}
         {...props}
       />

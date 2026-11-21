@@ -1,17 +1,22 @@
 import { relativeTime, usePublicProfile } from '@trackt/client';
 import { useLabels } from '../../../src/lib/labels';
 import { useTranslation } from 'react-i18next';
-import { MEDIA_KINDS, type FavoriteEntry, type PublicProfile } from '@trackt/shared';
+import type { PublicProfile } from '@trackt/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Avatar } from '../../../src/components/Avatar';
 import { ConfirmSheet } from '../../../src/components/ConfirmSheet';
-import { Shelf, ShelfItem } from '../../../src/components/Shelf';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { KindDot } from '../../../src/components/KindDot';
 import { PageScroll, ScreenState, SectionTitle } from '../../../src/components/Page';
-import { Stat, Stats } from '../../../src/components/Stat';
+import {
+  Favourites,
+  ProfileIdentity,
+  ProfileTimeline,
+  RightNow,
+  StatStrip,
+  Taste,
+} from '../../../src/components/ProfileSections';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { Touchable } from '../../../src/components/Touchable';
 import { commitHaptic } from '../../../src/lib/haptics';
@@ -60,34 +65,39 @@ export default function PublicProfileScreen() {
   return (
     <PageScroll title={profile.user.name}>
       <View style={styles.head}>
-        <View style={styles.header}>
-          <Avatar name={profile.user.name} image={profile.user.image} size={88} />
-          <View style={styles.headerText}>
-            <Text style={[type.title, text.fg]} numberOfLines={2}>
-              {profile.user.name.toUpperCase()}
-            </Text>
-            <Text style={[type.eyebrow, text.dim]}>@{profile.user.username}</Text>
-            {relationship ? (
-              <Text style={[type.eyebrow, styles.relationship]}>{relationship}</Text>
-            ) : null}
-            <FriendAction profile={profile} signedIn={viewer !== null} />
-          </View>
-        </View>
-        {profile.user.bio ? <Text style={[type.body, text.muted]}>{profile.user.bio}</Text> : null}
+        <ProfileIdentity
+          name={profile.user.name}
+          username={profile.user.username}
+          image={profile.user.image}
+          friendCount={profile.friendCount}
+          dayStreak={profile.stats.dayStreak}
+        />
+        {profile.user.bio ? <Text style={[type.body, styles.bio]}>{profile.user.bio}</Text> : null}
+        {relationship ? (
+          <Text style={[type.eyebrow, styles.relationship]}>{relationship}</Text>
+        ) : null}
+        <FriendAction profile={profile} signedIn={viewer !== null} />
       </View>
 
-      <Stats>
-        <Stat value={profile.stats.titlesTracked} label={t('profile.stats.titles')} />
-        <Stat value={profile.stats.completed} label={t('profile.stats.completed')} />
-        <Stat value={profile.stats.dayStreak} label={t('home.stats.dayStreak')} />
-        <Stat value={profile.friendCount} label={t('social.title')} />
-      </Stats>
+      <StatStrip
+        items={[
+          { value: profile.stats.episodesThisYear, label: t('profile.stats.episodesThisYear') },
+          { value: profile.stats.chaptersThisYear, label: t('profile.stats.chaptersThisYear') },
+          { value: profile.stats.completed, label: t('profile.stats.completed') },
+          { value: profile.stats.titlesTracked, label: t('profile.stats.titles') },
+        ]}
+      />
 
-      {MEDIA_KINDS.map((kind) => {
-        const favorites = profile.favorites.filter((entry) => entry.kind === kind);
-        if (favorites.length === 0) return null;
-        return <FavoriteBlock key={kind} label={labels.kind(kind)} entries={favorites} />;
-      })}
+      <Favourites
+        favorites={profile.favorites}
+        emptyMessage={t('profile.favourites.emptyOther', { name: profile.user.name })}
+      />
+
+      <RightNow entries={profile.inProgress} total={profile.inProgressCount} />
+
+      <ProfileTimeline username={profile.user.username} />
+
+      <Taste taste={profile.taste} />
 
       {profile.activity.length > 0 ? (
         <View>
@@ -218,37 +228,14 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
   );
 }
 
-function FavoriteBlock({ label, entries }: { label: string; entries: FavoriteEntry[] }) {
-  return (
-    <View>
-      <SectionTitle title={label} />
-      <Shelf>
-        {entries.map((entry) => (
-          <ShelfItem
-            key={entry.id}
-            href={`/media/${entry.slug}`}
-            kind={entry.kind}
-            title={entry.title}
-            coverUrl={entry.coverUrl}
-          />
-        ))}
-      </Shelf>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   head: {
     gap: space.md,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.lg,
-  },
-  headerText: {
-    flex: 1,
-    gap: space.xs,
+  bio: {
+    color: color.muted,
+    fontSize: 14,
+    lineHeight: 20,
   },
   relationship: {
     color: color.pink,

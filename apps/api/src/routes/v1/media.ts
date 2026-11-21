@@ -5,17 +5,20 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
 import {
   ApiErrorSchema,
+  GenreListSchema,
   MediaDetailSchema,
   MediaKindSchema,
   SHOWCASE_LIMIT,
   SHOWCASE_MAX_OFFSET,
   SearchResultSchema,
+  StatusFilterSchema,
   fetchCatalogSearch,
   type MediaDetail,
   type SearchResult,
   type ViewerState,
 } from '@trackt/shared';
 import { loadRelations } from '../../lib/relations.js';
+import { mediaFilterSql } from '../../lib/search.js';
 import { getSessionUser } from '../../lib/session.js';
 import { canViewMedia, visibleMediaSql } from '../../lib/visibility.js';
 
@@ -195,6 +198,8 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
           kind: MediaKindSchema.optional(),
           /** Narrows the shelf to one release year (Discover's year filter). */
           year: z.coerce.number().int().min(1800).max(2200).optional(),
+          genres: GenreListSchema.optional(),
+          status: StatusFilterSchema.optional(),
           /** Batches already read, in the same order the first one came in. */
           offset: z.coerce.number().int().min(0).max(SHOWCASE_MAX_OFFSET).default(0),
         }),
@@ -207,15 +212,21 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
-      const { kind, year, offset } = request.query;
+      const { kind, year, offset, ...filters } = request.query;
 
       const rows = await db.execute(sql`
         WITH visible AS (
           SELECT id, slug, kind, title, year, status, season_number, cover_url, description
           FROM media
           WHERE deleted_at IS NULL AND moderation = 'verified'
+            -- Anonymous marketing surface: keep adult-leaning covers off it.
+            AND NOT EXISTS (
+              SELECT 1 FROM unnest(genres) AS genre
+              WHERE lower(genre) IN ('ecchi', 'hentai')
+            )
             ${kind ? sql`AND kind = ${kind}` : sql``}
             ${year ? sql`AND year = ${year}` : sql``}
+            ${mediaFilterSql(filters)}
         ),
         one_per_title AS (
           -- A series is one media *per season* (ADR-0003), so "Breaking Bad"

@@ -1,7 +1,7 @@
-import { relativeTime } from '@trackt/client';
 import { useLabels } from '../lib/labels';
 import { useTranslation } from 'react-i18next';
-import { type ActivityEntry, type UpNextEntry } from '@trackt/shared';
+import type { TFunction } from 'i18next';
+import { type UpNextEntry } from '@trackt/shared';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Cover } from './Cover';
@@ -34,6 +34,19 @@ export function undoWrite(entry: UpNextEntry): PartWrite {
 
 export function partLabel(entry: UpNextEntry): string {
   return `${entry.partKind === 'episode' ? 'E' : 'CH'}${entry.next}`;
+}
+
+/** 'Episode 5 of 24' / 'Chapter 112' — the row's part line. */
+function progressLabel(t: TFunction, entry: UpNextEntry): string {
+  const { next, total } = entry;
+  if (entry.partKind === 'episode') {
+    return total
+      ? t('home.progress.episodeOf', { next, total })
+      : t('home.progress.episode', { next });
+  }
+  return total
+    ? t('home.progress.chapterOf', { next, total })
+    : t('home.progress.chapter', { next });
 }
 
 /**
@@ -84,9 +97,8 @@ export function UpNextRow({
             </Text>
             <View style={styles.metaRow}>
               <KindDot kind={entry.kind} />
-              <Text style={[type.eyebrow, text.dim]}>
-                {labels.kindSingular(entry.kind)} · {partLabel(entry)}
-                {entry.total ? ` ${t('home.of')} ${entry.total}` : ''}
+              <Text style={[type.eyebrow, text.dim, styles.metaText]} numberOfLines={1}>
+                {progressLabel(t, entry).toUpperCase()}
               </Text>
             </View>
           </View>
@@ -109,22 +121,6 @@ export function UpNextRow({
         </Touchable>
       </SwipeCheckIn>
     </Animated.View>
-  );
-}
-
-export function ActivityRow({ entry, first }: { entry: ActivityEntry; first: boolean }) {
-  const labels = useLabels();
-  return (
-    <Touchable
-      href={`/media/${entry.slug}`}
-      style={[styles.activityRow, !first && styles.activityDivider]}
-    >
-      <KindDot kind={entry.kind} />
-      <Text style={[type.bodySm, styles.activityText]} numberOfLines={2}>
-        {labels.activity(entry)} {entry.title} <Text style={text.dim}>{entry.detail}</Text>
-      </Text>
-      <Text style={[type.eyebrow, text.dim]}>{relativeTime(entry.at)}</Text>
-    </Touchable>
   );
 }
 
@@ -152,6 +148,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  metaText: {
+    flexShrink: 1,
+  },
   check: {
     minWidth: layout.touchTarget,
     minHeight: layout.touchTarget,
@@ -160,20 +159,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.sm,
     paddingLeft: space.md,
-  },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.md,
-    minHeight: layout.touchTarget,
-  },
-  activityDivider: {
-    borderTopWidth: stroke,
-    borderTopColor: surface.divider,
-  },
-  activityText: {
-    flex: 1,
-    color: color.fg,
   },
 });

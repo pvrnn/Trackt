@@ -12,13 +12,21 @@
  * Backslashes are rejected outright: browsers normalise them to `/` in URLs, so
  * `/\evil.com` passes a naive `startsWith('//')` check and then resolves as
  * `//evil.com`.
+ *
+ * The auth pages themselves are rejected too: "after signing in, go to the
+ * sign-in page" is a loop, and a guard that wraps the current URL into a fresh
+ * `?redirect=` on every pass nests them without bound.
  */
 export function safeRedirect(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   if (!value.startsWith('/') || value.startsWith('//')) return undefined;
   if (value.includes('\\')) return undefined;
+  if (AUTH_PATH.test(value)) return undefined;
   return value;
 }
+
+/** /login and /register, with or without a query, hash or trailing slash. */
+const AUTH_PATH = /^\/(login|register)\/?(?:[?#]|$)/;
 
 /** An href with a scheme (`https:`) or protocol-relative (`//host/x`). */
 const ABSOLUTE = /^([a-z][a-z0-9+.-]*:|\/\/)/i;

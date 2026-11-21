@@ -22,7 +22,7 @@ The `.dc.html` files in this bundle are **design references created in HTML** �
 - Accent pink: `#D96BB0` (links, active states, selected chips, watched checkmarks)
 - **PRISM gradient**: `linear-gradient(90deg, #D9A441, #D96BB0, #8B5CF6)` — reserved for the ONE primary action per view, the wordmark, and hero stats. Text on it: `#14101A`.
 - Selected chip fill: `rgba(217,107,176,0.18)`; "next episode" row fill: `rgba(217,107,176,0.12)` with border `rgba(217,107,176,0.5)`
-- Kind dots: movie `#8B5CF6`, series `#4A6EE8`, anime `#D9A441`, manga `#E8874A`, webtoon `#D96BB0`
+- Kind dots: movie `#8B5CF6`, series `#4A6EE8`, anime `#D9A441`, manga `#E8874A`, webtoon `#D96BB0`, game `#3FBF8F`
 
 ### Background recipe (every page)
 Two fixed full-viewport layers behind all content, `pointer-events: none`:
@@ -46,60 +46,73 @@ Two fixed full-viewport layers behind all content, `pointer-events: none`:
 - Primary: PRISM gradient pill, `#14101A` 700 13px text, letter-spacing 0.06em, padding 12px 24px, hover `filter: brightness(1.15)`
 - Secondary: glass pill with `rgba(255,255,255,0.15)` border; hover: border + text turn pink
 - Ghost: text-only, hover pink
-- Chips (filters/status): Space Grotesk 600 12px pills; selected = pink text/border on `rgba(217,107,176,0.18)`
+- Chips (status): Space Grotesk 600 12px pills; selected = pink text/border on `rgba(217,107,176,0.18)`. Pills are for actions and status only; nothing that narrows a list is a pill.
+
+### Filter console (Discover, News, History)
+Everything that narrows a list lives in one glass bar (`.fbar`) of equal-height cells (`.fcell`, min-height 54px, padding 0 20px, hairline `rgba(255,255,255,0.09)` dividers, hover/focus tint `rgba(255,255,255,0.045)`). The cells wrap to two rows, then stack, as the page narrows. A cell is a Space Grotesk 10px/700 label (KIND, YEAR, SORT, SHOW, WHEN, STATUS…) followed by a native `<select>` with a CSS chevron; the focused select gets a 2px pink inset ring.
+
+**Kind strip.** The KIND cell is a strip of seven buttons: ALL, always spelled out, then one colour dot per kind. The picked kind (or the one under the pointer) opens into its name and count; the others stay dots, at 0.4 opacity when their count is zero. A picked kind gets its own colour as a tint and ring. Picking the open one again goes back to ALL. Every chip has `aria-pressed` and an `aria-label` of "NAME · count". The other filters narrow first, so the counts stay honest.
+
+### Language menu (every web nav)
+A quiet menu control between the search pill and the avatar, not a badge: a globe icon, a borderless `<select aria-label="Language">` (EN / FR / ES / DE …) in Space Grotesk 12px, and a caret. It is 36px tall with an 8px radius and turns `rgba(255,255,255,0.08)` on hover or focus.
 
 ### Generated covers
 Two-stop `linear-gradient(160deg, <kind-hue> 0%, <near-black> 100%)` seeded by media kind (violet-blues for series/movies, golds for anime/manga, magentas for webtoons), title in Anton bottom-left `rgba(255,255,255,0.94)`, PRISM progress bar (4px) along the bottom edge showing completion. Real artwork replaces the gradient; title/progress treatment stays.
 
 ### News (`News.dc.html`)
-Pinterest-style masonry news feed for new seasons, adaptations, announcements, release dates, castings and finales. Sticky nav has a NEWS item. Page title + gradient "N UPDATES FROM YOUR LIBRARY" label. Media-kind tabs (ALL / SERIES / MOVIES / ANIME / MANGA / WEBTOONS, pink underline on active). Date filter row: TODAY / THIS WEEK / THIS MONTH / ALL TIME chips + a FROM–TO date picker with CLEAR.
+Masonry news feed for new seasons, adaptations, announcements, release dates, castings and finales. Page title + gradient "N UPDATES FROM YOUR LIBRARY" label. Under it, the filter console (see Filter console): the KIND strip, SHOW (Everything / My library) and WHEN (Any time / Today / This week / This month / Custom). Custom adds a second bar with FROM and TO date cells and CLEAR RANGE. Date and SHOW narrow first, so the kind counts stay honest.
 
-Feed is a 4-column masonry, packed shortest-column-first in JS (NOT css `column-count`) so recency still reads left-to-right and column bottoms level out; card height is estimated from cover size + text length. Cards come in S/M/L cover heights (130/180/250px) with matching title sizes, plus text-only cards with no cover for rhythm. Each card: cover with bottom scrim + Anton title, colored news-type tag pill, kind · date meta, headline, body, and a PLAN TO WATCH toggle (→ ✓ PLANNED) plus DETAILS link.
+**From your library first.** Stories about titles the user tracks get their own section at the top, "From your library", with a count, instead of a louder card in the feed. The rest follows under "Latest" with the active range as its label.
 
-**Library integration** — stories about titles the user tracks are merged into the same feed (ordered first), not a separate section, and highlighted with a 1.5px pink contour ring, faint pink tint, a floating TRACKING pill top-left over the cover, a countdown pill top-right ("IN 62 DAYS"), and the gradient (rather than glass) PLAN TO WATCH button. The two cover pills share one absolutely-positioned flex row with space-between so they can never collide; the TRACKING pill collapses to just its dot when a countdown is present.
+Feed is a 4-column masonry, packed shortest-column-first in JS (NOT css `column-count`) so recency still reads left-to-right and column bottoms level out; card height is estimated from cover size + text length. Covers come in S/M/L heights (130/180/240px; library stories 200px), plus text-only cards with no cover for rhythm. **The artwork stays clean**: no headline on the cover, and anything that does sit on it (the countdown pill, "IN 62 DAYS") gets an opaque backing. Under the art: the news-type tag, a kind dot, kind · date, the headline (linked), the body, then a ＋ PLAN TO WATCH / READ / PLAY toggle (→ ✓ PLANNED, pink tint and ring) and DETAILS →.
 
-Numbered pagination at the bottom (PREV / 1 2 / NEXT, active page pink, disabled arrows dimmed) with an "1–16 OF 19 STORIES" count beside the heading. Empty state: dashed glass card with an Anton "NOTHING YET", kind- or date-aware copy, and a BROWSE DISCOVER link. Paginator hides when there is only one page.
+Numbered pagination under Latest (← PREV / 1 2 / NEXT →, 12 stories a page, active page pink, disabled arrows dimmed). Empty state: dashed glass card with an Anton "NOTHING HERE", kind- or date-aware copy, and a BROWSE DISCOVER link. Paginator hides when there is only one page.
 
 ### History (`History.dc.html`)
-Built from `docs/design/History.brief.md`. Sixth nav item (LISTS → HISTORY → ACTIVITY), added to every screen.
+Built from `docs/design/History.brief.md`. Nav: HOME / DISCOVER / NEWS / HISTORY / PROFILE, with the ⌘K search pill, EN and the avatar.
 
-**Filters — two rows, not four.** Row 1: year chips (years with data, then ALL TIME) and the four season chips share one row, split by a vertical hairline. The season slot is ALWAYS rendered — on ALL TIME it dims to 25% opacity and goes `pointer-events: none` — so changing year never reflows what is below it. Row 2: media-kind underline tabs (ALL / MOVIES / SERIES / ANIME / MANGA / WEBTOONS, News-style pink underline) with a glass STATUS dropdown parked at the right end of the same tab row; the menu lists All / Completed / In progress / Paused / Dropped, each with a live count for the current date+kind scope, and the trigger's ring turns pink when a status is active.
+**Two views of one history.** Next to the Anton title and the gradient scope label, a segmented TIMELINE / GRID toggle. Both views share the same filters.
 
-**Stats.** One compact band of four cards: the Anton gradient number sits INLINE beside two stacked label lines (`TITLES COMPLETED` / `FINISHED · SUMMER 2026`), ~62px tall rather than ~130px. The second line is what disambiguates "titles completed" from "episode check-ins" — same scope suffix on all four, always grammatical (`FINISHED · ALL TIME`).
+**Filter console** (see Filter console above). Cells: the KIND strip, YEAR (years with data, then ALL TIME), STATUS (All / Completed / In progress / Paused / Dropped), and GROUP BY (Month / Year), which only shows in grid view. Under a hairline, the four stats for the current scope sit in one quiet row inside the console: an Anton gradient number with its label beside it.
 
-**Entries.** Rows sort by "filed" date (finish date, else start date), newest first, and group under Anton month headings (year appended on ALL TIME). Each entry is ONE self-contained 2:3 poster card in a `repeat(auto-fill, minmax(184px, 1fr))` grid — no caption below the card. Over the artwork sit only two pills on opaque `rgba(14,12,16,0.82)` chips (status left, score right, backed by a short top scrim). At the bottom, a SOLID `#12101A` plate with a hairline top edge carries the Anton title and the media-kind label + dot. On hover the whole card fills with `#12101A` (140ms) to show the full record: title, date range, kind, and progress. Nothing legibility-critical ever sits on raw artwork, so white and black posters read identically. Date range is `04 JAN → 11 FEB`, single day for movies, `FROM 12 JUL` when unfinished; progress is hidden on completed titles (`24 / 24` is noise) and shown for in-progress/paused/dropped.
+**Timeline** (`Timeline.dc.html`, a shared component). One arrow of time you scroll sideways, shared by every kind; colour says which kind. Month rules and labels run along the top. The shaft is one gradient per calendar year (gold in January, violet by December, then it starts again). Each title gets a label that stays in view while its bar scrolls past. The bar is a dashed thread from start to finish, with solid blocks on the days actually logged. Full-size header: a kind legend, zoom − / + (YEARS / MONTHS / WEEKS), ‹ › to move through time, and TODAY →. Kind and status filter it; the year select scrolls it. `mini="true"` drops the header for the Profile embed and puts the stepping controls in the corner, clear of the arrow.
 
-18 entries per page with a LOAD MORE pill. Empty states are all live and distinct: filtered-out (offers CLEAR KIND & STATUS), no data in the chosen year/season (points at the year chips), and a brand-new account (BROWSE DISCOVER link). Tweaks: `emptyAccount` and `loading` (rows drop to 45% with a pink "LOADING 2025…" marker).
+**Grid.** Entries sort by "filed" date (finish date, else start date), newest first, and group under Anton month (or year) headings with a hairline. A `repeat(auto-fill, minmax(168px, 1fr))` grid of 2:3 posters. The artwork stays clean except for a score pill top-right. The record sits underneath, so no hover is needed to read it: title (2-line clamp), kind dot + label · status in its colour, and the date range (`04 JAN → 11 FEB`, a single day for movies, `FROM 12 JUL` when unfinished). On hover the poster lifts 4px with a pink-tinted shadow (off under `prefers-reduced-motion`).
+
+LOAD MORE pill. The empty states are all live and different: filtered out (offers CLEAR KIND & STATUS), nothing in the chosen year, and a brand-new account (BROWSE DISCOVER link). Tweaks: `emptyAccount` and `loading` (the rows drop in opacity with a pink "LOADING 2025…" marker).
 
 **Companion on Media Detail** — the action row gained a dates control: `＋ DATES` when unset, otherwise the range (`12 JUL → …`). It opens a modal with STARTED / FINISHED native date inputs (`color-scheme: dark`), SAVE / CLEAR / CANCEL. The modal copy switches to "We filled these in" when dates were auto-guessed from a completion.
 
 ## Screens
 
 ### Landing (`Landing.dc.html`)
-Marketing page. Nav (wordmark gradient, SELF-HOST/API/GITHUB links, SIGN IN gradient pill) → hero: eyebrow label, 120px Anton "TRACK EVERYTHING. LOSE NOTHING." (gradient on "nothing."), sub-copy, two CTAs, `docker compose up` code chip → full-bleed cover strip rotated −2° (tweakable −6°…6°), titles top-left → "Why this exists" 4 glass pillar cards → "Two taps" band with a live up-next card demo → footer with GPL-3.0 + TMDB attribution.
+Marketing page. Nav (gradient wordmark, NEWS / API / GITHUB ↗, EN, SIGN IN pill). Hero split: on the left, kind chips, "TRACK EVERY WEBTOON." (the last word rotates through the kinds), sub-copy, START TRACKING — FREE + VIEW ON GITHUB, and the line "OPEN SOURCE · FULL EXPORT ANY TIME · IMPORT FROM 5 APPS". On the right, a tilted wall of three cover columns drifting past (decoration only), with two app moments floating over it on opaque backing (a check-in toast, a friend's rating). Then: "Six kinds. One log." (how each kind is tracked), "More than a checklist" (four live pieces: check-in demo, spoiler-blurred friends feed, filtered news, profile time split), "Bring your history with you" (import sources with logo slots), a Discord bot section (a mock #watch-party channel: a watch-party post you can join, then the check-ins it produced), the open-source section, and a closer.
 
 ### Login (`Login.dc.html`)
-Split screen. Left: aura panel at high opacity (violet/pink/gold, 0.45–0.55) + grain, bottom-anchored Anton headline "Every episode. Every chapter. Yours forever." (gradient last line). Right: email/password inputs (glass, radius 12px), gradient SIGN IN pill, "NEW HERE" divider, CREATE ACCOUNT ghost pill, TV Time import promo card.
+Split screen. Left: the form and nothing competing with it. One form with SIGN IN / CREATE ACCOUNT underline tabs (create account adds USERNAME), EMAIL, PASSWORD with a SHOW/HIDE toggle and FORGOT? in sign-in mode, a gradient submit pill, and a link to switch modes. Footer: GitHub link + "TV TIME IMPORT COMING SOON". Right (`aria-hidden`): the same tilted, drifting cover wall as Landing, under a scrim, with a bottom-anchored Anton pitch ("Pick up where / you left off." or "Everything you watch, / read and play.") and the six kind dots. The wall stops under `prefers-reduced-motion`. Create account continues to Onboarding.
+
+### Onboarding (`Onboarding.dc.html`)
+A layer over the real Home page (imported with no friends yet), not a separate route. It has a three-step stepper with a ✕ way out at every step. 1, **Bring your history**: import cards for TV Time, Letterboxd, MyAnimeList, AniList and a Steam profile, each with a logo slot, the kinds it covers, and CONNECT → ✓ CONNECTED. 2, **Find your people**: search and invite, plus suggested people with a reason and a follow button, and an empty state. 3, **You are set**: a summary of what came across. Footer: ← BACK on the left, then SKIP THIS STEP and the one way forward on the right (ending in ADD A TITLE / GO TO MY HOME →).
 
 ### Home (`Home.dc.html`)
-Sticky glass nav (blur 16, `rgba(14,12,16,0.75)`), active link = pink underline. "UP NEXT" 64px + gradient count label. 3-col grid of up-next cards: 96×136 cover, kind label, title, next-episode line, gradient CHECK IN pill (toggles to "CHECKED IN" on `rgba(255,255,255,0.25)`). "IN PROGRESS" 6-col cover grid with PRISM progress bars. Bottom: Friends activity rows (avatar, text, timestamp) 2/3 + This-year stat cards (gradient Anton numbers) 1/3.
+Sticky glass nav: HOME / DISCOVER / NEWS / HISTORY / PROFILE, the ⌘K search pill, EN, and the avatar. "UP NEXT" is now a slim rail: one-tap ✓ check-in per item, a queue label, and ALL 12 IN PROGRESS →. Below it, two columns side by side. **News** ("FROM WHAT YOU TRACK"): a lead story with TRACKING and type tags, then briefs as rows, not cards. **Friends**: activity rows (verb, title, unit, score, quotes, spoiler-blurred text "SPOILER · HOVER TO READ", plan-to-watch action), with an empty state for a fresh instance ("Quiet in here", ＋ FIND FRIENDS / invite).
 
 ### Discover (`Search.dc.html`)
-"DISCOVER" title, large pill search input (⌘K chip, filters as you type), kind filter chips (ALL/MOVIES/SERIES/ANIME/MANGA/WEBTOONS — selected pink). 6-col result grid with kind dot + year captions. Bottom: "Can't find it?" dashed-border glass CTA with gradient CREATE ENTRY pill (community catalog entry creation).
+"DISCOVER" title, then one search console on a single row (see Filter console): the query cell (⌕, "Search titles, studios, authors…", pink ring on focus), KIND, YEAR (Any / 2026 / 2025 / 2024 / Earlier) and FILTERS. KIND follows the same grammar as every cell: the label, a fixed 100px value naming the pick and its count ("ALL KINDS 124"), then the picker, a hollow ring for All and one dot per kind. Hovering or focusing a dot previews it, dimmer, in the value, so nothing resizes. Picking the picked dot again goes back to All. FILTERS is label, value ("STATUS · GENRES", or "2 ACTIVE" in pink) and chevron, and opens a 440px panel hung off the bar's right edge: STATUS (PICK ONE: Any / Releasing / Finished / Upcoming / On hiatus / Cancelled), GENRES (PICK ANY, or "N SELECTED · MATCH ALL": a search box over check chips), each option with the count it would give, then RESET and "SHOW N TITLES". Escape or a click outside closes it. Whatever the panel sets shows as removable tokens under the bar (`STATUS FINISHED ×`, `GENRE DRAMA ×`, CLEAR). The bar wraps to two rows, then a stack; once wrapped the KIND, YEAR and FILTERS cells grow to share a row, and at phone width the KIND value goes and the dots stay. SORT (Trending / Newest / A–Z) orders rather than narrows, so it sits beside the result count as a quiet menu. A 6-column poster grid where the artwork stays clean: an optional tracked pill (IN PROGRESS / COMPLETED) top-left, and the title, kind dot · year, and a span badge ("2 SEASONS", "12 VOL", or "S2" when the entry is one season) sit below the poster. Empty state "Nothing matches" with RESET FILTERS. The bottom "Can't find it?" card is unchanged.
 
 ### Media Detail (`Media Detail.dc.html`)
-Hero: 240×360 cover, kind dot + meta line, 72px Anton title, synopsis, action row (gradient CHECK IN S2 E5 · IN PROGRESS status chip ▾ · ＋ LIST · RATE), stats (gradient 8.5 rating, 9/22 progress, 42 min). Body 2:1 grid — left: season chips, episode-ratings heat bar (pink-scale bars, unaired dimmed), episode rows: watched = pink filled circle check + pink rating; next = pink-tinted row with outlined circle; unaired = 45% opacity with date. Clicking the circle toggles watched. Right: comments (spoiler = blurred text, unblur on hover, pink SPOILER tag), details key/value card + TMDB attribution, related 3-up covers.
+Hero: full-bleed banner with a scrim on the reading side only, so artwork from any source keeps contrast; kind · year · genres on one line; Anton title; synopsis; "AIRING · 2 SEASONS · 22 EPISODES". Three controls, in the order you use them: the next-step CTA, a status dropdown, and favourite. A facts strip (not a table) with ALSO ON TMDB ↗ / TVMAZE ↗, TMDB attribution, and a report link. Left: Episodes, with season chips, mark-all, the unified progress control shared with mobile (editable number, − / + steppers, slider, percent), and episode rows. Right: a **Your log** card with one row each for rating (drag or click the meter, half points, CLEAR), dates (opens the date-editor modal), and review (✎ WRITE); then Related.
 
 ### Lists (`Lists.dc.html`)
 "LISTS" + gradient NEW LIST pill. Tabs: MY LISTS / FOLLOWING / COLLABORATIVE. 2-col grid of list cards: 4 fanned cover panels (170px), Anton title, RANKED/COLLAB pill badges, description, meta row (count/visibility/updated); hover = pink border. Below: opened ranked list — rows with gradient Anton rank numbers, 44×62 thumb, title/meta, pink score, drag handle ⋮⋮.
 
 ### Profile (`Profile.dc.html`)
-Header: 120px round gradient avatar, 56px Anton name, bio, followers/following + pink streak. 5 glass stat cards (gradient Anton numbers). Favourites blocks per kind (ranked covers with pill rank badges 01/02…, dashed ＋ add slot). Bottom 2:1: Recent activity rows (kind dot, verb + title, date) | Badges (round gradient-tinted icon chips) + visibility setting row.
+Identity in one line of sight: avatar, name, bio, @handle, join date, friends, streak, and EDIT PROFILE / add-friend / share. Numbers sit in one quiet strip, not five cards. Left column: **Favourites** stay one row (Top picks = the #1 of every kind; kind tabs go deeper; ✎ EDIT & REORDER; a ＋ slot), then **Right now** (in-progress titles), then **Timeline** (the History timeline in mini form, OPEN IN HISTORY →), then **Recent** as rows (FULL HISTORY →). Right column: a visitor-only "YOU AND MARA" card for titles in common; **Taste** (where the time goes by kind %, the genres they keep coming back to, average rating); **Friends** (＋ ADD FRIEND, requests waiting); **Badges**; and profile visibility.
 
 ## Interactions & Behavior
 - Check-in buttons toggle checked state (label + background change); production: optimistic mutation
 - Episode circle toggles watched; "next episode" highlight recomputes to first unwatched, non-future episode
-- Search input filters results live; kind chips filter by type; both combine
+- Search input filters results live; the kind strip, year and sort combine with it; kind counts reflect the text + year scope
 - Spoiler text: `filter: blur(5px)`, removed on hover (production: click-to-reveal is safer on touch)
 - Hovers: primary = brightness 1.15; secondary/cards = pink border/text; links → pink
 - Nav is sticky with backdrop blur
@@ -108,7 +121,7 @@ Header: 120px round gradient avatar, 56px Anton name, bio, followers/following +
 ## State Management (suggested)
 - `upNext[]` queue with per-item checked state
 - `watched: Set<episodeId>` per series; derived `nextEpisode`
-- Search: `query` + `kindFilter`
+- Search: `query` + `kindFilter` + `year` + `sort` + `status` + `genres` (+ `genreQuery`, `panel`)
 - Covers: deterministic gradient seeded from kind + title hash
 
 ## Assets
@@ -118,7 +131,8 @@ Header: 120px round gradient avatar, 56px Anton name, bio, followers/following +
 
 ## Files
 - `Design System.dc.html` — token reference + component gallery (start here)
-- `Landing.dc.html`, `Login.dc.html`, `Home.dc.html`, `Search.dc.html`, `News.dc.html`, `History.dc.html`, `Media Detail.dc.html`, `Lists.dc.html`, `Profile.dc.html`
+- `Landing.dc.html`, `Login.dc.html`, `Onboarding.dc.html`, `Home.dc.html`, `Search.dc.html`, `News.dc.html`, `History.dc.html`, `Media Detail.dc.html`, `Lists.dc.html`, `Profile.dc.html`
+- `Timeline.dc.html` — shared timeline component, imported by History (full) and Profile (mini)
 - `support.js` — prototype runtime (needed to open the files; not part of the design)
 - `noise.svg` — grain texture asset (IS part of the design)
 

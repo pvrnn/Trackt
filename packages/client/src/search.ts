@@ -1,5 +1,13 @@
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
-import { SearchResultSchema, type MediaKind, type SearchResult } from '@trackt/shared';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  SearchGenresSchema,
+  SearchKindCountsSchema,
+  SearchResultSchema,
+  type MediaKind,
+  type SearchResult,
+  type SearchSort,
+  type StatusFilter,
+} from '@trackt/shared';
 import { http } from './runtime.js';
 
 export interface MediaSearchState {
@@ -52,6 +60,27 @@ export function isSelectableYear(year: number): boolean {
   return Number.isInteger(year) && year >= SEARCH_YEAR_FLOOR && year <= SELECTABLE_YEARS[0]!;
 }
 
+/** Discover's filter panel: genres a work must all carry, and its release status. */
+export interface DiscoverFilters {
+  genres?: readonly string[] | undefined;
+  status?: StatusFilter | undefined;
+}
+
+export function hasDiscoverFilters({ genres, status }: DiscoverFilters = {}): boolean {
+  return (genres?.length ?? 0) > 0 || status !== undefined;
+}
+
+/** Query-key tail and request params for the panel; both empty when it narrows nothing. */
+export function discoverFilterParams({ genres, status }: DiscoverFilters = {}): {
+  key: unknown[];
+  params: Record<string, string>;
+} {
+  const params: Record<string, string> = {};
+  if (genres?.length) params.genres = [...genres].sort().join(',');
+  if (status) params.status = status;
+  return { key: Object.keys(params).length > 0 ? [params] : [], params };
+}
+
 /** Mirrors `SearchQuerySchema`'s `offset` ceiling: a batch starting past it is refused. */
 const MAX_SEARCH_OFFSET = 1000;
 
@@ -76,12 +105,27 @@ interface MediaSearchPage {
  * serves them, so a later batch can legitimately contain a row an earlier one
  * already carried.
  */
-export function useMediaSearch(query: string, kind?: MediaKind, year?: number): MediaSearchState {
+export function useMediaSearch(
+  query: string,
+  kind?: MediaKind,
+  year?: number,
+  sort: SearchSort = 'relevance',
+  filters?: DiscoverFilters,
+): MediaSearchState {
   const q = query.trim();
+  const filter = discoverFilterParams(filters);
+  const narrowed = filter.key.length > 0;
   const result = useInfiniteQuery({
-    // No `year` element when the filter is off, so the key stays byte-identical
-    // to the nav typeahead's and Enter on its results is a cache hit.
-    queryKey: year ? ['search', q, kind, year] : ['search', q, kind],
+    // No `year` or `sort` element when the filter is off, so the key stays
+    // byte-identical to the nav typeahead's and Enter on its results is a cache hit.
+    queryKey: [
+      'search',
+      q,
+      kind,
+      ...(year || sort !== 'relevance' || narrowed ? [year] : []),
+      ...(sort !== 'relevance' || narrowed ? [sort] : []),
+      ...filter.key,
+    ],
     enabled: q.length >= MIN_MEDIA_SEARCH_QUERY,
     placeholderData: keepPreviousData,
     initialPageParam: 0,
@@ -90,9 +134,11 @@ export function useMediaSearch(query: string, kind?: MediaKind, year?: number): 
         q,
         limit: String(MEDIA_SEARCH_LIMIT),
         offset: String(pageParam),
+        ...filter.params,
       };
       if (kind) searchParams.kind = kind;
       if (year) searchParams.year = String(year);
+      if (sort !== 'relevance') searchParams.sort = sort;
       const response = await http().get('search', { searchParams, signal });
       const page = SearchResultSchema.array().parse(await response.json());
       return {
@@ -143,5 +189,59 @@ export function useMediaSearch(query: string, kind?: MediaKind, year?: number): 
     hasMore: hasNextPage,
     loadMore,
     loadingMore: isFetchingNextPage,
+  };
+}
+
+/**
+ * Hits per kind for the Discover kind strip, over the query, year and sort
+ * (never the kind: the strip needs every option's count). Undefined until it lands or
+ * when the query is too short, and the strip then shows names only.
+ */
+export function useSearchKindCounts(
+  query: string,
+  year?: number,
+  sort: SearchSort = 'relevance',
+  filters?: DiscoverFilters,
+): Partial<Record<MediaKind, number>> | undefined {
+  const q = query.trim();
+  const filter = discoverFilterParams(filters);
+  const { data } = useQuery({
+    queryKey: ['search', 'kinds', q, year, sort, ...filter.key],
+    enabled: q.length >= MIN_MEDIA_SEARCH_QUERY,
+    placeholderData: keepPreviousData,
+    queryFn: async ({ signal }) => {
+      const searchParams: Record<string, string> = { q, ...filter.params };
+      if (year) searchParams.year = String(year);
+      if (sort !== 'relevance') searchParams.sort = sort;
+      const json = await http().get('search/kinds', { searchParams, signal }).json();
+      return SearchKindCountsSchema.parse(json).kinds;
+    },
+  });
+  return q.length >= MIN_MEDIA_SEARCH_QUERY ? data : undefined;
+}
+
+/**
+ * Genres containing `text`, for Discover's genre search box: nothing is asked
+ * until something is typed, so the full vocabulary never loads. The caller
+ * debounces `text`.
+ */
+export function useGenreSuggestions(kind: MediaKind | undefined, text: string) {
+  const q = text.trim().toLowerCase();
+  const result = useQuery({
+    queryKey: ['search', 'genres', kind ?? 'all', q],
+    enabled: q.length > 0,
+    staleTime: 60 * 60_000,
+    placeholderData: keepPreviousData,
+    queryFn: async ({ signal }) => {
+      const searchParams: Record<string, string> = { q };
+      if (kind) searchParams.kind = kind;
+      const json = await http().get('search/genres', { searchParams, signal }).json();
+      return SearchGenresSchema.parse(json).genres;
+    },
+  });
+  return {
+    genres: q ? (result.data ?? []) : [],
+    isFetching: q.length > 0 && result.isFetching,
+    isError: q.length > 0 && result.isError,
   };
 }

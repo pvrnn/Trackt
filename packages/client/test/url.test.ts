@@ -22,6 +22,16 @@ describe('safeRedirect', () => {
     expect(safeRedirect('/home\\..\\evil.com')).toBeUndefined();
   });
 
+  it('rejects the auth pages, so a redirect can never loop back into sign-in', () => {
+    expect(safeRedirect('/login')).toBeUndefined();
+    expect(safeRedirect('/login?redirect=%2Flogin')).toBeUndefined();
+    expect(safeRedirect('/register/')).toBeUndefined();
+    expect(safeRedirect('/register#top')).toBeUndefined();
+    // Paths that merely start with the same letters are ordinary destinations.
+    expect(safeRedirect('/logins')).toBe('/logins');
+    expect(safeRedirect('/lists/login')).toBe('/lists/login');
+  });
+
   it('rejects anything that is not a string or not rooted', () => {
     expect(safeRedirect(undefined)).toBeUndefined();
     expect(safeRedirect(42)).toBeUndefined();

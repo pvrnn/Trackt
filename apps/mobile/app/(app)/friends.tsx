@@ -8,7 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PersonRow, RosterTab, friendStateNote } from '../../src/components/PersonRow';
 import { ConfirmSheet } from '../../src/components/ConfirmSheet';
 import { Icon } from '../../src/components/Icon';
-import { BackLink, EmptyState, Loading, PageFrame } from '../../src/components/Page';
+import { BackButton } from '../../src/components/HeaderControls';
+import { EmptyState, Loading, PageFrame } from '../../src/components/Page';
 import { AnimatedPressable, ripple } from '../../src/components/Press';
 import { commitHaptic } from '../../src/lib/haptics';
 import { useFriendActions } from '../../src/lib/friends';
@@ -106,7 +107,7 @@ export default function FriendsScreen() {
   return (
     <PageFrame>
       <View style={[styles.head, { paddingTop: insets.top + space.md }]}>
-        <BackLink />
+        <BackButton style={styles.back} />
         <Text style={styles.title}>FRIENDS</Text>
         <AnimatedPressable
           accessibilityRole="button"
@@ -128,12 +129,12 @@ export default function FriendsScreen() {
 
       <View style={styles.controls}>
         <View style={styles.search}>
-          <Icon name="search" color={color.dim} size={16} />
+          <Icon name="search" color={color.dim} size={18} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder={t('social.searchPlaceholderMobile')}
-            placeholderTextColor={color.faint}
+            placeholderTextColor={color.dim}
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
@@ -199,7 +200,7 @@ export default function FriendsScreen() {
           />
         ) : rows.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={[type.eyebrow, text.faint]}>
+            <Text style={[type.eyebrow, text.dim]}>
               {searching ? t('social.noMatchesShort') : t('social.nothingHere')}
             </Text>
           </View>
@@ -240,6 +241,11 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingHorizontal: layout.gutter,
     paddingBottom: space.md,
+  },
+  // The chevron sits optically on the gutter, not the 44pt target's edge.
+  back: {
+    marginLeft: -12,
+    marginRight: -6,
   },
   title: {
     flex: 1,

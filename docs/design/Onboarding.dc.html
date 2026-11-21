@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    input::placeholder { color: #948da1; }
+    .field { background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); border-radius: 12px; display: flex; align-items: center; transition: box-shadow 140ms ease; }
+    .field:focus-within { box-shadow: inset 0 0 0 1px #d96bb0, 0 0 0 4px rgba(217,107,176,0.16); }
+    .one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @keyframes sheet-in { from { opacity: 0; transform: translateY(18px) scale(0.985); } to { opacity: 1; transform: none; } }
+    @keyframes pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+    .sheet { animation: sheet-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .busy { animation: pulse 900ms ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { .sheet, .busy { animation: none; } }
+  </style>
+</helmet>
+
+<!-- the real home page sits underneath: the flow is a layer over it, not a detour away from it -->
+<div aria-hidden="true" style="height: 100vh; overflow: hidden; pointer-events: none;">
+  <dc-import name="Home" has-friends="{{ false }}" hint-size="100%,100vh"></dc-import>
+</div>
+
+<div style="position: fixed; inset: 0; z-index: 60; background: rgba(8,6,12,0.74); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: clamp(12px, 3vw, 32px); overflow-y: auto;">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ob-title" style="width: 100%; max-width: 720px; min-height: min(660px, 100%); max-height: 100%; margin: auto; background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 50px 120px -30px rgba(0,0,0,0.95); border-radius: 22px; display: flex; flex-direction: column; overflow: hidden;">
+
+    <!-- one line: where you are on the left, the way out on the right, on the same centre line. Progress sits under it, full width. -->
+    <div style="display: flex; align-items: center; gap: 16px; padding: 14px clamp(12px, 3vw, 18px) 0 clamp(20px, 4vw, 32px);">
+      <div style="flex: 1; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ stepLabel }} <span style="color: #f0edf4;">· {{ stepName }}</span></div>
+      <a href="Home.dc.html" aria-label="Close setup and go to home" title="Close — finish this later" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; color: #cfc9d8;" style-hover="background: rgba(255,255,255,0.12); color: #f0edf4;">✕</a>
+    </div>
+    <ol style="list-style: none; margin: 0; padding: 12px clamp(20px, 4vw, 32px) 0; display: flex; gap: 8px;">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+        <li style="flex: 1; min-width: 0;">
+          <button onClick="{{ s.go }}" aria-current="{{ s.current }}" aria-label="{{ s.label }}" style="display: block; width: 100%; padding: 8px 0;">
+            <span aria-hidden="true" style="display: block; height: 4px; border-radius: 999px; background: {{ s.bar }};"></span>
+          </button>
+        </li>
+      </sc-for>
+    </ol>
+
+    <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 18px clamp(20px, 4vw, 32px) 24px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <h1 id="ob-title" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(36px, 5vw, 48px); line-height: 0.96; text-transform: uppercase;">{{ title }}</h1>
+        <p style="margin: 0; color: #b8b1c4; font-size: 16px; line-height: 1.55; max-width: 54ch; text-wrap: pretty;">{{ lede }}</p>
+      </div>
+
+      <!-- STEP 1 — IMPORT -->
+      <sc-if value="{{ isImport }}" hint-placeholder-val="{{ true }}">
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+          <sc-for list="{{ sources }}" as="s" hint-placeholder-count="5">
+            <li style="background: {{ s.bg }}; box-shadow: inset 0 0 0 1px {{ s.ring }}; border-radius: 14px; padding: 12px 14px 12px 12px; display: flex; align-items: center; gap: 14px; transition: box-shadow 200ms ease, background 200ms ease;">
+              <!-- logo slot: the service's official mark goes here -->
+              <div aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.28); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">LOGO</div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap;">
+                  <span style="font-weight: 700; font-size: 16px;">{{ s.name }}</span>
+                  <span style="display: flex; gap: 10px;">
+                    <sc-for list="{{ s.kinds }}" as="k" hint-placeholder-count="1">
+                      <span style="display: flex; align-items: center; gap: 5px;">
+                        <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: {{ k.dot }};"></span>
+                        <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #b8b1c4;">{{ k.label }}</span>
+                      </span>
+                    </sc-for>
+                  </span>
+                </div>
+                <div class="{{ s.noteCls }}" style="font-size: 13px; color: {{ s.noteFg }};">{{ s.note }}</div>
+              </div>
+              <sc-if value="{{ s.open }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ s.act }}" style="flex-shrink: 0; width: 160px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; color: {{ s.btnFg }}; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22); border-radius: 999px; white-space: nowrap;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">{{ s.btn }}</button>
+              </sc-if>
+              <sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}">
+                <div style="flex-shrink: 0; width: 160px; display: flex; align-items: center; gap: 6px;">
+                  <span style="height: 42px; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; background: rgba(217,107,176,0.16); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); font-weight: 700; font-size: 12px; letter-spacing: 0.06em; color: #e58cc4; white-space: nowrap;"><span aria-hidden="true">✓</span>CONNECTED</span>
+                  <button onClick="{{ s.act }}" aria-label="Disconnect {{ s.name }}" title="Disconnect" style="width: 42px; height: 42px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); display: flex; align-items: center; justify-content: center; font-size: 12px; color: #b8b1c4;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0; color: #f0edf4;">✕</button>
+                </div>
+              </sc-if>
+            </li>
+          </sc-for>
+        </ul>
+      </sc-if>
+
+      <!-- STEP 2 — FRIENDS -->
+      <sc-if value="{{ isFriends }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <label class="field">
+            <span aria-hidden="true" style="padding-left: 16px; color: #948da1; font-size: 16px;">⌕</span>
+            <input value="{{ query }}" onChange="{{ onQuery }}" aria-label="Find people" placeholder="Search by name or @handle" style="flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #f0edf4; font-family: Archivo, sans-serif; font-size: 16px; padding: 14px 12px;">
+            <button onClick="{{ invite }}" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {{ inviteFg }}; padding: 14px 16px; white-space: nowrap;" style-hover="color: #d96bb0;">{{ inviteLabel }}</button>
+          </label>
+
+          <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">{{ peopleLabel }}</div>
+
+          <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;">
+            <sc-for list="{{ people }}" as="p" hint-placeholder-count="4">
+              <li style="display: flex; align-items: center; gap: 14px; padding: 11px 0; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08);">
+                <div aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; background: {{ p.av }}; display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">{{ p.initials }}</div>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                  <div class="one-line" style="font-weight: 600; font-size: 15px;">{{ p.name }} <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 500; color: #948da1;">@{{ p.handle }}</span></div>
+                  <div class="one-line" style="font-size: 13px; color: #b8b1c4;">{{ p.why }}</div>
+                </div>
+                <button onClick="{{ p.add }}" aria-pressed="{{ p.added }}" style="flex-shrink: 0; min-width: 124px; height: 40px; padding: 0 16px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; color: {{ p.fg }}; background: {{ p.bg }}; box-shadow: inset 0 0 0 1px {{ p.bd }}; border-radius: 999px; white-space: nowrap;" style-hover="filter: brightness(0.9);">{{ p.btn }}</button>
+              </li>
+            </sc-for>
+          </ul>
+
+          <sc-if value="{{ noPeople }}" hint-placeholder-val="{{ false }}">
+            <div style="border: 1px dashed rgba(255,255,255,0.2); border-radius: 14px; padding: 22px; color: #b8b1c4; font-size: 14px; line-height: 1.55;">{{ noPeopleText }}</div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- STEP 3 — DONE -->
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          <dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px;">
+            <sc-for list="{{ recap }}" as="r" hint-placeholder-count="3">
+              <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 6px;">
+                <dt style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">{{ r.k }}</dt>
+                <dd style="margin: 0; font-family: Anton; font-size: 34px; line-height: 1; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ r.v }}</dd>
+                <dd style="margin: 0; font-size: 13px; color: #b8b1c4;">{{ r.note }}</dd>
+              </div>
+            </sc-for>
+          </dl>
+          <div style="color: #b8b1c4; font-size: 14px; line-height: 1.55;">{{ doneNote }}</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- footer: back on the left, the one way forward on the right -->
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px clamp(20px, 4vw, 32px) 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
+      <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ back }}" style="height: 48px; padding: 0 20px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #f0edf4;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;"><span aria-hidden="true">←</span>BACK</button>
+      </sc-if>
+      <div style="flex: 1; min-width: 0; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #948da1;">{{ footNote }}</div>
+      <sc-if value="{{ notDone }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ skip }}" style="height: 48px; padding: 0 14px; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #cfc9d8; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.3); text-underline-offset: 5px;" style-hover="color: #f0edf4;">SKIP THIS STEP</button>
+        <button onClick="{{ next }}" aria-disabled="{{ nextOff }}" style="height: 48px; padding: 0 26px; border-radius: 999px; display: flex; align-items: center; gap: 10px; background: {{ nextBg }}; color: {{ nextFg }}; cursor: {{ nextCursor }}; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; white-space: nowrap; transition: background 200ms ease, color 200ms ease;" style-hover="filter: brightness(1.12);"><span>{{ nextLabel }}</span><span aria-hidden="true">→</span></button>
+      </sc-if>
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <a href="Search.dc.html" style="height: 48px; padding: 0 22px; display: flex; align-items: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; border-radius: 999px;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">ADD A TITLE</a>
+        <a href="Home.dc.html" style="height: 48px; padding: 0 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; border-radius: 999px;" style-hover="filter: brightness(1.12); color: #14101a;"><span>GO TO MY HOME</span><span aria-hidden="true">→</span></a>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const DOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+const LABEL = { MOVIE: 'MOVIES', SERIES: 'SERIES', ANIME: 'ANIME', MANGA: 'MANGA', GAME: 'GAMES' };
+// how: 'connect' = sign in / username, 'file' = upload the service's export
+const SOURCES = [
+  { id: 'lb', name: 'Letterboxd', kinds: ['MOVIE'], how: 'file', idle: 'Upload your Letterboxd export', found: '612 films, with ratings and dates', count: 612 },
+  { id: 'mal', name: 'MyAnimeList', kinds: ['ANIME', 'MANGA'], how: 'connect', idle: 'Sign in, or just give a username', found: '288 anime · 74 manga', count: 362 },
+  { id: 'al', name: 'AniList', kinds: ['ANIME', 'MANGA'], how: 'connect', idle: 'Sign in, or just give a username', found: '412 anime · 96 manga', count: 508 },
+  { id: 'tvt', name: 'TV Time', kinds: ['SERIES', 'MOVIE'], how: 'file', idle: 'Upload your TV Time data export', found: '143 series · 5,803 episodes', count: 143 },
+  { id: 'st', name: 'Steam profile', kinds: ['GAME'], how: 'connect', idle: 'Paste your profile link', found: '64 games, with playtime', count: 64 },
+];
+const AV = [
+  'linear-gradient(135deg, #d9a441, #d96bb0)',
+  'linear-gradient(135deg, #a78bfa, #6d8bf0)',
+  'linear-gradient(135deg, #d96bb0, #a78bfa)',
+  'linear-gradient(135deg, #6d8bf0, #35d6c0)',
+  'linear-gradient(135deg, #e8874a, #d9a441)',
+];
+// people already on Trackt, found through the account they came from
+const PEOPLE = [
+  { id: 'sam', name: 'Sam Okonkwo', handle: 'samok', via: 'al', why: 'You follow each other on AniList' },
+  { id: 'iris', name: 'Iris Delacroix', handle: 'irisd', via: 'lb', why: 'You follow her on Letterboxd' },
+  { id: 'ben', name: 'Ben Alvarez', handle: 'balv', via: 'st', why: 'On your Steam friends list' },
+  { id: 'noor', name: 'Noor Haddad', handle: 'noorh', via: 'al', why: 'Follows you on AniList' },
+  { id: 'kai', name: 'Kai Lindqvist', handle: 'kail', via: 'mal', why: 'Friend on MyAnimeList' },
+  { id: 'tess', name: 'Tess Moreau', handle: 'tessm', via: 'tvt', why: 'You followed her on TV Time' },
+];
+const STEPS = ['import', 'friends', 'done'];
+
+class Component extends DCLogic {
+  state = { step: 'import', src: {}, added: {}, query: '', invited: false };
+
+  componentWillUnmount() { this.gone = true; }
+
+  connect(id) {
+    const cur = this.state.src[id];
+    if (cur === 'busy') return;
+    if (cur === 'done') { this.setSrc(id, undefined); return; }
+    this.setSrc(id, 'busy');
+    setTimeout(() => { if (!this.gone) this.setSrc(id, 'done'); }, 1100);
+  }
+  setSrc(id, v) { this.setState((s) => ({ src: Object.assign({}, s.src, { [id]: v }) })); }
+
+  renderVals() {
+    const st = this.state;
+    const step = st.step;
+    const idx = STEPS.indexOf(step);
+    const prism = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
+    const doneSrc = SOURCES.filter((s) => st.src[s.id] === 'done');
+    const titles = doneSrc.reduce((n, s) => n + s.count, 0);
+    const addedN = Object.keys(st.added).filter((k) => st.added[k]).length;
+
+    const picked = step === 'import' ? doneSrc.length > 0 : addedN > 0;
+    const q = st.query.trim().toLowerCase();
+    const pool = q
+      ? PEOPLE.filter((p) => (p.name + ' ' + p.handle).toLowerCase().includes(q))
+      : PEOPLE.filter((p) => st.src[p.via] === 'done');
+
+    const copy = {
+      import: { title: 'Bring your history', lede: 'Already tracking somewhere else? Connect it and your log starts full. Pick as many as you like, or none.' },
+      friends: { title: 'Find your people', lede: 'Trackt is better with a few friends: you see what they watch, read and play, and spoilers stay hidden until you catch up.' },
+      done: { title: 'You are set', lede: 'Everything here can be changed later in Settings.' },
+    }[step];
+
+    return {
+      title: copy.title, lede: copy.lede,
+      stepLabel: 'STEP ' + (idx + 1) + ' OF 3', stepName: ['IMPORT', 'FRIENDS', 'START'][idx],
+      isImport: step === 'import', isFriends: step === 'friends', isDone: step === 'done', notDone: step !== 'done',
+
+      steps: [['import', '1 · IMPORT'], ['friends', '2 · FRIENDS'], ['done', '3 · START']].map((s, i) => ({
+        label: s[1],
+        current: i === idx ? 'step' : 'false',
+        bar: i <= idx ? prism : 'rgba(255,255,255,0.12)',
+        fg: i === idx ? '#f0edf4' : '#948da1',
+        go: () => this.setState({ step: s[0] }),
+      })),
+
+      sources: SOURCES.map((s) => {
+        const v = st.src[s.id];
+        const done = v === 'done', busy = v === 'busy';
+        return {
+          name: s.name,
+          kinds: s.kinds.map((k) => ({ label: LABEL[k], dot: DOT[k] })),
+          done, open: !done,
+          note: done ? s.found : (busy ? 'Reading your library…' : s.idle),
+          noteFg: done ? '#e58cc4' : '#b8b1c4',
+          noteCls: busy ? 'busy' : '',
+          bg: done ? 'rgba(217,107,176,0.1)' : 'rgba(255,255,255,0.05)',
+          ring: done ? 'rgba(217,107,176,0.55)' : 'rgba(255,255,255,0.1)',
+          btn: busy ? 'CONNECTING…' : (s.how === 'file' ? 'UPLOAD EXPORT' : 'CONNECT'),
+          btnFg: busy ? '#b8b1c4' : '#f0edf4',
+          act: () => this.connect(s.id),
+        };
+      }),
+
+      query: st.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      invite: () => this.setState({ invited: true }),
+      inviteLabel: st.invited ? 'LINK COPIED' : 'COPY INVITE LINK',
+      inviteFg: st.invited ? '#e58cc4' : '#b8b1c4',
+      peopleLabel: q ? 'RESULTS' : (pool.length ? 'ALREADY ON TRACKT, FROM YOUR CONNECTED ACCOUNTS' : 'SUGGESTIONS'),
+      people: pool.map((p, i) => {
+        const added = !!st.added[p.id];
+        return {
+          name: p.name, handle: p.handle, why: p.why, added,
+          av: AV[i % AV.length],
+          initials: p.name.split(' ').map((w) => w[0]).join(''),
+          btn: added ? '✓ REQUESTED' : '＋ ADD FRIEND',
+          fg: added ? '#e58cc4' : '#14101a',
+          bg: added ? 'rgba(217,107,176,0.16)' : '#f0edf4',
+          bd: added ? 'rgba(217,107,176,0.55)' : 'transparent',
+          add: () => this.setState((s) => ({ added: Object.assign({}, s.added, { [p.id]: !s.added[p.id] }) })),
+        };
+      }),
+      noPeople: pool.length === 0,
+      noPeopleText: q
+        ? 'No one matches “' + st.query + '”. Send them your invite link instead.'
+        : 'Nothing to suggest yet. Connect an account in step 1 and we will find the people you already follow there, or search by name above.',
+
+      recap: [
+        { k: 'IMPORTING', v: titles ? titles.toLocaleString('en-US') : '0', note: titles ? 'titles from ' + doneSrc.map((s) => s.name).join(', ') : 'Nothing connected. Import any time.' },
+        { k: 'FRIEND REQUESTS', v: String(addedN), note: addedN ? 'They will show up in your feed once accepted.' : 'None sent. Find people any time.' },
+      ],
+      doneNote: titles
+        ? 'The import runs in the background and can take a few minutes. Your home page fills in as titles are matched; anything we cannot match is listed for you to review.'
+        : 'Your log is empty for now. Add the first thing you watched, read or played this week.',
+
+      canBack: idx > 0,
+      back: () => this.setState({ step: STEPS[idx - 1] }),
+      skip: () => this.setState({ step: STEPS[idx + 1] }),
+      next: () => { if (picked) this.setState({ step: STEPS[idx + 1] }); },
+      nextOff: !picked,
+      footNote: step === 'import'
+        ? (doneSrc.length ? doneSrc.length + ' CONNECTED · ' + titles.toLocaleString('en-US') + ' TITLES FOUND' : '')
+        : (step === 'friends' && addedN ? addedN + ' SELECTED' : ''),
+      nextLabel: step === 'friends' && addedN ? 'SEND ' + addedN + ' REQUEST' + (addedN === 1 ? '' : 'S') : 'CONTINUE',
+      nextBg: picked ? prism : 'rgba(255,255,255,0.07)',
+      nextFg: picked ? '#14101a' : '#948da1',
+      nextCursor: picked ? 'pointer' : 'not-allowed',
+    };
+  }
+}
+</script>
+</body>
+</html>

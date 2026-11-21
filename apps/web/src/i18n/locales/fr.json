@@ -12,6 +12,10 @@
     "soon": "BIENTÔT",
     "comingSoon": "Bientôt disponible"
   },
+  "filters": {
+    "kind": "filtrer par type",
+    "kindLabel": "TYPE"
+  },
   "meta": {
     "description": "Trackt : suivi de films, séries, animés, mangas, webtoons et jeux vidéo, open source et auto-hébergeable.",
     "home": "Accueil · Trackt",
@@ -41,7 +45,6 @@
     "lists": "LISTES",
     "history": "HISTO",
     "profile": "PROFIL",
-    "selfHost": "AUTO-HÉBERGEMENT",
     "api": "API",
     "github": "GITHUB",
     "signIn": "CONNEXION"
@@ -144,84 +147,175 @@
   "auth": {
     "login": {
       "title": "Bon retour",
-      "subtitle": "Tout suivre. Ne rien perdre."
+      "pitchTop": "Reprenez là où",
+      "pitchBottom": "vous en étiez."
     },
     "register": {
-      "title": "Créer un compte",
-      "subtitle": "Votre historique, vos notes et vos listes, exportables à tout moment."
+      "title": "Lancez votre journal",
+      "pitchTop": "Tout ce que vous regardez,",
+      "pitchBottom": "lisez et jouez."
     },
     "fields": {
-      "name": "Nom",
       "username": "Nom d’utilisateur",
       "email": "E-mail",
-      "password": "Mot de passe",
-      "confirmPassword": "Confirmer le mot de passe"
+      "password": "Mot de passe"
     },
+    "passwordHint": {
+      "login": "Votre mot de passe",
+      "register": "Choisissez un mot de passe"
+    },
+    "showPassword": "AFFICHER",
+    "hidePassword": "MASQUER",
+    "showPasswordAria": "Afficher le mot de passe",
     "submit": "SE CONNECTER",
     "submitting": "CONNEXION…",
     "createAccount": "CRÉER UN COMPTE",
     "creatingAccount": "CRÉATION DU COMPTE…",
-    "newHere": "Nouveau ici",
-    "alreadyMember": "Déjà membre",
-    "homeAria": "Accueil Trackt",
-    "manifesto": {
-      "line1": "Chaque épisode.",
-      "line2": "Chaque chapitre.",
-      "line3": "À vous pour toujours.",
-      "body": "Open source, auto-hébergeable, export complet à tout moment. Fait par des gens qui ont déjà perdu leur historique."
+    "switchToRegister": {
+      "text": "Nouveau ici ?",
+      "action": "Créer un compte"
     },
+    "switchToLogin": {
+      "text": "Vous suivez déjà ?",
+      "action": "Se connecter"
+    },
+    "backToSite": "RETOUR AU SITE",
+    "homeAria": "Accueil Trackt",
+    "github": "OPEN SOURCE SUR GITHUB",
+    "tvTimeSoon": "IMPORT TV TIME BIENTÔT",
+    "modesAria": "Se connecter ou créer un compte",
     "validation": {
-      "nameRequired": "Le nom est obligatoire",
       "usernameFormat": "3 à 30 caractères : lettres, chiffres, points, tirets bas",
       "emailRequired": "L’e-mail est obligatoire",
-      "passwordLength": "Au moins {{min}} caractères",
-      "passwordMismatch": "Les mots de passe ne correspondent pas"
-    },
-    "tvTime": {
-      "title": "Vous venez de TV Time ?",
-      "body": "Apportez votre export RGPD : 1 000 épisodes importés en moins d’une minute.",
-      "cta": "IMPORTER · BIENTÔT",
-      "tooltip": "L’import TV Time arrive bientôt"
+      "passwordLength": "Au moins {{min}} caractères"
     }
   },
   "marketing": {
     "hero": {
-      "eyebrow": "OPEN SOURCE · AUTO-HÉBERGEABLE · COMMUNAUTAIRE",
-      "titleTop": "Tout suivre.",
-      "titleBottom": "Ne rien <accent>perdre.</accent>",
-      "body": "Films, séries, animés, mangas, webtoons et jeux vidéo, avec un export complet à tout moment et une API publique dès le premier jour. TV Time a supprimé 25 millions d’historiques. Plus jamais.",
-      "start": "COMMENCER À SUIVRE",
-      "importSoon": "IMPORTER DEPUIS TV TIME · BIENTÔT",
-      "importTooltip": "L’import TV Time arrive bientôt",
-      "selfHost": "ou auto-hébergez :"
+      "label": "Suivez chaque film, série, anime, manga, webtoon et jeu",
+      "titleTop": "Suivez chaque",
+      "word": {
+        "movie": "FILM.",
+        "series": "SÉRIE.",
+        "anime": "ANIME.",
+        "manga": "MANGA.",
+        "webtoon": "WEBTOON.",
+        "game": "JEU."
+      },
+      "body": "Un seul journal pour tout ce que vous regardez, lisez et jouez. Validez un épisode ou un chapitre en deux gestes, voyez ce qui plaît à vos amis et recevez des actus uniquement sur ce que vous suivez.",
+      "start": "COMMENCER · GRATUIT",
+      "github": "VOIR SUR GITHUB",
+      "proof": "OPEN SOURCE · EXPORT COMPLET À TOUT MOMENT · <import>IMPORT DEPUIS 5 APPS</import>",
+      "checkedIn": "Validé",
+      "finished": "{{user}} l’a terminé"
     },
-    "pillars": {
-      "title": "Pourquoi ce projet existe",
-      "one": {
-        "title": "Vos données, pour toujours",
-        "body": "Export complet à tout moment dans un format ouvert. API publique dès le premier jour. La portabilité est le principe fondateur, pas une case à cocher."
+    "kinds": {
+      "titleTop": "Six types.",
+      "titleBottom": "Un journal.",
+      "body": "Fini une app pour les séries, un tableur pour les mangas et sa mémoire pour les jeux. Chaque type se suit comme il se consomme vraiment.",
+      "how": {
+        "movie": "Vu, noté, revu.",
+        "series": "Saison par saison, épisode par épisode.",
+        "anime": "Chaque saison, chaque épisode.",
+        "manga": "Par chapitre ou par volume.",
+        "webtoon": "Chapitre par chapitre, saison par saison.",
+        "game": "En cours, en pause, terminé ou abandonné."
       },
-      "two": {
-        "title": "Auto-hébergement en une commande",
-        "body": "docker compose up et vous avez votre propre instance : votre catalogue, votre communauté, vos règles."
-      },
-      "three": {
-        "title": "Suivre à la bonne granularité",
-        "body": "Épisodes, chapitres, tomes, relectures. Notes à la demi-point sur les œuvres entières ou les épisodes."
-      },
-      "four": {
-        "title": "Catalogue communautaire",
-        "body": "Webtoons et titres obscurs que les grandes bases ignorent ? Ajoutez-les vous-même et partagez-les entre instances."
+      "sample": {
+        "movie": "{{title}} · VU · 9.0",
+        "series": "{{title}} · ÉPISODE 5",
+        "anime": "{{title}} · ÉPISODE 18",
+        "manga": "{{title}} · CHAPITRE 31",
+        "webtoon": "{{title}} · CHAPITRE 112",
+        "game": "{{title}} · EN COURS"
       }
     },
-    "checkIn": {
-      "titleTop": "Deux gestes.",
-      "titleBottom": "C’est noté.",
-      "body": "Épisode par épisode pour les séries et animés, chapitre par chapitre pour les mangas et webtoons, et suivi des jeux en une étape. La vitesse est une exigence, pas une option.",
-      "episodeOf": "Épisode {{next}} sur {{total}}",
-      "episode": "Épisode {{next}}",
-      "chapterOf": "Chapitre {{next}} sur {{total}}",
-      "chapter": "Chapitre {{next}}"
+    "features": {
+      "title": "Plus qu’une checklist",
+      "checkIn": {
+        "title": "Deux gestes. C’est noté.",
+        "body": "Votre prochain épisode ou chapitre vous attend sur l’accueil. Essayez.",
+        "next": "Épisode {{next}} sur {{total}}",
+        "done": "Validé · suivant : épisode {{next}}",
+        "action": "Valider {{title}}"
+      },
+      "friends": {
+        "title": "Les amis, sans les spoilers",
+        "body": "Voyez ce que vos proches regardent, lisent, notent et abandonnent. Tout ce qui dépasse votre progression reste flouté jusqu’à ce que vous rattrapiez.",
+        "rated": "<b>{{user}}</b> a noté <b>{{title}}</b> {{unit}} <score>{{score}}</score>",
+        "spoiler": "<b>{{user}}</b> sur {{unit}} : <spoiler>le twist du gardien de phare</spoiler>",
+        "spoilerTag": "SPOILER"
+      },
+      "news": {
+        "title": "Des actus qui vous concernent",
+        "body": "Renouvellements, dates de sortie et adaptations, filtrés sur les titres de votre bibliothèque.",
+        "renewed": "Neon Harbor renouvelée pour une troisième saison",
+        "premiere": "La deuxième partie d’Ashfall Chronicle arrive le 9 janvier"
+      },
+      "profile": {
+        "title": "Un profil qui vous ressemble",
+        "body": "Votre favori dans chaque type, ce qui vous occupe en ce moment et où passe vraiment votre temps.",
+        "time": "OÙ PASSE LE TEMPS"
+      }
+    },
+    "import": {
+      "titleTop": "Apportez",
+      "titleBottom": "votre historique",
+      "body": "Des années de films, de lectures et de parties vivent déjà quelque part. Importez-les et commencez avec un journal plein plutôt que vide.",
+      "cta": "IMPORTER MON HISTORIQUE",
+      "note": "NOTES ET DATES INCLUSES · PLUSIEURS SOURCES POSSIBLES"
+    },
+    "discord": {
+      "eyebrow": "BOT DISCORD",
+      "titleTop": "Regardez ensemble,",
+      "titleBottom": "notez ensemble",
+      "body": "Ajoutez le bot Trackt à votre serveur et le journal suit votre groupe dans le salon où vous discutez déjà.",
+      "parties": {
+        "k": "WATCH PARTIES",
+        "v": "Programmez un épisode, un film ou un chapitre. Chaque participant est validé à la fin."
+      },
+      "feed": {
+        "k": "FIL D’ACTIVITÉ",
+        "v": "Validations, notes et titres terminés publiés dans le salon de votre choix."
+      },
+      "commands": {
+        "k": "COMMANDES",
+        "v": "Cherchez un titre, voyez la suite ou notez depuis le chat sans ouvrir l’app."
+      },
+      "cta": "AJOUTER À DISCORD",
+      "bot": "BOT",
+      "party": "WATCH PARTY · CE SOIR 21:00",
+      "partyMeta": "S2 E6 · Dead Reckoning · {{count}} participants",
+      "join": "REJOINDRE",
+      "going": "J’Y SERAI",
+      "over": "Soirée terminée. <b>june_k</b>, <b>rex</b>, <b>aki</b> et <b>noor</b> ont été validés sur <b>S2 E6</b>. Note moyenne <score>8.8</score>"
+    },
+    "open": {
+      "title": "Ouvert par défaut",
+      "body": "Des années d’historique ne devraient pas dépendre de la survie d’une entreprise. Le code est public, vos données partent quand vous voulez, et chacun peut héberger sa propre copie.",
+      "github": "VOIR SUR GITHUB",
+      "docs": "DOCS DE L’API",
+      "source": {
+        "k": "OPEN SOURCE",
+        "v": "GPL-3.0, développé ouvertement sur GitHub."
+      },
+      "data": {
+        "k": "VOS DONNÉES",
+        "v": "Export complet à tout moment, dans un format ouvert."
+      },
+      "api": {
+        "k": "API PUBLIQUE",
+        "v": "Tout ce que fait l’app, documenté dès le premier jour."
+      },
+      "selfHost": {
+        "k": "AUTO-HÉBERGEMENT",
+        "v": "Vous préférez votre propre instance ? Une commande :"
+      }
+    },
+    "closer": {
+      "title": "Lancez votre <accent>journal.</accent>",
+      "body": "Ajoutez la première chose que vous avez regardée, lue ou jouée cette semaine. Le reste suit.",
+      "cta": "COMMENCER · GRATUIT"
     },
     "footer": {
       "credit": "GPL-3.0 · Métadonnées de <tmdb>TMDB</tmdb>, <anilist>AniList</anilist> et <tvmaze>TVmaze</tvmaze>. Ce produit utilise l’API TMDB mais n’est ni approuvé ni certifié par TMDB."

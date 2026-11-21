@@ -14,7 +14,6 @@
   "log": "＋ LOG",
   "dates": {
     "title": "Dates",
-    "add": "＋ ADD DATES",
     "edit": "Edit the dates you started and finished this",
     "started": "STARTED",
     "finished": "FINISHED",
@@ -31,7 +30,7 @@
   "markAll": "MARK ALL {{verb}}",
   "clearProgress": "CLEAR PROGRESS",
   "favourite": "FAVOURITE",
-  "list": "LIST",
+  "favourited": "FAVOURITED",
   "saveFailed": "That didn’t save. Try again.",
   "part": {
     "episode": "Episode",
@@ -73,33 +72,45 @@
   },
   "rating": {
     "yours": "YOUR RATING",
-    "rate": "RATE THIS",
-    "rateTrigger": "RATE",
     "community": "{{score}} FROM {{count}} HERE",
     "none": "NO RATINGS HERE YET",
-    "label": "Your rating",
-    "group": "score",
-    "rateValue": "Rate {{value}}",
-    "clear": "CLEAR RATING"
+    "clear": "CLEAR",
+    "scrub": "Your rating, out of 10. Slide to zero to clear it"
+  },
+  "logCard": {
+    "title": "Your log",
+    "dates": "DATES",
+    "lists": "LISTS",
+    "edit": "EDIT",
+    "add": "＋ ADD",
+    "noDates": "Not set",
+    "listsValue": "Keep it in a list"
   },
   "details": {
-    "title": "Details",
     "status": "STATUS",
     "released": "RELEASED",
+    "ended": "ENDED",
+    "studio": "STUDIO",
+    "createdBy": "CREATED BY",
+    "runtime": "RUNTIME",
+    "runtimeValue": "{{minutes}} min",
+    "volumes": "VOLUMES",
     "genres": "GENRES",
     "alsoKnownAs": "ALSO KNOWN AS",
-    "external": "EXTERNAL"
+    "alsoOn": "ALSO ON",
+    "tmdbNotice": "Metadata from TMDB. Not endorsed or certified by TMDB."
   },
   "reportIssue": "REPORT AN ISSUE",
-  "youMightLike": "You might also like",
+  "relatedTitle": "Related",
   "relation": {
     "prequel": "PREQUEL",
     "sequel": "SEQUEL",
-    "source": "SOURCE MATERIAL",
-    "adaptation": "ADAPTATIONS",
-    "spinoff": "SPIN-OFFS",
+    "source": "SOURCE",
+    "adaptation": "ADAPTATION",
+    "spinoff": "SPIN-OFF",
     "parent": "PARENT WORK",
-    "related": "RELATED"
+    "related": "RELATED",
+    "similar": "SIMILAR"
   },
   "addToList": {
     "title": "Add to list",

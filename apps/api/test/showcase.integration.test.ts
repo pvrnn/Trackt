@@ -236,6 +236,34 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
     }
   });
 
+  it('leaves out ecchi and hentai titles, whatever the genre casing', async () => {
+    const webtoonId = '7b0c6d3e-2f41-4a9d-9c1c-8f4d2a6b5e10';
+    const [original] = await db
+      .select({ genres: media.genres })
+      .from(media)
+      .where(eq(media.id, webtoonId));
+    try {
+      await db.update(media).set({ moderation: 'verified' }).where(eq(media.id, webtoonId));
+      expect((await showcase()).rows.map((row) => row.id)).toContain(webtoonId);
+
+      for (const genre of ['ecchi', 'Ecchi', 'Hentai']) {
+        await db
+          .update(media)
+          .set({ genres: ['comedy', genre] })
+          .where(eq(media.id, webtoonId));
+        expect((await showcase()).rows.map((row) => row.id)).not.toContain(webtoonId);
+        expect((await showcase('?kind=webtoon')).rows.map((row) => row.id)).not.toContain(
+          webtoonId,
+        );
+      }
+    } finally {
+      await db
+        .update(media)
+        .set({ moderation: 'unverified', genres: original?.genres ?? [] })
+        .where(eq(media.id, webtoonId));
+    }
+  });
+
   it('refuses an offset past the ceiling instead of walking the catalog', async () => {
     const response = await app.inject({
       method: 'GET',

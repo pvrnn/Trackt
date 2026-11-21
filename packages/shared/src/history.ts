@@ -39,6 +39,9 @@ export function seasonOf(isoDate: string): HistorySeason {
   return 'winter';
 }
 
+/** Days without a check-in after which the timeline starts a new session. */
+export const HISTORY_SESSION_GAP_DAYS = 7;
+
 /** How many entries one history page serves. */
 export const HISTORY_PAGE_LIMIT = 60;
 
@@ -73,6 +76,12 @@ export const HistoryEntrySchema = z.object({
   watched: z.number().int().nonnegative(),
   /** Known part count; null for movies and for works the catalog hasn't counted. */
   total: z.number().int().nullable(),
+  /**
+   * The stretches of days with check-ins, oldest first. A break longer than
+   * {@link HISTORY_SESSION_GAP_DAYS} starts a new one. Empty for a work with
+   * no check-ins (movies, hand-dated rows).
+   */
+  sessions: z.array(z.object({ from: z.iso.date(), to: z.iso.date() })),
 });
 export type HistoryEntry = z.infer<typeof HistoryEntrySchema>;
 
@@ -102,6 +111,8 @@ export const HistoryPageSchema = z.object({
    * rest of the filter row.
    */
   years: z.array(z.object({ year: z.number().int(), count: z.number().int().nonnegative() })),
+  /** Count per kind for the kind tabs: filtered by year and status, never by kind. */
+  kinds: z.array(z.object({ kind: MediaKindSchema, count: z.number().int().nonnegative() })),
   totals: HistoryTotalsSchema,
 });
 export type HistoryPage = z.infer<typeof HistoryPageSchema>;

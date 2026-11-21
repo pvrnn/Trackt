@@ -49,5 +49,22 @@
     "clear": "CLEAR KIND & STATUS",
     "browse": "BROWSE DISCOVER →"
   },
-  "loadError": "The instance didn't answer."
+  "loadError": "The instance didn't answer.",
+  "row": {
+    "since": "SINCE {{date}}"
+  },
+  "strip": {
+    "completed": "COMPLETED",
+    "titles": "TITLES",
+    "episodes": "EPISODES",
+    "chapters": "CHAPTERS"
+  },
+  "timeline": {
+    "region": "Timeline. Swipe sideways to move through time.",
+    "earlier": "Earlier",
+    "later": "Later",
+    "todayMark": "TODAY",
+    "days_one": "{{count}} DAY",
+    "days_other": "{{count}} DAYS"
+  }
 }
