@@ -188,3 +188,34 @@ The shelves scroll horizontally, which works on touch, but the last visible item
 4. Tap-target pass (#10) and the low-severity items.
 
 A good regression guard once #1 lands: a Playwright check that asserts `documentElement.scrollWidth <= clientWidth` on each signed-in route at 360px.
+
+---
+
+## Fixes
+
+Re-measured after the fixes with the same method (Playwright, Chromium phone emulation, seeded dev stack). Every route listed above now has `scrollWidth == clientWidth` at both 390px and 360px. The desktop nav still fits on one row from 1024px up, in English and French.
+
+| #   | Fix                                                                                                                                                                                                                                       |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Below `lg`, `AppNav` is a compact top bar (wordmark, locale, avatar) above a full-width tab strip that scrolls sideways and centres the current section. Links are 44px tall. `px-4 sm:px-10`, and tighter gaps at `lg` so the row fits at 1024px. |
+| 2–3 | Fixed by #1: the onboarding dialog, New list, Edit profile and the account menu all open on-screen.                                                                                                                                       |
+| 4   | Below `sm`, the score and the ↑ ↓ ✕ controls move under the title, and the rank column narrows. Controls are 44px on phones. Metadata truncates on one line.                                                                              |
+| 5   | Every `<main>` uses `px-4 sm:px-10`.                                                                                                                                                                                                      |
+| 6   | Below `sm`, kind chips always show their name and count, sit in a strip that scrolls sideways, and are 44px tall.                                                                                                                         |
+| 7   | The Add to list form stacks below `sm`.                                                                                                                                                                                                   |
+| 8   | `Input`, the list, profile and feedback textareas, profile social links, onboarding search, genre search and the date field are 16px below `sm`. The label-font date cells in filter bars are unchanged.                                  |
+| 9   | `MarketingNav` is one 70px row below `sm`: wordmark, a menu holding NEWS / API / GITHUB, locale, SIGN IN.                                                                                                                                 |
+| 10  | New `tap-area` utility gives small text controls a hit area of at least 44×44px without changing how they look. It is used on section links (ALL NEWS →, FULL HISTORY →, …), REPORT AN ISSUE, CLEAR PROGRESS, the dates EDIT button and the onboarding step tabs. |
+| 11  | Filter cells stack one per row below `sm`.                                                                                                                                                                                                |
+| 12  | Profile timeline labels are 12px and its arrows are 44px on phones. The empty track before the first entry depends on the data, so it is unchanged.                                                                                       |
+| 13  | Trophy shelves snap to an item on the left edge. The hint says "PICK ONE" instead of "CLICK ONE". The right edge still cuts an item at whatever width the screen gives.                                                                   |
+
+![Nav after](img/after/01-nav.jpg)
+![Dialogs after](img/after/02-03-dialogs.jpg)
+![Account menu after](img/after/11-account-menu.jpg)
+![List detail after](img/after/04-list-detail-rows.jpg)
+![Gutters after](img/after/08-gutters.jpg)
+![Filters after](img/after/06-filters.jpg)
+![Add to list after](img/after/05-add-to-list.jpg)
+![Landing nav after](img/after/07-landing-nav.jpg)
+![Timeline and trophies after](img/after/09-10-timeline-trophies.jpg)

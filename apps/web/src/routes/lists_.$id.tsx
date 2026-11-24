@@ -252,9 +252,12 @@ function ListRow({
   ].filter(Boolean);
 
   return (
-    <GlassCard as="li" className="flex items-center gap-4.5 rounded-card-sm px-4.5 py-3">
+    <GlassCard
+      as="li"
+      className="flex items-center gap-3 rounded-card-sm px-3 py-3 sm:gap-4.5 sm:px-4.5"
+    >
       {ranked && (
-        <span className="w-10 shrink-0 text-prism font-display text-2xl">
+        <span className="w-7 shrink-0 text-prism font-display text-xl sm:w-10 sm:text-2xl">
           {String(index + 1).padStart(2, '0')}
         </span>
       )}
@@ -263,58 +266,63 @@ function ListRow({
         className="h-[62px] w-11 shrink-0 rounded-thumb"
         style={{ background: coverGradient(entry.kind, entry.title) }}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Link
-          to="/media/$slug"
-          params={{ slug: entry.slug }}
-          className="truncate text-[15px] font-bold hover:text-pink"
-        >
-          {entry.title}
-        </Link>
-        <span className="mt-0.5 flex items-center gap-2 font-label text-xs tracking-label text-dim">
-          <KindDot kind={entry.kind} />
-          {meta.join(' · ')}
-        </span>
-      </div>
-      {entry.ownerScore !== null && (
-        <span className="font-label text-[13px] font-semibold text-pink">
-          {format.score(entry.ownerScore)}
-        </span>
-      )}
-      {owner && (
-        <div className="flex shrink-0 items-center gap-1">
-          {ranked && (
-            <>
-              {/* Bounds only, never `busy`: the page advertises ↑/↓ reordering,
+      {/* Below `sm` the controls drop under the title: beside it they left ~30px for the text. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4.5">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Link
+            to="/media/$slug"
+            params={{ slug: entry.slug }}
+            className="truncate text-[15px] font-bold hover:text-pink"
+          >
+            {entry.title}
+          </Link>
+          <span className="mt-0.5 flex items-center gap-2 font-label text-xs tracking-label text-dim">
+            <KindDot kind={entry.kind} />
+            <span className="truncate">{meta.join(' · ')}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-3 sm:gap-4.5">
+          {entry.ownerScore !== null && (
+            <span className="font-label text-[13px] font-semibold text-pink">
+              {format.score(entry.ownerScore)}
+            </span>
+          )}
+          {owner && (
+            <div className="flex shrink-0 items-center gap-1">
+              {ranked && (
+                <>
+                  {/* Bounds only, never `busy`: the page advertises ↑/↓ reordering,
                   and disabling the button the user just pressed hands focus
                   back to <body>, so the second press then goes nowhere and a
                   keyboard reorder costs a Tab per step. `run()` ignores
                   re-entrant calls instead. */}
+                  <RowButton
+                    label={t('lists.detail.moveUp', { title: entry.title })}
+                    disabled={index === 0}
+                    onClick={() => onMove('up')}
+                  >
+                    ↑
+                  </RowButton>
+                  <RowButton
+                    label={t('lists.detail.moveDown', { title: entry.title })}
+                    disabled={index === total - 1}
+                    onClick={() => onMove('down')}
+                  >
+                    ↓
+                  </RowButton>
+                </>
+              )}
               <RowButton
-                label={t('lists.detail.moveUp', { title: entry.title })}
-                disabled={index === 0}
-                onClick={() => onMove('up')}
+                label={t('lists.detail.remove', { title: entry.title })}
+                disabled={busy}
+                onClick={onRemove}
               >
-                ↑
+                ✕
               </RowButton>
-              <RowButton
-                label={t('lists.detail.moveDown', { title: entry.title })}
-                disabled={index === total - 1}
-                onClick={() => onMove('down')}
-              >
-                ↓
-              </RowButton>
-            </>
+            </div>
           )}
-          <RowButton
-            label={t('lists.detail.remove', { title: entry.title })}
-            disabled={busy}
-            onClick={onRemove}
-          >
-            ✕
-          </RowButton>
         </div>
-      )}
+      </div>
     </GlassCard>
   );
 }
@@ -338,7 +346,7 @@ function RowButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-8 cursor-pointer items-center justify-center rounded-full border border-glass-border text-sm text-dim transition hover:border-pink hover:text-pink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-glass-border disabled:hover:text-dim"
+      className="flex size-11 cursor-pointer items-center justify-center rounded-full border border-glass-border text-sm text-dim transition hover:border-pink hover:text-pink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-glass-border disabled:hover:text-dim sm:size-8"
     >
       {children}
     </button>
@@ -351,7 +359,7 @@ function Shell({ user, children }: { user: AppNavUser; children: React.ReactNode
       <AuraBackground variant="app" />
       <div className="relative">
         <AppNav user={user} />
-        <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-10 pt-12 pb-20">
+        <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-4 pt-12 pb-20 sm:px-10">
           {children}
         </main>
       </div>

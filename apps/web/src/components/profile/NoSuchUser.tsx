@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 export function NoSuchUser({ username }: { username: string }) {
   const { t } = useTranslation();
   return (
-    <main className="mx-auto flex max-w-[760px] flex-col items-center gap-2 px-10 pt-20 pb-20 text-center">
+    <main className="mx-auto flex max-w-[760px] flex-col items-center gap-2 px-4 pt-20 pb-20 text-center sm:px-10">
       <p className="font-heading text-[32px] text-faint uppercase">
         {t('profile.public.notFoundTitle')}
       </p>
@@ -14,7 +14,7 @@ export function NoSuchUser({ username }: { username: string }) {
       </p>
       <Link
         to="/search"
-        className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
+        className="tap-area mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
       >
         {t('profile.public.backToSearch')}
       </Link>

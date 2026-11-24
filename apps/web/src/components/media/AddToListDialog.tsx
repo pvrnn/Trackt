@@ -110,16 +110,17 @@ export function AddToListDialog({
           </ul>
         )}
 
-        <form onSubmit={createAndAdd} className="flex items-end gap-3">
-          <Input
-            label={t('media.addToList.newList')}
-            name="newList"
-            value={newTitle}
-            maxLength={120}
-            onChange={(event) => setNewTitle(event.target.value)}
-            placeholder={t('media.addToList.namePlaceholder')}
-            className="flex-1"
-          />
+        <form onSubmit={createAndAdd} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <Input
+              label={t('media.addToList.newList')}
+              name="newList"
+              value={newTitle}
+              maxLength={120}
+              onChange={(event) => setNewTitle(event.target.value)}
+              placeholder={t('media.addToList.namePlaceholder')}
+            />
+          </div>
           <Button
             type="submit"
             variant="secondary"

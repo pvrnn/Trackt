@@ -181,7 +181,7 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
   const pending = active.isLoading || (view === 'timeline' && timeline.hasMore);
 
   return (
-    <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-6 pt-12 pb-20 sm:px-10">
+    <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-4 pt-12 pb-20 sm:px-10">
       <div className="flex flex-wrap items-end gap-4">
         <h1 className="font-heading text-[64px] leading-none uppercase">{t('history.title')}</h1>
         <span className="mb-2 text-prism font-label text-sm font-bold tracking-label">
@@ -441,7 +441,7 @@ function EmptyHistory({
         <button
           type="button"
           onClick={onClearFilters}
-          className="mt-2 cursor-pointer font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
+          className="tap-area mt-2 cursor-pointer font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
         >
           {t('history.empty.clear')}
         </button>
@@ -449,7 +449,7 @@ function EmptyHistory({
       {nothingTracked && !username && (
         <Link
           to="/search"
-          className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
+          className="tap-area mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
         >
           {t('history.empty.browse')}
         </Link>

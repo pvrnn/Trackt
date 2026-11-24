@@ -121,7 +121,7 @@ export function HistoryTimeline({ entries, jumpYear = 'all', mini = false }: His
     labelWidth: (entry, single) => {
       const tag = tagOf(entry);
       const titleChars = entry.title.length + (tag ? tag.length + 1 : 0);
-      if (mini) return titleChars * 6.4 + 14;
+      if (mini) return titleChars * 7 + 14;
       const metaChars = single ? 9 : 30;
       return 30 + 9 + Math.max(titleChars * 7.3, metaChars * 6.4) + 12;
     },
@@ -367,7 +367,7 @@ export function HistoryTimeline({ entries, jumpYear = 'all', mini = false }: His
                   <span className="flex min-w-0 flex-col gap-[3px]">
                     <span
                       className={clsx(
-                        mini ? 'text-[11px]' : 'text-[13px]',
+                        mini ? 'text-xs sm:text-[11px]' : 'text-[13px]',
                         'leading-[1.2] font-semibold whitespace-nowrap underline-offset-[3px] group-hover:underline',
                       )}
                     >
@@ -446,7 +446,7 @@ export function HistoryTimeline({ entries, jumpYear = 'all', mini = false }: His
               type="button"
               aria-label={t(direction < 0 ? 'history.timeline.earlier' : 'history.timeline.later')}
               onClick={() => step(direction)}
-              className="flex size-7 cursor-pointer items-center justify-center rounded-full bg-[#191520] text-sm ring-1 ring-white/20 transition ring-inset hover:ring-pink"
+              className="flex size-11 cursor-pointer items-center justify-center rounded-full bg-[#191520] text-base ring-1 ring-white/20 transition ring-inset hover:ring-pink sm:size-7 sm:text-sm"
             >
               {direction < 0 ? '‹' : '›'}
             </button>

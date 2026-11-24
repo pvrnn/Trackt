@@ -1,6 +1,7 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Link, useNavigate, type LinkProps } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState, type LinkProps } from '@tanstack/react-router';
 import clsx from 'clsx';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authClient } from '../../lib/auth-client';
 import { useFriends, useFlag } from '@trackt/client';
@@ -69,19 +70,32 @@ export function AppNav({ user }: { user: AppNavUser }) {
   // instead of a sixth top-level nav item (docs/friends-plan.md §6).
   const { data: friendsOverview } = useFriends();
   const incomingCount = friendsOverview?.incoming.length ?? 0;
+  const stripRef = useRef<HTMLDivElement>(null);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  // Below `lg` the links are a sideways-scrolling strip; bring the current
+  // section into view so a deep tab (TROPHIES, PROFILE) isn't left off-screen.
+  // scrollLeft rather than scrollIntoView, which would also scroll the page.
+  useEffect(() => {
+    const strip = stripRef.current;
+    const active = strip?.querySelector<HTMLElement>('[data-status="active"]');
+    if (!strip || !active || strip.scrollWidth <= strip.clientWidth) return;
+    strip.scrollLeft = active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2;
+  }, [pathname]);
   return (
-    <nav className="sticky top-0 z-10 flex items-center gap-8 border-b border-divider bg-ink/75 px-10 py-5 backdrop-blur-[16px]">
-      <Link to="/home">
+    <nav className="sticky top-0 z-10 flex flex-wrap items-center gap-x-3 border-b border-divider bg-ink/75 px-4 pt-2.5 backdrop-blur-[16px] sm:px-10 lg:flex-nowrap lg:gap-6 lg:py-5 xl:gap-8">
+      <Link to="/home" className="py-1">
         <Wordmark className="text-[26px]" />
       </Link>
-      <div className="flex gap-6 text-sm font-semibold tracking-btn">
+      <div
+        ref={stripRef}
+        className="order-last -mx-4 scrollbar-none flex basis-[calc(100%+2rem)] gap-6 overflow-x-auto px-4 text-sm font-semibold tracking-btn sm:-mx-10 sm:basis-[calc(100%+5rem)] sm:px-10 lg:order-none lg:mx-0 lg:basis-auto lg:gap-5 lg:overflow-visible lg:px-0 xl:gap-6"
+      >
         {items.map((item) =>
           item.link ? (
             <Link
               key={item.key}
               {...item.link}
-              className="flex items-center gap-1.5 text-dim hover:text-fg"
-              activeProps={{ className: 'border-b-2 border-pink pb-0.5 text-fg' }}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 border-transparent whitespace-nowrap text-dim hover:text-fg data-[status=active]:border-pink data-[status=active]:text-fg lg:min-h-0 lg:pb-0.5"
             >
               {t(item.key)}
               {item.key === 'nav.profile' && incomingCount > 0 && (
@@ -125,7 +139,7 @@ function AccountMenu({ user }: { user: AppNavUser }) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         aria-label={t('shell.accountMenu')}
-        className="block cursor-pointer rounded-full transition outline-none hover:brightness-115"
+        className="-m-1 block cursor-pointer rounded-full p-1 transition outline-none hover:brightness-115"
       >
         <Avatar name={user.username} src={user.image} size={32} className="size-9" />
       </DropdownMenu.Trigger>

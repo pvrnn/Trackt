@@ -53,7 +53,7 @@ export function NewsWidget({ mediaIds }: { mediaIds: readonly string[] }) {
         <span className="flex-1" />
         <Link
           to="/news"
-          className="font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
+          className="tap-area font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
         >
           {t('home.news.all')}
         </Link>

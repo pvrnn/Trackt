@@ -46,7 +46,7 @@
   },
   "recent": {
     "title": "Recently unlocked",
-    "hint": "CLICK ONE TO SPOTLIGHT IT",
+    "hint": "PICK ONE TO SPOTLIGHT IT",
     "hintTouch": "HOLD TO STOP",
     "empty": "Nothing on this shelf yet. Log, finish and rate titles and it fills up."
   },
