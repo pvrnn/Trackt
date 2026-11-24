@@ -162,7 +162,7 @@ export function DatePicker({
           className={clsx(
             'min-w-0 bg-transparent outline-none placeholder:text-faint',
             field
-              ? 'w-full font-sans text-[15px]'
+              ? 'w-full font-sans text-base sm:text-[15px]'
               : variant === 'cell'
                 ? 'flex-1 py-4 font-label text-xs font-bold tracking-[0.06em]'
                 : 'font-label text-xs',

@@ -23,6 +23,7 @@
     "news": "News · Trackt",
     "lists": "Lists · Trackt",
     "history": "History · Trackt",
+    "trophies": "Trophies · Trackt",
     "profile": "Profile · Trackt",
     "login": "Sign in · Trackt",
     "register": "Create account · Trackt",
@@ -44,10 +45,12 @@
     "news": "NEWS",
     "lists": "LISTS",
     "history": "HISTORY",
+    "trophies": "TROPHIES",
     "profile": "PROFILE",
     "api": "API",
     "github": "GITHUB",
-    "signIn": "SIGN IN"
+    "signIn": "SIGN IN",
+    "menu": "Menu"
   },
   "kind": {
     "plural": {

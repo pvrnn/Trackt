@@ -2,7 +2,15 @@ import { and, count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { FastifyBaseLogger } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { favorite, media, rating, userMedia, type Db } from '@trackt/db';
+import {
+  buildProviderMediaRow,
+  favorite,
+  insertNewProviderMedia,
+  media,
+  rating,
+  userMedia,
+  type Db,
+} from '@trackt/db';
 import {
   ApiErrorSchema,
   GenreListSchema,
@@ -12,6 +20,7 @@ import {
   SHOWCASE_MAX_OFFSET,
   SearchResultSchema,
   StatusFilterSchema,
+  fetchCatalogMedia,
   fetchCatalogSearch,
   type MediaDetail,
   type SearchResult,
@@ -156,6 +165,30 @@ async function loadViewer(db: Db, userId: string, mediaId: string): Promise<View
   };
 }
 
+/**
+ * A permalink by id to a work this instance has never seen: pull it from the
+ * central catalog and materialize it, as a search hit would be. Degrades to a
+ * 404 when the catalog is off, down, or has no such work.
+ */
+async function materializeFromCatalog(
+  db: Db,
+  catalogUrl: string | undefined,
+  id: string,
+  timeoutMs: number,
+  logger: FastifyBaseLogger,
+) {
+  if (!catalogUrl) return undefined;
+  try {
+    const hit = await fetchCatalogMedia(catalogUrl, id, { timeoutMs });
+    if (!hit) return undefined;
+    const [persisted] = await insertNewProviderMedia(db, [buildProviderMediaRow(hit)]);
+    return persisted;
+  } catch (error) {
+    logger.warn({ err: error, id }, 'failed to materialize a work from the central catalog');
+    return undefined;
+  }
+}
+
 export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
   /**
    * A page of what this instance actually carries: the landing page's cover
@@ -295,8 +328,23 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
 
       const { idOrSlug } = request.params;
-      const column = UUID_RE.test(idOrSlug) ? media.id : media.slug;
-      const [row] = await db.select().from(media).where(eq(column, idOrSlug)).limit(1);
+      const byId = UUID_RE.test(idOrSlug);
+      const [local] = await db
+        .select()
+        .from(media)
+        .where(eq(byId ? media.id : media.slug, idOrSlug))
+        .limit(1);
+      const row =
+        local ??
+        (byId
+          ? await materializeFromCatalog(
+              db,
+              app.deps.env.CATALOG_URL,
+              idOrSlug.toLowerCase(),
+              app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+              request.log,
+            )
+          : undefined);
       const user = await getSessionUser(app, request);
       // 404 (not 403) for entries the viewer can't see — don't leak existence.
       if (!row || !canViewMedia(row)) {

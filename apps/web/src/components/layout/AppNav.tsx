@@ -1,6 +1,7 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Link, useNavigate, type LinkProps } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState, type LinkProps } from '@tanstack/react-router';
 import clsx from 'clsx';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authClient } from '../../lib/auth-client';
 import { useFriends, useFlag } from '@trackt/client';
@@ -11,30 +12,42 @@ import { NavSearch } from './NavSearch';
 import { Wordmark } from './Wordmark';
 
 interface NavItem {
-  key: 'nav.home' | 'nav.discover' | 'nav.news' | 'nav.lists' | 'nav.history' | 'nav.profile';
+  key:
+    | 'nav.home'
+    | 'nav.discover'
+    | 'nav.news'
+    | 'nav.lists'
+    | 'nav.history'
+    | 'nav.trophies'
+    | 'nav.profile';
   /** Undefined = the page doesn't exist yet; rendered as an inert placeholder. */
-  to?: LinkProps['to'];
+  link?: Pick<LinkProps, 'to' | 'params' | 'activeOptions'>;
 }
 
 /**
  * Order from the app mockups (Home/Search/Lists/Profile navs). The mockups
- * label the fourth item ACTIVITY, but it goes to `/profile`, a page that is
+ * label the fourth item ACTIVITY, but it goes to your profile, a page that is
  * a profile (identity, favourites, badges, visibility) with activity as one
  * section. Reading it as "the activity feed" sends people to the avatar menu
  * to look for their profile, so it says PROFILE here. ACTIVITY becomes its
  * own item pointing at the real feed when that ships (ROADMAP, v1.x).
  */
-const NAV_ITEMS: NavItem[] = [
-  { key: 'nav.home', to: '/home' },
-  { key: 'nav.discover', to: '/search' },
-  { key: 'nav.news', to: '/news' },
-  { key: 'nav.lists', to: '/lists' },
+const navItems = (username: string): NavItem[] => [
+  { key: 'nav.home', link: { to: '/home' } },
+  { key: 'nav.discover', link: { to: '/search' } },
+  { key: 'nav.news', link: { to: '/news' } },
+  { key: 'nav.lists', link: { to: '/lists' } },
   // A sixth item, which docs/friends-plan.md §6 argued against for friends.
   // The argument there was that a feature with no page of its own doesn't earn
   // a nav slot, and this one is a page. It also absorbs the ROADMAP's Library
   // item, so it is the entry point for "my whole collection" (ADR-0007).
-  { key: 'nav.history', to: '/history' },
-  { key: 'nav.profile', to: '/profile' },
+  { key: 'nav.history', link: { to: '/users/$username/history', params: { username } } },
+  { key: 'nav.trophies', link: { to: '/trophies' } },
+  // Exact, or PROFILE would light up beside HISTORY on `/users/$username/history`.
+  {
+    key: 'nav.profile',
+    link: { to: '/users/$username', params: { username }, activeOptions: { exact: true } },
+  },
 ];
 
 export interface AppNavUser {
@@ -52,24 +65,37 @@ export function AppNav({ user }: { user: AppNavUser }) {
   const listsOn = useFlag('lists.custom');
   // A half-rolled-out instance must not offer a destination that answers
   // "unavailable": a user below the bucket simply doesn't see LISTS.
-  const items: NavItem[] = NAV_ITEMS.filter((item) => item.to !== '/lists' || listsOn);
+  const items = navItems(user.username).filter((item) => item.key !== 'nav.lists' || listsOn);
   // No dedicated friends surface yet, so a badge on PROFILE covers discoverability
   // instead of a sixth top-level nav item (docs/friends-plan.md §6).
   const { data: friendsOverview } = useFriends();
   const incomingCount = friendsOverview?.incoming.length ?? 0;
+  const stripRef = useRef<HTMLDivElement>(null);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  // Below `lg` the links are a sideways-scrolling strip; bring the current
+  // section into view so a deep tab (TROPHIES, PROFILE) isn't left off-screen.
+  // scrollLeft rather than scrollIntoView, which would also scroll the page.
+  useEffect(() => {
+    const strip = stripRef.current;
+    const active = strip?.querySelector<HTMLElement>('[data-status="active"]');
+    if (!strip || !active || strip.scrollWidth <= strip.clientWidth) return;
+    strip.scrollLeft = active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2;
+  }, [pathname]);
   return (
-    <nav className="sticky top-0 z-10 flex items-center gap-8 border-b border-divider bg-ink/75 px-10 py-5 backdrop-blur-[16px]">
-      <Link to="/home">
+    <nav className="sticky top-0 z-10 flex flex-wrap items-center gap-x-3 border-b border-divider bg-ink/75 px-4 pt-2.5 backdrop-blur-[16px] sm:px-10 lg:flex-nowrap lg:gap-6 lg:py-5 xl:gap-8">
+      <Link to="/home" className="py-1">
         <Wordmark className="text-[26px]" />
       </Link>
-      <div className="flex gap-6 text-sm font-semibold tracking-btn">
+      <div
+        ref={stripRef}
+        className="order-last -mx-4 scrollbar-none flex basis-[calc(100%+2rem)] gap-6 overflow-x-auto px-4 text-sm font-semibold tracking-btn sm:-mx-10 sm:basis-[calc(100%+5rem)] sm:px-10 lg:order-none lg:mx-0 lg:basis-auto lg:gap-5 lg:overflow-visible lg:px-0 xl:gap-6"
+      >
         {items.map((item) =>
-          item.to ? (
+          item.link ? (
             <Link
               key={item.key}
-              to={item.to}
-              className="flex items-center gap-1.5 text-dim hover:text-fg"
-              activeProps={{ className: 'border-b-2 border-pink pb-0.5 text-fg' }}
+              {...item.link}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 border-transparent whitespace-nowrap text-dim hover:text-fg data-[status=active]:border-pink data-[status=active]:text-fg lg:min-h-0 lg:pb-0.5"
             >
               {t(item.key)}
               {item.key === 'nav.profile' && incomingCount > 0 && (
@@ -113,7 +139,7 @@ function AccountMenu({ user }: { user: AppNavUser }) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         aria-label={t('shell.accountMenu')}
-        className="block cursor-pointer rounded-full transition outline-none hover:brightness-115"
+        className="-m-1 block cursor-pointer rounded-full p-1 transition outline-none hover:brightness-115"
       >
         <Avatar name={user.username} src={user.image} size={32} className="size-9" />
       </DropdownMenu.Trigger>
@@ -128,7 +154,9 @@ function AccountMenu({ user }: { user: AppNavUser }) {
             <p className="text-[13px] text-dim">@{user.username}</p>
           </DropdownMenu.Label>
           <DropdownMenu.Item asChild className={MENU_ITEM}>
-            <Link to="/profile">{t('shell.profile')}</Link>
+            <Link to="/users/$username" params={{ username: user.username }}>
+              {t('shell.profile')}
+            </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item
             onSelect={() =>

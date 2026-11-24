@@ -389,6 +389,23 @@ describe('payload and seed file', () => {
     assert.ok(payload.skipped.some((entry) => /webtoon.*no canonical identity/.test(entry.reason)));
   });
 
+  it('drops a hentai work, and an edge to a hentai target', () => {
+    const asHentai = new Map(
+      [...anilist].map(([key, record]) => [
+        key,
+        key === 'anime:52991' ? { ...record, genres: ['Hentai'] } : record,
+      ]),
+    );
+    const filtered = assemblePayload(works, { anilist: asHentai });
+    const hentaiId = canonicalMediaId('anime', 154587);
+    assert.ok(!filtered.media.some((row) => row.id === hentaiId));
+    assert.ok(!filtered.relations.some((e) => e.fromId === hentaiId || e.toId === hentaiId));
+    assert.ok(
+      filtered.media.some((row) => row.kind === 'manga'),
+      'the manga survives',
+    );
+  });
+
   it('carries per-page refusals into the report', () => {
     const reasons = payload.skipped.map((entry) => entry.reason);
     assert.ok(reasons.some((reason) => /music videos and ads/.test(reason)));

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   DEFAULT_TYPES,
   assignSeasonNumbers,
+  borrowBanners,
   clock,
   curateSynonyms,
   importAniListMedia,
@@ -352,6 +353,19 @@ describe('edges from AniList relations', () => {
       page.edges.length,
     );
     assert.ok(page.media.length > 2, 'relation targets are rows too');
+  });
+
+  it('drops a hentai work and every edge that would point at it', () => {
+    const hentai = { ...fmab, id: 999_002, idMal: 999_002, genres: ['Hentai'] } as AniListMedia;
+    assert.equal(rowFromMedia(hentai).row, null);
+    const referrer = {
+      ...frieren,
+      relations: { edges: [{ relationType: 'SEQUEL', node: hentai }] },
+    } as AniListMedia;
+    const page = importAniListMedia([referrer, hentai]);
+    const hentaiId = canonicalMediaId('anime', hentai.id);
+    assert.ok(!page.media.some((row) => row.id === hentaiId));
+    assert.ok(!page.edges.some((edge) => edge.fromId === hentaiId || edge.toId === hentaiId));
   });
 
   it('keeps the top-level row when a work is also a target on the same page', () => {
@@ -779,5 +793,101 @@ describe('the enumeration walk', () => {
       2000 * 10000 - 1,
       'stopped after the window that filled the cap, not at the last year',
     );
+  });
+});
+
+describe('banners borrowed along the story line', () => {
+  type Kind = 'anime' | 'manga';
+  const row = (id: number, kind: Kind, bannerUrl: string | null = null) => ({
+    id: canonicalMediaId(kind, id),
+    kind,
+    title: `Work ${id}`,
+    synonyms: [],
+    year: null,
+    status: null,
+    genres: [],
+    partCount: null,
+    seasonNumber: null,
+    externalIds: { anilist: id },
+    description: null,
+    coverUrl: null,
+    metadata: {} as Record<string, unknown>,
+    bannerUrl,
+  });
+  const file = (
+    rows: ReturnType<typeof row>[],
+    edges: [ReturnType<typeof row>, ReturnType<typeof row>, string][],
+  ): SeedFile => ({
+    generatedAt: '2026-01-01T00:00:00.000Z',
+    catalog_media: rows,
+    catalog_media_relation: edges.map(([from, to, type]) => ({
+      fromId: from.id,
+      toId: to.id,
+      type: type as 'sequel',
+    })),
+    report: { sources: [], skipped: [], warnings: [] },
+  });
+
+  it('lends a season its neighbour season, and a manga its anime adaptation', () => {
+    const s1 = row(1, 'anime', 'b1');
+    const s2 = row(2, 'anime');
+    const manga = row(3, 'manga');
+    const seed = file(
+      [s1, s2, manga],
+      [
+        [s1, s2, 'sequel'],
+        [manga, s1, 'adaptation'],
+      ],
+    );
+    assert.equal(borrowBanners(seed), 2);
+    assert.equal(s2.bannerUrl, 'b1');
+    assert.equal(manga.bannerUrl, 'b1');
+    assert.equal(s2.metadata.borrowedBanner, 'b1');
+  });
+
+  it('never lends across a spin-off or a loose relation', () => {
+    const main = row(1, 'anime', 'b1');
+    const spin = row(2, 'anime');
+    const loose = row(3, 'manga');
+    const seed = file(
+      [main, spin, loose],
+      [
+        [main, spin, 'spinoff'],
+        [main, loose, 'related'],
+      ],
+    );
+    assert.equal(borrowBanners(seed), 0);
+  });
+
+  it('prefers the same medium at the same distance, and only lends original art', () => {
+    const anime = row(1, 'anime', 'anime-art');
+    const manga = row(2, 'manga', 'manga-art');
+    const sequel = row(3, 'manga');
+    const seed = file(
+      [anime, manga, sequel],
+      [
+        [manga, sequel, 'sequel'],
+        [anime, sequel, 'adaptation'],
+      ],
+    );
+    borrowBanners(seed);
+    assert.equal(sequel.bannerUrl, 'manga-art');
+  });
+
+  it('gives a borrowed banner back on the next pass, and keeps one the provider later states', () => {
+    const s1 = row(1, 'anime', 'b1');
+    const s2 = row(2, 'anime');
+    const seed = file([s1, s2], [[s1, s2, 'sequel']]);
+    borrowBanners(seed);
+    s1.bannerUrl = null;
+    assert.equal(borrowBanners(seed), 0);
+    assert.equal(s2.bannerUrl, null);
+
+    s1.bannerUrl = 'b1';
+    borrowBanners(seed);
+    s2.bannerUrl = 'own';
+    borrowBanners(seed);
+    assert.equal(s2.bannerUrl, 'own');
+    assert.equal(s2.metadata.borrowedBanner, undefined);
   });
 });

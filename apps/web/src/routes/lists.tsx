@@ -53,7 +53,7 @@ function ListsPage() {
       <AuraBackground variant="app" />
       <div className="relative">
         <AppNav user={navUser} />
-        <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-10 pt-12 pb-20">
+        <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-4 pt-12 pb-20 sm:px-10">
           <FlagGate
             flag="lists.custom"
             title={t('lists.unavailableTitle')}
@@ -229,7 +229,7 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
             maxLength={500}
             rows={3}
             onChange={(event) => setDescription(event.target.value)}
-            className="rounded-card-sm border border-glass-border-strong bg-glass-well px-4 py-3 text-[15px] outline-none placeholder:text-dim focus:border-pink"
+            className="rounded-card-sm border border-glass-border-strong bg-glass-well px-4 py-3 text-base outline-none placeholder:text-dim focus:border-pink sm:text-[15px]"
             placeholder={t('lists.dialog.descriptionPlaceholder')}
           />
           <p className="text-right text-xs text-faint">{description.length}/500</p>

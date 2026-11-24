@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -187,6 +187,13 @@ function MediaPage() {
   const { isPending: authPending, navUser } = useAuthedPage();
   const listsOn = useFlag('lists.custom');
   const { data, isError, refetch } = useMediaDetail(slug);
+  const navigate = useNavigate();
+  // Reached by id (`/media/id/…`): settle on the canonical slug URL without a refetch.
+  useEffect(() => {
+    if (!data || data.slug === slug) return;
+    queryClient.setQueryData(['media', data.slug], data);
+    void navigate({ to: '/media/$slug', params: { slug: data.slug }, replace: true });
+  }, [data, slug, queryClient, navigate]);
   /** Which block of parts is expanded, or null for "the one you are in". */
   const [openBlock, setOpenBlock] = useState<number | null>(null);
   const [addingToList, setAddingToList] = useState(false);
@@ -253,7 +260,7 @@ function MediaPage() {
   if (isError) {
     return (
       <Shell user={navUser}>
-        <main className="mx-auto flex max-w-[1360px] flex-col items-start gap-4 px-10 pt-14 pb-20">
+        <main className="mx-auto flex max-w-[1360px] flex-col items-start gap-4 px-4 pt-14 pb-20 sm:px-10">
           <h1 className="font-heading text-[56px] leading-none uppercase">
             {t('media.loadFailed.title')}
           </h1>
@@ -272,7 +279,7 @@ function MediaPage() {
   if (data === null) {
     return (
       <Shell user={navUser}>
-        <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-10 pt-14 pb-20">
+        <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-4 pt-14 pb-20 sm:px-10">
           <h1 className="font-heading text-[56px] leading-none uppercase">
             {t('media.notFound.title')}
           </h1>
@@ -288,7 +295,7 @@ function MediaPage() {
   if (!data) {
     return (
       <Shell user={navUser}>
-        <main className="mx-auto max-w-[1360px] px-10 pt-14 pb-20">
+        <main className="mx-auto max-w-[1360px] px-4 pt-14 pb-20 sm:px-10">
           <div className="h-40" aria-busy />
         </main>
       </Shell>
@@ -387,11 +394,6 @@ function MediaPage() {
 
   const countOf = (n: number | null, label: string) =>
     n !== null ? t('media.partCount', { count: n, unit: label }) : null;
-  const displayStatus =
-    detail.status?.toUpperCase() ??
-    (typeof detail.metadata.igdbStatus === 'string'
-      ? detail.metadata.igdbStatus.toUpperCase()
-      : null);
   const metaLine = [
     labels.kindSingular(detail.kind).toUpperCase(),
     detail.year !== null ? String(detail.year) : null,
@@ -399,9 +401,8 @@ function MediaPage() {
   ]
     .filter(Boolean)
     .join(' · ');
-  /** What the work itself is doing: airing/ended, which season, how many parts. */
+  /** Which season and how many parts; the status lives in the info table only. */
   const factsLine = [
-    displayStatus,
     detail.seasonNumber !== null ? t('media.season', { number: detail.seasonNumber }) : null,
     noun && unit ? countOf(total, unit.toUpperCase()) : null,
   ]
@@ -422,6 +423,7 @@ function MediaPage() {
       case 'alsoKnownAs':
         return { key: fact.key, value: fact.value.join(' · '), wide: true };
       case 'genres':
+      case 'platforms':
         return { key: fact.key, value: fact.value.join(', '), wide: fact.value.length > 2 };
       default:
         return { key: fact.key, value: fact.value.join(', ') };
@@ -465,32 +467,30 @@ function MediaPage() {
           className="absolute inset-0"
           style={{ background: coverGradient(detail.kind, detail.title) }}
         />
-        {detail.bannerUrl && (
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${detail.bannerUrl})` }}
-          />
-        )}
-        {/* Fallback only: a poster blown up to full bleed is a crop of one
-            corner of the art, so where a banner exists the cover is left to
-            the poster card below. */}
+        {detail.bannerUrl && <HeaderBanner url={detail.bannerUrl} kind={detail.kind} />}
+        {/* Without a banner the cover becomes ambient colour: a ~460px poster
+            cropped sharp across the header is a pixelated corner of it, while
+            the whole cover stretched and blurred keeps the work's palette. */}
         {!detail.bannerUrl && detail.coverUrl && (
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-cover bg-center opacity-80"
-            style={{ backgroundImage: `url(${detail.coverUrl})` }}
-          />
+          <div aria-hidden className="absolute inset-0 overflow-hidden">
+            <div
+              className="absolute -inset-16 bg-[length:100%_100%] opacity-60 blur-[40px] saturate-[1.4]"
+              style={{ backgroundImage: `url(${detail.coverUrl})` }}
+            />
+          </div>
         )}
         {/* We do not choose the artwork, so the page brings its own contrast:
             ≥0.9 under the whole text column, easing off only where there is no
-            text, then a fade into Ink (Design System §08). */}
+            text, then a fade into Ink (Design System §08). A blurred cover has
+            no detail to fight the text, so without a banner the scrim stays
+            light enough for its colour to reach the left edge. */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
-            background:
-              'linear-gradient(90deg, rgba(14,12,16,0.95) 0%, rgba(14,12,16,0.9) max(860px, calc(50% + 170px)), rgba(14,12,16,0.24) max(1180px, calc(50% + 490px)), rgba(14,12,16,0.1) 100%)',
+            background: detail.bannerUrl
+              ? 'linear-gradient(90deg, rgba(14,12,16,0.95) 0%, rgba(14,12,16,0.9) max(860px, calc(50% + 170px)), rgba(14,12,16,0.62) max(1060px, calc(50% + 370px)), rgba(14,12,16,0.3) max(1300px, calc(50% + 610px)), rgba(14,12,16,0.1) 100%)'
+              : 'linear-gradient(90deg, rgba(14,12,16,0.72) 0%, rgba(14,12,16,0.62) max(860px, calc(50% + 170px)), rgba(14,12,16,0.4) 100%)',
           }}
         />
         <div
@@ -672,7 +672,7 @@ function MediaPage() {
           <button
             type="button"
             onClick={() => setReportingIssue(true)}
-            className="cursor-pointer px-0.5 py-1.5 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition-colors hover:text-pink"
+            className="tap-area cursor-pointer px-0.5 py-1.5 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition-colors hover:text-pink"
           >
             <span aria-hidden>⚑ </span>
             {t('media.reportIssue')}
@@ -690,7 +690,7 @@ function MediaPage() {
               <button
                 type="button"
                 onClick={() => setPosition(position >= total ? 0 : total)}
-                className="cursor-pointer font-label text-[11px] tracking-label text-pink transition-colors hover:brightness-125"
+                className="tap-area cursor-pointer font-label text-[11px] tracking-label text-pink transition-colors hover:brightness-125"
               >
                 {position >= total
                   ? t('media.clearProgress')
@@ -830,6 +830,46 @@ function Shell({ user, children }: { user: AppNavUser; children?: React.ReactNod
         <AppNav user={user} />
         {children}
       </div>
+    </div>
+  );
+}
+
+/** At or past this ratio a banner is key art shaped like the header itself (IGDB's ~3:1). */
+const WIDE_BANNER_ASPECT = 2.4;
+
+/**
+ * The desktop header is ~4:1, and a banner comes in one of two shapes. Wide key
+ * art (≥ 2.4:1, games) already fits it, so it fills the header and the text
+ * scrim alone handles contrast. A 16:9 backdrop (TMDB enforces it) would lose
+ * most of its height to a full-bleed cover, so from md up it sits at the right
+ * edge in a 2.3:1 panel, its left three quarters eased into the text column.
+ * The ratio is read off the loaded image because no provider states it; until
+ * then the kind guesses, so a game page does not jump between the two.
+ */
+function HeaderBanner({ url, kind }: { url: string; kind: MediaKind }) {
+  const [wide, setWide] = useState(kind === 'game');
+  useEffect(() => {
+    const image = new Image();
+    image.onload = () => {
+      if (image.naturalHeight > 0) {
+        setWide(image.naturalWidth / image.naturalHeight >= WIDE_BANNER_ASPECT);
+      }
+    };
+    image.src = url;
+    return () => {
+      image.onload = null;
+    };
+  }, [url]);
+  return (
+    <div aria-hidden className="absolute inset-0 overflow-hidden">
+      <div
+        className={clsx(
+          'absolute inset-0 bg-cover bg-center',
+          !wide &&
+            'md:left-auto md:aspect-[2.3/1] md:[mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,.06)_12%,rgba(0,0,0,.2)_24%,rgba(0,0,0,.42)_36%,rgba(0,0,0,.66)_48%,rgba(0,0,0,.86)_60%,black_75%)]',
+        )}
+        style={{ backgroundImage: `url(${url})` }}
+      />
     </div>
   );
 }

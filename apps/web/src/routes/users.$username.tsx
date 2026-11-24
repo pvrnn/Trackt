@@ -7,6 +7,7 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
 import { Favourites } from '../components/profile/Favourites';
 import { NoSuchUser } from '../components/profile/NoSuchUser';
+import { OwnProfile } from '../components/profile/OwnProfile';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import {
   ProfileTimeline,
@@ -16,7 +17,7 @@ import {
 } from '../components/profile/ProfileSections';
 import { Button, buttonClassName } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { useOptionalSession } from '../lib/auth-client';
+import { isViewer, useOptionalSession } from '../lib/auth-client';
 import {
   useAcceptFriendRequest,
   usePublicProfile,
@@ -25,89 +26,99 @@ import {
 } from '@trackt/client';
 
 /**
- * Someone else's profile (ADR-0006 phase 4). Anonymous-readable, so it takes
- * the `news_.$slug.tsx` optional-session posture (marketing nav signed out,
- * app nav signed in) rather than `useAuthedPage()`. Nothing on the page is
- * gated by friendship; `friendState` only decides what the action button does.
+ * Everyone's profile, the viewer's included (ADR-0006 phase 4). Anonymous-
+ * readable, so it takes the `news_.$slug.tsx` optional-session posture
+ * (marketing nav signed out, app nav signed in) rather than `useAuthedPage()`.
+ * Nothing on someone else's page is gated by friendship; `friendState` only
+ * decides what the action button does.
  */
 export const Route = createFileRoute('/users/$username')({
   head: ({ match }) => ({ meta: [{ title: match.context.i18n.t('meta.profile') }] }),
-  component: PublicProfilePage,
+  component: ProfilePage,
 });
 
-function PublicProfilePage() {
-  const { t } = useTranslation();
+function ProfilePage() {
   const { username } = Route.useParams();
-  const { isPending: sessionPending, session, navUser } = useOptionalSession();
-  const { data: profile, isPending, isError } = usePublicProfile(username);
+  const { isPending, session, navUser, refetch } = useOptionalSession();
 
-  if (sessionPending) return <div className="min-h-screen bg-ink" />;
+  if (isPending) return <div className="min-h-screen bg-ink" />;
 
   return (
     <div className="min-h-screen bg-ink text-fg">
       <AuraBackground variant="app" />
       <div className="relative">
         {navUser ? <AppNav user={navUser} /> : <MarketingNav />}
-        {isError ? (
-          <main className="mx-auto max-w-[1360px] px-10 pt-12">
-            <p role="alert" className="text-[15px] text-red-400">
-              {t('profile.public.loadError')}
-            </p>
-          </main>
-        ) : isPending ? (
-          <main className="h-40" aria-busy />
-        ) : !profile ? (
-          <NoSuchUser username={username} />
+        {isViewer(session, username) ? (
+          <OwnProfile onSessionChange={refetch} />
         ) : (
-          <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-10 pt-11 pb-20">
-            <ProfileHeader
-              user={profile.user}
-              stats={profile.stats}
-              friendsMeta={
-                <span>
-                  <span className="text-fg">{profile.friendCount}</span>{' '}
-                  {t('social.friendLabel', { count: profile.friendCount })}
-                </span>
-              }
-              action={<FriendAction profile={profile} signedIn={!!session} />}
-            />
-
-            <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <div className="flex min-w-0 flex-col gap-11">
-                <Favourites
-                  favorites={profile.favorites}
-                  own={false}
-                  emptyMessage={t('profile.favourites.emptyOther', { name: profile.user.name })}
-                />
-                <RightNow
-                  entries={profile.inProgress}
-                  total={profile.inProgressCount}
-                  username={profile.user.username}
-                />
-                <ProfileTimeline username={profile.user.username} />
-                <RecentActivity
-                  activity={profile.activity}
-                  emptyMessage={t('profile.recent.emptyPublic')}
-                  username={profile.user.username}
-                />
-              </div>
-              <aside className="flex min-w-0 flex-col gap-4">
-                <TasteCard
-                  taste={profile.taste}
-                  meanRating={profile.stats.meanRating}
-                  emptyMessage={t('profile.taste.emptyOther', { name: profile.user.name })}
-                />
-              </aside>
-            </div>
-          </main>
+          <PublicProfile username={username} signedIn={!!session} />
         )}
       </div>
     </div>
   );
 }
 
+function PublicProfile({ username, signedIn }: { username: string; signedIn: boolean }) {
+  const { t } = useTranslation();
+  const { data: profile, isPending, isError } = usePublicProfile(username);
+
+  return isError ? (
+    <main className="mx-auto max-w-[1360px] px-4 pt-12 sm:px-10">
+      <p role="alert" className="text-[15px] text-red-400">
+        {t('profile.public.loadError')}
+      </p>
+    </main>
+  ) : isPending ? (
+    <main className="h-40" aria-busy />
+  ) : !profile ? (
+    <NoSuchUser username={username} />
+  ) : (
+    <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-4 pt-11 pb-20 sm:px-10">
+      <ProfileHeader
+        user={profile.user}
+        stats={profile.stats}
+        friendsMeta={
+          <span>
+            <span className="text-fg">{profile.friendCount}</span>{' '}
+            {t('social.friendLabel', { count: profile.friendCount })}
+          </span>
+        }
+        action={<FriendAction profile={profile} signedIn={signedIn} />}
+      />
+
+      <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-11">
+          <Favourites
+            favorites={profile.favorites}
+            own={false}
+            emptyMessage={t('profile.favourites.emptyOther', { name: profile.user.name })}
+          />
+          <RightNow
+            entries={profile.inProgress}
+            total={profile.inProgressCount}
+            username={profile.user.username}
+          />
+          <ProfileTimeline username={profile.user.username} />
+          <RecentActivity
+            activity={profile.activity}
+            emptyMessage={t('profile.recent.emptyPublic')}
+            username={profile.user.username}
+          />
+        </div>
+        <aside className="flex min-w-0 flex-col gap-4">
+          <TasteCard
+            taste={profile.taste}
+            meanRating={profile.stats.meanRating}
+            emptyMessage={t('profile.taste.emptyOther', { name: profile.user.name })}
+          />
+        </aside>
+      </div>
+    </main>
+  );
+}
+
 /**
- * The one control the page adds over `/profile`. Signed out it points at
+ * The one control a visitor gets in place of EDIT PROFILE. Signed out it points at
  * login rather than posting a request the API would 401; the button is only
  * ever shown when it can actually do what it says.
  */
@@ -122,13 +133,7 @@ function FriendAction({ profile, signedIn }: { profile: PublicProfile; signedIn:
   const busy = sendRequest.isPending || accept.isPending || remove.isPending;
   const onError = () => setError(t('social.errors.save'));
 
-  if (profile.friendState === 'self') {
-    return (
-      <Link to="/profile" className={buttonClassName({ variant: 'secondary' })}>
-        {t('profile.action.editProfile')}
-      </Link>
-    );
-  }
+  if (profile.friendState === 'self') return null;
 
   if (!signedIn) {
     return (

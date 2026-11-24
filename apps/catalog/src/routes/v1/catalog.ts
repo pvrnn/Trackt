@@ -1,6 +1,11 @@
-import { count, max } from 'drizzle-orm';
+import { and, count, eq, isNull, max } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { ApiErrorSchema, CatalogVersionSchema } from '@trackt/shared';
+import {
+  ApiErrorSchema,
+  CatalogMediaParamsSchema,
+  CatalogVersionSchema,
+  SlimMediaSchema,
+} from '@trackt/shared';
 import { catalogMedia } from '../../db/index.js';
 
 /**
@@ -30,6 +35,44 @@ export const catalogRoutes: FastifyPluginAsyncZod = async (app) => {
         version: row?.version ?? 0,
         mediaCount: row?.mediaCount ?? 0,
         generatedAt: new Date().toISOString(),
+      };
+    },
+  );
+
+  app.get(
+    '/catalog/media/:id',
+    {
+      schema: {
+        tags: ['catalog'],
+        params: CatalogMediaParamsSchema,
+        response: { 200: SlimMediaSchema, 404: ApiErrorSchema, 503: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+
+      const [row] = await db
+        .select()
+        .from(catalogMedia)
+        .where(and(eq(catalogMedia.id, request.params.id), isNull(catalogMedia.deletedAt)))
+        .limit(1);
+      if (!row) return reply.status(404).send({ error: 'media not found' });
+      return {
+        id: row.id,
+        kind: row.kind,
+        title: row.title,
+        synonyms: row.synonyms,
+        year: row.year,
+        status: row.status,
+        genres: row.genres,
+        partCount: row.partCount,
+        seasonNumber: row.seasonNumber,
+        externalIds: row.externalIds,
+        metadata: row.metadata ?? {},
+        description: row.description,
+        coverUrl: row.coverUrl,
+        bannerUrl: row.bannerUrl ?? null,
       };
     },
   );

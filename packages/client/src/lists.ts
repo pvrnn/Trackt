@@ -103,6 +103,7 @@ export function useListsInvalidator() {
   const queryClient = useQueryClient();
   return (id?: string) => {
     void queryClient.invalidateQueries({ queryKey: listsKey });
+    void queryClient.invalidateQueries({ queryKey: ['trophies'] });
     if (id) void queryClient.invalidateQueries({ queryKey: listKey(id) });
   };
 }

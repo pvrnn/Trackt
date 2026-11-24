@@ -15,6 +15,14 @@ export {
   type PersistedMediaRow,
 } from './catalog-media.js';
 export { setAllProgress, setProgressUpTo, type ProgressMediaRow } from './progress.js';
+export {
+  computeTrophies,
+  evaluateAllTrophies,
+  evaluateTrophies,
+  recordTrophies,
+  type TrophyEvidenceRow,
+  type TrophyState,
+} from './trophies.js';
 
 export interface CreateDbOptions {
   /** Max pool connections (default 10). */

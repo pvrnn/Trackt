@@ -29,11 +29,16 @@ contains provider data intended for local seed/import workflows.
 The file preserves the catalog seed row shape — one `kind: "movie"` row per
 film, canonical uuid derived from the TMDB id (`tmdb:movie:<id>`, ADR-0001),
 `externalIds` of `{tmdb, imdb}` — so `apps/catalog` `db:seed` loads it as it
-stands. `coverUrl` is the `w500` poster and `bannerUrl` the `w1280` backdrop.
+stands. `coverUrl` is the `w500` poster and `bannerUrl` the `w1280` backdrop:
+the best-voted text-free one from `images` (asked for with
+`include_image_language=null,<run language>`), else the best-voted titled one,
+else TMDB's own `backdrop_path` when nobody has voted (`bestBackdrop`, shared
+with the series scrape). Lettering burned into a backdrop fights the media
+page's own title, which is why text-free wins over a higher-rated titled image.
 There are no relation edges: this pass reads a ranking, not a graph.
 
-`metadata` carries the provider facts with no catalog column — all of it
-carried for analysis, nothing renders it yet:
+`metadata` carries the provider facts with no catalog column — the media
+page's info strip prints `runtime` (`mediaFacts`), the rest is carried for analysis:
 
 | key                            | source                       | why it is there                                                                                                                                                                                |
 | ------------------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -88,6 +93,32 @@ the end. `ranking.partitionedBy` records whether that happened.
 
 The year partition also means a film with no primary release date is not
 eligible for such a run; every other film is in exactly one partition.
+
+### Recent years: `--recent-years` and `--recent-min-votes`
+
+One global floor is an age floor in disguise: the 30 000th most-voted film has
+67 votes, which a 2015 film cleared years ago and a film released this autumn
+may not have yet. The seed of 2026-10-28 held 1 052 films from 2015 but 341 from
+2026, while TMDB lists 1 089 films from 2026 with ten votes or more — _Notre
+Salut_ (released 2026-09-30) was one of the ones left out.
+
+`--recent-years N` adds a second pass after the main ranking: every film from
+this year, the `N - 1` before it and every announced year, above
+`--recent-min-votes` (default 10), that the main ranking did not already pick.
+Those rows come **on top of** `--limit`, so the main ranking means the same
+thing with and without the pass; `ranking.recent` records the window and floor
+(`null` when the run had none). The series scrape takes the same flags, keyed
+by first air date, and adds every season of each recent show.
+
+```sh
+# The catalog run: 30 000 most-voted films plus everything from the last two years above 10 votes
+pnpm scrape:tmdb --limit 30000 --sort popularity --min-vote-count 10 --exclude-anime --recent-years 2
+pnpm scrape:tmdb:series --limit 30000 --sort popularity --min-vote-count 10 --exclude-anime --recent-years 2
+```
+
+The pass walks each recent year to the end (2025 holds ~2 000 films above ten
+votes, far under one partition's 10 000), so it costs one detail request per
+film it adds — about 2 100 for movies at `--recent-years 2`.
 
 ### `--concurrency` and `--resume`
 

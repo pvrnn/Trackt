@@ -6,13 +6,16 @@ export interface AvatarProps {
   name: string;
   /** Uploaded avatar URL; falls back to the gradient initial when absent. */
   src?: string | null;
-  size?: 32 | 44 | 120;
+  size?: 32 | 36 | 40 | 44 | 48 | 120;
   className?: string;
 }
 
 const sizeClasses = {
   32: 'size-8 text-[13px]',
+  36: 'size-9 text-sm',
+  40: 'size-10 text-[15px]',
   44: 'size-11 text-base',
+  48: 'size-12 text-[15px]',
   120: 'size-30 text-4xl',
 } as const;
 

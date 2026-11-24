@@ -20,6 +20,27 @@ export const authClient = createAuthClient({
 
 type Session = ReturnType<typeof authClient.useSession>['data'];
 
+function toNavUser(session: Session): AppNavUser | null {
+  return session
+    ? {
+        name: session.user.name,
+        username: session.user.displayUsername ?? session.user.username ?? session.user.name,
+        image: session.user.image,
+      }
+    : null;
+}
+
+/** Handles are matched case-insensitively (the API lowercases them), so `/users/Paul` is yours too. */
+export function isViewer(session: Session, username: string): boolean {
+  return !!session?.user.username && session.user.username === username.toLowerCase();
+}
+
+/** The signed-in viewer's handle, the root of their `/users/$username` pages. */
+export function useViewerUsername(): string | null {
+  const { data: session } = authClient.useSession();
+  return toNavUser(session)?.username ?? null;
+}
+
 export interface AuthedPage {
   isPending: boolean;
   session: Session;
@@ -58,13 +79,7 @@ export function useAuthedPage(): AuthedPage {
     });
   }, [isPending, session, navigate, returnTo, location.pathname]);
 
-  const navUser: AppNavUser | null = session
-    ? {
-        name: session.user.name,
-        username: session.user.displayUsername ?? session.user.name,
-        image: session.user.image,
-      }
-    : null;
+  const navUser = toNavUser(session);
 
   return { isPending, session, navUser, refetch };
 }
@@ -75,14 +90,8 @@ export function useAuthedPage(): AuthedPage {
  * is not a precondition, so a `null` navUser means "show the marketing nav",
  * not "redirect to /login".
  */
-export function useOptionalSession(): Pick<AuthedPage, 'isPending' | 'session' | 'navUser'> {
-  const { data: session, isPending } = authClient.useSession();
-  const navUser: AppNavUser | null = session
-    ? {
-        name: session.user.name,
-        username: session.user.displayUsername ?? session.user.name,
-        image: session.user.image,
-      }
-    : null;
-  return { isPending, session, navUser };
+export function useOptionalSession(): AuthedPage {
+  const { data: session, isPending, refetch } = authClient.useSession();
+  const navUser = toNavUser(session);
+  return { isPending, session, navUser, refetch };
 }

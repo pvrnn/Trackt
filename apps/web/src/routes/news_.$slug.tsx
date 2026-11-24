@@ -39,7 +39,7 @@ function ArticlePage() {
       <AuraBackground variant="app" />
       <div className="relative">
         {navUser ? <AppNav user={navUser} /> : <MarketingNav />}
-        <main className="mx-auto flex max-w-[760px] flex-col gap-6 px-6 pt-10 pb-20 sm:px-10">
+        <main className="mx-auto flex max-w-[760px] flex-col gap-6 px-4 pt-10 pb-20 sm:px-10">
           <Link
             to="/news"
             className="font-label text-xs font-semibold tracking-label text-dim hover:text-pink"
@@ -183,7 +183,7 @@ function Missing() {
       <p className="max-w-[420px] text-sm text-muted">{t('news.article.missingBody')}</p>
       <Link
         to="/news"
-        className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
+        className="tap-area mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
       >
         {t('news.article.backToNews')}
       </Link>

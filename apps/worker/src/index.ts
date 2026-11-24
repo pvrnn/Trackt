@@ -1,14 +1,16 @@
 import { Redis } from 'ioredis';
 import pino from 'pino';
-import { Worker } from 'bullmq';
-import { createDb } from '@trackt/db';
+import { Queue, Worker } from 'bullmq';
+import { createDb, evaluateAllTrophies } from '@trackt/db';
 import type { ImportJobData, ImportJobResult } from '@trackt/imports';
 import { EnvValidationError, QUEUES, loadEnv } from '@trackt/shared';
 import { createImportProcessor } from './importer.js';
 
 /**
- * Background jobs (PRD §6). One queue is real today: `importer` runs an account
- * import off the request path (the API's `POST /v1/me/import` produces it). The
+ * Background jobs (PRD §6). `importer` runs an account import off the request
+ * path (the API's `POST /v1/me/import` produces it); `trophies` is a repeating
+ * sweep that re-evaluates every account so the global leaderboard counts people
+ * who have not opened their trophies lately. The
  * schedules this process used to register (`metadata-refresh`, then
  * `catalog-sync-repeat`) are retired with the central-catalog pivot (ADR-0002);
  * catalog population is the catalog service's own `db:seed`, not this worker.
@@ -102,13 +104,32 @@ worker.on('error', (error) => {
   logger.warn({ err: error }, 'worker error');
 });
 
+const TROPHY_SWEEP_EVERY_MS = 30 * 60 * 1000;
+const trophyQueue = new Queue(QUEUES.trophies, { connection });
+await trophyQueue.upsertJobScheduler(
+  'trophies-sweep',
+  { every: TROPHY_SWEEP_EVERY_MS },
+  { name: 'sweep' },
+);
+const trophyWorker = new Worker(
+  QUEUES.trophies,
+  async () => ({ evaluated: await evaluateAllTrophies(db) }),
+  { connection, concurrency: 1 },
+);
+trophyWorker.on('completed', (job, result: { evaluated: number }) => {
+  logger.info({ job: job.id, evaluated: result.evaluated }, 'trophy sweep completed');
+});
+trophyWorker.on('failed', (job, error) => {
+  logger.error({ job: job?.id, err: error }, 'trophy sweep failed');
+});
+
 logger.info('worker started');
 
 const shutdown = async (signal: string) => {
   logger.info(`received ${signal}, shutting down`);
   try {
     // Lets the running import finish rather than dropping it mid-loop.
-    await worker.close();
+    await Promise.all([worker.close(), trophyWorker.close(), trophyQueue.close()]);
   } catch (error) {
     logger.error({ err: error }, 'error closing the worker');
   } finally {

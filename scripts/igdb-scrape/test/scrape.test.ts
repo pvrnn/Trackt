@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  bestBanner,
   NON_WORK_GAME_TYPES,
   genreTag,
   isDisplayableReleaseStatus,
@@ -75,5 +76,38 @@ describe('the release status the seed keeps', () => {
     assert.ok(!isDisplayableReleaseStatus('Next-Gen Optimization Patch Release'));
     assert.ok(!isDisplayableReleaseStatus('Digital Compatibility Release'));
     assert.ok(!isDisplayableReleaseStatus(undefined));
+  });
+});
+
+describe('the banner', () => {
+  // Hollow Knight: Silksong's artworks as IGDB returns them.
+  const silksong = [
+    { id: 1, image_id: 'ar41sh', width: 3539, height: 1795, artwork_type: 5, alpha_channel: true },
+    { id: 2, image_id: 'ar41si', width: 3539, height: 1795, artwork_type: 6, alpha_channel: true },
+    { id: 3, image_id: 'ar4prf', width: 1280, height: 720, artwork_type: 3 },
+    { id: 4, image_id: 'ar4prg', width: 2289, height: 2212, artwork_type: 1 },
+    { id: 5, image_id: 'ar4prh', width: 2400, height: 1350, artwork_type: 2 },
+    { id: 6, image_id: 'ar4pri', width: 3840, height: 1240, artwork_type: 2 },
+    { id: 7, image_id: 'ar667n', width: 256, height: 256, artwork_type: 12, alpha_channel: true },
+  ];
+  const shot = { id: 9, image_id: 'sc63aa', width: 1920, height: 1080 };
+
+  it('takes the widest key art without a logo', () => {
+    assert.equal(bestBanner(silksong, [shot]), 'ar4pri');
+  });
+
+  it('prefers a screenshot to key art carrying the logo', () => {
+    assert.equal(bestBanner([silksong[2]!], [shot]), 'sc63aa');
+    assert.equal(bestBanner([silksong[2]!], []), 'ar4prf');
+  });
+
+  it('never uses a logo, an icon, a square or an animated image', () => {
+    const square = silksong[3]!;
+    const animated = { ...silksong[5]!, animated: true };
+    assert.equal(bestBanner([silksong[0]!, silksong[6]!, square, animated], []), null);
+  });
+
+  it('reads an artwork IGDB never typed as plain artwork', () => {
+    assert.equal(bestBanner([{ id: 1, image_id: 'old', width: 1920, height: 1080 }], []), 'old');
   });
 });

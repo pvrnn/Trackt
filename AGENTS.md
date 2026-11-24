@@ -30,7 +30,7 @@ pnpm test
 pnpm format:check
 ```
 
-`pnpm --filter @trackt/mobile doctor` (expo-doctor) is the mobile app's fourth check and runs in CI — SDK alignment and duplicate native modules are invisible to lint and typecheck.
+`pnpm --filter @trackt/mobile doctor` (expo-doctor) is not part of CI, since it fails on routine Expo patch releases. Run it locally after changing `apps/mobile` dependencies: SDK alignment and duplicate native modules are invisible to lint and typecheck.
 
 Database-backed integration tests can self-skip without the development Compose services, so say clearly when those services were not available.
 

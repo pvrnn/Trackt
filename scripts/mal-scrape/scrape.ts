@@ -737,6 +737,11 @@ export function normalizeGenres(genres: string[]): string[] {
   return out;
 }
 
+/** Works the catalog refuses outright, by provider genre (raw or normalized). */
+export function isExcludedByGenre(genres: readonly string[] | null | undefined): boolean {
+  return (genres ?? []).some((genre) => genre.toLowerCase().trim() === 'hentai');
+}
+
 /** MAL's `Sequel`/`Prequel`/… vocabulary → the four stored types, as an edge plan. */
 export type RelationRule =
   | { action: 'edge'; type: MediaRelationType; direction: 'forward' | 'reverse' }
@@ -1003,13 +1008,13 @@ export interface AniListRecord {
   volumes?: number | null;
   status?: string | null;
   seasonYear?: number | null;
-  coverImage?: { large?: string | null };
+  coverImage?: { extraLarge?: string | null; large?: string | null };
   bannerImage?: string | null;
   averageScore?: number | null;
   format?: string | null;
 }
 
-const ANILIST_FIELDS = `id idMal title { romaji english native } synonyms genres averageScore format episodes chapters volumes status seasonYear coverImage { large } bannerImage`;
+const ANILIST_FIELDS = `id idMal title { romaji english native } synonyms genres averageScore format episodes chapters volumes status seasonYear coverImage { extraLarge large } bannerImage`;
 
 const ANILIST_STATUS: Record<string, MediaStatus> = {
   RELEASING: 'airing',
@@ -1250,6 +1255,10 @@ export function assemblePayload(works: ScrapedWork[], options: AssembleOptions =
       if (record) applyAniList(work, record);
       else warnings.push(`no AniList entry for ${work.page.titleRomaji}; row has no canonical id`);
     }
+    if (isExcludedByGenre(work.media.genres)) {
+      skipped.push({ malId: work.page.malId, title: work.media.title, reason: 'hentai' });
+      continue;
+    }
     if (work.media.id) media.set(work.media.id, work.media);
     else
       skipped.push({ malId: work.page.malId, title: work.media.title, reason: 'no canonical id' });
@@ -1272,7 +1281,7 @@ export function assemblePayload(works: ScrapedWork[], options: AssembleOptions =
   const seen = new Set<string>();
   for (const work of works) {
     const sourceId = work.media.id;
-    if (!sourceId) continue;
+    if (!sourceId || isExcludedByGenre(work.media.genres)) continue;
     for (const planned of work.relations) {
       const targetKey = `${planned.target.malType}:${planned.target.malId}`;
       const targetRecord = options.anilist?.get(targetKey);
@@ -1281,6 +1290,14 @@ export function assemblePayload(works: ScrapedWork[], options: AssembleOptions =
           malId: planned.target.malId,
           title: planned.target.title,
           reason: `relation target unresolved (${planned.type} edge from ${work.media.title})`,
+        });
+        continue;
+      }
+      if (isExcludedByGenre(targetRecord.genres)) {
+        skipped.push({
+          malId: planned.target.malId,
+          title: planned.target.title,
+          reason: 'hentai',
         });
         continue;
       }

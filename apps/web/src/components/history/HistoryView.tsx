@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { HistoryEntry, LogStatus } from '@trackt/shared';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { kindDotClass } from '../ui/KindDot';
 import { FilterCell, KindStrip } from '../ui/FilterBar';
 import type { SelectItem } from '../ui/Select';
@@ -16,6 +16,7 @@ import {
 } from '../../lib/history-search';
 import { useFormat } from '../../lib/format';
 import { useLabels } from '../../lib/labels';
+import { useLoadMoreSentinel } from '../../lib/use-load-more-sentinel';
 import {
   coverGradient,
   HISTORY_GROUPINGS,
@@ -32,9 +33,9 @@ import {
  * neither date, and a watchlist is not a history, so the status filter offers
  * the other four only.
  *
- * One view for two routes — `/history` (the viewer's) and
- * `/users/$username/history` (anyone's) — because they differ only in whose
- * rows they ask for and in the handle above the title.
+ * One view for the viewer's own history and anyone else's, both at
+ * `/users/$username/history`: they differ only in whose rows they ask for and
+ * in the handle above the title.
  */
 
 export interface HistoryViewProps {
@@ -106,6 +107,16 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
     if (view === 'timeline' && timelineHasMore && !timelineLoadingMore) loadMore();
   }, [view, timelineHasMore, timelineLoadingMore, loadMore]);
 
+  const sentinel = useRef<HTMLDivElement>(null);
+  useLoadMoreSentinel(
+    sentinel,
+    view === 'grid' && history.entries.length > 0 && history.hasMore,
+    `${history.entries.length}:${history.isLoadingMore}`,
+    () => {
+      if (!history.isLoadingMore) history.loadMore();
+    },
+  );
+
   const scope = year === ALL_YEARS ? t('history.allTime') : String(year);
   const groups = groupEntries(history.entries, group, year === ALL_YEARS, format.locale, {
     winter: t('history.season.winter'),
@@ -170,7 +181,7 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
   const pending = active.isLoading || (view === 'timeline' && timeline.hasMore);
 
   return (
-    <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-6 pt-12 pb-20 sm:px-10">
+    <main className="mx-auto flex max-w-[1360px] flex-col gap-6 px-4 pt-12 pb-20 sm:px-10">
       <div className="flex flex-wrap items-end gap-4">
         <h1 className="font-heading text-[64px] leading-none uppercase">{t('history.title')}</h1>
         <span className="mb-2 text-prism font-label text-sm font-bold tracking-label">
@@ -307,18 +318,13 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
             </section>
           ))}
 
-          {history.hasMore && (
-            <div className="mt-1.5 flex justify-center">
-              <button
-                type="button"
-                onClick={history.loadMore}
-                disabled={history.isLoadingMore}
-                className="cursor-pointer rounded-full border border-glass-border-strong bg-glass px-7 py-[13px] font-label text-xs font-bold tracking-label text-muted transition hover:border-pink hover:text-pink disabled:cursor-wait disabled:opacity-60"
-              >
-                {history.isLoadingMore ? t('history.loadingMore') : t('history.loadMore')}
-              </button>
-            </div>
-          )}
+          <div ref={sentinel} aria-hidden="true" className="h-px" />
+          <p
+            role="status"
+            className="min-h-5 text-center font-label text-[12px] tracking-label text-dim"
+          >
+            {history.isLoadingMore ? t('history.loadingMore') : ''}
+          </p>
         </>
       )}
     </main>
@@ -435,7 +441,7 @@ function EmptyHistory({
         <button
           type="button"
           onClick={onClearFilters}
-          className="mt-2 cursor-pointer font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
+          className="tap-area mt-2 cursor-pointer font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
         >
           {t('history.empty.clear')}
         </button>
@@ -443,7 +449,7 @@ function EmptyHistory({
       {nothingTracked && !username && (
         <Link
           to="/search"
-          className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
+          className="tap-area mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
         >
           {t('history.empty.browse')}
         </Link>

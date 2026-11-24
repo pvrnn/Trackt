@@ -23,6 +23,7 @@
     "news": "Actualités · Trackt",
     "lists": "Listes · Trackt",
     "history": "Historique · Trackt",
+    "trophies": "Trophées · Trackt",
     "profile": "Profil · Trackt",
     "login": "Connexion · Trackt",
     "register": "Créer un compte · Trackt",
@@ -44,10 +45,12 @@
     "news": "ACTUS",
     "lists": "LISTES",
     "history": "HISTO",
+    "trophies": "TROPHÉES",
     "profile": "PROFIL",
     "api": "API",
     "github": "GITHUB",
-    "signIn": "CONNEXION"
+    "signIn": "CONNEXION",
+    "menu": "Menu"
   },
   "kind": {
     "plural": {

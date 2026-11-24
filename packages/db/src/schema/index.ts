@@ -7,3 +7,4 @@ export * from './lists.js';
 export * from './discord.js';
 export * from './flags.js';
 export * from './imports.js';
+export * from './trophies.js';

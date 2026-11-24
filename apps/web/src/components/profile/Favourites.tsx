@@ -14,7 +14,7 @@ const TOP = 'top';
 type Tab = MediaKind | typeof TOP;
 
 /**
- * Ranked per-kind favourites, shared by `/profile` and `/users/$username`
+ * Ranked per-kind favourites, shared by the own and the public profile
  * (ADR-0006 phase 4). One row at a time: TOP PICKS is every kind's #1, a kind
  * tab is that kind's ranking. `own` gates the trailing "find more" tile: on
  * someone else's profile it would act on *your* favourites.

@@ -12,6 +12,7 @@ import { newsRoutes } from './news.js';
 import { profileRoutes } from './profile.js';
 import { searchRoutes } from './search.js';
 import { trackingRoutes } from './tracking.js';
+import { trophyRoutes } from './trophies.js';
 import { userRoutes } from './users.js';
 
 export const v1Routes: FastifyPluginAsyncZod = async (app) => {
@@ -28,5 +29,6 @@ export const v1Routes: FastifyPluginAsyncZod = async (app) => {
   await app.register(newsRoutes);
   await app.register(friendRoutes);
   await app.register(feedbackRoutes);
+  await app.register(trophyRoutes);
   await app.register(userRoutes);
 };

@@ -20,6 +20,8 @@ import profileEn from './fragments/profile.en.json';
 import profileFr from './fragments/profile.fr.json';
 import socialEn from './fragments/social.en.json';
 import socialFr from './fragments/social.fr.json';
+import trophiesEn from './fragments/trophies.en.json';
+import trophiesFr from './fragments/trophies.fr.json';
 
 /**
  * One file per surface so a surface can be converted without editing a
@@ -39,6 +41,7 @@ export const en = {
   news: newsEn,
   feedback: feedbackEn,
   onboarding: onboardingEn,
+  trophies: trophiesEn,
 };
 
 /**
@@ -60,4 +63,5 @@ export const fr: Catalog<typeof en> = {
   news: newsFr,
   feedback: feedbackFr,
   onboarding: onboardingFr,
+  trophies: trophiesFr,
 };

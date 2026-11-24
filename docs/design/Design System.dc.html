@@ -16,7 +16,7 @@
     a { color: #d96bb0; text-decoration: none; }
     a:hover { color: #e88cc4; }
     /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
-    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; }
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; container-type: inline-size; }
     .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
     .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
     .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
@@ -26,21 +26,21 @@
     .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
     .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
     @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
-    /* kind strip: six colour dots, one per kind. The picked one (or the one under the pointer) opens into its name and count. */
-    .kcell { flex: 1 1 auto; padding-right: 14px; }
-    .kstrip { display: flex; align-items: center; gap: 2px; width: 366px; max-width: 100%; }
-    .kchip { height: 32px; min-width: 30px; padding: 0 9px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; white-space: nowrap; transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease; }
-    .kchip:hover { background: rgba(255,255,255,0.07); color: #f0edf4; }
-    .kchip[aria-pressed="true"] { color: #f0edf4; }
-    .kchip .kd { width: 9px; height: 9px; flex-shrink: 0; border-radius: 999px; transition: transform 160ms ease; }
-    .kchip:hover .kd { transform: scale(1.25); }
-    .kchip .kl { display: inline-flex; gap: 6px; max-width: 0; margin-left: 0; opacity: 0; overflow: hidden; transition: max-width 220ms ease, margin-left 220ms ease, opacity 160ms ease; }
-    .kchip .kn { font-weight: 500; color: #948da1; }
-    .kchip:hover .kl, .kchip[aria-pressed="true"] .kl { max-width: 120px; margin-left: 8px; opacity: 1; }
-    /* only one name open at a time, so the strip never changes width */
-    .kstrip:hover .kchip[aria-pressed="true"]:not(:hover) .kl { max-width: 0; margin-left: 0; opacity: 0; }
-    @media (prefers-reduced-motion: reduce) { .kchip, .kchip .kd, .kchip .kl { transition: none; } }
+    /* kind: the same grammar as every other cell. KIND label, a value that names the pick, then the picker itself.
+       The picker is the six kind dots plus a hollow ring for All; hovering or focusing a dot previews it in the value. Nothing resizes. */
+    .kcell { flex: 0 0 auto; padding-right: 12px; }
+    .kval { width: 100px; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 120ms ease; }
+    .kval .kn { font-weight: 500; color: #948da1; }
+    .kdots { display: flex; align-items: center; }
+    .kdot { width: 28px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    .kdot > span { width: 10px; height: 10px; border-radius: 999px; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .kdot:hover > span, .kdot:focus-visible > span { transform: scale(1.3); }
+    .kdot:focus-visible { outline-offset: -2px; }
+    @media (prefers-reduced-motion: reduce) { .kval, .kdot > span { transition: none; } }
     button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
+    /* once the bar wraps, the cells on each row share it; on a phone-width bar the value slot goes and the dots stay */
+    @container (max-width: 760px) { .kcell { flex-grow: 1; } }
+    @container (max-width: 440px) { .kval { display: none; } }
   </style>
 </helmet>
 
@@ -155,14 +155,14 @@
           <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; color: #948da1; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px;">⌘K</span>
         </div>
         <div class="fbar" style="box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
-          <div class="fcell kcell"><span class="lab">KIND</span><div class="kstrip">
-            <sc-for list="{{ kchips }}" as="k" hint-placeholder-count="7"><button class="kchip" onClick="{{ k.pick }}" aria-pressed="{{ k.on }}" title="{{ k.label }}" style="background: {{ k.bg }}; box-shadow: {{ k.ring }};"><span class="kd" style="background: {{ k.dot }}; display: {{ k.dotDisplay }};"></span><span class="{{ k.lcls }}">{{ k.label }} <span class="kn">{{ k.count }}</span></span></button></sc-for>
+          <div class="fcell kcell" role="radiogroup" aria-label="Kind" onMouseLeave="{{ kindUnhover }}"><span class="lab">KIND</span><span class="kval" style="color: {{ kindValFg }};">{{ kindValue }} <span class="kn">{{ kindValCount }}</span></span><div class="kdots">
+            <sc-for list="{{ kindDots }}" as="k" hint-placeholder-count="7"><button class="kdot" role="radio" aria-checked="{{ k.on }}" aria-label="{{ k.aria }}" title="{{ k.aria }}" onClick="{{ k.pick }}" onMouseEnter="{{ k.hover }}" onFocus="{{ k.hover }}" onBlur="{{ kindUnhover }}" style="opacity: {{ k.op }};"><span style="background: {{ k.fill }}; box-shadow: {{ k.ring }};"></span></button></sc-for>
           </div></div>
           <div class="fcell"><span class="lab">YEAR</span><span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">ANY</span><span class="chev"></span></div>
           <div class="fcell"><span class="lab">SORT</span><span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">TRENDING</span><span class="chev"></span></div>
         </div>
       </div>
-      <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">Rule: pills are for actions and status. Everything that narrows a list lives in one bar of equal-height cells that wrap as the page narrows. Kind is a strip of the six kind dots: the picked one, or the one under the pointer, opens into its name and count, and picking it again goes back to All. Year, sort and status are dropdown cells in the same bar.</div>
+      <div style="color: #b8b1c4; font-size: 14px; max-width: 720px;">Rule: pills are for actions and status. Everything that narrows a list lives in one bar of equal-height cells that wrap as the page narrows. Kind follows the same cell grammar: label, a value naming the pick, then the six kind dots and a hollow ring for All. Hovering or focusing a dot previews its name and count in the value; nothing resizes. Year, sort and status are dropdown cells in the same bar.</div>
     </div>
   </div>
 
@@ -357,12 +357,24 @@ class Component extends DCLogic {
   renderVals() {
     const cur = this.state.kind;
     return {
-      kchips: [['ALL', 'ALL', 17], ['MOVIE', 'MOVIES', 3, '#8b5cf6'], ['SERIES', 'SERIES', 4, '#6d8bf0'], ['ANIME', 'ANIME', 3, '#d9a441'], ['MANGA', 'MANGA', 2, '#e8874a'], ['WEBTOON', 'WEBTOONS', 3, '#d96bb0'], ['GAME', 'GAMES', 2, '#3fbf8f']].map((k) => {
-        const all = k[0] === 'ALL', on = cur === k[0];
-        return { label: k[1], count: k[2], on, dot: k[3] || 'transparent', dotDisplay: all ? 'none' : 'block', lcls: all ? '' : 'kl',
-          bg: on ? (all ? 'rgba(255,255,255,0.1)' : k[3] + '2b') : '', ring: on ? 'inset 0 0 0 1px ' + (all ? 'rgba(255,255,255,0.22)' : k[3] + '99') : 'none',
-          pick: () => this.setState({ kind: on ? 'ALL' : k[0] }) };
-      }),
+      ...(() => {
+        const list = [['ALL', 'ALL', 17], ['MOVIE', 'MOVIES', 3, '#8b5cf6'], ['SERIES', 'SERIES', 4, '#6d8bf0'], ['ANIME', 'ANIME', 3, '#d9a441'], ['MANGA', 'MANGA', 2, '#e8874a'], ['WEBTOON', 'WEBTOONS', 3, '#d96bb0'], ['GAME', 'GAMES', 2, '#3fbf8f']];
+        const hv = this.state.hoverKind || null;
+        const shown = list.find((k) => k[0] === (hv || cur)) || list[0];
+        const nameOf = (k) => k[0] === 'ALL' ? 'ALL KINDS' : k[1];
+        return {
+          kindValue: nameOf(shown), kindValCount: shown[2],
+          kindValFg: hv && hv !== cur ? '#b8b1c4' : '#f0edf4',
+          kindUnhover: () => { if (this.state.hoverKind) this.setState({ hoverKind: null }); },
+          kindDots: list.map((k) => {
+            const all = k[0] === 'ALL', on = cur === k[0], c = all ? '#f0edf4' : k[3];
+            const ring = (all ? ['inset 0 0 0 1.5px ' + (on ? '#f0edf4' : '#b8b1c4')] : []).concat(on ? ['0 0 0 2.5px #1b1820', '0 0 0 4px ' + c] : []);
+            return { on, aria: nameOf(k) + ' · ' + k[2], op: 1, fill: all ? 'transparent' : c, ring: ring.join(', ') || 'none',
+              pick: () => this.setState({ kind: on ? 'ALL' : k[0] }),
+              hover: () => { if (this.state.hoverKind !== k[0]) this.setState({ hoverKind: k[0] }); } };
+          }),
+        };
+      })(),
       colors: [
         { name: 'Ink', hex: '#0E0C10', use: 'page background' },
         { name: 'Glass', hex: 'rgba(255,255,255,0.05)', use: 'cards, rows (over aura)' },

@@ -30,6 +30,24 @@
     .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
     .lang select option { background: #191520; color: #f0edf4; }
     .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
+    /* trophies card: the same crystal prisms as the Trophies page */
+    .p3 { transform-style: preserve-3d; }
+
+    /* ── IDEA 1 · crystal prisms. Each trophy is a hexagonal prism; tier sets height and material.
+       Locked ones are empty glass that fills from the bottom as you progress. ── */
+    .stage { perspective: 560px; perspective-origin: 50% -40%; }
+    .tpw { transform: rotateX(-12deg); }
+    .tp { position: relative; width: 40px; animation: tspin 9s linear infinite; }
+    .tpw:hover .tp, .tpw:active .tp { animation-play-state: paused; }
+    .tface { position: absolute; top: 0; left: 10px; width: 20px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+    .tcap { position: absolute; left: 0; top: -17.32px; width: 40px; height: 34.64px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); transform: rotateX(90deg); }
+    .tglow { position: absolute; left: -30px; width: 100px; height: 100px; border-radius: 50%; transform: rotateX(90deg); pointer-events: none; }
+    .plank { position: relative; height: 12px; }
+    .plank .pf { position: absolute; inset: 0; transform: translateZ(28px); background: linear-gradient(180deg, #3b3344, #1d1823); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28); border-radius: 0 0 4px 4px; }
+    .plank .pt { position: absolute; left: 0; right: 0; top: -28px; height: 56px; transform: rotateX(90deg); background: linear-gradient(0deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07); }
+    @keyframes tspin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) { .tp { animation: none !important; } }
   </style>
 </helmet>
 
@@ -45,6 +63,7 @@
     <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
     <a href="News.dc.html" style="color: #948da1;">NEWS</a>
     <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
+    <a href="Trophies.dc.html" style="color: #948da1;">TROPHIES</a>
     <a href="Profile.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">PROFILE</a>
   </div>
   <div style="flex: 1;"></div>
@@ -286,16 +305,39 @@
         </div>
       </section>
 
-      <!-- BADGES -->
-      <section aria-labelledby="h-badges" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px; backdrop-filter: blur(16px);">
-        <h2 id="h-badges" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">Badges</h2>
-        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
-          <sc-for list="{{ badges }}" as="b" hint-placeholder-count="3">
-            <div title="{{ b.desc }}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
-              <div aria-hidden="true" style="width: 52px; height: 52px; border-radius: 999px; background: linear-gradient(135deg, rgba(217,164,65,0.25), rgba(139,92,246,0.25)); box-shadow: inset 0 0 0 1px #d96bb0; color: #e58cc4; display: flex; align-items: center; justify-content: center; font-family: Anton; font-size: 18px;">{{ b.glyph }}</div>
-              <div style="font-weight: 600; font-size: 13px; line-height: 1.25;">{{ b.name }}</div>
+      <!-- TROPHIES — three crystals from the cabinet, the points, and the way in -->
+      <section aria-labelledby="h-trophies" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(16px);">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <h2 id="h-trophies" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">Trophies</h2>
+          <a href="Trophies.dc.html" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4;">ALL 32 →</a>
+        </div>
+        <a href="Trophies.dc.html" aria-label="Open trophies" style="display: block;">
+          <div class="stage" style="padding-top: 12px;">
+            <div class="p3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; height: 84px;">
+              <sc-for list="{{ trophies }}" as="p" hint-placeholder-count="3">
+                <div class="p3" style="display: flex; justify-content: center; align-items: flex-end; height: 100%;">
+                  <div class="tpw p3"><div class="tp p3" style="height: {{ p.h }}; animation-duration: {{ p.dur }}; animation-delay: {{ p.delay }};">
+                    <div class="tglow" style="top: {{ p.glowTop }}; background: {{ p.glow }};"></div>
+                    <sc-for list="{{ p.faces }}" as="f" hint-placeholder-count="6"><div class="tface" style="height: {{ p.h }}; transform: {{ f.t }}; background: {{ f.bg }};"></div></sc-for>
+                    <div class="tcap" style="background: {{ p.cap }};"></div>
+                  </div></div>
+                </div>
+              </sc-for>
             </div>
-          </sc-for>
+            <div class="plank p3"><div class="pt"></div><div class="pf"></div></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px;">
+            <sc-for list="{{ trophies }}" as="p" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;">
+                <span style="font-size: 13px; font-weight: 600; line-height: 1.2;">{{ p.name }}</span>
+                <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: {{ p.tierFg }};">{{ p.tierLabel }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </a>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; margin-top: 4px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09); font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">
+          <span><span style="background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">1,260</span> <span style="color: #948da1; font-weight: 600;">PTS</span></span>
+          <span>#4 <span style="color: #948da1; font-weight: 600;">AMONG FRIENDS</span></span>
         </div>
       </section>
 
@@ -342,6 +384,40 @@ const AV = [
   'linear-gradient(135deg, #d96bb0, #a78bfa)',
   'linear-gradient(135deg, #6d8bf0, #35d6c0)',
 ];
+
+const T_PRISM = 'linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6)';
+const KDOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+
+// tiers: height of the prism, its material, and what it is worth
+const TIER = {
+  BRONZE: { pts: 15, h: 40, light: '#f3c49a', base: '#8a4f2a', glow: 'rgba(222,150,96,0.5)', fg: '#e8a97a', chip: 'linear-gradient(135deg, #f3c49a, #8a4f2a)', tint: 'rgba(222,150,96,0.55)' },
+  SILVER: { pts: 30, h: 48, light: '#f6f7fb', base: '#7b8196', glow: 'rgba(220,226,242,0.42)', fg: '#d5d9e6', chip: 'linear-gradient(135deg, #f6f7fb, #7b8196)', tint: 'rgba(220,226,242,0.5)' },
+  GOLD: { pts: 90, h: 56, light: '#ffe39a', base: '#a8741c', glow: 'rgba(244,196,84,0.55)', fg: '#f0c766', chip: 'linear-gradient(135deg, #ffe39a, #a8741c)', tint: 'rgba(244,196,84,0.55)' },
+  PRISM: { pts: 180, h: 64, glow: 'rgba(217,107,176,0.6)', fg: '#e58cc4', chip: T_PRISM, tint: 'rgba(217,107,176,0.55)' },
+};
+const SHADE = [0, 0.16, 0.3, 0.38, 0.3, 0.12];
+const PRISM_FACES = ['#d9a441', '#e58a7c', '#d96bb0', '#a866d6', '#8b5cf6', '#b86fc2'];
+
+let seq = 0;
+function trophyPrism(t) {
+  const T = TIER[t.tier], h = T.h, locked = t.pct !== undefined;
+  const faces = [0, 1, 2, 3, 4, 5].map((i) => {
+    let bg;
+    if (locked) bg = 'linear-gradient(0deg, ' + T.tint + ' ' + t.pct + '%, rgba(255,255,255,0.05) ' + t.pct + '%)';
+    else if (t.tier === 'PRISM') bg = 'linear-gradient(180deg, rgba(255,255,255,0.45), transparent 45%), linear-gradient(180deg, ' + PRISM_FACES[i] + ', ' + PRISM_FACES[(i + 2) % 6] + ')';
+    else bg = 'linear-gradient(rgba(0,0,0,' + SHADE[i] + '), rgba(0,0,0,' + SHADE[i] + ')), linear-gradient(180deg, ' + T.light + ', ' + T.base + ')';
+    return { t: 'rotateY(' + i * 60 + 'deg) translateZ(17.32px)', bg };
+  });
+  seq += 1;
+  return {
+    name: t.name, h: h + 'px', faces, glowTop: (h - 50) + 'px',
+    glow: 'radial-gradient(closest-side, ' + (locked ? 'rgba(255,255,255,0.08)' : T.glow) + ', transparent)',
+    cap: locked ? (t.pct >= 100 ? T.tint : 'rgba(255,255,255,0.1)') : (t.tier === 'PRISM' ? 'linear-gradient(135deg, #ffe1a6, #ffc2e4, #cdb8ff)' : T.light),
+    dur: (8 + (seq % 4) * 1.5) + 's', delay: (-seq * 1.7) + 's',
+    tierLabel: t.tier + ' · ' + T.pts, tierFg: T.fg, sub: t.sub,
+  };
+}
+
 
 class Component extends DCLogic {
   state = { tab: 'TOP', requested: false, shared: false };
@@ -435,11 +511,9 @@ class Component extends DCLogic {
         { name: 'Ben Alvarez', note: '31-day streak · 6 in common' },
       ].map((p, i) => Object.assign({}, p, { av: AV[i % AV.length], initials: p.name.split(' ').map((w) => w[0]).join('') })),
 
-      badges: [
-        { glyph: '23', name: 'Streak keeper', desc: '23 days of daily check-ins' },
-        { glyph: 'TV', name: 'The migrator', desc: 'Imported 1,000+ episodes from TV Time' },
-        { glyph: '＋', name: 'Cataloguer', desc: 'Created 5 verified entries' },
-      ],
+      trophies: [
+        { name: 'Polyglot', tier: 'PRISM', sub: '' }, { name: 'Binge Engine', tier: 'GOLD', sub: '' }, { name: 'Night Shift', tier: 'SILVER', sub: '' },
+      ].map(trophyPrism),
     };
   }
 }

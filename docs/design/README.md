@@ -107,7 +107,10 @@ Hero: full-bleed banner with a scrim on the reading side only, so artwork from a
 "LISTS" + gradient NEW LIST pill. Tabs: MY LISTS / FOLLOWING / COLLABORATIVE. 2-col grid of list cards: 4 fanned cover panels (170px), Anton title, RANKED/COLLAB pill badges, description, meta row (count/visibility/updated); hover = pink border. Below: opened ranked list — rows with gradient Anton rank numbers, 44×62 thumb, title/meta, pink score, drag handle ⋮⋮.
 
 ### Profile (`Profile.dc.html`)
-Identity in one line of sight: avatar, name, bio, @handle, join date, friends, streak, and EDIT PROFILE / add-friend / share. Numbers sit in one quiet strip, not five cards. Left column: **Favourites** stay one row (Top picks = the #1 of every kind; kind tabs go deeper; ✎ EDIT & REORDER; a ＋ slot), then **Right now** (in-progress titles), then **Timeline** (the History timeline in mini form, OPEN IN HISTORY →), then **Recent** as rows (FULL HISTORY →). Right column: a visitor-only "YOU AND MARA" card for titles in common; **Taste** (where the time goes by kind %, the genres they keep coming back to, average rating); **Friends** (＋ ADD FRIEND, requests waiting); **Badges**; and profile visibility.
+Identity in one line of sight: avatar, name, bio, @handle, join date, friends, streak, and EDIT PROFILE / add-friend / share. Numbers sit in one quiet strip, not five cards. Left column: **Favourites** stay one row (Top picks = the #1 of every kind; kind tabs go deeper; ✎ EDIT & REORDER; a ＋ slot), then **Right now** (in-progress titles), then **Timeline** (the History timeline in mini form, OPEN IN HISTORY →), then **Recent** as rows (FULL HISTORY →). Right column: a visitor-only "YOU AND MARA" card for titles in common; **Taste** (where the time goes by kind %, the genres they keep coming back to, average rating); **Friends** (＋ ADD FRIEND, requests waiting); **Trophies** (three crystals from the cabinet, points, rank among friends, ALL →); and profile visibility.
+
+### Trophies (`Trophies.dc.html`, `Mobile Trophies.dc.html`)
+Three 3D ideas. **Crystal prisms**: every trophy is a hexagonal prism, taller and rarer by tier (bronze, silver, gold, prism); locked ones are empty glass that fills from the bottom as you progress. **A medal you can spin**: the spotlight (web) or detail screen (mobile) shows the picked trophy as a medal with a milled edge and an engraved back; drag sideways to turn it. **A podium that rises**: the leaderboard's top three stand on real blocks that rise again when you switch Global / Friends or the period, with a chase card naming the points to pass the next friend. Web: summary strip, spotlight, Recently unlocked and Next up shelves, sticky leaderboard. Mobile: cabinet, trophy detail (with "How you got it"), and leaderboard, pushed from Profile.
 
 ## Interactions & Behavior
 - Check-in buttons toggle checked state (label + background change); production: optimistic mutation
@@ -131,7 +134,7 @@ Identity in one line of sight: avatar, name, bio, @handle, join date, friends, s
 
 ## Files
 - `Design System.dc.html` — token reference + component gallery (start here)
-- `Landing.dc.html`, `Login.dc.html`, `Onboarding.dc.html`, `Home.dc.html`, `Search.dc.html`, `News.dc.html`, `History.dc.html`, `Media Detail.dc.html`, `Lists.dc.html`, `Profile.dc.html`
+- `Landing.dc.html`, `Login.dc.html`, `Onboarding.dc.html`, `Home.dc.html`, `Search.dc.html`, `News.dc.html`, `History.dc.html`, `Media Detail.dc.html`, `Lists.dc.html`, `Profile.dc.html`, `Trophies.dc.html`, `Mobile Trophies.dc.html`
 - `Timeline.dc.html` — shared timeline component, imported by History (full) and Profile (mini)
 - `support.js` — prototype runtime (needed to open the files; not part of the design)
 - `noise.svg` — grain texture asset (IS part of the design)
