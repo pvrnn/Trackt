@@ -31,6 +31,7 @@
     "dedup:tmdb": "node scripts/tmdb-scrape/dedup.ts",
     "link:adaptations": "node scripts/mal-scrape/link-adaptations.ts",
     "prune:seeds": "node scripts/mal-scrape/prune-seeds.ts",
+    "seed:all": "node scripts/tmdb-scrape/dedup.ts --apply && node scripts/mal-scrape/link-adaptations.ts --apply && node scripts/catalog-research/apply-patch.mjs --apply && pnpm --filter @trackt/catalog db:seed:all",
     "import:mal": "pnpm --filter @trackt/imports import:mal",
     "test:scripts": "node --test \"scripts/*/test/*.test.ts\""
   },

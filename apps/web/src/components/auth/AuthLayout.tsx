@@ -82,6 +82,8 @@ export function AuthLayout({ mode, redirect }: { mode: AuthMode; redirect?: stri
         <div className="relative flex flex-wrap gap-x-5 gap-y-2 font-label text-[11px] font-semibold tracking-[0.08em] text-dim">
           <a
             href="https://github.com/pvrnn/Trackt"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-muted transition hover:text-pink"
           >
             {t('auth.github')}

@@ -42,6 +42,23 @@ the port's own row — Horizon Zero Dawn's Steam page belongs to `Horizon Zero
 Dawn: Complete Edition`. Where a game carries several listings the oldest wins.
 Games without one simply have no `steam` key rather than a guessed app id.
 
+## Banner
+
+`bannerUrl` is an IGDB image at `t_1080p` (fits 1920×1080), chosen by
+`bestBanner` from the game's `artworks` and its first `screenshot`, in tiers:
+
+1. key art without logo, artwork, historical artwork (`artwork_type` 2, 1, 15;
+   an untyped artwork counts as 1);
+2. the first screenshot;
+3. key art with logo and concept art (3, 4) — a logo fights the page's title.
+
+Within a tier the widest image wins, because the media header is wider than
+16:9 (Silksong's 3840×1240 key art beats its 2400×1350 one). Only landscape
+images (≥ 1.3:1) qualify, and never one with an alpha channel (logos, cut-outs)
+or an animated one. A 200-game run gave 189 artwork banners, 9 screenshots and 2
+games with neither. Each artwork costs a `get_details` slot (100 per call), so a
+12,000-game run adds roughly 700 calls.
+
 ## Ranking
 
 `total_rating` is an average, so it says nothing on its own about how much data

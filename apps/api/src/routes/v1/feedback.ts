@@ -13,7 +13,7 @@ import { getSessionUser } from '../../lib/session.js';
  * central catalog, which is the only place reports are stored.
  *
  * A session is required even though the catalog's own endpoint is public — the
- * dialog lives on `/profile`, and "you must be signed in to send feedback" is a
+ * dialog lives on the own profile, and "you must be signed in to send feedback" is a
  * cheaper spam gate than anything the central service could do with an IP.
  *
  * Unlike news, a catalog failure here is not degraded to an empty result: the

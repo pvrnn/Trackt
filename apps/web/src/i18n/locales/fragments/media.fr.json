@@ -92,6 +92,7 @@
     "ended": "FIN",
     "studio": "STUDIO",
     "createdBy": "CRÉÉ PAR",
+    "platforms": "PLATEFORMES",
     "runtime": "DURÉE",
     "runtimeValue": "{{minutes}} min",
     "volumes": "VOLUMES",

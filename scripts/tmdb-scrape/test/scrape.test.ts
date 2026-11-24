@@ -2,15 +2,20 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   authorize,
+  bestBackdrop,
   collectRanking,
+  collectRecent,
   discoverQuery,
   genreTag,
+  imageLanguages,
   imageUrl,
   isJapaneseAnimation,
   mapLimit,
   parseArgs,
   parseCheckpoint,
   rankKey,
+  recentRanking,
+  recentYears,
   statusFor,
   synonymsFor,
   toSeedRow,
@@ -83,6 +88,8 @@ describe('the walk arguments', () => {
       concurrency: 3,
       resume: false,
       excludeAnime: false,
+      recentYears: 0,
+      recentMinVotes: 10,
     });
   });
 
@@ -110,6 +117,132 @@ describe('the walk arguments', () => {
     assert.throws(() => parseArgs(['--concurrency', '9']), /--concurrency/);
     assert.throws(() => parseArgs(['--language', 'english']), /--language/);
     assert.throws(() => parseArgs(['--nope']), /Unknown argument/);
+  });
+
+  it('runs no recent pass unless asked, and takes its years and floor when asked', () => {
+    assert.equal(parseArgs([]).recentYears, 0);
+    const args = parseArgs(['--recent-years', '2', '--recent-min-votes', '5', '--limit', '30']);
+    assert.equal(args.recentYears, 2);
+    assert.equal(args.recentMinVotes, 5);
+    assert.equal(args.limit, 30);
+    assert.throws(() => parseArgs(['--recent-years', '-1']), /--recent-years/);
+    assert.throws(() => parseArgs(['--recent-min-votes', 'few']), /--recent-min-votes/);
+  });
+});
+
+describe('the banner', () => {
+  const image = (
+    file_path: string,
+    iso_639_1: string | null,
+    vote_average: number,
+    vote_count = 1,
+  ) => ({
+    file_path,
+    iso_639_1,
+    vote_average,
+    vote_count,
+  });
+
+  it('takes the best-voted backdrop that carries no text', () => {
+    const backdrops = [
+      image('/titled', 'en', 9),
+      image('/low', null, 2),
+      image('/best', null, 5.8, 7),
+    ];
+    assert.equal(bestBackdrop({ backdrop_path: '/primary', images: { backdrops } }), '/best');
+  });
+
+  it('breaks a tie on the average by the number of votes', () => {
+    const backdrops = [image('/one', null, 1.75, 2), image('/many', null, 1.75, 5)];
+    assert.equal(bestBackdrop({ images: { backdrops } }), '/many');
+  });
+
+  it('falls back to a titled backdrop only when no text-free one exists', () => {
+    const backdrops = [image('/titled', 'en', 3)];
+    assert.equal(bestBackdrop({ backdrop_path: '/primary', images: { backdrops } }), '/titled');
+  });
+
+  it("keeps TMDB's own pick when nobody voted, or the run asked for no images", () => {
+    const backdrops = [image('/unvoted', null, 0, 0)];
+    assert.equal(bestBackdrop({ backdrop_path: '/primary', images: { backdrops } }), '/primary');
+    assert.equal(bestBackdrop({ backdrop_path: '/primary' }), '/primary');
+    assert.equal(bestBackdrop({}), null);
+  });
+
+  it("asks for text-free images and the run's own language", () => {
+    assert.equal(imageLanguages('en-US'), 'null,en');
+    assert.equal(imageLanguages('fr'), 'null,fr');
+  });
+});
+
+describe('the recent pass', () => {
+  const now = new Date('2026-11-22T00:00:00Z');
+  const film = (id: number, votes: number): TmdbMovie => ({
+    id,
+    title: `Movie ${id}`,
+    vote_count: votes,
+  });
+  const byVotes = (movie: TmdbMovie) => movie.vote_count ?? 0;
+
+  it('covers this year, the ones before it, and every announced year', () => {
+    assert.deepEqual(recentYears(2, 2028, now), [2025, 2026, 2027, 2028]);
+    assert.deepEqual(recentYears(1, 2026, now), [2026]);
+    assert.deepEqual(recentYears(0, 2028, now), []);
+  });
+
+  it('collects every year to the end, past what the main ranking already holds', async () => {
+    const asked: string[] = [];
+    const pages: Record<number, DiscoverPage[]> = {
+      2025: [
+        { page: 1, total_pages: 2, results: [film(1, 900), film(2, 40)] },
+        { page: 2, total_pages: 2, results: [film(3, 12)] },
+      ],
+      2026: [{ page: 1, total_pages: 1, results: [film(4, 80), film(5, 11)] }],
+    };
+    const movies = await collectRecent(
+      [2025, 2026],
+      async (year, page) => {
+        asked.push(`${year}/${page}`);
+        return pages[year]?.[page - 1] ?? { page, total_pages: 0, results: [] };
+      },
+      [1],
+      byVotes,
+    );
+    assert.deepEqual(
+      movies.map((movie) => movie.id),
+      [4, 2, 3, 5],
+    );
+    assert.deepEqual(asked.sort(), ['2025/1', '2025/2', '2026/1']);
+  });
+
+  it('still leaves out what the run was told to', async () => {
+    const movies = await collectRecent(
+      [2026],
+      async () => ({
+        page: 1,
+        total_pages: 1,
+        results: [
+          { id: 1, title: 'Anime', genre_ids: [16], original_language: 'ja', vote_count: 50 },
+          film(2, 20),
+        ],
+      }),
+      [],
+      byVotes,
+      isNotAnime,
+    );
+    assert.deepEqual(
+      movies.map((movie) => movie.id),
+      [2],
+    );
+  });
+
+  it('is recorded in the seed file only when the run had one', () => {
+    assert.deepEqual(recentRanking([2025, 2026, 2027], 10), {
+      fromYear: 2025,
+      toYear: 2027,
+      minimumVoteCount: 10,
+    });
+    assert.equal(recentRanking([], 10), null);
   });
 });
 

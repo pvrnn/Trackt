@@ -36,6 +36,15 @@ describe('what the evidence floor keeps', () => {
     assert.equal(isKept(row({ kind: 'anime', externalIds: { anilist: 3 } }), DEFAULT_POLICY), true);
   });
 
+  it('drops a hentai row of any kind', () => {
+    for (const kind of ['anime', 'manga']) {
+      assert.equal(
+        isKept({ ...row({ kind }), genres: ['romance', 'hentai'] }, DEFAULT_POLICY),
+        false,
+      );
+    }
+  });
+
   it('keeps a one-shot at or above the floor, drops one below it or unscored', () => {
     const kept = oneShot({ metadata: { format: 'one shot', providerScore: 70 } });
     const below = oneShot({ metadata: { format: 'one shot', providerScore: 40 } });

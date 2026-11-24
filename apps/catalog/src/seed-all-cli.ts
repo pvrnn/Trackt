@@ -14,7 +14,12 @@ import { readFile, readdir } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import { EnvValidationError, loadCatalogEnv } from '@trackt/shared';
 import { createCatalogDb, runCatalogMigrations } from './db/index.js';
-import { seedCatalog, type CatalogSeedFile, type SeedReport } from './seed.js';
+import {
+  retireFoldedDuplicates,
+  seedCatalog,
+  type CatalogSeedFile,
+  type SeedReport,
+} from './seed.js';
 
 /** Order matters: a seed's relation edges need both endpoints to exist already. */
 const ORDER = [
@@ -84,6 +89,8 @@ async function main(): Promise<void> {
       total.relations.skipped += report.relations.skipped;
       total.relations.missingEndpoint += report.relations.missingEndpoint;
     }
+    const retired = await retireFoldedDuplicates(db);
+    console.log(`retired ${retired} TMDB rows already folded into an anime row`);
   } finally {
     await db.$client.end();
   }

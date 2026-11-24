@@ -34,7 +34,7 @@
     .lang select option { background: #191520; color: #f0edf4; }
     .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
     /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
-    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; }
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; container-type: inline-size; }
     .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
     .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
     .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
@@ -44,20 +44,20 @@
     .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
     .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
     @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
-    /* kind strip: six colour dots, one per kind. The picked one (or the one under the pointer) opens into its name and count. */
-    .kcell { flex: 1 1 auto; padding-right: 14px; }
-    .kstrip { display: flex; align-items: center; gap: 2px; width: 366px; max-width: 100%; }
-    .kchip { height: 32px; min-width: 30px; padding: 0 9px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; white-space: nowrap; transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease; }
-    .kchip:hover { background: rgba(255,255,255,0.07); color: #f0edf4; }
-    .kchip[aria-pressed="true"] { color: #f0edf4; }
-    .kchip .kd { width: 9px; height: 9px; flex-shrink: 0; border-radius: 999px; transition: transform 160ms ease; }
-    .kchip:hover .kd { transform: scale(1.25); }
-    .kchip .kl { display: inline-flex; gap: 6px; max-width: 0; margin-left: 0; opacity: 0; overflow: hidden; transition: max-width 220ms ease, margin-left 220ms ease, opacity 160ms ease; }
-    .kchip .kn { font-weight: 500; color: #948da1; }
-    .kchip:hover .kl, .kchip[aria-pressed="true"] .kl { max-width: 120px; margin-left: 8px; opacity: 1; }
-    /* only one name open at a time, so the strip never changes width */
-    .kstrip:hover .kchip[aria-pressed="true"]:not(:hover) .kl { max-width: 0; margin-left: 0; opacity: 0; }
-    @media (prefers-reduced-motion: reduce) { .kchip, .kchip .kd, .kchip .kl { transition: none; } }
+    /* kind: the same grammar as every other cell. KIND label, a value that names the pick, then the picker itself.
+       The picker is the six kind dots plus a hollow ring for All; hovering or focusing a dot previews it in the value. Nothing resizes. */
+    .kcell { flex: 0 0 auto; padding-right: 12px; }
+    .kval { width: 100px; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 120ms ease; }
+    .kval .kn { font-weight: 500; color: #948da1; }
+    .kdots { display: flex; align-items: center; }
+    .kdot { width: 28px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    .kdot > span { width: 10px; height: 10px; border-radius: 999px; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .kdot:hover > span, .kdot:focus-visible > span { transform: scale(1.3); }
+    .kdot:focus-visible { outline-offset: -2px; }
+    @media (prefers-reduced-motion: reduce) { .kval, .kdot > span { transition: none; } }
+    /* once the bar wraps, the cells on each row share it; on a phone-width bar the value slot goes and the dots stay */
+    @container (max-width: 900px) { .kcell { flex-grow: 1; } }
+    @container (max-width: 440px) { .kval { display: none; } }
   </style>
 </helmet>
 
@@ -73,6 +73,7 @@
     <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
     <a href="News.dc.html" style="color: #948da1;">NEWS</a>
     <a href="History.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">HISTORY</a>
+    <a href="Trophies.dc.html" style="color: #948da1;">TROPHIES</a>
     <a href="Profile.dc.html" style="color: #948da1;">PROFILE</a>
   </div>
   <div style="flex: 1;"></div>
@@ -98,8 +99,8 @@
   <!-- FILTER CONSOLE — every filter is the same cell; the numbers for what they select sit underneath -->
   <div style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; backdrop-filter: blur(16px); display: flex; flex-direction: column; overflow: hidden;">
     <div class="fbar">
-      <div class="fcell kcell" role="group" aria-label="Kind"><span class="lab">KIND</span><div class="kstrip">
-        <sc-for list="{{ kindChips }}" as="k" hint-placeholder-count="7"><button class="kchip" onClick="{{ k.pick }}" aria-pressed="{{ k.on }}" aria-label="{{ k.aria }}" title="{{ k.aria }}" style="background: {{ k.bg }}; box-shadow: {{ k.ring }}; opacity: {{ k.op }};"><span class="kd" aria-hidden="true" style="background: {{ k.dot }}; display: {{ k.dotDisplay }};"></span><span class="{{ k.lcls }}">{{ k.label }} <span class="kn">{{ k.count }}</span></span></button></sc-for>
+      <div class="fcell kcell" role="radiogroup" aria-label="Kind" onMouseLeave="{{ kindUnhover }}"><span class="lab">KIND</span><span class="kval" style="color: {{ kindValFg }};">{{ kindValue }} <span class="kn">{{ kindValCount }}</span></span><div class="kdots">
+        <sc-for list="{{ kindDots }}" as="k" hint-placeholder-count="7"><button class="kdot" role="radio" aria-checked="{{ k.on }}" aria-label="{{ k.aria }}" title="{{ k.aria }}" onClick="{{ k.pick }}" onMouseEnter="{{ k.hover }}" onFocus="{{ k.hover }}" onBlur="{{ kindUnhover }}" style="opacity: {{ k.op }};"><span style="background: {{ k.fill }}; box-shadow: {{ k.ring }};"></span></button></sc-for>
       </div></div>
       <label class="fcell"><span class="lab">YEAR</span><select value="{{ year }}" onChange="{{ onYear }}"><sc-for list="{{ yearOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span class="chev" aria-hidden="true"></span></label>
       <label class="fcell"><span class="lab">STATUS</span><select value="{{ status }}" onChange="{{ onStatus }}"><option value="ALL">All</option><option value="completed">Completed</option><option value="progress">In progress</option><option value="paused">Paused</option><option value="dropped">Dropped</option></select><span class="chev" aria-hidden="true"></span></label>
@@ -320,18 +321,30 @@ class Component extends DCLogic {
       showGrid: st.view === 'grid' && filtered.length > 0,
       showTimeline: st.view === 'timeline' && all.some((r) => inKind(r) && inStatus(r)),
 
-      // kind strip: ALL is always spelled out; the six kinds are dots that open into name + count. Picking the open one again clears it.
-      kindChips: [{ key: 'ALL', label: 'ALL' }].concat(KINDS).map((k) => {
-        const key = k.key, all = key === 'ALL', on = st.kind === key, c = k.dot;
-        const count = all ? kindRows.length : kindRows.filter((r) => r.k === key).length;
+      // kind: the value names the pick (or, dimmer, the dot under the pointer); the dots pick. The hollow ring is All, and picking the picked dot again also goes back to All.
+      ...(() => {
+        const list = [{ key: 'ALL', label: 'ALL' }].concat(KINDS);
+        const cur = st.kind, hv = this.state.hoverKind || null;
+        const countOf = (key) => key === 'ALL' ? kindRows.length : kindRows.filter((r) => r.k === key).length;
+        const nameOf = (k) => k.key === 'ALL' ? 'ALL KINDS' : k.label;
+        const shown = list.find((k) => k.key === (hv || cur)) || list[0];
         return {
-          label: k.label, count, on, aria: k.label + ' · ' + count,
-          dot: c || 'transparent', dotDisplay: all ? 'none' : 'block', lcls: all ? '' : 'kl',
-          bg: on ? (all ? 'rgba(255,255,255,0.1)' : c + '2b') : '', ring: on ? 'inset 0 0 0 1px ' + (all ? 'rgba(255,255,255,0.22)' : c + '99') : 'none',
-          op: count || on || all ? 1 : 0.4,
-          pick: () => this.setState({ kind: on ? 'ALL' : key, shown: this.PER }),
+          kindValue: nameOf(shown), kindValCount: countOf(shown.key),
+          kindValFg: hv && hv !== cur ? '#b8b1c4' : '#f0edf4',
+          kindUnhover: () => { if (this.state.hoverKind) this.setState({ hoverKind: null }); },
+          kindDots: list.map((k) => {
+            const key = k.key, all = key === 'ALL', on = cur === key, count = countOf(key);
+            const c = all ? '#f0edf4' : k.dot;
+            const ring = (all ? ['inset 0 0 0 1.5px ' + (on ? '#f0edf4' : '#b8b1c4')] : []).concat(on ? ['0 0 0 2.5px #1b1820', '0 0 0 4px ' + c] : []);
+            return {
+              on, aria: nameOf(k) + ' · ' + count, op: count || on || all ? 1 : 0.35,
+              fill: all ? 'transparent' : c, ring: ring.join(', ') || 'none',
+              pick: () => this.setState({ kind: on ? 'ALL' : key, shown: this.PER }),
+              hover: () => { if (this.state.hoverKind !== key) this.setState({ hoverKind: key }); },
+            };
+          }),
         };
-      }),
+      })(),
       year: st.year,
       yearOpts: years.map((y) => ({ v: y, label: y })).concat([{ v: 'ALL', label: 'ALL TIME' }]),
       onYear: (e) => this.setState({ year: e.target.value, shown: this.PER }),

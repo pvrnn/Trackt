@@ -138,7 +138,8 @@ function HomePage() {
                   <span className="flex-1" />
                   {summary.inProgress.length > 0 && (
                     <Link
-                      to="/history"
+                      to="/users/$username/history"
+                      params={{ username: navUser.username }}
                       search={{ year: 'all', status: 'in_progress' }}
                       className="font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
                     >
@@ -184,7 +185,8 @@ function HomePage() {
                     </h2>
                     <span className="flex-1" />
                     <Link
-                      to="/history"
+                      to="/users/$username/history"
+                      params={{ username: navUser.username }}
                       className="font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
                     >
                       {t('home.activity.all')}

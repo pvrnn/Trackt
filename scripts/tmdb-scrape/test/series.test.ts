@@ -92,6 +92,8 @@ describe('the series arguments', () => {
       concurrency: 3,
       resume: false,
       excludeAnime: false,
+      recentYears: 0,
+      recentMinVotes: 10,
     });
   });
 
@@ -122,6 +124,7 @@ describe('the series arguments', () => {
   it('refuses an argument it cannot use', () => {
     assert.throws(() => parseSeriesArgs(['--limit', '0']), /--limit/);
     assert.throws(() => parseSeriesArgs(['--sort', 'trending']), /--sort/);
+    assert.throws(() => parseSeriesArgs(['--recent-years', '21']), /--recent-years/);
     assert.throws(() => parseSeriesArgs(['--concurrency', '9']), /--concurrency/);
     assert.throws(() => parseSeriesArgs(['--min-vote-count', '-2']), /--min-vote-count/);
     assert.throws(() => parseSeriesArgs(['--language', 'en_US']), /--language/);

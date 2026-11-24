@@ -79,10 +79,6 @@
     "requests_one": "{{count}} REQUEST WAITING",
     "requests_other": "{{count}} REQUESTS WAITING"
   },
-  "badges": {
-    "title": "Badges",
-    "body": "Badges land with the v1.x social layer: streaks, importer feats, cataloguer credits."
-  },
   "visibility": {
     "title": "PROFILE VISIBILITY",
     "tooltip": "Anyone with your profile link can view it; no per-user visibility setting yet (ADR-0006)"

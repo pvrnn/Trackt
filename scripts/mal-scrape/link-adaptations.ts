@@ -209,6 +209,11 @@ async function main(): Promise<void> {
   }
   const edges = [...files.values()].flatMap((file) => file.catalog_media_relation);
   const pairs = unlinkedPairs([...rows.values()], edges);
+  if (!pairs.length) {
+    // Writing an empty run would overwrite the log of the edges an earlier run added.
+    console.log('0 unlinked same-title pairs; seeds left untouched.');
+    return;
+  }
 
   const declared = await declaredRelations(
     pairs.map((pair) => Number(pair.anime.externalIds.anilist)),

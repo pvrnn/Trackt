@@ -170,6 +170,8 @@ function OutLink({
   return (
     <a
       href={href}
+      target="_blank"
+      rel="noopener noreferrer"
       className={buttonClassName({
         variant: 'secondary',
         size,

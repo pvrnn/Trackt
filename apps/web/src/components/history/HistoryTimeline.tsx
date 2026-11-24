@@ -7,6 +7,7 @@ import { coverGradient, layoutTimeline, todayIso, type TimelineItem } from '@tra
 import { kindDotClass } from '../ui/KindDot';
 import { useFormat } from '../../lib/format';
 import { useLabels } from '../../lib/labels';
+import { useDragScroll } from '../../lib/use-drag-scroll';
 
 /**
  * The History timeline (`docs/design/Timeline.dc.html`): one arrow of time you
@@ -64,6 +65,7 @@ export function HistoryTimeline({ entries, jumpYear = 'all', mini = false }: His
   const format = useFormat();
   const [zoom, setZoom] = useState(1);
   const scroller = useRef<HTMLDivElement>(null);
+  useDragScroll(scroller);
   const today = todayIso();
   const pxPerDay = mini ? MINI_PX_PER_DAY : ZOOMS[zoom]!.pxPerDay;
   const {
@@ -246,7 +248,7 @@ export function HistoryTimeline({ entries, jumpYear = 'all', mini = false }: His
         role="region"
         aria-label={t('history.timeline.region')}
         className={clsx(
-          'overflow-x-auto overflow-y-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-pink',
+          'cursor-grab overflow-x-auto overflow-y-hidden select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-pink data-dragging:cursor-grabbing data-dragging:[&_*]:cursor-grabbing',
           mini ? 'py-3' : 'py-[18px]',
         )}
       >

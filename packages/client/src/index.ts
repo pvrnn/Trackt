@@ -34,5 +34,6 @@ export * from './query-client.js';
 export * from './runtime.js';
 export * from './search.js';
 export * from './timeline.js';
+export * from './trophies.js';
 export * from './url.js';
 export * from './use-debounced.js';

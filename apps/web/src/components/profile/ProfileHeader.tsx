@@ -12,7 +12,7 @@ import { useFormat } from '../../lib/format';
 import { Avatar } from '../ui/Avatar';
 
 /**
- * Identity block + stat strip, shared by `/profile` and `/users/$username`
+ * Identity block + stat strip, shared by the own and the public profile
  * (ADR-0006 phase 4). The two pages differ only in what sits in the two
  * slots (the own page edits, the public page befriends) so they're passed
  * in rather than switched on an `isOwn` flag the header would have to
@@ -36,9 +36,7 @@ export function ProfileHeader({
   /** Controls before SHARE: EDIT PROFILE, or the friend-state action. */
   action: ReactNode;
   /**
-   * Point the this-year figures at `/history` (the own profile only). `/history`
-   * is `/me/*`: a visitor following the link would land on their own history,
-   * not the subject's (ADR-0007 defers friend-visible histories).
+   * Point the this-year figures at the history page (the own profile only).
    */
   linkYearStats?: boolean;
 }) {
@@ -48,7 +46,11 @@ export function ProfileHeader({
     .toLocaleDateString(format.locale, { month: 'short', year: 'numeric' })
     .toUpperCase();
   const yearLink = linkYearStats
-    ? ({ to: '/history', search: { year: new Date().getUTCFullYear() } } as const)
+    ? ({
+        to: '/users/$username/history',
+        params: { username: user.username },
+        search: { year: new Date().getUTCFullYear() },
+      } as const)
     : undefined;
 
   const cells = [

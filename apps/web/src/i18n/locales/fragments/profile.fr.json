@@ -79,10 +79,6 @@
     "requests_one": "{{count}} DEMANDE EN ATTENTE",
     "requests_other": "{{count}} DEMANDES EN ATTENTE"
   },
-  "badges": {
-    "title": "Badges",
-    "body": "Les badges arrivent avec la couche sociale v1.x : séries de jours, exploits d’import, crédits de catalogue."
-  },
   "visibility": {
     "title": "VISIBILITÉ DU PROFIL",
     "tooltip": "Toute personne disposant du lien de votre profil peut le consulter ; aucun réglage de visibilité par utilisateur pour l’instant (ADR-0006)"
