@@ -27,6 +27,7 @@ import {
   StatStrip,
   Taste,
 } from '../../../src/components/ProfileSections';
+import { TrophiesCard } from '../../../src/components/trophies/TrophiesCard';
 import { PrismButton } from '../../../src/components/PrismButton';
 import { authClient } from '../../../src/lib/auth-client';
 import { useInstance } from '../../../src/lib/instance-provider';
@@ -129,6 +130,8 @@ export default function ProfileTab() {
               <ProfileTimeline />
 
               <Taste taste={data.taste} />
+
+              <TrophiesCard />
 
               {/* The second navigation level the four-tab spine displaces here. */}
               <View style={styles.destinations}>

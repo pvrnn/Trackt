@@ -196,7 +196,7 @@ export function volumeCount(metadata: Record<string, unknown>): number | null {
 export type MediaFact =
   | { key: 'status'; value: string; airing: boolean }
   | { key: 'released' | 'ended'; value: string }
-  | { key: 'studio' | 'createdBy' | 'genres' | 'alsoKnownAs'; value: string[] }
+  | { key: 'studio' | 'createdBy' | 'platforms' | 'genres' | 'alsoKnownAs'; value: string[] }
   | { key: 'runtime' | 'volumes'; value: number };
 
 const strings = (value: unknown): string[] =>
@@ -240,9 +240,13 @@ export function mediaFacts(media: MediaDetail): MediaFact[] {
     ),
   ];
   if (creators.length > 0) facts.push({ key: 'createdBy', value: creators.slice(0, 2) });
-  if (typeof meta.duration === 'number' && meta.duration > 0) {
-    facts.push({ key: 'runtime', value: meta.duration });
-  }
+  const platforms = strings(meta.platforms);
+  if (platforms.length > 0) facts.push({ key: 'platforms', value: platforms });
+  // Each importer names it differently: AniList `duration`, TMDB movies `runtime`, TMDB series `episodeRuntime`.
+  const runtime = [meta.duration, meta.runtime, meta.episodeRuntime].find(
+    (value): value is number => typeof value === 'number' && value > 0,
+  );
+  if (runtime !== undefined) facts.push({ key: 'runtime', value: runtime });
   const volumes = volumeCount(meta);
   if (volumes !== null) facts.push({ key: 'volumes', value: volumes });
   if (media.genres.length > 0) facts.push({ key: 'genres', value: media.genres });
@@ -428,7 +432,7 @@ export function validateLogDates(dates: LogDates, today: string): string | null 
  *
  * `['media']` is a prefix: it matches every `['media', slug]` entry.
  */
-const TRACKING_KEYS = [['media'], ['home'], ['profile'], ['history']] as const;
+const TRACKING_KEYS = [['media'], ['home'], ['profile'], ['history'], ['trophies']] as const;
 
 export async function invalidateTracking(queryClient: QueryClient): Promise<void> {
   await Promise.all(TRACKING_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })));

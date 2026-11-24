@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  foldedTmdbKeys,
   isDuplicate,
   mergeIntoAnime,
   normaliseTitle,
@@ -8,6 +9,7 @@ import {
   replaceRows,
   sequelNumber,
   titleStem,
+  tmdbKey,
   type SeedRow,
 } from '../dedup.ts';
 
@@ -271,5 +273,28 @@ describe('the merge into the AniList row', () => {
       mergeIntoAnime({ ...anime, coverUrl: 'anilist.jpg' }, tmdb).coverUrl,
       'anilist.jpg',
     );
+  });
+});
+
+describe('the already-folded guard', () => {
+  it('recognises a re-scraped TMDB row an anime row has already absorbed', () => {
+    const keys = foldedTmdbKeys([
+      animeShow({
+        metadata: { format: 'tv', tmdb: { id: 105248, kind: 'series', seasonNumber: 1 } },
+      }),
+      row({ metadata: { format: 'movie', tmdb: { id: 372058, kind: 'movie' } } }),
+    ]);
+    const season = show({ externalIds: { tmdb: 105248 }, seasonNumber: 1 });
+    assert.ok(keys.has(tmdbKey(season.kind, season.externalIds.tmdb, season.seasonNumber)));
+    assert.ok(keys.has(tmdbKey('movie', 372058, null)));
+  });
+
+  it('keeps the other seasons of a show whose first season was folded', () => {
+    const keys = foldedTmdbKeys([
+      animeShow({
+        metadata: { format: 'tv', tmdb: { id: 105248, kind: 'series', seasonNumber: 1 } },
+      }),
+    ]);
+    assert.ok(!keys.has(tmdbKey('series', 105248, 2)));
   });
 });

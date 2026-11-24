@@ -33,7 +33,52 @@ export type Args = {
   resume: boolean;
   /** Leave Japanese animation out: anime rows come from AniList (see `isJapaneseAnimation`). */
   excludeAnime: boolean;
+} & RecentArgs;
+
+/**
+ * A second, lower floor for the latest release years, whose works have not had
+ * time to collect the votes the global floor asks of them (see `collectRecent`).
+ */
+export type RecentArgs = {
+  /** This year and the ones before it that get `recentMinVotes`; 0 turns the pass off. */
+  recentYears: number;
+  recentMinVotes: number;
 };
+
+/** One entry of an `images.backdrops` list; `iso_639_1` null means the image carries no text. */
+export type TmdbImage = {
+  file_path: string;
+  iso_639_1?: string | null;
+  vote_average?: number;
+  vote_count?: number;
+};
+
+/** Images limited to text-free ones and the run's language, the only ones a banner can use. */
+export function imageLanguages(language: string): string {
+  return `null,${language.split('-')[0]}`;
+}
+
+/**
+ * The banner: the best-voted text-free backdrop (text is lettering burned into
+ * the art, and it fights the page's own title), else the best-voted of any.
+ * With no vote cast at all TMDB's own `backdrop_path` stands, since its pick
+ * then beats an arbitrary first entry.
+ */
+export function bestBackdrop(work: {
+  backdrop_path?: string | null;
+  images?: { backdrops?: TmdbImage[] };
+}): string | null {
+  const backdrops = work.images?.backdrops ?? [];
+  const textFree = backdrops.filter((image) => image.iso_639_1 == null);
+  const pool = textFree.length > 0 ? textFree : backdrops;
+  const best = [...pool]
+    .filter((image) => (image.vote_count ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.vote_average ?? 0) - (a.vote_average ?? 0) || (b.vote_count ?? 0) - (a.vote_count ?? 0),
+    )[0];
+  return best?.file_path ?? work.backdrop_path ?? null;
+}
 
 export type TmdbCrew = { name?: string; job?: string };
 
@@ -66,7 +111,8 @@ export type TmdbMovie = {
   genres?: { id: number; name: string }[];
   origin_country?: string[];
   spoken_languages?: { english_name?: string }[];
-  /** Appended: `/movie/{id}?append_to_response=credits,translations`. */
+  /** Appended: `/movie/{id}?append_to_response=credits,translations,images`. */
+  images?: { backdrops?: TmdbImage[] };
   credits?: { crew?: TmdbCrew[] };
   translations?: { translations?: TmdbTranslation[] };
 };
@@ -87,10 +133,13 @@ export function parseArgs(argv: string[]): Args {
     concurrency: 3,
     resume: false,
     excludeAnime: false,
+    ...RECENT_DEFAULTS,
   };
   for (let i = 0; i < argv.length; i++) {
     const value = argv[i + 1];
-    if (argv[i] === '--limit' && value) {
+    if (parseRecentArg(args, argv[i]!, value)) {
+      i++;
+    } else if (argv[i] === '--limit' && value) {
       args.limit = Number(value);
       i++;
     } else if (argv[i] === '--min-vote-count' && value) {
@@ -116,7 +165,7 @@ export function parseArgs(argv: string[]): Args {
       args.excludeAnime = true;
     } else if (argv[i] === '--help') {
       console.log(
-        'Usage: pnpm scrape:tmdb [--limit 10] [--min-vote-count 10000] [--sort rating|popularity] [--exclude-anime] [--concurrency 3] [--resume] [--language en-US] [--out path]',
+        'Usage: pnpm scrape:tmdb [--limit 10] [--min-vote-count 10000] [--sort rating|popularity] [--exclude-anime] [--recent-years 0] [--recent-min-votes 10] [--concurrency 3] [--resume] [--language en-US] [--out path]',
       );
       process.exit(0);
     } else throw new Error(`Unknown argument: ${argv[i]}`);
@@ -133,7 +182,28 @@ export function parseArgs(argv: string[]): Args {
   if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(args.language)) {
     throw new Error('--language must be an ISO 639-1 code, optionally with a region (en-US)');
   }
+  validateRecentArgs(args);
   return args;
+}
+
+export const RECENT_DEFAULTS: RecentArgs = { recentYears: 0, recentMinVotes: 10 };
+
+/** Consume `--recent-years`/`--recent-min-votes`; true when `flag` was one of them. */
+export function parseRecentArg(args: RecentArgs, flag: string, value: string | undefined): boolean {
+  if (!value) return false;
+  if (flag === '--recent-years') args.recentYears = Number(value);
+  else if (flag === '--recent-min-votes') args.recentMinVotes = Number(value);
+  else return false;
+  return true;
+}
+
+export function validateRecentArgs(args: RecentArgs): void {
+  if (!Number.isInteger(args.recentYears) || args.recentYears < 0 || args.recentYears > 20) {
+    throw new Error('--recent-years must be an integer from 0 to 20');
+  }
+  if (!Number.isInteger(args.recentMinVotes) || args.recentMinVotes < 0) {
+    throw new Error('--recent-min-votes must be a non-negative integer');
+  }
 }
 
 export interface Credentials {
@@ -303,6 +373,40 @@ export async function walkRanking(
     if (!response.results?.length || page >= (response.total_pages ?? MAX_PAGES)) break;
   }
   return movies.slice(0, limit);
+}
+
+/** This year, the `count - 1` before it, and every announced year up to `lastYear`. */
+export function recentYears(count: number, lastYear: number, now = new Date()): number[] {
+  const years: number[] = [];
+  for (let year = now.getUTCFullYear() - count + 1; count > 0 && year <= lastYear; year++) {
+    years.push(year);
+  }
+  return years;
+}
+
+/**
+ * Every work of the recent years above the recent floor that the main ranking
+ * did not already pick. One global vote floor is really an age floor — a film
+ * in its first months sits beside ones that have had decades to collect votes —
+ * so the main ranking alone thins out exactly the years people are watching now.
+ */
+export async function collectRecent<T extends { id: number }>(
+  years: readonly number[],
+  fetchPage: (year: number, page: number) => Promise<DiscoverPage<T>>,
+  picked: Iterable<number>,
+  rank: (row: T) => number,
+  keep: (row: T) => boolean = () => true,
+): Promise<T[]> {
+  const already = new Set(picked);
+  return collectRanking(
+    years.map((year) => ({
+      label: String(year),
+      fetchPage: (page: number) => fetchPage(year, page),
+    })),
+    Number.POSITIVE_INFINITY,
+    rank,
+    (row) => !already.has(row.id) && keep(row),
+  );
 }
 
 export type RankingSource<T = TmdbMovie> = {
@@ -537,11 +641,16 @@ export function toSeedRow(movie: TmdbMovie) {
     },
     description: movie.overview?.trim() || null,
     coverUrl: imageUrl(movie.poster_path, 'w500'),
-    bannerUrl: imageUrl(movie.backdrop_path, 'w1280'),
+    bannerUrl: imageUrl(bestBackdrop(movie), 'w1280'),
   };
 }
 
 type SeedRow = ReturnType<typeof toSeedRow>;
+
+/** What the seed file records about the recent pass, or null when the run had none. */
+export function recentRanking(years: readonly number[], minimumVoteCount: number) {
+  return years.length ? { fromYear: years[0]!, toYear: years.at(-1)!, minimumVoteCount } : null;
+}
 
 /**
  * The rows a previous run already converted, keyed by TMDB id. A 30 000-row run
@@ -601,6 +710,26 @@ export async function scrapeTmdb(args: Args): Promise<number> {
     );
   }
 
+  const recent = recentYears(args.recentYears, lastYear);
+  if (recent.length) {
+    const extra = await collectRecent(
+      recent,
+      (year, page) =>
+        tmdbGet<DiscoverPage>(
+          '/discover/movie',
+          { ...discoverQuery({ ...args, minVoteCount: args.recentMinVotes }, year), page },
+          scan,
+        ),
+      movies.map((movie) => movie.id),
+      (movie) => rankKey(args.sort, movie),
+      keep,
+    );
+    console.log(
+      `${extra.length} more movies from ${recent[0]}–${recent.at(-1)} above ${args.recentMinVotes} votes`,
+    );
+    movies.push(...extra);
+  }
+
   const output = resolve(args.out);
   const checkpoint = `${output}.checkpoint.jsonl`;
   await mkdir(dirname(output), { recursive: true });
@@ -624,7 +753,11 @@ export async function scrapeTmdb(args: Args): Promise<number> {
     try {
       const response = await tmdbGet<TmdbMovie>(
         `/movie/${movie.id}`,
-        { language: args.language, append_to_response: 'credits,translations' },
+        {
+          language: args.language,
+          append_to_response: 'credits,translations,images',
+          include_image_language: imageLanguages(args.language),
+        },
         detail,
       );
       const row = toSeedRow({ ...movie, ...response });
@@ -660,6 +793,7 @@ export async function scrapeTmdb(args: Args): Promise<number> {
       language: args.language,
       partitionedBy: args.limit > SINGLE_QUERY_LIMIT ? 'primary_release_year' : null,
       excludesJapaneseAnimation: args.excludeAnime,
+      recent: recentRanking(recent, args.recentMinVotes),
     },
     catalog_media: rows,
     catalog_media_relation: [],

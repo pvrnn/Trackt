@@ -2,9 +2,8 @@ import { LOG_STATUSES, MEDIA_KINDS, type LogStatus, type MediaKind } from '@trac
 import { HISTORY_GROUPINGS, type HistoryGrouping } from '@trackt/client';
 
 /**
- * The history page's URL state, shared by the viewer's own `/history` and
- * someone else's `/users/$username/history`: two routes, one set of params, so
- * a link to a year keeps working when it is handed to a person.
+ * The history page's URL state, shared by `/users/$username/history` and the
+ * legacy `/history` redirect, so an old link to a year still lands on that year.
  */
 
 /** The URL's year: a number, or 'all'. Absent means the current year. */

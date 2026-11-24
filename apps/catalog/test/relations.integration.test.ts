@@ -137,6 +137,24 @@ describe.runIf(available)('GET /v1/catalog/relations (postgres)', () => {
     return { statusCode: response.statusCode, relations: body.relations };
   }
 
+  // The single-work lookup rides on this suite's fixtures rather than seeding its own.
+  it('GET /v1/catalog/media/:id serves one live work, and 404s tombstoned or unknown ids', async () => {
+    const live = await app.inject({ method: 'GET', url: `/v1/catalog/media/${animeId}` });
+    expect(live.statusCode).toBe(200);
+    expect(live.json()).toMatchObject({
+      id: animeId,
+      kind: 'anime',
+      title: 'Fullmetal Alchemist: Brotherhood',
+      seasonNumber: 1,
+      bannerUrl: null,
+    });
+
+    for (const id of [tombstonedId, '55555555-5555-5555-8555-555555555555']) {
+      const response = await app.inject({ method: 'GET', url: `/v1/catalog/media/${id}` });
+      expect(response.statusCode).toBe(404);
+    }
+  });
+
   it('returns forward edges with the target work inlined', async () => {
     const { statusCode, relations: edges } = await relations(`id=${mangaId}`);
     expect(statusCode).toBe(200);

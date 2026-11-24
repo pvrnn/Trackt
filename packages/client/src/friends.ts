@@ -126,6 +126,7 @@ export function useFriendsInvalidator() {
       queryClient.invalidateQueries({ queryKey: ['profile'] }),
       queryClient.invalidateQueries({ queryKey: ['public-profile'] }),
       queryClient.invalidateQueries({ queryKey: ['user-search'] }),
+      queryClient.invalidateQueries({ queryKey: ['trophies'] }),
     ]);
 }
 

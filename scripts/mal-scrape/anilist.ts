@@ -153,7 +153,7 @@ export interface AniListNode {
   duration?: number | null;
   /** Published volumes; manga only, and null for most web-published works. */
   volumes?: number | null;
-  coverImage?: { large?: string | null } | null;
+  coverImage?: { extraLarge?: string | null; large?: string | null } | null;
   /** Wide header artwork, 1900×400-ish; null for most manga and older works. */
   bannerImage?: string | null;
   description?: string | null;
@@ -182,7 +182,7 @@ const NODE_FIELDS = `
   id idMal type format status seasonYear episodes chapters
   title { romaji english native }
   synonyms genres averageScore startDate { year month day } endDate { year month day }
-  duration volumes coverImage { large } bannerImage
+  duration volumes coverImage { extraLarge large } bannerImage
 `;
 
 /**

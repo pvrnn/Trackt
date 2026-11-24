@@ -137,3 +137,27 @@ export async function seedCatalog(db: CatalogDb, file: CatalogSeedFile): Promise
 
   return report;
 }
+
+/**
+ * Soft-delete the TMDB rows an AniList anime row has absorbed (`dedup:tmdb`).
+ * Dropping them from the seed files never removes them from a catalog seeded
+ * before the dedup ran, and the upsert above would happily un-delete them.
+ */
+export async function retireFoldedDuplicates(db: CatalogDb): Promise<number> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended('catalog-publish', 0))`);
+    const retired = await tx.execute(sql`
+      UPDATE catalog_media t
+         SET deleted_at = now(), updated_at = now()
+        FROM catalog_media a
+       WHERE t.deleted_at IS NULL
+         AND t.kind IN ('movie', 'series')
+         AND a.kind = 'anime'
+         AND a.deleted_at IS NULL
+         AND a.metadata->'tmdb'->>'kind' = t.kind::text
+         AND a.metadata->'tmdb'->>'id' = t.external_ids->>'tmdb'
+         AND (t.kind = 'movie' OR a.metadata->'tmdb'->>'seasonNumber' = t.season_number::text)
+      RETURNING t.id`);
+    return retired.length;
+  });
+}

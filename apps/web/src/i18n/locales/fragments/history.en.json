@@ -29,7 +29,6 @@
     "titles": "Titles"
   },
   "loading": "Loading {{scope}}…",
-  "loadMore": "LOAD MORE",
   "loadingMore": "LOADING…",
   "error": "Your history failed to load. Is this instance’s API reachable?",
   "public": {

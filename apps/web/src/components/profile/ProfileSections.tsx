@@ -10,6 +10,7 @@ import {
   type ProfileTaste,
 } from '@trackt/shared';
 import { coverGradient, relativeTime, useHistory } from '@trackt/client';
+import { useViewerUsername } from '../../lib/auth-client';
 import { useFormat } from '../../lib/format';
 import type { HistorySearchParams } from '../../lib/history-search';
 import { useLabels } from '../../lib/labels';
@@ -18,10 +19,9 @@ import { GlassCard } from '../ui/GlassCard';
 import { kindDotClass } from '../ui/KindDot';
 
 /**
- * The profile's body sections, shared by `/profile` and `/users/$username`.
+ * The profile's body sections, shared by the own and the public profile.
  * `username` is the subject's handle on someone else's profile and absent on
- * your own: it decides whether a history link goes to `/history` (`/me/*`) or
- * to theirs.
+ * your own, where reads go to `/me/*`.
  */
 
 const linkClass = 'font-label text-xs font-bold tracking-[0.08em] text-pink hover:text-fg';
@@ -35,12 +35,16 @@ function HistoryLink({
   search: HistorySearchParams;
   children: ReactNode;
 }) {
-  return username ? (
-    <Link to="/users/$username/history" params={{ username }} search={search} className={linkClass}>
-      {children}
-    </Link>
-  ) : (
-    <Link to="/history" search={search} className={linkClass}>
+  const viewer = useViewerUsername();
+  const subject = username ?? viewer;
+  if (!subject) return null;
+  return (
+    <Link
+      to="/users/$username/history"
+      params={{ username: subject }}
+      search={search}
+      className={linkClass}
+    >
       {children}
     </Link>
   );
@@ -342,18 +346,6 @@ export function TasteCard({
           </div>
         </>
       )}
-    </GlassCard>
-  );
-}
-
-export function BadgesCard() {
-  const { t } = useTranslation();
-  return (
-    <GlassCard as="section" aria-labelledby="badges-heading" className={clsx(cardClass, 'gap-4')}>
-      <h2 id="badges-heading" className={cardTitleClass}>
-        {t('profile.badges.title')}
-      </h2>
-      <p className="text-sm text-muted">{t('profile.badges.body')}</p>
     </GlassCard>
   );
 }

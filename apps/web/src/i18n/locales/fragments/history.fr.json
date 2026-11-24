@@ -29,7 +29,6 @@
     "titles": "Titres"
   },
   "loading": "Chargement de {{scope}}…",
-  "loadMore": "CHARGER PLUS",
   "loadingMore": "CHARGEMENT…",
   "error": "Votre historique n’a pas pu se charger. L’API de l’instance est-elle joignable ?",
   "public": {

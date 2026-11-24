@@ -160,6 +160,30 @@ function score(tmdb: SeedRow, anime: SeedRow): number {
   );
 }
 
+/** `kind:tmdbId[:season]` — a TMDB series row is one season (ADR-0003). */
+export function tmdbKey(kind: string, id: unknown, seasonNumber: unknown): string {
+  return kind === 'series'
+    ? `${kind}:${String(id)}:${String(seasonNumber)}`
+    : `${kind}:${String(id)}`;
+}
+
+/**
+ * The TMDB works an anime row has already absorbed. `pairSeeds` skips those
+ * anime rows, so without this a TMDB re-scrape that restores a folded row would
+ * slip past every later run.
+ */
+export function foldedTmdbKeys(animeRows: SeedRow[]): Set<string> {
+  const keys = new Set<string>();
+  for (const row of animeRows) {
+    const tmdb = row.metadata?.tmdb as
+      { id?: unknown; kind?: string; seasonNumber?: unknown } | undefined;
+    if (row.kind === 'anime' && tmdb?.kind && tmdb.id !== undefined) {
+      keys.add(tmdbKey(tmdb.kind, tmdb.id, tmdb.seasonNumber));
+    }
+  }
+  return keys;
+}
+
 export type PairingResult = {
   pairs: ScoredPair[];
   /** Candidates that failed a rule, for the log: never deleted, always reported. */
@@ -295,7 +319,13 @@ async function main(): Promise<void> {
   // afterwards silently restores the stale copy.
   const manga = await readSeed('top-manga-anilist.json').catch(() => null);
 
-  const tmdbRows = [...movies.catalog_media, ...series.catalog_media];
+  const folded = foldedTmdbKeys([...anime.catalog_media, ...(manga?.catalog_media ?? [])]);
+  const isFolded = (row: SeedRow) =>
+    folded.has(tmdbKey(row.kind, row.externalIds.tmdb, row.seasonNumber));
+  const alreadyFolded = [...movies.catalog_media, ...series.catalog_media].filter(isFolded);
+  const tmdbRows = [...movies.catalog_media, ...series.catalog_media].filter(
+    (row) => !isFolded(row),
+  );
   const { pairs, skipped } = pairSeeds(anime.catalog_media, tmdbRows);
 
   const merged = new Map<string, SeedRow>();
@@ -303,7 +333,10 @@ async function main(): Promise<void> {
     merged.set(pair.anime.id, mergeIntoAnime(pair.anime, pair.tmdb));
   }
 
-  const removedIds = new Set(pairs.map((pair) => pair.tmdb.id));
+  const removedIds = new Set([
+    ...pairs.map((pair) => pair.tmdb.id),
+    ...alreadyFolded.map((row) => row.id),
+  ]);
   const log = {
     generatedAt: new Date().toISOString(),
     policy:
@@ -315,8 +348,11 @@ async function main(): Promise<void> {
       paired: pairs.length,
       removedMovies: pairs.filter((pair) => pair.tmdb.kind === 'movie').length,
       removedSeries: pairs.filter((pair) => pair.tmdb.kind === 'series').length,
+      alreadyFolded: alreadyFolded.length,
       skipped: skipped.length,
+      removedRelations: 0,
     },
+    alreadyFolded: alreadyFolded.map((row) => ({ id: row.id, kind: row.kind, title: row.title })),
     removed: pairs.map((pair) => ({
       tmdbRow: pair.tmdb,
       mergedInto: {
@@ -357,6 +393,10 @@ async function main(): Promise<void> {
     }
     return;
   }
+  if (!removedIds.size) {
+    console.log('\nNothing to fold; seeds left untouched.');
+    return;
+  }
 
   // Keep the original the first run saw; a second run must not overwrite it.
   const touched = [
@@ -378,6 +418,20 @@ async function main(): Promise<void> {
   if (manga) manga.catalog_media = replaceRows(manga.catalog_media, merged);
   movies.catalog_media = movies.catalog_media.filter((row) => !removedIds.has(row.id));
   series.catalog_media = series.catalog_media.filter((row) => !removedIds.has(row.id));
+
+  // A folded row takes its edges with it: leaving them would ship a seed whose
+  // relations point at rows that are no longer in any file (the seeder reports
+  // them as `missingEndpoint` and drops them at load, silently).
+  let removedRelations = 0;
+  for (const file of [anime, manga, movies, series]) {
+    if (!file?.catalog_media_relation) continue;
+    const before = file.catalog_media_relation.length;
+    file.catalog_media_relation = file.catalog_media_relation.filter(
+      (edge) => !removedIds.has(edge.fromId) && !removedIds.has(edge.toId),
+    );
+    removedRelations += before - file.catalog_media_relation.length;
+  }
+  log.counts.removedRelations = removedRelations;
   for (const file of [anime, manga, movies, series]) {
     if (file) file.deduplicated = { ...log.counts, log: 'dedup-log.json' };
   }
@@ -407,7 +461,7 @@ async function main(): Promise<void> {
   );
 
   console.log(
-    `\nRewrote ${touched.length} seeds; ${pairs.length} rows removed, logged to dedup-log.json`,
+    `\nRewrote ${touched.length} seeds; ${pairs.length} rows removed and ${removedRelations} dangling edge(s) dropped, logged to dedup-log.json`,
   );
 }
 

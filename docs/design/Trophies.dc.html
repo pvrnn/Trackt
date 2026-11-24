@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trophies</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    .lab { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .glass { background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; backdrop-filter: blur(16px); }
+    .av { flex-shrink: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; }
+    .hx { display: inline-block; width: 9px; height: 8px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+    .p3 { transform-style: preserve-3d; }
+
+    /* ── IDEA 1 · crystal prisms. Each trophy is a hexagonal prism; tier sets height and material.
+       Locked ones are empty glass that fills from the bottom as you progress. ── */
+    .stage { perspective: 560px; perspective-origin: 50% -40%; }
+    .tpw { transform: rotateX(-12deg); }
+    .tp { position: relative; width: 40px; animation: tspin 9s linear infinite; }
+    .tpw:hover .tp, .tpw:active .tp { animation-play-state: paused; }
+    .tface { position: absolute; top: 0; left: 10px; width: 20px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+    .tcap { position: absolute; left: 0; top: -17.32px; width: 40px; height: 34.64px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); transform: rotateX(90deg); }
+    .tglow { position: absolute; left: -30px; width: 100px; height: 100px; border-radius: 50%; transform: rotateX(90deg); pointer-events: none; }
+    .plank { position: relative; height: 12px; }
+    .plank .pf { position: absolute; inset: 0; transform: translateZ(28px); background: linear-gradient(180deg, #3b3344, #1d1823); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28); border-radius: 0 0 4px 4px; }
+    .plank .pt { position: absolute; left: 0; right: 0; top: -28px; height: 56px; transform: rotateX(90deg); background: linear-gradient(0deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07); }
+    @keyframes tspin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+
+    /* ── IDEA 2 · a medal you can spin. 48 slices make the milled edge; drag turns it, letting go hands back to the idle spin. ── */
+    .mstage { height: 250px; perspective: 900px; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab; user-select: none; }
+    .mstage:active { cursor: grabbing; }
+    .mtilt { transform: rotateX(-10deg); }
+    .mspin { animation: tspin 14s linear infinite; }
+    .mdrag { position: relative; width: 168px; height: 168px; transition: transform 60ms linear; }
+    .mface { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .mrim { position: absolute; left: 78.25px; top: 76px; width: 11.5px; height: 16px; }
+
+    /* ── IDEA 3 · the podium. Real blocks seen from slightly above; they rise again when the scope or period changes. ── */
+    .pod { display: flex; align-items: flex-end; justify-content: center; gap: 12px; height: 262px; perspective: 760px; perspective-origin: 50% -70%; }
+    .blk { position: relative; width: 94px; transition: height 700ms cubic-bezier(.2,.9,.25,1); }
+    .bf { position: absolute; inset: 0; transform: translateZ(32px); display: flex; justify-content: center; padding-top: 8px; font-family: Anton, sans-serif; font-size: 40px; line-height: 1; color: rgba(20,16,26,0.72); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+    .bt { position: absolute; left: 0; right: 0; top: -32px; height: 64px; transform: rotateX(90deg); }
+    .bsl, .bsr { position: absolute; top: 0; bottom: 0; left: 15px; width: 64px; }
+    .bsl { transform: rotateY(-90deg) translateZ(47px); }
+    .bsr { transform: rotateY(90deg) translateZ(47px); }
+    .who { position: absolute; left: 50%; bottom: calc(100% + 34px); width: 112px; margin-left: -56px; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: opacity 300ms ease; }
+
+    .seg { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; gap: 4px; }
+    .seg button { height: 36px; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; transition: background 140ms ease, color 140ms ease; }
+    .mcell { position: relative; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 30px 0 16px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09); }
+    .mcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 15px 0; cursor: pointer; color-scheme: dark; }
+    .mcell select option { background: #191520; }
+    .mchev { position: absolute; right: 16px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    .lrow { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 14px; border-radius: 14px; }
+    /* desktop: the medal is bigger, and every prism on a shelf is a button that puts its trophy in the spotlight */
+    .mstage { height: 300px; }
+    .mtilt { transform: scale(1.32) rotateX(-10deg); }
+    .pick { display: block; }
+    .plank { margin: 0 18px; }
+    .glass .plank { margin: 0 6px; }
+    .pick:focus-visible { outline-offset: 8px; border-radius: 8px; }
+    .lrow:hover { background: rgba(255,255,255,0.06) !important; }
+    @media (prefers-reduced-motion: reduce) { .tp, .mspin { animation: none !important; } .blk { transition: none; } }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
+    /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; container-type: inline-size; }
+    .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
+    .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
+    .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fcell .dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 999px; }
+    .fcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-overflow: ellipsis; padding: 19px 22px 19px 0; margin-right: -4px; cursor: pointer; color-scheme: dark; }
+    .fcell select option { background: #191520; color: #f0edf4; }
+    .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
+    .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
+    /* kind: the same grammar as every other cell. KIND label, a value that names the pick, then the picker itself.
+       The picker is the six kind dots plus a hollow ring for All; hovering or focusing a dot previews it in the value. Nothing resizes. */
+    .kcell { flex: 0 0 auto; padding-right: 12px; }
+    .kval { width: 100px; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 120ms ease; }
+    .kval .kn { font-weight: 500; color: #948da1; }
+    .kdots { display: flex; align-items: center; }
+    .kdot { width: 28px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    .kdot > span { width: 10px; height: 10px; border-radius: 999px; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .kdot:hover > span, .kdot:focus-visible > span { transform: scale(1.3); }
+    .kdot:focus-visible { outline-offset: -2px; }
+    @media (prefers-reduced-motion: reduce) { .kval, .kdot > span { transition: none; } }
+    /* once the bar wraps, the cells on each row share it; on a phone-width bar the value slot goes and the dots stay */
+    @container (max-width: 900px) { .kcell { flex-grow: 1; } }
+    @container (max-width: 440px) { .kval { display: none; } }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<!-- nav -->
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #948da1;">HOME</a>
+    <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="News.dc.html" style="color: #948da1;">NEWS</a>
+    <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
+    <a href="Trophies.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">TROPHIES</a>
+    <a href="Profile.dc.html" style="color: #948da1;">PROFILE</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 14px 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span aria-hidden="true">⌕</span><span style="flex: 1;">Search titles or people…</span><span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 5px; padding: 2px 6px;">⌘K</span></a>
+  <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+  <a href="Profile.dc.html" aria-label="Your profile" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">M</a>
+</nav>
+
+<main style="max-width: 1360px; margin: 0 auto; padding: 48px 40px 80px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 32px; align-items: start;">
+
+  <!-- LEFT — the spotlight, then the cabinet -->
+  <div style="display: flex; flex-direction: column; gap: 32px; min-width: 0;">
+    <div style="display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;">
+      <h1 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 64px; line-height: 1; text-transform: uppercase;">Trophies</h1>
+      <div style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;">32 OF 120 UNLOCKED</div>
+    </div>
+
+    <!-- summary: one strip. Points, standing, and the tier mix as prism caps -->
+    <div class="glass" style="display: grid; grid-template-columns: 1.3fr repeat(4, minmax(0, 1fr)) 1.7fr;">
+      <div style="display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 18px 22px;">
+        <span class="lab">TROPHY POINTS</span>
+        <span style="font-family: Anton; font-size: 40px; line-height: 1; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">1,260</span>
+      </div>
+      <sc-for list="{{ tierMix }}" as="x" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 16px 6px; box-shadow: inset 1px 0 0 rgba(255,255,255,0.09);">
+          <span class="hx" style="width: 18px; height: 16px; background: {{ x.bg }};"></span>
+          <span style="font-family: Anton; font-size: 24px; line-height: 1;">{{ x.n }}</span>
+          <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ x.label }}</span>
+        </div>
+      </sc-for>
+      <div style="display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 18px 22px; box-shadow: inset 1px 0 0 rgba(255,255,255,0.09);">
+        <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.06em;">#4 <span style="color: #948da1; font-weight: 600;">FRIENDS</span></span>
+        <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.06em;">#1,284 <span style="color: #948da1; font-weight: 600;">GLOBAL · MONTH</span></span>
+      </div>
+    </div>
+
+    <!-- SPOTLIGHT — whichever trophy you pick on a shelf, as a medal you can spin -->
+    <section aria-label="Selected trophy" class="glass" style="display: grid; grid-template-columns: 340px minmax(0, 1fr); align-items: center; overflow: hidden;">
+      <div style="position: relative; background: radial-gradient(260px 220px at 50% 50%, {{ sel.halo }}, transparent 70%);">
+        <div class="mstage" onPointerDown="{{ mDown }}" onPointerMove="{{ mMove }}" onPointerUp="{{ mUp }}" onPointerCancel="{{ mUp }}" onPointerLeave="{{ mUp }}" role="img" aria-label="{{ sel.aria }}">
+          <div class="mtilt p3">
+            <div class="mspin p3" style="animation-play-state: {{ mPlay }};">
+              <div class="mdrag p3" style="transform: rotateY({{ mRot }});">
+                <sc-for list="{{ sel.rim }}" as="r" hint-placeholder-count="48"><div class="mrim" style="transform: {{ r.t }}; background: {{ r.bg }};"></div></sc-for>
+                <div class="mface" style="transform: translateZ(8px); background: {{ sel.face }}; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.4), inset 0 -12px 26px rgba(0,0,0,0.3);">
+                  <div style="position: absolute; inset: 16px; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #241d2e, #120e17 70%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), inset 0 6px 14px rgba(0,0,0,0.6);">
+                    <sc-for list="{{ sel.dots }}" as="d" hint-placeholder-count="6"><span style="position: absolute; left: {{ d.x }}; top: {{ d.y }}; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 999px; background: {{ d.c }}; box-shadow: 0 0 10px {{ d.c }};"></span></sc-for>
+                    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; padding: 0 12px;">
+                      <span class="hx" style="width: 34px; height: 30px; background: {{ sel.chip }}; opacity: {{ sel.embOp }};"></span>
+                      <span style="font-family: Anton; font-size: 14px; letter-spacing: 0.04em; line-height: 1.1; opacity: {{ sel.embOp }};">{{ sel.upper }}</span>
+                      <span style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.12em; color: #b8b1c4;">{{ sel.emblemSub }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="mface" style="transform: rotateY(180deg) translateZ(8px); background: {{ sel.face }}; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);">
+                  <div style="position: absolute; inset: 16px; border-radius: 50%; background: #16121c; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18), inset 0 6px 14px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; font-family: 'Space Grotesk'; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">
+                    <span style="font-size: 8px;">TRACKT</span>
+                    <span style="font-family: Anton; font-size: 15px; letter-spacing: 0.06em; color: #cfc9d8;">MARAV</span>
+                    <span style="font-size: 8px;">{{ sel.backLine }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center;"><span class="lab">← DRAG TO SPIN →</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 28px 32px 28px 8px; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;"><span class="hx" style="width: 12px; height: 11px; background: {{ sel.chip }};"></span><span style="color: {{ sel.tierFg }};">{{ sel.tier }} TIER</span><span style="color: #948da1;">·</span><span style="color: #cfc9d8;">{{ sel.pts }} PTS</span><span style="color: #948da1;">·</span><span style="color: {{ sel.stateFg }};">{{ sel.state }}</span></div>
+        <h2 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 52px; line-height: 1; text-transform: uppercase;">{{ sel.name }}</h2>
+        <p style="margin: 0; color: #b8b1c4; font-size: 15px; line-height: 1.55; max-width: 520px;">{{ sel.desc }}</p>
+        <sc-if value="{{ sel.locked }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 8px; max-width: 420px;">
+            <div style="display: flex; justify-content: space-between;"><span class="lab">PROGRESS</span><span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">{{ sel.progress }}</span></div>
+            <div style="height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden;"><div style="height: 100%; width: {{ sel.pctW }}; border-radius: 999px; background: {{ sel.chip }};"></div></div>
+          </div>
+        </sc-if>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 120px)); margin-top: 4px;">
+          <sc-for list="{{ sel.stats }}" as="x" hint-placeholder-count="3">
+            <div style="display: flex; flex-direction: column; gap: 5px; padding-left: {{ x.pad }}; box-shadow: {{ x.rule }};">
+              <span style="font-family: Anton; font-size: 24px; line-height: 1;">{{ x.v }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ x.k }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 6px;">
+          <button style="height: 44px; padding: 0 22px; border-radius: 999px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-weight: 700; font-size: 13px; letter-spacing: 0.06em;" style-hover="box-shadow: inset 0 0 0 1px #d96bb0;">SHARE TROPHY</button>
+          <span style="color: #b8b1c4; font-size: 13px;">{{ sel.friends }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-recent" style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;"><h2 id="h-recent" style="font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase; margin: 0;">Recently unlocked</h2><span class="lab">CLICK ONE TO SPOTLIGHT IT</span></div>
+        <div class="stage" style="padding-top: 18px;">
+          <div class="p3" style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; height: 96px;">
+            <sc-for list="{{ recent }}" as="p" hint-placeholder-count="6">
+              <div class="p3" style="display: flex; justify-content: center; align-items: flex-end; height: 100%;">
+                <button class="tpw p3 pick" onClick="{{ p.pick }}" aria-pressed="{{ p.on }}" aria-label="{{ p.name }}"><div class="tp p3" style="height: {{ p.h }}; animation-duration: {{ p.dur }}; animation-delay: {{ p.delay }};">
+                  <div class="tglow" style="top: {{ p.glowTop }}; background: {{ p.glow }};"></div>
+                  <sc-for list="{{ p.faces }}" as="f" hint-placeholder-count="6"><div class="tface" style="height: {{ p.h }}; transform: {{ f.t }}; background: {{ f.bg }};"></div></sc-for>
+                  <div class="tcap" style="background: {{ p.cap }};"></div>
+                </div></button>
+              </div>
+            </sc-for>
+          </div>
+          <div class="plank p3"><div class="pt"></div><div class="pf"></div></div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 2px;">
+          <sc-for list="{{ recent }}" as="p" hint-placeholder-count="6">
+            <button onClick="{{ p.pick }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; min-width: 0; padding: 6px 2px; border-radius: 10px; background: {{ p.selBg }};">
+              <span style="font-size: 14px; font-weight: 600; line-height: 1.2; color: {{ p.nameFg }};">{{ p.name }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: {{ p.tierFg }};">{{ p.tierLabel }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: #948da1;">{{ p.sub }}</span>
+            </button>
+          </sc-for>
+        </div>
+    </section>
+
+    <section aria-labelledby="h-next" style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;"><h2 id="h-next" style="font-family: Anton; font-weight: 400; font-size: 32px; text-transform: uppercase; margin: 0;">Next up</h2><span class="lab">THE GLASS FILLS AS YOU GO</span></div>
+        <div class="stage" style="padding-top: 18px;">
+          <div class="p3" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; height: 96px;">
+            <sc-for list="{{ nextUp }}" as="p" hint-placeholder-count="4">
+              <div class="p3" style="display: flex; justify-content: center; align-items: flex-end; height: 100%;">
+                <button class="tpw p3 pick" onClick="{{ p.pick }}" aria-pressed="{{ p.on }}" aria-label="{{ p.name }}"><div class="tp p3" style="height: {{ p.h }}; animation-duration: {{ p.dur }}; animation-delay: {{ p.delay }};">
+                  <div class="tglow" style="top: {{ p.glowTop }}; background: {{ p.glow }};"></div>
+                  <sc-for list="{{ p.faces }}" as="f" hint-placeholder-count="6"><div class="tface" style="height: {{ p.h }}; transform: {{ f.t }}; background: {{ f.bg }};"></div></sc-for>
+                  <div class="tcap" style="background: {{ p.cap }};"></div>
+                </div></button>
+              </div>
+            </sc-for>
+          </div>
+          <div class="plank p3"><div class="pt"></div><div class="pf"></div></div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 2px;">
+          <sc-for list="{{ nextUp }}" as="p" hint-placeholder-count="4">
+            <button onClick="{{ p.pick }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; min-width: 0; padding: 6px 2px; border-radius: 10px; background: {{ p.selBg }};">
+              <span style="font-size: 14px; font-weight: 600; line-height: 1.2; color: {{ p.nameFg }};">{{ p.name }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: {{ p.tierFg }};">{{ p.tierLabel }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: #948da1;">{{ p.sub }}</span>
+            </button>
+          </sc-for>
+        </div>
+    </section>
+  </div>
+
+  <!-- RIGHT — the leaderboard, sticky beside the cabinet -->
+  <aside class="glass" style="position: sticky; top: 100px; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px 20px;">
+    <h2 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 28px; text-transform: uppercase;">Leaderboard</h2>
+    <div style="border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); display: flex; flex-direction: column;">
+      <div class="seg" role="tablist" aria-label="Board">
+        <sc-for list="{{ lb.scopes }}" as="s" hint-placeholder-count="2"><button role="tab" aria-selected="{{ s.on }}" onClick="{{ s.pick }}" style="background: {{ s.bg }}; color: {{ s.fg }};">{{ s.label }}</button></sc-for>
+      </div>
+      <label class="mcell"><span class="lab">PERIOD</span><select value="{{ lb.period }}" onChange="{{ lb.onPeriod }}"><option value="WEEK">This week</option><option value="MONTH">This month</option><option value="ALL">All time</option></select><span class="mchev" aria-hidden="true"></span></label>
+    </div>
+
+    <div class="pod">
+      <sc-for list="{{ lb.podium }}" as="b" hint-placeholder-count="3">
+        <div class="blk p3" style="height: {{ b.h }};">
+          <div class="who" style="opacity: {{ b.whoOp }};">
+            <span class="av" style="width: {{ b.avSize }}; height: {{ b.avSize }}; font-size: 15px; background: {{ b.av }}; box-shadow: {{ b.avRing }};">{{ b.init }}</span>
+            <span style="font-size: 12px; font-weight: 600; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">{{ b.name }}</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: #cfc9d8;">{{ b.pts }}</span>
+          </div>
+          <div class="bt" style="background: {{ b.top }};"></div>
+          <div class="bsl" style="background: {{ b.side }};"></div>
+          <div class="bsr" style="background: {{ b.side }};"></div>
+          <div class="bf" style="background: {{ b.front }};">{{ b.rank }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ lb.hasChase }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(217,107,176,0.1); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.4);">
+        <span style="font-family: Anton; font-size: 26px; line-height: 1; color: #e58cc4;">↑</span>
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+          <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;">{{ lb.chaseHead }}</span>
+          <span style="color: #b8b1c4; font-size: 13px; line-height: 1.4;">{{ lb.chaseBody }}</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+              <sc-for list="{{ lb.rows }}" as="r" hint-placeholder-count="5">
+                <sc-if value="{{ r.isGap }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 0;"><span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></span><span class="lab">{{ r.gapLabel }}</span><span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></span></div>
+                </sc-if>
+                <sc-if value="{{ r.isRow }}" hint-placeholder-val="{{ true }}">
+                  <div class="lrow" style="background: {{ r.bg }}; box-shadow: {{ r.ring }};">
+                    <span style="width: 40px; flex-shrink: 0; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: {{ r.rankFg }};">{{ r.rank }}</span>
+                    <span class="av" style="width: 36px; height: 36px; font-size: 14px; background: {{ r.av }};">{{ r.init }}</span>
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+                      <span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ r.name }}</span>
+                      <span style="display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; color: #b8b1c4;">
+                        <sc-for list="{{ r.tiers }}" as="x" hint-placeholder-count="3"><span style="display: inline-flex; align-items: center; gap: 4px;"><span class="hx" style="background: {{ x.bg }};"></span>{{ x.n }}</span></sc-for>
+                      </span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                      <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.02em;">{{ r.pts }}</span>
+                      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: {{ r.dFg }};">{{ r.delta }}</span>
+                    </div>
+                  </div>
+                </sc-if>
+              </sc-for>
+    </div>
+  </aside>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PRISM = 'linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6)';
+const KDOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+
+// tiers: height of the prism, its material, and what it is worth
+const TIER = {
+  BRONZE: { pts: 15, h: 40, light: '#f3c49a', base: '#8a4f2a', glow: 'rgba(222,150,96,0.5)', fg: '#e8a97a', chip: 'linear-gradient(135deg, #f3c49a, #8a4f2a)', tint: 'rgba(222,150,96,0.55)' },
+  SILVER: { pts: 30, h: 48, light: '#f6f7fb', base: '#7b8196', glow: 'rgba(220,226,242,0.42)', fg: '#d5d9e6', chip: 'linear-gradient(135deg, #f6f7fb, #7b8196)', tint: 'rgba(220,226,242,0.5)' },
+  GOLD: { pts: 90, h: 56, light: '#ffe39a', base: '#a8741c', glow: 'rgba(244,196,84,0.55)', fg: '#f0c766', chip: 'linear-gradient(135deg, #ffe39a, #a8741c)', tint: 'rgba(244,196,84,0.55)' },
+  PRISM: { pts: 180, h: 64, glow: 'rgba(217,107,176,0.6)', fg: '#e58cc4', chip: PRISM, tint: 'rgba(217,107,176,0.55)' },
+};
+const SHADE = [0, 0.16, 0.3, 0.38, 0.3, 0.12];
+const PRISM_FACES = ['#d9a441', '#e58a7c', '#d96bb0', '#a866d6', '#8b5cf6', '#b86fc2'];
+
+let seq = 0;
+function prism(t) {
+  const T = TIER[t.tier], h = T.h, locked = t.pct !== undefined;
+  const faces = [0, 1, 2, 3, 4, 5].map((i) => {
+    let bg;
+    if (locked) bg = 'linear-gradient(0deg, ' + T.tint + ' ' + t.pct + '%, rgba(255,255,255,0.05) ' + t.pct + '%)';
+    else if (t.tier === 'PRISM') bg = 'linear-gradient(180deg, rgba(255,255,255,0.45), transparent 45%), linear-gradient(180deg, ' + PRISM_FACES[i] + ', ' + PRISM_FACES[(i + 2) % 6] + ')';
+    else bg = 'linear-gradient(rgba(0,0,0,' + SHADE[i] + '), rgba(0,0,0,' + SHADE[i] + ')), linear-gradient(180deg, ' + T.light + ', ' + T.base + ')';
+    return { t: 'rotateY(' + i * 60 + 'deg) translateZ(17.32px)', bg };
+  });
+  seq += 1;
+  return {
+    name: t.name, h: h + 'px', faces, glowTop: (h - 50) + 'px',
+    glow: 'radial-gradient(closest-side, ' + (locked ? 'rgba(255,255,255,0.08)' : T.glow) + ', transparent)',
+    cap: locked ? (t.pct >= 100 ? T.tint : 'rgba(255,255,255,0.1)') : (t.tier === 'PRISM' ? 'linear-gradient(135deg, #ffe1a6, #ffc2e4, #cdb8ff)' : T.light),
+    dur: (8 + (seq % 4) * 1.5) + 's', delay: (-seq * 1.7) + 's',
+    tierLabel: t.tier + ' · ' + T.pts, tierFg: T.fg, sub: t.sub,
+  };
+}
+
+// desktop shelves: what each trophy is, for the spotlight
+const RECENT = [
+  { id: 'poly', name: 'Polyglot', tier: 'PRISM', sub: '2.1% HAVE IT', rarity: '2.1%', when: '12 SEP', desc: 'Finish at least one title in each of the six kinds: a movie, a series, an anime, a manga, a webtoon and a game.', friends: 'Sam and Iris have this too', dots: true, serial: '#0412 / 2,180' },
+  { id: 'binge', name: 'Binge Engine', tier: 'GOLD', sub: '8.4% HAVE IT', rarity: '8.4%', when: '28 AUG', desc: 'Finish a season of ten or more episodes within 48 hours of starting it.', friends: 'Sam, Theo and 2 more friends have this', serial: '#1,940 / 9,212' },
+  { id: 'night', name: 'Night Shift', tier: 'SILVER', sub: '14% HAVE IT', rarity: '14%', when: '19 AUG', desc: 'Log twenty check-ins between 1am and 5am.', friends: 'Iris has this too', serial: '#3,018 / 15,400' },
+  { id: 'arch', name: 'Archivist', tier: 'BRONZE', sub: '41% HAVE IT', rarity: '41%', when: '02 FEB', desc: 'Import your history from two different services.', friends: '5 of your friends have this', serial: '#8,770 / 44,900' },
+  { id: 'critic', name: 'Critic', tier: 'SILVER', sub: '11% HAVE IT', rarity: '11%', when: '30 JUL', desc: 'Rate fifty titles, across at least three kinds.', friends: 'Theo has this too', serial: '#2,603 / 12,050' },
+  { id: 'day1', name: 'Day One', tier: 'SILVER', sub: '9.7% HAVE IT', rarity: '9.7%', when: '14 JUL', desc: 'Log an episode or chapter on its release day ten times.', friends: 'None of your friends yet', serial: '#2,214 / 10,640' },
+];
+const NEXT = [
+  { id: 'haul', name: 'Long Haul', tier: 'GOLD', pct: 64, sub: '64 / 100 CH', rarity: '6.2%', desc: 'Finish a manga or webtoon of more than a hundred chapters.', progress: '64 / 100 CHAPTERS', friends: 'Sam has this' },
+  { id: 'party', name: 'Watch Party', tier: 'SILVER', pct: 60, sub: '3 / 5 PARTIES', rarity: '12%', desc: 'Host or join five watch parties through the Discord bot.', progress: '3 / 5 PARTIES', friends: 'Iris and Jun have this' },
+  { id: 'comp', name: 'Completionist', tier: 'GOLD', pct: 41, sub: '41 / 100 DONE', rarity: '4.8%', desc: 'Complete a hundred titles, any kinds.', progress: '41 / 100 COMPLETED', friends: 'Sam has this' },
+  { id: 'speed', name: 'Speedrun', tier: 'GOLD', pct: 12, sub: '0 / 1 GAME', rarity: '3.1%', desc: 'Finish a game within its release week.', progress: 'TIDEWALKER · 12% THROUGH', friends: 'None of your friends yet' },
+];
+const AV = ['linear-gradient(135deg, #d9a441, #d96bb0)', 'linear-gradient(135deg, #a78bfa, #6d8bf0)', 'linear-gradient(135deg, #d96bb0, #a78bfa)', 'linear-gradient(135deg, #6d8bf0, #35d6c0)', 'linear-gradient(135deg, #3fbf8f, #d9a441)', 'linear-gradient(135deg, #e8874a, #d96bb0)', 'linear-gradient(135deg, #8b5cf6, #3fbf8f)'];
+const ME_AV = 'linear-gradient(135deg, #d96bb0, #8b5cf6)';
+// [name, pts by period {WEEK, MONTH, ALL}, tiers [prism, gold, silver], delta]
+const GLOBAL = [
+  ['kaito', [410, 1480, 14820], [9, 61, 140], 2], ['lune', [395, 1395, 13990], [8, 58, 133], -1], ['abe.reads', [360, 1310, 13105], [7, 55, 128], 1],
+  ['yuki_m', [330, 1205, 12040], [6, 50, 121], 0], ['okonkwo', [300, 1170, 11720], [6, 47, 118], 3], ['petra', [290, 1090, 10980], [5, 45, 109], -2], ['rin', [270, 1015, 10415], [5, 41, 104], 1],
+];
+const ME_GLOBAL = { WEEK: [75, '#2,960', 'TOP 14%'], MONTH: [282, '#1,284', 'TOP 6%'], ALL: [1260, '#4,812', 'TOP 22%'] };
+const FRIENDS = [
+  ['Sam', [120, 410, 1890], [2, 9, 18], 1], ['Iris', [105, 388, 1640], [1, 8, 16], -1], ['Theo', [90, 352, 1385], [1, 7, 13], 0],
+  ['You · marav', [75, 282, 1260], [1, 6, 11], 2, true], ['Jun', [60, 214, 1020], [0, 5, 12], -1], ['Noor', [45, 176, 870], [0, 4, 9], 0], ['Ola', [30, 120, 455], [0, 2, 6], -1],
+];
+const PI = { WEEK: 0, MONTH: 1, ALL: 2 };
+const fmt = (n) => n.toLocaleString('en-US');
+const HEIGHTS = [118, 88, 66];          // by rank: 1st, 2nd, 3rd
+const BLOCK = [
+  { front: 'linear-gradient(180deg, #f0c26a, #e58cc4 55%, #9a72f8)', top: 'linear-gradient(90deg, #ffd995, #ffb6de, #c8b2ff)', side: 'linear-gradient(180deg, #9a5fc0, #4a2a78)' },
+  { front: 'linear-gradient(180deg, #eef0f6, #8e93a8)', top: '#f8f9fc', side: 'linear-gradient(180deg, #8a8fa4, #4a4f60)' },
+  { front: 'linear-gradient(180deg, #efbc93, #8a4f2a)', top: '#f6cda6', side: 'linear-gradient(180deg, #8f5530, #4e2a14)' },
+];
+
+// medal metal per tier: the face gradient and the stops the milled edge runs through
+const METAL = {
+  PRISM: { face: 'radial-gradient(circle at 30% 24%, rgba(255,255,255,0.65), transparent 32%), conic-gradient(from 200deg, #d9a441, #d96bb0, #8b5cf6, #d96bb0, #d9a441)', stops: [[217, 164, 65], [217, 107, 176], [139, 92, 246], [217, 107, 176], [217, 164, 65]], halo: 'rgba(217,107,176,0.35)' },
+  GOLD: { face: 'radial-gradient(circle at 30% 24%, rgba(255,255,255,0.7), transparent 32%), conic-gradient(from 200deg, #ffe39a, #c8902a, #ffe39a, #a8741c, #ffe39a)', stops: [[255, 227, 154], [200, 144, 42], [255, 227, 154], [168, 116, 28], [255, 227, 154]], halo: 'rgba(244,196,84,0.3)' },
+  SILVER: { face: 'radial-gradient(circle at 30% 24%, rgba(255,255,255,0.8), transparent 32%), conic-gradient(from 200deg, #f6f7fb, #9aa0b4, #f6f7fb, #7b8196, #f6f7fb)', stops: [[246, 247, 251], [154, 160, 180], [246, 247, 251], [123, 129, 150], [246, 247, 251]], halo: 'rgba(220,226,242,0.22)' },
+  BRONZE: { face: 'radial-gradient(circle at 30% 24%, rgba(255,255,255,0.6), transparent 32%), conic-gradient(from 200deg, #f3c49a, #a8643a, #f3c49a, #8a4f2a, #f3c49a)', stops: [[243, 196, 154], [168, 100, 58], [243, 196, 154], [138, 79, 42], [243, 196, 154]], halo: 'rgba(222,150,96,0.28)' },
+  GLASS: { face: 'radial-gradient(circle at 30% 24%, rgba(255,255,255,0.25), transparent 32%), linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04))', stops: [[120, 112, 132], [70, 64, 80], [120, 112, 132], [70, 64, 80], [120, 112, 132]], halo: 'rgba(255,255,255,0.06)' },
+};
+
+class Component extends DCLogic {
+  state = { sel: 'poly', scope: 'FRIENDS', period: 'MONTH', rise: false, mRot: 0, mDrag: false };
+
+  rise(key) {
+    this.setState({ [key]: true });
+    clearTimeout(this['t' + key]);
+    this['t' + key] = setTimeout(() => this.setState({ [key]: false }), 60);
+  }
+
+  board(scope, period, rising, setScope, setPeriod) {
+    const i = PI[period], showDelta = period !== 'ALL';
+    const list = (scope === 'GLOBAL' ? GLOBAL : FRIENDS).map((p, n) => ({ name: p[0], pts: p[1][i], tiers: p[2], d: p[3], me: !!p[4], av: p[4] ? ME_AV : AV[n % AV.length], rank: n + 1 }));
+    const tiers = (t) => [{ bg: PRISM, n: t[0] }, { bg: TIER.GOLD.chip, n: t[1] }, { bg: TIER.SILVER.chip, n: t[2] }];
+    const delta = (d) => !showDelta ? '' : d > 0 ? '▲ ' + d : d < 0 ? '▼ ' + -d : '—';
+    const dFg = (d) => d > 0 ? '#3fbf8f' : d < 0 ? '#e58cc4' : '#948da1';
+    const row = (p, rankLabel) => ({
+      isRow: true, isGap: false, rank: rankLabel || String(p.rank), name: p.name, init: p.me ? 'M' : p.name[0].toUpperCase(), av: p.av,
+      pts: fmt(p.pts), tiers: tiers(p.tiers), delta: delta(p.d), dFg: dFg(p.d),
+      bg: p.me ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.03)', ring: p.me ? 'inset 0 0 0 1px rgba(217,107,176,0.55)' : 'none', rankFg: p.me ? '#e58cc4' : '#b8b1c4',
+    });
+    let rows = list.slice(3).map((p) => row(p));
+    let chase = null;
+    if (scope === 'GLOBAL') {
+      const me = ME_GLOBAL[period];
+      rows = rows.concat([{ isGap: true, isRow: false, gapLabel: me[2] + ' OF 21,950' }, row({ name: 'You · marav', pts: me[0], tiers: [1, 6, 11], d: 2, me: true, av: ME_AV }, me[1])]);
+    } else {
+      const meIdx = list.findIndex((p) => p.me), above = list[meIdx - 1], me = list[meIdx];
+      chase = { head: (above.pts - me.pts + 1) + ' PTS TO PASS ' + above.name.toUpperCase(), body: 'Finish Glass Orchard to unlock Binge Engine (gold, 90 pts) and take #' + above.rank + '.' };
+    }
+    const order = [1, 0, 2];
+    return {
+      scopes: [['GLOBAL', 'GLOBAL'], ['FRIENDS', 'FRIENDS']].map((s) => ({ label: s[1], on: scope === s[0], bg: scope === s[0] ? '#f0edf4' : 'transparent', fg: scope === s[0] ? '#14101a' : '#b8b1c4', pick: () => setScope(s[0]) })),
+      period, onPeriod: (e) => setPeriod(e.target.value),
+      podium: order.map((r) => {
+        const p = list[r];
+        return {
+          rank: r + 1, name: p.name, init: p.name[0].toUpperCase(), av: p.av, pts: fmt(p.pts) + ' PTS',
+          h: (rising ? 6 : HEIGHTS[r]) + 'px', whoOp: rising ? 0 : 1,
+          avSize: r === 0 ? '48px' : '40px', avRing: r === 0 ? '0 0 0 2px #0e0c10, 0 0 0 4px #e58cc4, 0 0 24px rgba(217,107,176,0.6)' : '0 0 0 2px #0e0c10, 0 0 0 3.5px rgba(255,255,255,0.35)',
+          front: BLOCK[r].front, top: BLOCK[r].top, side: BLOCK[r].side,
+        };
+      }),
+      hasChase: !!chase, chaseHead: chase ? chase.head : '', chaseBody: chase ? chase.body : '',
+      rows,
+    };
+  }
+
+  renderVals() {
+    const st = this.state;
+    seq = 0;
+    const all = RECENT.concat(NEXT);
+    const pick = (t) => () => this.setState({ sel: t.id, mRot: 0 });
+    const shelfItem = (t) => Object.assign(prism(t), {
+      on: st.sel === t.id, pick: pick(t),
+      selBg: st.sel === t.id ? 'rgba(217,107,176,0.12)' : 'transparent',
+      nameFg: st.sel === t.id ? '#e58cc4' : '#f0edf4',
+    });
+    const t = all.find((x) => x.id === st.sel) || all[0];
+    const locked = t.pct !== undefined, T = TIER[t.tier], M = METAL[locked ? 'GLASS' : t.tier];
+    const N = 48;
+    const rimColor = (u, dark) => { const x = u * 4, s = Math.min(3, Math.floor(x)), f = x - s; const c = M.stops[s].map((v, k) => Math.round((v + (M.stops[s + 1][k] - v) * f) * (dark ? 0.62 : 0.92))); return 'rgb(' + c.join(',') + ')'; };
+    const rule = (n) => (n ? 'inset 1px 0 0 rgba(255,255,255,0.1)' : 'none');
+    const stats = locked ? [[t.pct + '%', 'DONE'], [String(T.pts), 'POINTS'], [t.rarity, 'HAVE IT']] : [[t.rarity, 'HAVE IT'], [String(T.pts), 'POINTS'], [t.when, 'UNLOCKED']];
+    return {
+      tierMix: [['PRISM', 1], ['GOLD', 6], ['SILVER', 11], ['BRONZE', 14]].map((x) => ({ label: x[0], n: x[1], bg: TIER[x[0]].chip })),
+      recent: RECENT.map(shelfItem),
+      nextUp: NEXT.map(shelfItem),
+      sel: {
+        name: t.name, upper: t.name.toUpperCase(), tier: t.tier, tierFg: T.fg, chip: T.chip, pts: T.pts, desc: t.desc, friends: t.friends,
+        state: locked ? 'LOCKED' : 'UNLOCKED ' + t.when, stateFg: locked ? '#948da1' : '#3fbf8f',
+        locked, progress: t.progress || '', pctW: (t.pct || 0) + '%',
+        stats: stats.map((x, n) => ({ v: x[0], k: x[1], rule: rule(n), pad: n ? '16px' : '0' })),
+        face: M.face, halo: M.halo, embOp: locked ? 0.45 : 1,
+        emblemSub: locked ? t.pct + '% THERE' : (t.dots ? '6 / 6 KINDS' : t.tier + ' · ' + T.pts),
+        backLine: locked ? 'NOT YET' : t.when + ' 26 · ' + t.serial,
+        aria: t.name + ' medal. Drag to spin.',
+        rim: Array.from({ length: N }, (_, i) => ({ t: 'rotateZ(' + (i * 360 / N) + 'deg) translateY(-83.5px) rotateX(90deg)', bg: rimColor(i / N, i % 2 === 1) })),
+        dots: t.dots ? ['MOVIE', 'SERIES', 'ANIME', 'MANGA', 'WEBTOON', 'GAME'].map((k, i) => { const a = (i / 6) * Math.PI * 2 - Math.PI / 2; return { c: KDOT[k], x: (68 + Math.cos(a) * 54) + 'px', y: (68 + Math.sin(a) * 54) + 'px' }; }) : [],
+      },
+      mRot: st.mRot + 'deg',
+      mPlay: st.mDrag ? 'paused' : 'running',
+      mDown: (e) => { if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); this.drag = { x: e.clientX, base: this.state.mRot }; this.setState({ mDrag: true }); },
+      mMove: (e) => { if (this.drag) this.setState({ mRot: this.drag.base + (e.clientX - this.drag.x) * 0.9 }); },
+      mUp: () => { if (this.drag) { this.drag = null; this.setState({ mDrag: false }); } },
+      lb: this.board(st.scope, st.period, st.rise, (v) => { this.setState({ scope: v }); this.rise('rise'); }, (v) => { this.setState({ period: v }); this.rise('rise'); }),
+    };
+  }
+}
+</script>
+</body>
+</html>

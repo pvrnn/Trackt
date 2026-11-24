@@ -329,6 +329,90 @@ describe.runIf(available)('media detail relations — federated (postgres)', () 
   });
 });
 
+describe.runIf(available)('media detail by id — catalog fallback (postgres)', () => {
+  let db: Db;
+  let server: Server | undefined;
+
+  beforeAll(async () => {
+    await runMigrations(TEST_DATABASE_URL);
+    db = createDb(TEST_DATABASE_URL, { max: 1 });
+    await seedMedia(db);
+  });
+
+  afterEach(async () => {
+    server?.close();
+    server = undefined;
+    await db.delete(media).where(eq(media.id, absentTargetId));
+  });
+
+  /** Serves one work at /v1/catalog/media/:id and no relations. */
+  function workStub(work: Record<string, unknown> | 'error'): Server {
+    return createServer((req, res) => {
+      const url = new URL(req.url!, 'http://localhost');
+      if (url.pathname === '/v1/catalog/relations') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ relations: [] }));
+      } else if (work === 'error') {
+        res.writeHead(500).end();
+      } else if (url.pathname === `/v1/catalog/media/${work.id as string}`) {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(work));
+      } else {
+        res.writeHead(404, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'media not found' }));
+      }
+    });
+  }
+
+  async function get(catalogUrl: string, idOrSlug: string) {
+    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error', CATALOG_URL: catalogUrl });
+    const app = await buildApp({ env, db, auth: createAuth(db, env) });
+    try {
+      return await app.inject({ method: 'GET', url: `/api/v1/media/${idOrSlug}` });
+    } finally {
+      await app.close();
+    }
+  }
+
+  it('materializes a work this instance has never seen and answers with its slug', async () => {
+    const {
+      type: _type,
+      direction: _direction,
+      ...work
+    } = edge({
+      id: absentTargetId,
+      title: 'The War of the Worlds',
+      kind: 'movie',
+      year: 2025,
+    });
+    server = workStub({ ...work, partCount: null });
+    const response = await get(await listen(server), absentTargetId);
+    expect(response.statusCode).toBe(200);
+    const detail: MediaDetail = response.json();
+    const [row] = await db.select().from(media).where(eq(media.id, absentTargetId)).limit(1);
+    expect(row).toMatchObject({ kind: 'movie', source: 'provider' });
+    expect(detail).toMatchObject({ id: absentTargetId, slug: row!.slug });
+  });
+
+  it('404s an id the catalog does not know, or when the catalog fails', async () => {
+    server = workStub({ id: bebopId });
+    expect((await get(await listen(server), absentTargetId)).statusCode).toBe(404);
+    server.close();
+    server = workStub('error');
+    expect((await get(await listen(server), absentTargetId)).statusCode).toBe(404);
+  });
+
+  it('never asks the catalog for a slug', async () => {
+    let calls = 0;
+    server = createServer((_req, res) => {
+      calls += 1;
+      res.writeHead(500).end();
+    });
+    expect((await get(await listen(server), 'no-such-work-1999')).statusCode).toBe(404);
+    expect(calls).toBe(0);
+  });
+});
+
 describe.runIf(!available)('media detail relations — federated (postgres)', () => {
   it.skip('skipped: dev Postgres not reachable — run docker compose -f docker-compose.dev.yml up -d', () => {});
 });

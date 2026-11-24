@@ -124,6 +124,9 @@ export const CatalogSearchResponseSchema = z.object({
 });
 export type CatalogSearchResponse = z.infer<typeof CatalogSearchResponseSchema>;
 
+/** Params for `GET /v1/catalog/media/:id` — one work, for a permalink to a work not yet materialized. */
+export const CatalogMediaParamsSchema = z.object({ id: z.uuid() });
+
 /** Query for `GET /v1/catalog/relations` — edges touching one work (ADR-0004). */
 export const CatalogRelationsQuerySchema = z.object({
   id: z.uuid(),

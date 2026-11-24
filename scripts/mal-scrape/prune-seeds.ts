@@ -16,7 +16,8 @@
  *   with no score is indistinguishable from spam. Any other manga format keeps
  *   its row: chapter count is not evidence of quality.
  *
- * Anime rows are never touched — the rules are about manga volume. Edges whose
+ * A row whose genres include `hentai` is dropped whatever its kind. Otherwise
+ * anime rows are never touched — the rules are about manga volume. Edges whose
  * endpoint this removes go with it, computed against both seeds together (an
  * edge may point into the other file), so the graph stays closed and publishable.
  */
@@ -24,6 +25,8 @@
 import { copyFile, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+
+import { isExcludedByGenre } from './scrape.ts';
 
 export type SeedRow = {
   id: string;
@@ -58,6 +61,7 @@ export const DEFAULT_POLICY: Policy = { requireMalId: true, oneShotMinScore: 60 
 const MANGA_KINDS = new Set(['manga', 'webtoon']);
 
 export function isKept(row: SeedRow, policy: Policy): boolean {
+  if (isExcludedByGenre(row.genres as string[] | undefined)) return false;
   if (!MANGA_KINDS.has(row.kind)) return true;
   if (policy.requireMalId && !row.externalIds.mal) return false;
   const format = String(row.metadata.format ?? '');

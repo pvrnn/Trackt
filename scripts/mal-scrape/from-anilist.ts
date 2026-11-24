@@ -53,6 +53,7 @@ import {
   canonicalMediaId,
   emptySeed,
   mergeSeedFiles,
+  isExcludedByGenre,
   normalizeGenres,
   planAdaptation,
   prose,
@@ -413,7 +414,7 @@ type AniListNodeLike = {
   volumes?: number | null;
   studios?: { nodes: { name: string }[] } | null;
   staff?: { edges: AniListStaffEdge[] } | null;
-  coverImage?: { large?: string | null } | null;
+  coverImage?: { extraLarge?: string | null; large?: string | null } | null;
   bannerImage?: string | null;
   description?: string | null;
 };
@@ -438,6 +439,7 @@ export interface RowResult {
 export function rowFromMedia(media: AniListNodeLike, options: RowOptions = {}): RowResult {
   const decision = mapAniListKind(media.type ?? null, media.format ?? null);
   if (!decision.kind) return { row: null, kind: null, reason: decision.reason };
+  if (isExcludedByGenre(media.genres)) return { row: null, kind: decision.kind, reason: 'hentai' };
 
   const title = titleOf(media);
   if (!title) return { row: null, kind: decision.kind, reason: 'no title on the AniList record' };
@@ -467,7 +469,11 @@ export function rowFromMedia(media: AniListNodeLike, options: RowOptions = {}): 
       credits: creditsOf(media, kind),
     }),
     description: options.withDescription ? meaningfulDescription(media.description) : null,
-    coverUrl: options.withCover ? (media.coverImage?.large ?? null) : null,
+    // `large` is ~230px wide (AniList files it under `/cover/medium/`); the media
+    // page prints the cover at 220px and blurs it across the header without a banner.
+    coverUrl: options.withCover
+      ? (media.coverImage?.extraLarge ?? media.coverImage?.large ?? null)
+      : null,
     bannerUrl: options.withBanner === false ? null : (media.bannerImage ?? null),
   };
   return { row, kind, reason: decision.reason };
@@ -552,6 +558,10 @@ export function planEdges(
     }
     if (!IDENTITY_PROVIDER_BY_KIND[targetDecision.kind]) {
       skip(`target is a ${targetDecision.kind}, which has no canonical identity`);
+      continue;
+    }
+    if (isExcludedByGenre(node.genres)) {
+      skip('hentai');
       continue;
     }
 
@@ -639,6 +649,79 @@ export function assignSeasonNumbers(seed: SeedFile): number {
     }
   }
   return assigned;
+}
+
+/** How far along sequel/adaptation edges a work may look for a banner to borrow. */
+const BANNER_HOPS = 3;
+
+/**
+ * AniList has banner art for under a quarter of the works it lists, and the
+ * media header falls back to a blurred cover without one. A work in the same
+ * story line — a season beside it (sequel edge, same medium) or the other
+ * medium of the same story (adaptation edge) — is a better picture of it, so a
+ * bannerless row borrows the nearest such work's *own* banner. Spin-offs and
+ * `related` links are too loose a claim to lend art across.
+ *
+ * Borrowed banners are recorded in `metadata.borrowedBanner`, so every pass
+ * starts by returning them, lends only original art, and never overwrites a
+ * banner the provider later states for the work itself.
+ */
+export function borrowBanners(seed: SeedFile): number {
+  const rows = new Map(seed.catalog_media.map((row) => [row.id, row]));
+  for (const row of seed.catalog_media) {
+    const borrowed = row.metadata.borrowedBanner;
+    if (borrowed === undefined) continue;
+    if (row.bannerUrl === borrowed) row.bannerUrl = null;
+    delete row.metadata.borrowedBanner;
+  }
+
+  const neighbours = new Map<string, string[]>();
+  const link = (a: string, b: string) => {
+    const list = neighbours.get(a) ?? [];
+    list.push(b);
+    neighbours.set(a, list);
+  };
+  for (const edge of seed.catalog_media_relation) {
+    const from = rows.get(edge.fromId);
+    const to = rows.get(edge.toId);
+    if (!from || !to) continue;
+    const sameLine =
+      edge.type === 'adaptation' || (edge.type === 'sequel' && from.kind === to.kind);
+    if (!sameLine) continue;
+    link(from.id, to.id);
+    link(to.id, from.id);
+  }
+
+  let lent = 0;
+  for (const row of seed.catalog_media) {
+    if (row.bannerUrl) continue;
+    const seen = new Set([row.id]);
+    let frontier = [row.id];
+    let source: typeof row | undefined;
+    for (let hop = 0; hop < BANNER_HOPS && !source && frontier.length > 0; hop++) {
+      const next: string[] = [];
+      for (const id of frontier) {
+        for (const other of neighbours.get(id) ?? []) {
+          if (seen.has(other)) continue;
+          seen.add(other);
+          next.push(other);
+        }
+      }
+      // Within one hop, the same medium is the closer picture.
+      const lenders = next
+        .map((id) => rows.get(id)!)
+        .filter(
+          (candidate) => candidate.bannerUrl && candidate.metadata.borrowedBanner === undefined,
+        );
+      source = lenders.find((candidate) => candidate.kind === row.kind) ?? lenders[0];
+      frontier = next;
+    }
+    if (!source?.bannerUrl) continue;
+    row.bannerUrl = source.bannerUrl;
+    row.metadata.borrowedBanner = source.bannerUrl;
+    lent++;
+  }
+  return lent;
 }
 
 /* ------------------------------------------------------------------ *
@@ -1134,6 +1217,7 @@ export async function walkImport(
       },
     });
     assignSeasonNumbers(folded);
+    borrowBanners(folded);
     seed = folded;
     // An enumeration rewrites the whole file hundreds of times; at six figures
     // that serialisation costs more than the requests it protects.

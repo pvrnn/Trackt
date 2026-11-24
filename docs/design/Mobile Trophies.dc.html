@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile Trophies</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #17181b; font-family: Archivo, sans-serif; }
+    a { color: #d96bb0; text-decoration: none; }
+    button { display: inline-flex; align-items: center; justify-content: center; text-align: center; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    .col > * { flex-shrink: 0; }
+    .lab { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .h2 { font-family: Anton, sans-serif; font-size: 24px; line-height: 1.1; text-transform: uppercase; }
+    .glass { background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; }
+    .back { width: 44px; height: 44px; margin-left: -12px; }
+    .back span { width: 10px; height: 10px; border-left: 2px solid #f0edf4; border-bottom: 2px solid #f0edf4; transform: translateX(2px) rotate(45deg); }
+    .av { flex-shrink: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; }
+    .hx { display: inline-block; width: 9px; height: 8px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+    .p3 { transform-style: preserve-3d; }
+
+    /* ── IDEA 1 · crystal prisms. Each trophy is a hexagonal prism; tier sets height and material.
+       Locked ones are empty glass that fills from the bottom as you progress. ── */
+    .stage { perspective: 560px; perspective-origin: 50% -40%; }
+    .tpw { transform: rotateX(-12deg); }
+    .tp { position: relative; width: 40px; animation: tspin 9s linear infinite; }
+    .tpw:hover .tp, .tpw:active .tp { animation-play-state: paused; }
+    .tface { position: absolute; top: 0; left: 10px; width: 20px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+    .tcap { position: absolute; left: 0; top: -17.32px; width: 40px; height: 34.64px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); transform: rotateX(90deg); }
+    .tglow { position: absolute; left: -30px; width: 100px; height: 100px; border-radius: 50%; transform: rotateX(90deg); pointer-events: none; }
+    .plank { position: relative; height: 12px; }
+    .plank .pf { position: absolute; inset: 0; transform: translateZ(28px); background: linear-gradient(180deg, #3b3344, #1d1823); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28); border-radius: 0 0 4px 4px; }
+    .plank .pt { position: absolute; left: 0; right: 0; top: -28px; height: 56px; transform: rotateX(90deg); background: linear-gradient(0deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07); }
+    @keyframes tspin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+
+    /* ── IDEA 2 · a medal you can spin. 48 slices make the milled edge; drag turns it, letting go hands back to the idle spin. ── */
+    .mstage { height: 250px; perspective: 900px; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab; user-select: none; }
+    .mstage:active { cursor: grabbing; }
+    .mtilt { transform: rotateX(-10deg); }
+    .mspin { animation: tspin 14s linear infinite; }
+    .mdrag { position: relative; width: 168px; height: 168px; transition: transform 60ms linear; }
+    .mface { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .mrim { position: absolute; left: 78.25px; top: 76px; width: 11.5px; height: 16px; }
+
+    /* ── IDEA 3 · the podium. Real blocks seen from slightly above; they rise again when the scope or period changes. ── */
+    .pod { display: flex; align-items: flex-end; justify-content: center; gap: 12px; height: 262px; perspective: 760px; perspective-origin: 50% -70%; }
+    .blk { position: relative; width: 94px; transition: height 700ms cubic-bezier(.2,.9,.25,1); }
+    .bf { position: absolute; inset: 0; transform: translateZ(32px); display: flex; justify-content: center; padding-top: 8px; font-family: Anton, sans-serif; font-size: 40px; line-height: 1; color: rgba(20,16,26,0.72); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+    .bt { position: absolute; left: 0; right: 0; top: -32px; height: 64px; transform: rotateX(90deg); }
+    .bsl, .bsr { position: absolute; top: 0; bottom: 0; left: 15px; width: 64px; }
+    .bsl { transform: rotateY(-90deg) translateZ(47px); }
+    .bsr { transform: rotateY(90deg) translateZ(47px); }
+    .who { position: absolute; left: 50%; bottom: calc(100% + 34px); width: 112px; margin-left: -56px; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: opacity 300ms ease; }
+
+    .seg { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; gap: 4px; }
+    .seg button { height: 36px; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; transition: background 140ms ease, color 140ms ease; }
+    .mcell { position: relative; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 30px 0 16px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09); }
+    .mcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 15px 0; cursor: pointer; color-scheme: dark; }
+    .mcell select option { background: #191520; }
+    .mchev { position: absolute; right: 16px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    .lrow { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 14px; border-radius: 14px; }
+    @media (prefers-reduced-motion: reduce) { .tp, .mspin { animation: none !important; } .blk { transition: none; } }
+  </style>
+</helmet>
+
+<div style="padding: 48px 40px 96px; display: flex; flex-direction: column; gap: 32px;">
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT MOBILE · TROPHIES</div>
+    <div style="font-family: Anton; font-size: 52px; line-height: 1; text-transform: uppercase; color: #f0edf4;">Trophies &amp; leaderboard</div>
+    <div style="color: #b8b1c4; font-size: 15px; line-height: 1.55; max-width: 720px;">Three 3D ideas. <b style="color: #f0edf4;">Crystal prisms</b>: every trophy is a hexagonal prism, taller and rarer by tier, and locked ones are empty glass that fills as you get closer. <b style="color: #f0edf4;">A medal you can spin</b>: drag it on the detail screen to see the milled edge and the engraved back. <b style="color: #f0edf4;">A podium that rises</b>: the top three stand on real blocks, which rise again when you switch Global / Friends or the period.</div>
+  </div>
+
+  <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">TROPHIES · CABINET</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; overflow: hidden;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 30%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 30% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div class="col" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; padding: 54px 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px;">
+              <div style="display: flex; align-items: center;"><button class="back" aria-label="Back"><span></span></button><span class="lab" style="color: #b8b1c4;">PROFILE</span></div><a href="#" style="min-height: 44px; display: flex; align-items: center; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4;">LEADERBOARD →</a>
+            </div>
+            <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;">
+              <div style="font-family: Anton; font-size: 34px; line-height: 1.1; text-transform: uppercase;">Trophies</div>
+              <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #948da1; padding-bottom: 6px;">32 OF 120</div>
+            </div>
+
+            <!-- summary: points, standing, and the tier mix as little prism caps -->
+            <div class="glass" style="display: flex; flex-direction: column;">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span class="lab">TROPHY POINTS</span>
+                  <span style="font-family: Anton; font-size: 34px; line-height: 1; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">1,260</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                  <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">#4 <span style="color: #948da1; font-weight: 600;">FRIENDS</span></span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;">#1,284 <span style="color: #948da1; font-weight: 600;">GLOBAL · MONTH</span></span>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
+                <sc-for list="{{ tierMix }}" as="x" hint-placeholder-count="4">
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; box-shadow: {{ x.rule }};">
+                    <span class="hx" style="width: 16px; height: 14px; background: {{ x.bg }};"></span>
+                    <span style="font-family: Anton; font-size: 20px; line-height: 1;">{{ x.n }}</span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ x.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;"><div class="h2">Recently unlocked</div><span class="lab">HOLD TO STOP</span></div>
+            <div class="stage" style="padding-top: 12px;">
+              <div class="p3" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; height: 92px;">
+                <sc-for list="{{ recent }}" as="p" hint-placeholder-count="4">
+                  <div class="p3" style="display: flex; justify-content: center; align-items: flex-end; height: 100%;">
+                    <div class="tpw p3"><div class="tp p3" style="height: {{ p.h }}; animation-duration: {{ p.dur }}; animation-delay: {{ p.delay }};">
+                      <div class="tglow" style="top: {{ p.glowTop }}; background: {{ p.glow }};"></div>
+                      <sc-for list="{{ p.faces }}" as="f" hint-placeholder-count="6"><div class="tface" style="height: {{ p.h }}; transform: {{ f.t }}; background: {{ f.bg }};"></div></sc-for>
+                      <div class="tcap" style="background: {{ p.cap }};"></div>
+                    </div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div class="plank p3"><div class="pt"></div><div class="pf"></div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: -2px;">
+              <sc-for list="{{ recent }}" as="p" hint-placeholder-count="4">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; min-width: 0;">
+                  <div style="font-size: 13px; font-weight: 600; line-height: 1.2;">{{ p.name }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: {{ p.tierFg }};">{{ p.tierLabel }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 600; letter-spacing: 0.06em; color: #948da1;">{{ p.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px;"><div class="h2">Next up</div><span class="lab">FILLS AS YOU GO</span></div>
+            <div class="stage" style="padding-top: 12px;">
+              <div class="p3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; height: 92px;">
+                <sc-for list="{{ nextUp }}" as="p" hint-placeholder-count="3">
+                  <div class="p3" style="display: flex; justify-content: center; align-items: flex-end; height: 100%;">
+                    <div class="tpw p3"><div class="tp p3" style="height: {{ p.h }}; animation-duration: {{ p.dur }}; animation-delay: {{ p.delay }};">
+                      <div class="tglow" style="top: {{ p.glowTop }}; background: {{ p.glow }};"></div>
+                      <sc-for list="{{ p.faces }}" as="f" hint-placeholder-count="6"><div class="tface" style="height: {{ p.h }}; transform: {{ f.t }}; background: {{ f.bg }};"></div></sc-for>
+                      <div class="tcap" style="background: {{ p.cap }};"></div>
+                    </div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div class="plank p3"><div class="pt"></div><div class="pf"></div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: -2px;">
+              <sc-for list="{{ nextUp }}" as="p" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; min-width: 0;">
+                  <div style="font-size: 13px; font-weight: 600; line-height: 1.2;">{{ p.name }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: {{ p.tierFg }};">{{ p.tierLabel }}</div>
+                  <div style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 600; letter-spacing: 0.06em; color: #948da1;">{{ p.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.92); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="width: 24px; height: 24px; background: {{ t.icon }} center / 24px 24px no-repeat;"></div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.92); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">TROPHY · DETAIL</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; overflow: hidden;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 30%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 30% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div class="col" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; padding: 54px 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px;">
+              <div style="display: flex; align-items: center;"><button class="back" aria-label="Back"><span></span></button><span class="lab" style="color: #b8b1c4;">TROPHIES</span></div><span class="lab" style="color: #b8b1c4;">#0412 OF 2,180</span>
+            </div>
+            <!-- the medal: drag sideways to turn it; let go and it carries on its slow spin -->
+            <div class="mstage" onPointerDown="{{ mDown }}" onPointerMove="{{ mMove }}" onPointerUp="{{ mUp }}" onPointerCancel="{{ mUp }}" onPointerLeave="{{ mUp }}" aria-label="Polyglot medal. Drag to spin." role="img">
+              <div class="mtilt p3">
+                <div class="mspin p3" style="animation-play-state: {{ mPlay }};">
+                  <div class="mdrag p3" style="transform: rotateY({{ mRot }});">
+                    <sc-for list="{{ rim }}" as="r" hint-placeholder-count="48"><div class="mrim" style="transform: {{ r.t }}; background: {{ r.bg }};"></div></sc-for>
+                    <div class="mface" style="transform: translateZ(8px); background: radial-gradient(circle at 30% 24%, rgba(255,255,255,0.65), transparent 32%), conic-gradient(from 200deg, #d9a441, #d96bb0, #8b5cf6, #d96bb0, #d9a441); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.4), inset 0 -12px 26px rgba(0,0,0,0.3);">
+                      <div style="position: absolute; inset: 16px; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #241d2e, #120e17 70%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), inset 0 6px 14px rgba(0,0,0,0.6);">
+                        <sc-for list="{{ medalDots }}" as="d" hint-placeholder-count="6"><span style="position: absolute; left: {{ d.x }}; top: {{ d.y }}; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 999px; background: {{ d.c }}; box-shadow: 0 0 10px {{ d.c }};"></span></sc-for>
+                        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
+                          <span class="hx" style="width: 34px; height: 30px; background: linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6);"></span>
+                          <span style="font-family: Anton; font-size: 15px; letter-spacing: 0.04em;">POLYGLOT</span>
+                          <span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: #b8b1c4;">6 / 6 KINDS</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mface" style="transform: rotateY(180deg) translateZ(8px); background: conic-gradient(from 20deg, #d9a441, #d96bb0, #8b5cf6, #d96bb0, #d9a441); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);">
+                      <div style="position: absolute; inset: 16px; border-radius: 50%; background: #16121c; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18), inset 0 6px 14px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; font-family: 'Space Grotesk'; font-weight: 700; letter-spacing: 0.12em; color: #948da1;">
+                        <span style="font-size: 8px;">TRACKT</span>
+                        <span style="font-family: Anton; font-size: 15px; letter-spacing: 0.06em; color: #cfc9d8;">MARAV</span>
+                        <span style="font-size: 8px;">12 SEP 26</span>
+                        <span style="font-size: 8px;">#0412 / 2,180</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: -18px;"><span class="lab">← DRAG TO SPIN →</span></div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+              <div style="font-family: Anton; font-size: 34px; line-height: 1.1; text-transform: uppercase;">Polyglot</div>
+              <div style="display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;"><span style="background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">PRISM TIER</span><span style="color: #948da1;">·</span><span style="color: #cfc9d8;">180 PTS</span></div>
+              <div style="color: #b8b1c4; font-size: 14px; line-height: 1.5; max-width: 300px;">Finish at least one title in each of the six kinds: a movie, a series, an anime, a manga, a webtoon and a game.</div>
+            </div>
+
+            <div class="glass" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));">
+              <sc-for list="{{ medalStats }}" as="x" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 12px 4px; box-shadow: {{ x.rule }};">
+                  <span style="font-family: Anton; font-size: 20px; line-height: 1;">{{ x.v }}</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ x.k }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div class="h2" style="margin-top: 4px;">How you got it</div>
+            <div class="glass" style="display: flex; flex-direction: column;">
+              <sc-for list="{{ medalKinds }}" as="k" hint-placeholder-count="6">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 16px; box-shadow: {{ k.rule }};">
+                  <span style="width: 8px; height: 8px; border-radius: 999px; background: {{ k.dot }}; flex-shrink: 0;"></span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; width: 62px; flex-shrink: 0;">{{ k.kind }}</span>
+                  <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ k.title }}</span>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: #948da1;">{{ k.date }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="display: flex;"><span class="av" style="width: 28px; height: 28px; font-size: 12px; background: linear-gradient(135deg, #d9a441, #d96bb0);">S</span><span class="av" style="width: 28px; height: 28px; font-size: 12px; margin-left: -8px; box-shadow: 0 0 0 2px #0e0c10; background: linear-gradient(135deg, #a78bfa, #6d8bf0);">I</span></div>
+              <span style="color: #b8b1c4; font-size: 13px;"><b style="color: #f0edf4;">Sam</b> and <b style="color: #f0edf4;">Iris</b> have this too</span>
+            </div>
+            <button style="height: 44px; border-radius: 999px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #f0edf4;">SHARE TROPHY</button>
+
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.92); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="width: 24px; height: 24px; background: {{ t.icon }} center / 24px 24px no-repeat;"></div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.92); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">LEADERBOARD · GLOBAL</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; overflow: hidden;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 30%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 30% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div class="col" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; padding: 54px 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px;">
+              <div style="display: flex; align-items: center;"><button class="back" aria-label="Back"><span></span></button><span class="lab" style="color: #b8b1c4;">TROPHIES</span></div>
+            </div>
+            <div style="font-family: Anton; font-size: 34px; line-height: 1.1; text-transform: uppercase;">Leaderboard</div>
+
+            <!-- one slab: which board, then which period -->
+            <div class="glass" style="display: flex; flex-direction: column;">
+              <div class="seg" role="tablist" aria-label="Board">
+                <sc-for list="{{ lbA.scopes }}" as="s" hint-placeholder-count="2"><button role="tab" aria-selected="{{ s.on }}" onClick="{{ s.pick }}" style="background: {{ s.bg }}; color: {{ s.fg }};">{{ s.label }}</button></sc-for>
+              </div>
+              <label class="mcell"><span class="lab">PERIOD</span><select value="{{ lbA.period }}" onChange="{{ lbA.onPeriod }}"><option value="WEEK">This week</option><option value="MONTH">This month</option><option value="ALL">All time</option></select><span class="mchev" aria-hidden="true"></span></label>
+            </div>
+
+            <!-- the podium: 2 · 1 · 3, real blocks seen from above -->
+            <div class="pod">
+              <sc-for list="{{ lbA.podium }}" as="b" hint-placeholder-count="3">
+                <div class="blk p3" style="height: {{ b.h }};">
+                  <div class="who" style="opacity: {{ b.whoOp }};">
+                    <span class="av" style="width: {{ b.avSize }}; height: {{ b.avSize }}; font-size: 15px; background: {{ b.av }}; box-shadow: {{ b.avRing }};">{{ b.init }}</span>
+                    <span style="font-size: 12px; font-weight: 600; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">{{ b.name }}</span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: #cfc9d8;">{{ b.pts }}</span>
+                  </div>
+                  <div class="bt" style="background: {{ b.top }};"></div>
+                  <div class="bsl" style="background: {{ b.side }};"></div>
+                  <div class="bsr" style="background: {{ b.side }};"></div>
+                  <div class="bf" style="background: {{ b.front }};">{{ b.rank }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ lbA.hasChase }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(217,107,176,0.1); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.4);">
+                <span style="font-family: Anton; font-size: 26px; line-height: 1; color: #e58cc4;">↑</span>
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;">{{ lbA.chaseHead }}</span>
+                  <span style="color: #b8b1c4; font-size: 13px; line-height: 1.4;">{{ lbA.chaseBody }}</span>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <sc-for list="{{ lbA.rows }}" as="r" hint-placeholder-count="5">
+                <sc-if value="{{ r.isGap }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 0;"><span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></span><span class="lab">{{ r.gapLabel }}</span><span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></span></div>
+                </sc-if>
+                <sc-if value="{{ r.isRow }}" hint-placeholder-val="{{ true }}">
+                  <div class="lrow" style="background: {{ r.bg }}; box-shadow: {{ r.ring }};">
+                    <span style="width: 40px; flex-shrink: 0; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: {{ r.rankFg }};">{{ r.rank }}</span>
+                    <span class="av" style="width: 36px; height: 36px; font-size: 14px; background: {{ r.av }};">{{ r.init }}</span>
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+                      <span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ r.name }}</span>
+                      <span style="display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; color: #b8b1c4;">
+                        <sc-for list="{{ r.tiers }}" as="x" hint-placeholder-count="3"><span style="display: inline-flex; align-items: center; gap: 4px;"><span class="hx" style="background: {{ x.bg }};"></span>{{ x.n }}</span></sc-for>
+                      </span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                      <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.02em;">{{ r.pts }}</span>
+                      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: {{ r.dFg }};">{{ r.delta }}</span>
+                    </div>
+                  </div>
+                </sc-if>
+              </sc-for>
+            </div>
+
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.92); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="width: 24px; height: 24px; background: {{ t.icon }} center / 24px 24px no-repeat;"></div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.92); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">LEADERBOARD · FRIENDS</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; overflow: hidden;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 30%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 30% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="position: absolute; inset: 0; background-image: url('noise.svg'); background-size: 180px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+          <div class="col" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; padding: 54px 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px;">
+              <div style="display: flex; align-items: center;"><button class="back" aria-label="Back"><span></span></button><span class="lab" style="color: #b8b1c4;">TROPHIES</span></div>
+            </div>
+            <div style="font-family: Anton; font-size: 34px; line-height: 1.1; text-transform: uppercase;">Leaderboard</div>
+
+            <!-- one slab: which board, then which period -->
+            <div class="glass" style="display: flex; flex-direction: column;">
+              <div class="seg" role="tablist" aria-label="Board">
+                <sc-for list="{{ lbB.scopes }}" as="s" hint-placeholder-count="2"><button role="tab" aria-selected="{{ s.on }}" onClick="{{ s.pick }}" style="background: {{ s.bg }}; color: {{ s.fg }};">{{ s.label }}</button></sc-for>
+              </div>
+              <label class="mcell"><span class="lab">PERIOD</span><select value="{{ lbB.period }}" onChange="{{ lbB.onPeriod }}"><option value="WEEK">This week</option><option value="MONTH">This month</option><option value="ALL">All time</option></select><span class="mchev" aria-hidden="true"></span></label>
+            </div>
+
+            <!-- the podium: 2 · 1 · 3, real blocks seen from above -->
+            <div class="pod">
+              <sc-for list="{{ lbB.podium }}" as="b" hint-placeholder-count="3">
+                <div class="blk p3" style="height: {{ b.h }};">
+                  <div class="who" style="opacity: {{ b.whoOp }};">
+                    <span class="av" style="width: {{ b.avSize }}; height: {{ b.avSize }}; font-size: 15px; background: {{ b.av }}; box-shadow: {{ b.avRing }};">{{ b.init }}</span>
+                    <span style="font-size: 12px; font-weight: 600; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">{{ b.name }}</span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: #cfc9d8;">{{ b.pts }}</span>
+                  </div>
+                  <div class="bt" style="background: {{ b.top }};"></div>
+                  <div class="bsl" style="background: {{ b.side }};"></div>
+                  <div class="bsr" style="background: {{ b.side }};"></div>
+                  <div class="bf" style="background: {{ b.front }};">{{ b.rank }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ lbB.hasChase }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(217,107,176,0.1); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.4);">
+                <span style="font-family: Anton; font-size: 26px; line-height: 1; color: #e58cc4;">↑</span>
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                  <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;">{{ lbB.chaseHead }}</span>
+                  <span style="color: #b8b1c4; font-size: 13px; line-height: 1.4;">{{ lbB.chaseBody }}</span>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <sc-for list="{{ lbB.rows }}" as="r" hint-placeholder-count="5">
+                <sc-if value="{{ r.isGap }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 0;"><span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></span><span class="lab">{{ r.gapLabel }}</span><span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></span></div>
+                </sc-if>
+                <sc-if value="{{ r.isRow }}" hint-placeholder-val="{{ true }}">
+                  <div class="lrow" style="background: {{ r.bg }}; box-shadow: {{ r.ring }};">
+                    <span style="width: 40px; flex-shrink: 0; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: {{ r.rankFg }};">{{ r.rank }}</span>
+                    <span class="av" style="width: 36px; height: 36px; font-size: 14px; background: {{ r.av }};">{{ r.init }}</span>
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+                      <span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ r.name }}</span>
+                      <span style="display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; color: #b8b1c4;">
+                        <sc-for list="{{ r.tiers }}" as="x" hint-placeholder-count="3"><span style="display: inline-flex; align-items: center; gap: 4px;"><span class="hx" style="background: {{ x.bg }};"></span>{{ x.n }}</span></sc-for>
+                      </span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                      <span style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.02em;">{{ r.pts }}</span>
+                      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: {{ r.dFg }};">{{ r.delta }}</span>
+                    </div>
+                  </div>
+                </sc-if>
+              </sc-for>
+            </div>
+
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.92); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="width: 24px; height: 24px; background: {{ t.icon }} center / 24px 24px no-repeat;"></div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.92); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ICON = {
+  HOME: '<path d="M4 11.5 12 4.5l8 7V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>',
+  DISCOVER: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  NEWS: '<path d="M4.5 5.5h11v13a1.5 1.5 0 0 0 3 0V9.5h-3"/><path d="M4.5 5.5v12a2 2 0 0 0 2 2h10.5"/><path d="M7.5 9.5h5M7.5 13h5M7.5 16.5h3"/>',
+  PROFILE: '<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.6 3.7-5.4 7.2-5.4s6.3 1.8 7.2 5.4"/>',
+};
+const icon = (name, color) => 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICON[name] + '</svg>') + '")';
+const PRISM = 'linear-gradient(135deg, #d9a441, #d96bb0, #8b5cf6)';
+const KDOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+
+// tiers: height of the prism, its material, and what it is worth
+const TIER = {
+  BRONZE: { pts: 15, h: 40, light: '#f3c49a', base: '#8a4f2a', glow: 'rgba(222,150,96,0.5)', fg: '#e8a97a', chip: 'linear-gradient(135deg, #f3c49a, #8a4f2a)', tint: 'rgba(222,150,96,0.55)' },
+  SILVER: { pts: 30, h: 48, light: '#f6f7fb', base: '#7b8196', glow: 'rgba(220,226,242,0.42)', fg: '#d5d9e6', chip: 'linear-gradient(135deg, #f6f7fb, #7b8196)', tint: 'rgba(220,226,242,0.5)' },
+  GOLD: { pts: 90, h: 56, light: '#ffe39a', base: '#a8741c', glow: 'rgba(244,196,84,0.55)', fg: '#f0c766', chip: 'linear-gradient(135deg, #ffe39a, #a8741c)', tint: 'rgba(244,196,84,0.55)' },
+  PRISM: { pts: 180, h: 64, glow: 'rgba(217,107,176,0.6)', fg: '#e58cc4', chip: PRISM, tint: 'rgba(217,107,176,0.55)' },
+};
+const SHADE = [0, 0.16, 0.3, 0.38, 0.3, 0.12];
+const PRISM_FACES = ['#d9a441', '#e58a7c', '#d96bb0', '#a866d6', '#8b5cf6', '#b86fc2'];
+
+let seq = 0;
+function prism(t) {
+  const T = TIER[t.tier], h = T.h, locked = t.pct !== undefined;
+  const faces = [0, 1, 2, 3, 4, 5].map((i) => {
+    let bg;
+    if (locked) bg = 'linear-gradient(0deg, ' + T.tint + ' ' + t.pct + '%, rgba(255,255,255,0.05) ' + t.pct + '%)';
+    else if (t.tier === 'PRISM') bg = 'linear-gradient(180deg, rgba(255,255,255,0.45), transparent 45%), linear-gradient(180deg, ' + PRISM_FACES[i] + ', ' + PRISM_FACES[(i + 2) % 6] + ')';
+    else bg = 'linear-gradient(rgba(0,0,0,' + SHADE[i] + '), rgba(0,0,0,' + SHADE[i] + ')), linear-gradient(180deg, ' + T.light + ', ' + T.base + ')';
+    return { t: 'rotateY(' + i * 60 + 'deg) translateZ(17.32px)', bg };
+  });
+  seq += 1;
+  return {
+    name: t.name, h: h + 'px', faces, glowTop: (h - 50) + 'px',
+    glow: 'radial-gradient(closest-side, ' + (locked ? 'rgba(255,255,255,0.08)' : T.glow) + ', transparent)',
+    cap: locked ? (t.pct >= 100 ? T.tint : 'rgba(255,255,255,0.1)') : (t.tier === 'PRISM' ? 'linear-gradient(135deg, #ffe1a6, #ffc2e4, #cdb8ff)' : T.light),
+    dur: (8 + (seq % 4) * 1.5) + 's', delay: (-seq * 1.7) + 's',
+    tierLabel: t.tier + ' · ' + T.pts, tierFg: T.fg, sub: t.sub,
+  };
+}
+
+const RECENT = [
+  { name: 'Polyglot', tier: 'PRISM', sub: '2.1% HAVE IT' },
+  { name: 'Binge Engine', tier: 'GOLD', sub: '8.4% HAVE IT' },
+  { name: 'Night Shift', tier: 'SILVER', sub: '14% HAVE IT' },
+  { name: 'Archivist', tier: 'BRONZE', sub: '41% HAVE IT' },
+];
+const NEXT = [
+  { name: 'Long Haul', tier: 'GOLD', pct: 64, sub: '64 / 100 CH' },
+  { name: 'Watch Party', tier: 'SILVER', pct: 60, sub: '3 / 5 PARTIES' },
+  { name: 'Completionist', tier: 'GOLD', pct: 41, sub: '41 / 100 DONE' },
+];
+
+const AV = ['linear-gradient(135deg, #d9a441, #d96bb0)', 'linear-gradient(135deg, #a78bfa, #6d8bf0)', 'linear-gradient(135deg, #d96bb0, #a78bfa)', 'linear-gradient(135deg, #6d8bf0, #35d6c0)', 'linear-gradient(135deg, #3fbf8f, #d9a441)', 'linear-gradient(135deg, #e8874a, #d96bb0)', 'linear-gradient(135deg, #8b5cf6, #3fbf8f)'];
+const ME_AV = 'linear-gradient(135deg, #d96bb0, #8b5cf6)';
+// [name, pts by period {WEEK, MONTH, ALL}, tiers [prism, gold, silver], delta]
+const GLOBAL = [
+  ['kaito', [410, 1480, 14820], [9, 61, 140], 2], ['lune', [395, 1395, 13990], [8, 58, 133], -1], ['abe.reads', [360, 1310, 13105], [7, 55, 128], 1],
+  ['yuki_m', [330, 1205, 12040], [6, 50, 121], 0], ['okonkwo', [300, 1170, 11720], [6, 47, 118], 3], ['petra', [290, 1090, 10980], [5, 45, 109], -2], ['rin', [270, 1015, 10415], [5, 41, 104], 1],
+];
+const ME_GLOBAL = { WEEK: [75, '#2,960', 'TOP 14%'], MONTH: [282, '#1,284', 'TOP 6%'], ALL: [1260, '#4,812', 'TOP 22%'] };
+const FRIENDS = [
+  ['Sam', [120, 410, 1890], [2, 9, 18], 1], ['Iris', [105, 388, 1640], [1, 8, 16], -1], ['Theo', [90, 352, 1385], [1, 7, 13], 0],
+  ['You · marav', [75, 282, 1260], [1, 6, 11], 2, true], ['Jun', [60, 214, 1020], [0, 5, 12], -1], ['Noor', [45, 176, 870], [0, 4, 9], 0], ['Ola', [30, 120, 455], [0, 2, 6], -1],
+];
+const PI = { WEEK: 0, MONTH: 1, ALL: 2 };
+const fmt = (n) => n.toLocaleString('en-US');
+const HEIGHTS = [118, 88, 66];          // by rank: 1st, 2nd, 3rd
+const BLOCK = [
+  { front: 'linear-gradient(180deg, #f0c26a, #e58cc4 55%, #9a72f8)', top: 'linear-gradient(90deg, #ffd995, #ffb6de, #c8b2ff)', side: 'linear-gradient(180deg, #9a5fc0, #4a2a78)' },
+  { front: 'linear-gradient(180deg, #eef0f6, #8e93a8)', top: '#f8f9fc', side: 'linear-gradient(180deg, #8a8fa4, #4a4f60)' },
+  { front: 'linear-gradient(180deg, #efbc93, #8a4f2a)', top: '#f6cda6', side: 'linear-gradient(180deg, #8f5530, #4e2a14)' },
+];
+
+class Component extends DCLogic {
+  state = { scopeA: 'GLOBAL', scopeB: 'FRIENDS', periodA: 'MONTH', periodB: 'MONTH', riseA: false, riseB: false, mRot: 0, mDrag: false };
+
+  rise(key) {
+    this.setState({ [key]: true });
+    clearTimeout(this['t' + key]);
+    this['t' + key] = setTimeout(() => this.setState({ [key]: false }), 60);
+  }
+
+  board(scope, period, rising, setScope, setPeriod) {
+    const i = PI[period], showDelta = period !== 'ALL';
+    const list = (scope === 'GLOBAL' ? GLOBAL : FRIENDS).map((p, n) => ({ name: p[0], pts: p[1][i], tiers: p[2], d: p[3], me: !!p[4], av: p[4] ? ME_AV : AV[n % AV.length], rank: n + 1 }));
+    const tiers = (t) => [{ bg: PRISM, n: t[0] }, { bg: TIER.GOLD.chip, n: t[1] }, { bg: TIER.SILVER.chip, n: t[2] }];
+    const delta = (d) => !showDelta ? '' : d > 0 ? '▲ ' + d : d < 0 ? '▼ ' + -d : '—';
+    const dFg = (d) => d > 0 ? '#3fbf8f' : d < 0 ? '#e58cc4' : '#948da1';
+    const row = (p, rankLabel) => ({
+      isRow: true, isGap: false, rank: rankLabel || String(p.rank), name: p.name, init: p.me ? 'M' : p.name[0].toUpperCase(), av: p.av,
+      pts: fmt(p.pts), tiers: tiers(p.tiers), delta: delta(p.d), dFg: dFg(p.d),
+      bg: p.me ? 'rgba(217,107,176,0.12)' : 'rgba(255,255,255,0.03)', ring: p.me ? 'inset 0 0 0 1px rgba(217,107,176,0.55)' : 'none', rankFg: p.me ? '#e58cc4' : '#b8b1c4',
+    });
+    let rows = list.slice(3).map((p) => row(p));
+    let chase = null;
+    if (scope === 'GLOBAL') {
+      const me = ME_GLOBAL[period];
+      rows = rows.concat([{ isGap: true, isRow: false, gapLabel: me[2] + ' OF 21,950' }, row({ name: 'You · marav', pts: me[0], tiers: [1, 6, 11], d: 2, me: true, av: ME_AV }, me[1])]);
+    } else {
+      const meIdx = list.findIndex((p) => p.me), above = list[meIdx - 1], me = list[meIdx];
+      chase = { head: (above.pts - me.pts + 1) + ' PTS TO PASS ' + above.name.toUpperCase(), body: 'Finish Glass Orchard to unlock Binge Engine (gold, 90 pts) and take #' + above.rank + '.' };
+    }
+    const order = [1, 0, 2];
+    return {
+      scopes: [['GLOBAL', 'GLOBAL'], ['FRIENDS', 'FRIENDS']].map((s) => ({ label: s[1], on: scope === s[0], bg: scope === s[0] ? '#f0edf4' : 'transparent', fg: scope === s[0] ? '#14101a' : '#b8b1c4', pick: () => setScope(s[0]) })),
+      period, onPeriod: (e) => setPeriod(e.target.value),
+      podium: order.map((r) => {
+        const p = list[r];
+        return {
+          rank: r + 1, name: p.name, init: p.name[0].toUpperCase(), av: p.av, pts: fmt(p.pts) + ' PTS',
+          h: (rising ? 6 : HEIGHTS[r]) + 'px', whoOp: rising ? 0 : 1,
+          avSize: r === 0 ? '48px' : '40px', avRing: r === 0 ? '0 0 0 2px #0e0c10, 0 0 0 4px #e58cc4, 0 0 24px rgba(217,107,176,0.6)' : '0 0 0 2px #0e0c10, 0 0 0 3.5px rgba(255,255,255,0.35)',
+          front: BLOCK[r].front, top: BLOCK[r].top, side: BLOCK[r].side,
+        };
+      }),
+      hasChase: !!chase, chaseHead: chase ? chase.head : '', chaseBody: chase ? chase.body : '',
+      rows,
+    };
+  }
+
+  renderVals() {
+    const st = this.state;
+    seq = 0;
+    const rule = (n) => (n ? 'inset 1px 0 0 rgba(255,255,255,0.09)' : 'none');
+    // medal rim: 48 slices around the edge, coloured along the prism and ridged like a milled coin
+    const STOPS = [[217, 164, 65], [217, 107, 176], [139, 92, 246], [217, 107, 176], [217, 164, 65]];
+    const rimColor = (u, dark) => { const x = u * 4, s = Math.min(3, Math.floor(x)), f = x - s; const c = STOPS[s].map((v, k) => Math.round((v + (STOPS[s + 1][k] - v) * f) * (dark ? 0.62 : 0.92))); return 'rgb(' + c.join(',') + ')'; };
+    const N = 48;
+    return {
+      tabs: ['HOME', 'DISCOVER', 'NEWS', 'PROFILE'].map((l) => ({ label: l, icon: icon(l, l === 'PROFILE' ? '#e58cc4' : '#b8b1c4'), fg: l === 'PROFILE' ? '#e58cc4' : '#b8b1c4', rule: l === 'PROFILE' ? '#e58cc4' : 'transparent' })),
+      tierMix: [['PRISM', 1], ['GOLD', 6], ['SILVER', 11], ['BRONZE', 14]].map((x, n) => ({ label: x[0], n: x[1], bg: TIER[x[0]].chip, rule: rule(n) })),
+      recent: RECENT.map(prism),
+      nextUp: NEXT.map(prism),
+
+      rim: Array.from({ length: N }, (_, i) => ({ t: 'rotateZ(' + (i * 360 / N) + 'deg) translateY(-83.5px) rotateX(90deg)', bg: rimColor(i / N, i % 2 === 1) })),
+      medalDots: ['MOVIE', 'SERIES', 'ANIME', 'MANGA', 'WEBTOON', 'GAME'].map((k, i) => { const a = (i / 6) * Math.PI * 2 - Math.PI / 2; return { c: KDOT[k], x: (68 + Math.cos(a) * 54) + 'px', y: (68 + Math.sin(a) * 54) + 'px' }; }),
+      mRot: st.mRot + 'deg',
+      mPlay: st.mDrag ? 'paused' : 'running',
+      mDown: (e) => { if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); this.drag = { x: e.clientX, base: this.state.mRot }; this.setState({ mDrag: true }); },
+      mMove: (e) => { if (this.drag) this.setState({ mRot: this.drag.base + (e.clientX - this.drag.x) * 0.9 }); },
+      mUp: () => { if (this.drag) { this.drag = null; this.setState({ mDrag: false }); } },
+      medalStats: [['2.1%', 'HAVE IT'], ['180', 'POINTS'], ['12 SEP', 'UNLOCKED']].map((x, n) => ({ v: x[0], k: x[1], rule: rule(n) })),
+      medalKinds: [['MOVIE', 'The Long Static', '02 FEB'], ['SERIES', 'The Ferry Years', '18 APR'], ['ANIME', 'Static Bloom', '30 MAY'], ['MANGA', 'Paper Cities', '21 JUL'], ['WEBTOON', 'Moonlit Courier', '03 AUG'], ['GAME', 'Tidewalker', '12 SEP']]
+        .map((k, n) => ({ kind: k[0], title: k[1], date: k[2], dot: KDOT[k[0]], rule: n ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none' })),
+
+      lbA: this.board(st.scopeA, st.periodA, st.riseA, (v) => { this.setState({ scopeA: v }); this.rise('riseA'); }, (v) => { this.setState({ periodA: v }); this.rise('riseA'); }),
+      lbB: this.board(st.scopeB, st.periodB, st.riseB, (v) => { this.setState({ scopeB: v }); this.rise('riseB'); }, (v) => { this.setState({ periodB: v }); this.rise('riseB'); }),
+    };
+  }
+}
+</script>
+</body>
+</html>

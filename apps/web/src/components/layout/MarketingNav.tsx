@@ -41,7 +41,12 @@ export function MarketingNav() {
               {t(link.key)}
             </Link>
           ) : (
-            <a key={link.key} href={link.href} className={className}>
+            <a
+              key={link.key}
+              href={link.href}
+              className={className}
+              {...(link.external && { target: '_blank', rel: 'noopener noreferrer' })}
+            >
               {t(link.key)}
               {link.external && <ArrowUpRight aria-hidden className="size-3.5" strokeWidth={2.6} />}
             </a>

@@ -4,9 +4,11 @@ import {
   CatalogRelationEdgeSchema,
   CatalogSearchHitSchema,
   CatalogSearchKindsResponseSchema,
+  SlimMediaSchema,
   type CatalogGenresResponse,
   type CatalogRelationEdge,
   type CatalogSearchHit,
+  type SlimMedia,
 } from './catalog.js';
 
 /**
@@ -196,4 +198,25 @@ export async function fetchCatalogRelations(
   const envelope = RelationsEnvelopeSchema.parse(await response.json());
   const { items, skipped } = parseItems(envelope.relations, CatalogRelationEdgeSchema, '(edge)');
   return { relations: items, skipped };
+}
+
+export interface FetchCatalogMediaOptions {
+  timeoutMs: number;
+  fetchImpl?: typeof fetch;
+}
+
+/** One work by canonical id, or null when the catalog has no live row for it. */
+export async function fetchCatalogMedia(
+  catalogUrl: string,
+  id: string,
+  options: FetchCatalogMediaOptions,
+): Promise<SlimMedia | null> {
+  const { timeoutMs, fetchImpl = fetch } = options;
+  const url = new URL(`/v1/catalog/media/${encodeURIComponent(id)}`, catalogUrl);
+  const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`catalog media failed: ${response.status} ${response.statusText}`);
+  }
+  return SlimMediaSchema.parse(await response.json());
 }

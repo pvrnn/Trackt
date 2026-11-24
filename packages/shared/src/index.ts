@@ -20,3 +20,4 @@ export * from './rating.js';
 export * from './search-rank.js';
 export * from './slug.js';
 export * from './tracking.js';
+export * from './trophies.js';

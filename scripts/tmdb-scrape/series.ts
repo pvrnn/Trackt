@@ -8,19 +8,29 @@ import { appendFile, chmod, mkdir, readFile, rename, writeFile } from 'node:fs/p
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
+  bestBackdrop,
   collectRanking,
+  collectRecent,
   credentials,
   genreTag,
+  imageLanguages,
   imageUrl,
   isJapaneseAnimation,
   mapLimit,
+  parseRecentArg,
+  RECENT_DEFAULTS,
   rankKey,
+  recentRanking,
+  recentYears,
   tmdbGet,
   uuidV5,
   yearsToScan,
   type DiscoverPage,
   type FetchOptions,
+  type RecentArgs,
+  type TmdbImage,
   type Sort,
+  validateRecentArgs,
 } from './scrape.ts';
 
 const API_TV = '/discover/tv';
@@ -46,7 +56,7 @@ export type SeriesArgs = {
   resume: boolean;
   /** Leave Japanese animation out: anime rows come from AniList (see `isJapaneseAnimation`). */
   excludeAnime: boolean;
-};
+} & RecentArgs;
 
 /** One language's edition of a show's `translations` block. TV carries `name`, not `title`. */
 export type ShowTranslation = {
@@ -75,6 +85,8 @@ export type TmdbShow = {
   last_air_date?: string;
   poster_path?: string | null;
   backdrop_path?: string | null;
+  /** Appended with `images`; see `bestBackdrop`. */
+  images?: { backdrops?: TmdbImage[] };
   vote_average?: number;
   vote_count?: number;
   original_language?: string;
@@ -95,7 +107,7 @@ export type TmdbShow = {
   episode_run_time?: number[];
   networks?: { name?: string }[];
   tagline?: string;
-  /** Appended: `/tv/{id}?append_to_response=translations,external_ids`. */
+  /** Appended: `/tv/{id}?append_to_response=translations,external_ids,images`. */
   translations?: { translations?: ShowTranslation[] };
   external_ids?: { imdb_id?: string | null; tvdb_id?: number | null };
 };
@@ -129,10 +141,13 @@ export function parseSeriesArgs(argv: string[]): SeriesArgs {
     concurrency: 3,
     resume: false,
     excludeAnime: false,
+    ...RECENT_DEFAULTS,
   };
   for (let i = 0; i < argv.length; i++) {
     const value = argv[i + 1];
-    if (argv[i] === '--limit' && value) {
+    if (parseRecentArg(args, argv[i]!, value)) {
+      i++;
+    } else if (argv[i] === '--limit' && value) {
       args.limit = Number(value);
       i++;
     } else if (argv[i] === '--min-vote-count' && value) {
@@ -159,7 +174,7 @@ export function parseSeriesArgs(argv: string[]): SeriesArgs {
       args.excludeAnime = true;
     } else if (argv[i] === '--help') {
       console.log(
-        'Usage: pnpm scrape:tmdb:series [--limit 10] [--min-vote-count 10000] [--sort rating|popularity] [--exclude-anime] [--concurrency 3] [--resume] [--language en-US] [--out path]',
+        'Usage: pnpm scrape:tmdb:series [--limit 10] [--min-vote-count 10000] [--sort rating|popularity] [--exclude-anime] [--recent-years 0] [--recent-min-votes 10] [--concurrency 3] [--resume] [--language en-US] [--out path]',
       );
       process.exit(0);
     } else throw new Error(`Unknown argument: ${argv[i]}`);
@@ -176,6 +191,7 @@ export function parseSeriesArgs(argv: string[]): SeriesArgs {
   if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(args.language)) {
     throw new Error('--language must be an ISO 639-1 code, optionally with a region (en-US)');
   }
+  validateRecentArgs(args);
   return args;
 }
 
@@ -315,7 +331,7 @@ export function seasonRows(show: TmdbShow): SeasonRow[] {
         description: season.overview?.trim() || show.overview?.trim() || null,
         // The season's own poster is the honest cover for a season row; the show's is the fallback.
         coverUrl: imageUrl(season.poster_path || show.poster_path, 'w500'),
-        bannerUrl: imageUrl(show.backdrop_path, 'w1280'),
+        bannerUrl: imageUrl(bestBackdrop(show), 'w1280'),
       };
     });
 }
@@ -369,7 +385,40 @@ export async function scrapeSeries(args: SeriesArgs): Promise<number> {
 
   const failed: { id: number; name: string; reason: string }[] = [];
   const rows: SeasonRow[] = [];
+  const included = new Set<number>();
   let processed = 0;
+
+  const expand = (batch: TmdbShow[]) =>
+    mapLimit(
+      batch.filter((show) => !known.has(show.id)),
+      args.concurrency,
+      async (show) => {
+        try {
+          const response = await tmdbGet<TmdbShow>(
+            `/tv/${show.id}`,
+            {
+              language: args.language,
+              append_to_response: 'translations,external_ids,images',
+              include_image_language: imageLanguages(args.language),
+            },
+            detail,
+          );
+          const seasons = seasonRows({ ...show, ...response });
+          known.set(show.id, seasons);
+          await appendFile(
+            checkpoint,
+            `${JSON.stringify({ showId: show.id, rows: seasons })}\n`,
+            'utf8',
+          );
+        } catch (error) {
+          failed.push({
+            id: show.id,
+            name: show.name,
+            reason: error instanceof Error ? error.message : String(error),
+          });
+        }
+      },
+    );
 
   for (
     let offset = 0;
@@ -377,34 +426,12 @@ export async function scrapeSeries(args: SeriesArgs): Promise<number> {
     offset += SHOWS_PER_BATCH
   ) {
     const batch = shows.slice(offset, offset + SHOWS_PER_BATCH);
-    const missing = batch.filter((show) => !known.has(show.id));
-    await mapLimit(missing, args.concurrency, async (show) => {
-      try {
-        const response = await tmdbGet<TmdbShow>(
-          `/tv/${show.id}`,
-          { language: args.language, append_to_response: 'translations,external_ids' },
-          detail,
-        );
-        const seasons = seasonRows({ ...show, ...response });
-        known.set(show.id, seasons);
-        await appendFile(
-          checkpoint,
-          `${JSON.stringify({ showId: show.id, rows: seasons })}\n`,
-          'utf8',
-        );
-      } catch (error) {
-        failed.push({
-          id: show.id,
-          name: show.name,
-          reason: error instanceof Error ? error.message : String(error),
-        });
-      }
-    });
-
+    await expand(batch);
     for (const show of batch) {
       for (const row of known.get(show.id) ?? []) {
         if (rows.length >= args.limit) break;
         rows.push(row);
+        included.add(show.id);
       }
     }
     processed += batch.length;
@@ -414,6 +441,34 @@ export async function scrapeSeries(args: SeriesArgs): Promise<number> {
   if (rows.length < args.limit) {
     throw new Error(
       `TMDB's ${shows.length} ranked shows above ${args.minVoteCount} votes only yield ${rows.length} seasons; refusing to write a partial ${args.limit}-row seed.`,
+    );
+  }
+
+  // Recent shows come on top of --limit, every season of each, so the main
+  // ranking's size means the same thing with and without this pass.
+  const recent = recentYears(args.recentYears, lastYear);
+  if (recent.length) {
+    const extra = await collectRecent<TmdbShow>(
+      recent,
+      (year, page) =>
+        tmdbGet<DiscoverPage<TmdbShow>>(
+          API_TV,
+          { ...seriesQuery({ ...args, minVoteCount: args.recentMinVotes }, year), page },
+          scan,
+        ),
+      included,
+      (show) => rankKey(args.sort, show),
+      keep,
+    );
+    const before = rows.length;
+    for (let offset = 0; offset < extra.length; offset += SHOWS_PER_BATCH) {
+      const batch = extra.slice(offset, offset + SHOWS_PER_BATCH);
+      await expand(batch);
+      for (const show of batch) rows.push(...(known.get(show.id) ?? []));
+      console.log(`${offset + batch.length}/${extra.length} recent shows expanded`);
+    }
+    console.log(
+      `${extra.length} more shows from ${recent[0]}–${recent.at(-1)} above ${args.recentMinVotes} votes: ${rows.length - before} season rows`,
     );
   }
 
@@ -430,6 +485,7 @@ export async function scrapeSeries(args: SeriesArgs): Promise<number> {
       partitionedBy: 'first_air_date_year',
       excludesJapaneseAnimation: args.excludeAnime,
       rowsPerShow: 'season',
+      recent: recentRanking(recent, args.recentMinVotes),
     },
     catalog_media: rows,
     catalog_media_relation: [],

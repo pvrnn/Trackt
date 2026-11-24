@@ -19,6 +19,51 @@ const DETAIL_BATCH_SIZE = 100;
  */
 export const NON_WORK_GAME_TYPES = new Set([5, 6, 7, 12, 13, 14]);
 
+export type IgdbImage = {
+  id: number;
+  image_id: string;
+  width?: number;
+  height?: number;
+  artwork_type?: number;
+  alpha_channel?: boolean;
+  animated?: boolean;
+};
+
+/**
+ * Artwork types in the order a banner wants them (IGDB `artwork_type` ids):
+ * key art without logo, artwork, historical artwork first; a screenshot ranks
+ * between those and the next tier, key art with logo and concept art, because
+ * a logo fights the media page's own title. Logos, icons and covers never.
+ */
+const CLEAN_ARTWORK = [2, 1, 15];
+const LOGO_ARTWORK = [3, 4];
+
+/**
+ * The banner's IGDB `image_id`: the first landscape tier that has one, and
+ * within a tier the widest image, since the header box is wider than 16:9.
+ * Transparent images are logos or cut-outs and animated ones are not art.
+ */
+export function bestBanner(artworks: IgdbImage[], screenshots: IgdbImage[]): string | null {
+  const landscape = (image: IgdbImage) =>
+    !image.alpha_channel &&
+    !image.animated &&
+    (image.width ?? 0) > 0 &&
+    (image.height ?? 0) > 0 &&
+    image.width! / image.height! >= 1.3;
+  const widest = (images: IgdbImage[]) =>
+    [...images].sort(
+      (a, b) => b.width! / b.height! - a.width! / a.height! || (b.width ?? 0) - (a.width ?? 0),
+    )[0];
+  const tier = (types: number[]) =>
+    widest(artworks.filter((art) => types.includes(art.artwork_type ?? 1) && landscape(art)));
+  return (
+    tier(CLEAN_ARTWORK)?.image_id ??
+    screenshots.find(landscape)?.image_id ??
+    tier(LOGO_ARTWORK)?.image_id ??
+    null
+  );
+}
+
 export type Args = { limit: number; minRatingCount: number; out: string };
 type IgdbGame = {
   id: number;
@@ -32,6 +77,8 @@ type IgdbGame = {
   genres?: number[];
   platforms?: number[];
   cover?: number;
+  artworks?: number[];
+  screenshots?: number[];
   game_type?: number;
   game_status?: number;
   release_dates?: number[];
@@ -337,6 +384,7 @@ function toSeedRow(
   genres: Map<number, { name: string; slug?: string }>,
   platforms: Map<number, { name: string }>,
   covers: Map<number, { image_id: string }>,
+  images: { artworks: Map<number, IgdbImage>; screenshots: Map<number, IgdbImage> },
   gameTypes: Map<number, { type: string }>,
   parents: Map<number, { name: string }>,
   releaseStatuses: Map<number, string>,
@@ -344,6 +392,15 @@ function toSeedRow(
   steamIds: Map<number, number>,
 ) {
   const cover = game.cover === undefined ? undefined : covers.get(game.cover);
+  const lookup = (ids: number[] | undefined, map: Map<number, IgdbImage>) =>
+    (ids ?? []).flatMap((id) => {
+      const image = map.get(id);
+      return image ? [image] : [];
+    });
+  const banner = bestBanner(
+    lookup(game.artworks, images.artworks),
+    lookup(game.screenshots, images.screenshots),
+  );
   const steamId = steamIds.get(game.id);
   const parentId = game.parent_game ?? game.version_parent;
   const parent = parentId === undefined ? undefined : parents.get(parentId);
@@ -402,7 +459,7 @@ function toSeedRow(
     coverUrl: cover?.image_id
       ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${cover.image_id}.jpg`
       : null,
-    bannerUrl: null,
+    bannerUrl: banner ? `https://images.igdb.com/igdb/image/upload/t_1080p/${banner}.jpg` : null,
   };
 }
 
@@ -481,6 +538,8 @@ export async function scrapeIgdb(args: Args): Promise<number> {
           'genres',
           'platforms',
           'cover',
+          'artworks',
+          'screenshots',
           'game_type',
           'game_status',
           'release_dates',
@@ -536,6 +595,15 @@ export async function scrapeIgdb(args: Args): Promise<number> {
     const gameStatusIds = selectedGames.flatMap((game) =>
       game.game_status === undefined ? [] : [game.game_status],
     );
+    const artworkIds = selectedGames.flatMap((game) => game.artworks ?? []);
+    // Only the first screenshot can win (a fallback tier, not a ranking), so the
+    // rest are never asked for.
+    const screenshotIds = selectedGames.flatMap((game) => game.screenshots?.slice(0, 1) ?? []);
+    const imageFields = ['image_id', 'width', 'height', 'alpha_channel', 'animated'];
+    const [artworks, screenshots] = await Promise.all([
+      detailsMap<IgdbImage>(client, 'artwork', artworkIds, [...imageFields, 'artwork_type']),
+      detailsMap<IgdbImage>(client, 'screenshot', screenshotIds, imageFields),
+    ]);
     const [genres, platforms, covers, gameTypes, parents, releaseDateRows, gameStatusRows] =
       await Promise.all([
         detailsMap<{ id: number; name: string; slug?: string }>(client, 'genre', genreIds, [
@@ -589,6 +657,7 @@ export async function scrapeIgdb(args: Args): Promise<number> {
           genres,
           platforms,
           covers,
+          { artworks, screenshots },
           gameTypes,
           parents,
           releaseStatuses,

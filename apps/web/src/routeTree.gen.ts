@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrophiesRouteImport } from './routes/trophies'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewsRouteImport } from './routes/news'
@@ -24,7 +25,13 @@ import { Route as ListsIdRouteImport } from './routes/lists_.$id'
 import { Route as AuthRegisterRouteImport } from './routes/_auth.register'
 import { Route as AuthLoginRouteImport } from './routes/_auth.login'
 import { Route as UsersUsernameHistoryRouteImport } from './routes/users_.$username.history'
+import { Route as MediaIdIdRouteImport } from './routes/media_.id.$id'
 
+const TrophiesRoute = TrophiesRouteImport.update({
+  id: '/trophies',
+  path: '/trophies',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -99,6 +106,11 @@ const UsersUsernameHistoryRoute = UsersUsernameHistoryRouteImport.update({
   path: '/users/$username/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MediaIdIdRoute = MediaIdIdRouteImport.update({
+  id: '/media_/id/$id',
+  path: '/media/id/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,12 +120,14 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/trophies': typeof TrophiesRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/users/$username': typeof UsersUsernameRoute
+  '/media/id/$id': typeof MediaIdIdRoute
   '/users/$username/history': typeof UsersUsernameHistoryRoute
 }
 export interface FileRoutesByTo {
@@ -124,12 +138,14 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/trophies': typeof TrophiesRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
   '/users/$username': typeof UsersUsernameRoute
+  '/media/id/$id': typeof MediaIdIdRoute
   '/users/$username/history': typeof UsersUsernameHistoryRoute
 }
 export interface FileRoutesById {
@@ -142,12 +158,14 @@ export interface FileRoutesById {
   '/news': typeof NewsRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/trophies': typeof TrophiesRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
   '/lists_/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
   '/users/$username': typeof UsersUsernameRoute
+  '/media_/id/$id': typeof MediaIdIdRoute
   '/users_/$username/history': typeof UsersUsernameHistoryRoute
 }
 export interface FileRouteTypes {
@@ -160,12 +178,14 @@ export interface FileRouteTypes {
     | '/news'
     | '/profile'
     | '/search'
+    | '/trophies'
     | '/login'
     | '/register'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
     | '/users/$username'
+    | '/media/id/$id'
     | '/users/$username/history'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,12 +196,14 @@ export interface FileRouteTypes {
     | '/news'
     | '/profile'
     | '/search'
+    | '/trophies'
     | '/login'
     | '/register'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
     | '/users/$username'
+    | '/media/id/$id'
     | '/users/$username/history'
   id:
     | '__root__'
@@ -193,12 +215,14 @@ export interface FileRouteTypes {
     | '/news'
     | '/profile'
     | '/search'
+    | '/trophies'
     | '/_auth/login'
     | '/_auth/register'
     | '/lists_/$id'
     | '/media/$slug'
     | '/news_/$slug'
     | '/users/$username'
+    | '/media_/id/$id'
     | '/users_/$username/history'
   fileRoutesById: FileRoutesById
 }
@@ -211,15 +235,24 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRoute
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
+  TrophiesRoute: typeof TrophiesRoute
   ListsIdRoute: typeof ListsIdRoute
   MediaSlugRoute: typeof MediaSlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
   UsersUsernameRoute: typeof UsersUsernameRoute
+  MediaIdIdRoute: typeof MediaIdIdRoute
   UsersUsernameHistoryRoute: typeof UsersUsernameHistoryRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trophies': {
+      id: '/trophies'
+      path: '/trophies'
+      fullPath: '/trophies'
+      preLoaderRoute: typeof TrophiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
@@ -325,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsersUsernameHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/media_/id/$id': {
+      id: '/media_/id/$id'
+      path: '/media/id/$id'
+      fullPath: '/media/id/$id'
+      preLoaderRoute: typeof MediaIdIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -349,10 +389,12 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRoute,
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
+  TrophiesRoute: TrophiesRoute,
   ListsIdRoute: ListsIdRoute,
   MediaSlugRoute: MediaSlugRoute,
   NewsSlugRoute: NewsSlugRoute,
   UsersUsernameRoute: UsersUsernameRoute,
+  MediaIdIdRoute: MediaIdIdRoute,
   UsersUsernameHistoryRoute: UsersUsernameHistoryRoute,
 }
 export const routeTree = rootRouteImport

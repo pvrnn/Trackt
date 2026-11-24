@@ -60,6 +60,20 @@ describe('mediaFacts', () => {
     ]);
   });
 
+  it('reads the runtime under whichever key the importer wrote it', () => {
+    const runtime = (metadata: Record<string, unknown>) =>
+      mediaFacts(work({ metadata })).find((fact) => fact.key === 'runtime')?.value;
+    expect(runtime({ duration: 24 })).toBe(24);
+    expect(runtime({ runtime: 155 })).toBe(155);
+    expect(runtime({ episodeRuntime: 52 })).toBe(52);
+    expect(runtime({ runtime: 0 })).toBeUndefined();
+  });
+
+  it('lists every platform a game is on', () => {
+    const facts = mediaFacts(work({ metadata: { platforms: ['PC', 'PlayStation 5', ''] } }));
+    expect(facts).toEqual([{ key: 'platforms', value: ['PC', 'PlayStation 5'] }]);
+  });
+
   it('leaves out an end date on a work that has not ended', () => {
     const facts = mediaFacts(work({ status: 'airing', metadata: { endDate: '2025-03-01' } }));
     expect(facts.some((fact) => fact.key === 'ended')).toBe(false);
