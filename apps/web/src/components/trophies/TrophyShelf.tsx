@@ -131,7 +131,7 @@ export function TrophyShelf({
             </>
           );
           const cell =
-            'flex min-w-0 flex-col items-center gap-1 rounded-[10px] px-0.5 py-1.5 text-center';
+            'flex min-w-0 snap-start flex-col items-center gap-1 rounded-[10px] px-0.5 py-1.5 text-center';
           return onSelect ? (
             <button
               key={trophy.id}

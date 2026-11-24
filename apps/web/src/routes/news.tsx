@@ -166,7 +166,7 @@ function NewsPage() {
       <AuraBackground variant="app" />
       <div className="relative">
         {navUser ? <AppNav user={navUser} /> : <MarketingNav />}
-        <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-6 pt-12 pb-20 sm:px-10">
+        <main className="mx-auto flex max-w-[1360px] flex-col gap-7 px-4 pt-12 pb-20 sm:px-10">
           <h1 className="font-heading text-[64px] leading-none uppercase">{t('news.title')}</h1>
 
           <div className="flex flex-col gap-2.5">
@@ -388,7 +388,7 @@ function EmptyFeed({ filtered, library = false }: { filtered: boolean; library?:
       </p>
       <Link
         to="/search"
-        className="mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
+        className="tap-area mt-2 font-label text-xs font-semibold tracking-label text-pink hover:brightness-115"
       >
         {t('news.empty.browse')}
       </Link>

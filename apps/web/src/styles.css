@@ -79,6 +79,20 @@
   }
 }
 
+/* A hit area of at least 44×44 around a small control, without changing how it looks. */
+@utility tap-area {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 @layer base {
   html {
     color-scheme: dark;
@@ -527,6 +541,35 @@
     max-width: 0;
     margin-left: 0;
     opacity: 0;
+  }
+  /* Phones: one cell per row, so values aren't clipped, and no hover to reveal
+     kind names, so they stay open and the strip scrolls sideways instead. */
+  @media (width < 40rem) {
+    .fcell,
+    .fcell-year,
+    .fcell-more {
+      flex-basis: 100%;
+    }
+    .kstrip {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .kstrip::-webkit-scrollbar {
+      display: none;
+    }
+    .kchip {
+      height: 44px;
+      flex-shrink: 0;
+    }
+    .kchip-label,
+    .kstrip:hover .kchip[aria-pressed='true']:not(:hover) .kchip-label {
+      max-width: none;
+      margin-left: 8px;
+      opacity: 1;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .fcell,

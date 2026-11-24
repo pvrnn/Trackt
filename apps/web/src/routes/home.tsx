@@ -141,7 +141,7 @@ function HomePage() {
                       to="/users/$username/history"
                       params={{ username: navUser.username }}
                       search={{ year: 'all', status: 'in_progress' }}
-                      className="font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
+                      className="tap-area font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
                     >
                       {summary.inProgress.length >= IN_PROGRESS_LIMIT
                         ? t('home.upNext.allInProgressMore')
@@ -187,7 +187,7 @@ function HomePage() {
                     <Link
                       to="/users/$username/history"
                       params={{ username: navUser.username }}
-                      className="font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
+                      className="tap-area font-label text-xs font-bold tracking-label text-pink hover:brightness-115"
                     >
                       {t('home.activity.all')}
                     </Link>

@@ -18,7 +18,7 @@ export function Input({ label, error, labelEnd, trailing, id, className, ...prop
     error ? 'border-red-400/60' : 'border-white/12',
   );
   const field =
-    'px-[18px] py-3.5 font-sans text-[15px] text-fg outline-none placeholder:text-faint';
+    'px-[18px] py-3.5 font-sans text-base text-fg sm:text-[15px] outline-none placeholder:text-faint';
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between">

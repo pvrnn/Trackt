@@ -223,7 +223,7 @@ function GenreSection({
           aria-label={t('discover.genreSearch')}
           placeholder={t('discover.genreSearch')}
           autoComplete="off"
-          className="min-w-0 flex-1 bg-transparent p-0 text-sm text-fg outline-none placeholder:text-dim [&::-webkit-search-cancel-button]:appearance-none"
+          className="min-w-0 flex-1 bg-transparent p-0 text-base text-fg outline-none placeholder:text-dim sm:text-sm [&::-webkit-search-cancel-button]:appearance-none"
         />
       </label>
       {options.length > 0 && (

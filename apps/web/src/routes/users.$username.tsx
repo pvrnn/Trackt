@@ -63,7 +63,7 @@ function PublicProfile({ username, signedIn }: { username: string; signedIn: boo
   const { data: profile, isPending, isError } = usePublicProfile(username);
 
   return isError ? (
-    <main className="mx-auto max-w-[1360px] px-10 pt-12">
+    <main className="mx-auto max-w-[1360px] px-4 pt-12 sm:px-10">
       <p role="alert" className="text-[15px] text-red-400">
         {t('profile.public.loadError')}
       </p>
@@ -73,7 +73,7 @@ function PublicProfile({ username, signedIn }: { username: string; signedIn: boo
   ) : !profile ? (
     <NoSuchUser username={username} />
   ) : (
-    <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-10 pt-11 pb-20">
+    <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-4 pt-11 pb-20 sm:px-10">
       <ProfileHeader
         user={profile.user}
         stats={profile.stats}

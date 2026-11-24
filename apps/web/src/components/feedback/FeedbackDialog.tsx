@@ -135,7 +135,7 @@ export function FeedbackDialog({
             placeholder={t(media ? 'feedback.media.placeholder' : 'feedback.placeholder')}
             onChange={(event) => setMessage(event.target.value)}
             disabled={submit.isPending}
-            className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+            className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-base text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60 sm:text-[15px]"
           />
           <p className="flex items-baseline justify-between gap-3 text-xs text-faint">
             <span>{tooShort && trimmed.length > 0 ? t('feedback.minLength') : ''}</span>

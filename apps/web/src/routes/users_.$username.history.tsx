@@ -60,7 +60,7 @@ function PublicHistory({ username, search, setSearch }: HistoryViewProps & { use
   const { data: profile, isPending, isError } = usePublicProfile(username);
 
   return isError ? (
-    <main className="mx-auto max-w-[1360px] px-10 pt-12">
+    <main className="mx-auto max-w-[1360px] px-4 pt-12 sm:px-10">
       <p role="alert" className="text-[15px] text-red-400">
         {t('profile.public.loadError')}
       </p>

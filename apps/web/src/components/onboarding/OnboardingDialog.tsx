@@ -187,7 +187,7 @@ export function OnboardingDialog({ username, onClose }: { username: string; onCl
                     onClick={() => go(s)}
                     aria-current={i === idx ? 'step' : undefined}
                     aria-label={t(`onboarding.steps.${s}`)}
-                    className="block w-full cursor-pointer py-2"
+                    className="tap-area block w-full cursor-pointer py-2"
                   >
                     <span
                       aria-hidden
@@ -570,7 +570,7 @@ function SourceRow({
               aria-label={t(`onboarding.import.sources.${source.id}.placeholder`)}
               placeholder={t(`onboarding.import.sources.${source.id}.placeholder`)}
               autoComplete="off"
-              className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 text-[15px] text-fg outline-none placeholder:text-dim"
+              className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 text-base text-fg outline-none placeholder:text-dim sm:text-[15px]"
             />
           </label>
           <button

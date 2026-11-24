@@ -220,7 +220,7 @@ function LogRow({
         type="button"
         onClick={onClick}
         aria-label={actionLabel}
-        className="cursor-pointer px-0.5 py-2 font-label text-[11px] font-bold tracking-btn text-pink transition hover:brightness-125"
+        className="tap-area cursor-pointer px-0.5 py-2 font-label text-[11px] font-bold tracking-btn text-pink transition hover:brightness-125"
       >
         {action}
       </button>

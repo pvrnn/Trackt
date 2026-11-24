@@ -24,7 +24,7 @@ import { kindDotClass } from '../ui/KindDot';
  * your own, where reads go to `/me/*`.
  */
 
-const linkClass = 'font-label text-xs font-bold tracking-[0.08em] text-pink hover:text-fg';
+const linkClass = 'tap-area font-label text-xs font-bold tracking-[0.08em] text-pink hover:text-fg';
 
 function HistoryLink({
   username,

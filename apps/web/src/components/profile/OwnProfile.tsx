@@ -67,7 +67,7 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
   };
 
   return loadError ? (
-    <main className="mx-auto max-w-[1360px] px-10 pt-12">
+    <main className="mx-auto max-w-[1360px] px-4 pt-12 sm:px-10">
       <p role="alert" className="text-[15px] text-red-400">
         {t('profile.loadError')}
       </p>
@@ -76,7 +76,7 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
     <main className="h-40" aria-busy />
   ) : (
     <>
-      <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-10 pt-11 pb-20">
+      <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-4 pt-11 pb-20 sm:px-10">
         <ProfileHeader
           user={summary.user}
           stats={summary.stats}
@@ -453,7 +453,7 @@ function EditProfileDialog({
             value={bio}
             placeholder={t('profile.edit.bioPlaceholder')}
             onChange={(event) => setBio(event.target.value)}
-            className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-[15px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+            className="resize-none rounded-cover border border-white/12 bg-white/6 px-[18px] py-3.5 font-sans text-base text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60 sm:text-[15px]"
           />
           <p className="text-right text-xs text-faint">{bio.length}/280</p>
         </div>
@@ -477,7 +477,7 @@ function EditProfileDialog({
                   onChange={(event) =>
                     setLinks((current) => ({ ...current, [key]: event.target.value }))
                   }
-                  className="rounded-cover border border-white/12 bg-white/6 px-3 py-2 font-sans text-[13px] text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60"
+                  className="rounded-cover border border-white/12 bg-white/6 px-3 py-2 font-sans text-base text-fg transition-colors outline-none placeholder:text-faint focus:border-pink/60 sm:text-[13px]"
                 />
               </label>
             ))}

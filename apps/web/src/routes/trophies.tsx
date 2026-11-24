@@ -238,7 +238,7 @@ function Shelf({
       {trophies.length === 0 ? (
         <p className="text-sm text-muted">{empty}</p>
       ) : (
-        <div className="overflow-x-auto pb-1">
+        <div className="snap-x snap-mandatory overflow-x-auto pb-1">
           <div style={{ minWidth: columns * 96 }}>
             <TrophyShelf
               trophies={trophies}

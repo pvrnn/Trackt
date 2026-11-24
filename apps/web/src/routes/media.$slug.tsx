@@ -260,7 +260,7 @@ function MediaPage() {
   if (isError) {
     return (
       <Shell user={navUser}>
-        <main className="mx-auto flex max-w-[1360px] flex-col items-start gap-4 px-10 pt-14 pb-20">
+        <main className="mx-auto flex max-w-[1360px] flex-col items-start gap-4 px-4 pt-14 pb-20 sm:px-10">
           <h1 className="font-heading text-[56px] leading-none uppercase">
             {t('media.loadFailed.title')}
           </h1>
@@ -279,7 +279,7 @@ function MediaPage() {
   if (data === null) {
     return (
       <Shell user={navUser}>
-        <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-10 pt-14 pb-20">
+        <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-4 pt-14 pb-20 sm:px-10">
           <h1 className="font-heading text-[56px] leading-none uppercase">
             {t('media.notFound.title')}
           </h1>
@@ -295,7 +295,7 @@ function MediaPage() {
   if (!data) {
     return (
       <Shell user={navUser}>
-        <main className="mx-auto max-w-[1360px] px-10 pt-14 pb-20">
+        <main className="mx-auto max-w-[1360px] px-4 pt-14 pb-20 sm:px-10">
           <div className="h-40" aria-busy />
         </main>
       </Shell>
@@ -672,7 +672,7 @@ function MediaPage() {
           <button
             type="button"
             onClick={() => setReportingIssue(true)}
-            className="cursor-pointer px-0.5 py-1.5 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition-colors hover:text-pink"
+            className="tap-area cursor-pointer px-0.5 py-1.5 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition-colors hover:text-pink"
           >
             <span aria-hidden>⚑ </span>
             {t('media.reportIssue')}
@@ -690,7 +690,7 @@ function MediaPage() {
               <button
                 type="button"
                 onClick={() => setPosition(position >= total ? 0 : total)}
-                className="cursor-pointer font-label text-[11px] tracking-label text-pink transition-colors hover:brightness-125"
+                className="tap-area cursor-pointer font-label text-[11px] tracking-label text-pink transition-colors hover:brightness-125"
               >
                 {position >= total
                   ? t('media.clearProgress')
