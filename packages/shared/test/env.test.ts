@@ -19,7 +19,7 @@ describe('loadEnv', () => {
     expect(env.DATABASE_URL).toContain('postgres://');
     expect(env.REDIS_URL).toContain('redis://');
     expect(env.AUTH_SECRET).toBeTruthy();
-    expect(env.APP_URL).toBe('http://localhost:3001');
+    expect(env.APP_URL).toBe('http://localhost:3000');
   });
 
   it('warns when development falls back to the built-in AUTH_SECRET', () => {
@@ -88,14 +88,48 @@ describe('loadEnv', () => {
     expect(attempt).toThrowError(/APP_URL/);
   });
 
+  const PRODUCTION = {
+    NODE_ENV: 'production',
+    DATABASE_URL: 'postgres://u:p@db:5432/trackt',
+    REDIS_URL: 'redis://redis:6379',
+    AUTH_SECRET: 'a-very-long-production-secret',
+    APP_URL: 'https://trackt.example.com',
+  };
+  const MAIL = { RESEND_API_KEY: 're_test', MAIL_FROM: 'Trackt <no-reply@trackt.example.com>' };
+
   it('boots in production when critical variables are set', () => {
-    const env = loadEnv({
-      NODE_ENV: 'production',
-      DATABASE_URL: 'postgres://u:p@db:5432/trackt',
-      REDIS_URL: 'redis://redis:6379',
-      AUTH_SECRET: 'a-very-long-production-secret',
-      APP_URL: 'https://trackt.example.com',
-    });
+    const env = loadEnv({ ...PRODUCTION, ...MAIL });
     expect(env.APP_URL).toBe('https://trackt.example.com');
+    expect(env.AUTH_EMAIL_VERIFICATION).toBe('on');
+  });
+
+  it('refuses production with email verification on and no mail transport', () => {
+    const attempt = () => loadEnv(PRODUCTION);
+    expect(attempt).toThrowError(EnvValidationError);
+    expect(attempt).toThrowError(/RESEND_API_KEY/);
+    expect(attempt).toThrowError(/SMTP_URL/);
+    expect(attempt).toThrowError(/AUTH_EMAIL_VERIFICATION/);
+  });
+
+  it('requires MAIL_FROM in production when verification mail is sent', () => {
+    const attempt = () => loadEnv({ ...PRODUCTION, SMTP_URL: 'smtp://mail:25' });
+    expect(attempt).toThrowError(/MAIL_FROM/);
+  });
+
+  it('boots in production without a mail transport when verification is off', () => {
+    const env = loadEnv({ ...PRODUCTION, AUTH_EMAIL_VERIFICATION: 'off' });
+    expect(env.AUTH_EMAIL_VERIFICATION).toBe('off');
+    expect(env.RESEND_API_KEY).toBeUndefined();
+  });
+
+  it('defaults verification on and MAIL_FROM to localhost in development', () => {
+    const env = loadEnv({ AUTH_EMAIL_VERIFICATION: '', SMTP_URL: '' });
+    expect(env.AUTH_EMAIL_VERIFICATION).toBe('on');
+    expect(env.SMTP_URL).toBeUndefined();
+    expect(env.MAIL_FROM).toBe('Trackt <no-reply@localhost>');
+  });
+
+  it('rejects an SMTP_URL that is not an smtp URL', () => {
+    expect(() => loadEnv({ SMTP_URL: 'https://mail.example.com' })).toThrowError(/SMTP_URL/);
   });
 });

@@ -22,8 +22,13 @@ export function LoginForm({ redirect }: { redirect?: string }) {
     event.preventDefault();
     setSubmitting(true);
     setFormError(null);
-    const { error } = await authClient.signIn.email({ email, password });
+    const { error } = await authClient.signIn.email({ email: email.trim(), password });
     setSubmitting(false);
+    // The server has already mailed a fresh code.
+    if (error?.code === 'EMAIL_NOT_VERIFIED') {
+      await navigate({ to: '/verify-email', search: { email: email.trim(), redirect } });
+      return;
+    }
     if (error) {
       setFormError(t(authErrorKey(error, 'errors.signInFailed')));
       return;

@@ -32,7 +32,8 @@
     "list": "{{name}} · Trackt",
     "user": "{{name}} (@{{username}}) · Trackt",
     "userHistory": "{{username}}’s history · Trackt",
-    "newsArticle": "{{title}} · Trackt"
+    "newsArticle": "{{title}} · Trackt",
+    "verifyEmail": "Verify email · Trackt"
   },
   "locale": {
     "switch": "Language",
@@ -126,7 +127,12 @@
     "signInFailed": "Sign in failed. Try again.",
     "signUpFailed": "Sign up failed. Try again.",
     "instanceUnreachable": "Couldn’t reach the instance API. Is it running? Try again in a moment.",
-    "searchFailed": "Search failed. Is the instance API reachable? Try again in a moment."
+    "searchFailed": "Search failed. Is the instance API reachable? Try again in a moment.",
+    "emailNotVerified": "Confirm your email to sign in.",
+    "invalidCode": "That code is not right. Check the email and try again.",
+    "codeExpired": "That code has expired. Send a new one.",
+    "tooManyAttempts": "Too many tries. Send a new code.",
+    "verifyFailed": "Verification failed. Try again."
   },
   "shell": {
     "accountMenu": "account menu",
@@ -157,6 +163,19 @@
       "title": "Start your log",
       "pitchTop": "Everything you watch,",
       "pitchBottom": "read and play."
+    },
+    "verify": {
+      "title": "Check your inbox",
+      "sentTo": "We sent a 6-digit code to",
+      "codeLabel": "Code",
+      "codeFormat": "Enter the 6 digits from the email.",
+      "submit": "VERIFY EMAIL",
+      "submitting": "VERIFYING…",
+      "noCode": "No email?",
+      "resend": "Send a new code",
+      "resendIn": "Send a new code in {{seconds}}s",
+      "resent": "A new code is on its way.",
+      "noEmail": "Open the link from your email, or sign in to get a new code."
     },
     "fields": {
       "username": "Username",
@@ -190,6 +209,7 @@
     "validation": {
       "usernameFormat": "3 to 30 characters: letters, numbers, dots, underscores",
       "emailRequired": "Email is required",
+      "disposableEmail": "Use a permanent address: disposable and relay emails (Firefox Relay, Hide My Email…) are not accepted",
       "passwordLength": "At least {{min}} characters"
     }
   },

@@ -11,8 +11,9 @@ import { Wordmark } from '../layout/Wordmark';
 import { useLabels } from '../../lib/labels';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
+import { VerifyEmailForm } from './VerifyEmailForm';
 
-export type AuthMode = 'login' | 'register';
+export type AuthMode = 'login' | 'register' | 'verify';
 
 /**
  * Everything that moves between modes shares one curve and length, so the
@@ -34,14 +35,24 @@ function swapTransition(active: boolean, reduced: boolean): string {
 }
 
 /**
- * Split-screen shell for /login and /register (docs/design/Login.dc.html): the
+ * Split-screen shell for /login, /register and /verify-email (docs/design/Login.dc.html): the
  * form alone on the left, what is waiting on the other side on the right.
  *
  * Both forms are always mounted, side by side in a track that slides: sign-in
  * sits left of sign-up, so going to CREATE ACCOUNT moves everything left and
  * back moves it right. Each form keeps what was typed into it across switches.
  */
-export function AuthLayout({ mode, redirect }: { mode: AuthMode; redirect?: string }) {
+export function AuthLayout({
+  mode,
+  redirect,
+  email,
+  code,
+}: {
+  mode: AuthMode;
+  redirect?: string | undefined;
+  email?: string | undefined;
+  code?: string | undefined;
+}) {
   const { t } = useTranslation();
   return (
     <div data-auth-root className="grid min-h-screen bg-ink text-fg lg:grid-cols-2">
@@ -67,16 +78,27 @@ export function AuthLayout({ mode, redirect }: { mode: AuthMode; redirect?: stri
 
         {/* Top-anchored, not centred: the two forms differ in height and the tabs must not move. */}
         <main className="relative mx-auto flex w-full max-w-[420px] flex-1 flex-col gap-6.5 pt-[clamp(3rem,13vh,9rem)] pb-12">
-          <h1 className="m-0 grid font-display text-[56px] leading-[0.95] font-normal uppercase">
-            <Swap active={mode === 'login'} side="left">
-              {t('auth.login.title')}
-            </Swap>
-            <Swap active={mode === 'register'} side="right">
-              {t('auth.register.title')}
-            </Swap>
-          </h1>
-          <ModeTabs mode={mode} />
-          <FormTrack mode={mode} redirect={redirect} />
+          {mode === 'verify' ? (
+            <>
+              <h1 className="m-0 font-display text-[56px] leading-[0.95] font-normal uppercase">
+                {t('auth.verify.title')}
+              </h1>
+              <VerifyEmailForm email={email} code={code} redirect={redirect} />
+            </>
+          ) : (
+            <>
+              <h1 className="m-0 grid font-display text-[56px] leading-[0.95] font-normal uppercase">
+                <Swap active={mode === 'login'} side="left">
+                  {t('auth.login.title')}
+                </Swap>
+                <Swap active={mode === 'register'} side="right">
+                  {t('auth.register.title')}
+                </Swap>
+              </h1>
+              <ModeTabs mode={mode} />
+              <FormTrack mode={mode} redirect={redirect} />
+            </>
+          )}
         </main>
 
         <div className="relative flex flex-wrap gap-x-5 gap-y-2 font-label text-[11px] font-semibold tracking-[0.08em] text-dim">
@@ -93,7 +115,7 @@ export function AuthLayout({ mode, redirect }: { mode: AuthMode; redirect?: stri
         </div>
       </div>
 
-      <AuthBackdrop mode={mode} />
+      <AuthBackdrop mode={mode === 'verify' ? 'register' : mode} />
     </div>
   );
 }
@@ -208,7 +230,7 @@ function ModeTabs({ mode }: { mode: AuthMode }) {
 }
 
 /** The instance's covers drifting past under a scrim, and a pitch on top. Decoration only. */
-function AuthBackdrop({ mode }: { mode: AuthMode }) {
+function AuthBackdrop({ mode }: { mode: Exclude<AuthMode, 'verify'> }) {
   const { t } = useTranslation();
   const labels = useLabels();
   return (

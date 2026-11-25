@@ -1,5 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
-import { inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
+import { emailOTPClient, inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
 import { expoClient } from '@better-auth/expo/client';
 import * as SecureStore from 'expo-secure-store';
 import { i18n } from '../i18n';
@@ -25,6 +25,7 @@ function createInstanceAuthClient(origin: string) {
         storage: SecureStore,
       }),
       usernameClient(),
+      emailOTPClient(),
       // Mirrors the server's `additionalFields` (apps/api/src/auth.ts).
       inferAdditionalFields({ user: { role: { type: 'string', input: false } } }),
     ],
@@ -58,6 +59,14 @@ export function authClient(): InstanceAuthClient {
     throw new Error(i18n.t('errors.noInstanceSelected'));
   }
   return current.client;
+}
+
+/**
+ * Picks the language of the verification email: the server reads the web
+ * client's locale cookie, and this client has none.
+ */
+export function localeHeaders(): { fetchOptions: { headers: Record<string, string> } } {
+  return { fetchOptions: { headers: { 'accept-language': i18n.language } } };
 }
 
 /**

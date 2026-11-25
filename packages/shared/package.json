@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./disposable-email": {
+      "types": "./dist/disposable-email.d.ts",
+      "default": "./dist/disposable-email.js"
     }
   },
   "files": [
@@ -19,6 +23,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "disposable-email-domains-js": "^2.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -176,6 +176,13 @@
       "when": 1795434986950,
       "tag": "0024_user_trophy",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795628779611,
+      "tag": "0025_verify_existing_users",
+      "breakpoints": true
     }
   ]
 }

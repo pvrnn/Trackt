@@ -144,6 +144,7 @@ describe.runIf(available)('news proxy (postgres)', () => {
   async function appWithoutCatalog(): Promise<App> {
     const env = loadEnv({
       NODE_ENV: 'production',
+      AUTH_EMAIL_VERIFICATION: 'off',
       LOG_LEVEL: 'error',
       DATABASE_URL: TEST_DATABASE_URL,
       REDIS_URL: 'redis://localhost:6379',

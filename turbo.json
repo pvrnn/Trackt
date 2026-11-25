@@ -34,7 +34,11 @@
         "UPLOADS_DIR",
         "DISCORD_BOT_TOKEN",
         "DISCORD_APPLICATION_ID",
-        "DISCORD_GUILD_ID"
+        "DISCORD_GUILD_ID",
+        "RESEND_API_KEY",
+        "SMTP_URL",
+        "MAIL_FROM",
+        "AUTH_EMAIL_VERIFICATION"
       ]
     },
     "typecheck": {

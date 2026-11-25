@@ -10,7 +10,12 @@ type AuthErrorKey =
   | 'errors.weakPassword'
   | 'errors.generic'
   | 'errors.signInFailed'
-  | 'errors.signUpFailed';
+  | 'errors.signUpFailed'
+  | 'errors.emailNotVerified'
+  | 'errors.invalidCode'
+  | 'errors.codeExpired'
+  | 'errors.tooManyAttempts'
+  | 'errors.verifyFailed';
 
 export function authErrorKey(
   error: { code?: string | undefined; status?: number | undefined } | null,
@@ -31,6 +36,14 @@ export function authErrorKey(
       return 'errors.invalidUsername';
     case 'PASSWORD_TOO_SHORT':
       return 'errors.weakPassword';
+    case 'EMAIL_NOT_VERIFIED':
+      return 'errors.emailNotVerified';
+    case 'INVALID_OTP':
+      return 'errors.invalidCode';
+    case 'OTP_EXPIRED':
+      return 'errors.codeExpired';
+    case 'TOO_MANY_ATTEMPTS':
+      return 'errors.tooManyAttempts';
     default:
       return fallback;
   }

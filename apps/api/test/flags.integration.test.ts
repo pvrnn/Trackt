@@ -63,7 +63,11 @@ describe.runIf(available)('feature flags (postgres)', () => {
   beforeAll(async () => {
     await runMigrations(TEST_DATABASE_URL);
     db = createDb(TEST_DATABASE_URL, { max: 1 });
-    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
+    const env = loadEnv({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'error',
+      AUTH_EMAIL_VERIFICATION: 'off',
+    });
     const auth: Auth = createAuth(db, env);
 
     app = await buildApp({ env, db, auth });

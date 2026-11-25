@@ -6,6 +6,7 @@ import { EnvValidationError, loadEnv, parseFlagOverrides } from '@trackt/shared'
 import { buildApp } from './app.js';
 import { createAuth } from './auth.js';
 import { createImportQueue } from './lib/import-queue.js';
+import { createMailer } from './lib/mail/mailer.js';
 
 async function main(): Promise<void> {
   let env;
@@ -21,7 +22,8 @@ async function main(): Promise<void> {
 
   const db = createDb(env.DATABASE_URL);
   const redis = new Redis(env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1 });
-  const auth = createAuth(db, env);
+  const mailer = createMailer(env);
+  const auth = createAuth(db, env, mailer);
   // Producer side of the importer queue. It connects lazily on the first `add`,
   // so an API that boots before Redis can still serve reads.
   const importQueue = createImportQueue(env.REDIS_URL);
@@ -51,6 +53,12 @@ async function main(): Promise<void> {
   for (const warning of parseFlagOverrides(env.FEATURE_FLAGS).warnings) {
     app.log.warn(warning);
   }
+
+  app.log.info(
+    env.AUTH_EMAIL_VERIFICATION === 'on'
+      ? `email verification on, mail via ${mailer.kind}`
+      : 'email verification off',
+  );
 
   // Monolith mode: everything that isn't an API route is proxied to the web SSR server.
   if (env.WEB_PROXY_UPSTREAM) {

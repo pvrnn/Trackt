@@ -144,7 +144,11 @@
     "instanceUnreachableDetailed": "Impossible de joindre cette adresse. Vérifiez l'URL, le port et que vous êtes sur le même réseau.",
     "notTracktInstance": "Cette adresse a répondu, mais ce n'est pas une instance Trackt.",
     "instanceTooOld": "Cette instance utilise {{version}} ; l'app nécessite {{min}} ou plus récent. Demandez à son admin de mettre à jour.",
-    "noInstanceSelected": "Aucune instance sélectionnée — l'authentification est indisponible jusqu'à ce que le sélecteur ait été exécuté."
+    "noInstanceSelected": "Aucune instance sélectionnée — l'authentification est indisponible jusqu'à ce que le sélecteur ait été exécuté.",
+    "invalidCode": "Ce code est incorrect. Vérifiez l’e-mail et réessayez.",
+    "codeExpired": "Ce code a expiré. Demandez-en un nouveau.",
+    "tooManyAttempts": "Trop de tentatives. Demandez un nouveau code.",
+    "verifyFailed": "La vérification a échoué. Réessayez."
   },
   "shell": {
     "accountMenu": "menu du compte",
@@ -174,6 +178,17 @@
       "title": "Créer un compte",
       "subtitle": "Votre historique, vos notes et vos listes, exportables à tout moment."
     },
+    "verify": {
+      "title": "Vérifiez vos e-mails",
+      "sentTo": "Nous avons envoyé un code à 6 chiffres à",
+      "codeLabel": "Code",
+      "codeFormat": "Saisissez les 6 chiffres de l’e-mail.",
+      "submit": "VÉRIFIER L’ADRESSE",
+      "submitting": "VÉRIFICATION…",
+      "resend": "ENVOYER UN NOUVEAU CODE",
+      "resendIn": "NOUVEAU CODE DANS {{seconds}} S",
+      "resent": "Un nouveau code est en route."
+    },
     "fields": {
       "name": "Nom",
       "username": "Nom d’utilisateur",
@@ -198,6 +213,7 @@
       "nameRequired": "Le nom est obligatoire",
       "usernameFormat": "3 à 30 caractères : lettres, chiffres, points, tirets bas",
       "emailRequired": "L’e-mail est obligatoire",
+      "disposableEmail": "Utilisez une adresse permanente : les e-mails jetables et les alias (Firefox Relay, Masquer mon adresse…) ne sont pas acceptés",
       "passwordLength": "Au moins {{min}} caractères",
       "passwordMismatch": "Les mots de passe ne correspondent pas"
     },

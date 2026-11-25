@@ -22,6 +22,7 @@ import { Route as UsersUsernameRouteImport } from './routes/users.$username'
 import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
 import { Route as ListsIdRouteImport } from './routes/lists_.$id'
+import { Route as AuthVerifyEmailRouteImport } from './routes/_auth.verify-email'
 import { Route as AuthRegisterRouteImport } from './routes/_auth.register'
 import { Route as AuthLoginRouteImport } from './routes/_auth.login'
 import { Route as UsersUsernameHistoryRouteImport } from './routes/users_.$username.history'
@@ -91,6 +92,11 @@ const ListsIdRoute = ListsIdRouteImport.update({
   path: '/lists/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/trophies': typeof TrophiesRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
+  '/verify-email': typeof AuthVerifyEmailRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/trophies': typeof TrophiesRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
+  '/verify-email': typeof AuthVerifyEmailRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/trophies': typeof TrophiesRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
+  '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/lists_/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/trophies'
     | '/login'
     | '/register'
+    | '/verify-email'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/trophies'
     | '/login'
     | '/register'
+    | '/verify-email'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/trophies'
     | '/_auth/login'
     | '/_auth/register'
+    | '/_auth/verify-email'
     | '/lists_/$id'
     | '/media/$slug'
     | '/news_/$slug'
@@ -337,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/verify-email': {
+      id: '/_auth/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof AuthVerifyEmailRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/register': {
       id: '/_auth/register'
       path: '/register'
@@ -371,11 +390,13 @@ declare module '@tanstack/react-router' {
 interface AuthRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  AuthVerifyEmailRoute: AuthVerifyEmailRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

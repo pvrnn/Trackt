@@ -6,10 +6,11 @@ import { GlassCard } from '../../src/components/GlassCard';
 import { PrismButton } from '../../src/components/PrismButton';
 import { PrismText } from '../../src/components/PrismText';
 import { Screen } from '../../src/components/Screen';
-import { authClient } from '../../src/lib/auth-client';
+import { authClient, localeHeaders } from '../../src/lib/auth-client';
 import { color, space } from '../../src/theme/tokens';
 import { useTranslation } from 'react-i18next';
 import { i18n } from '../../src/i18n';
+import { isDisposableEmail } from '@trackt/shared/disposable-email';
 import { type } from '../../src/theme/typography';
 
 /**
@@ -36,6 +37,7 @@ function validate(f: Fields): FieldErrors {
   if (!f.name.trim()) errors.name = i18n.t('auth.validation.nameRequired');
   if (!USERNAME_RE.test(f.username)) errors.username = i18n.t('auth.validation.usernameFormat');
   if (!f.email.trim()) errors.email = i18n.t('auth.validation.emailRequired');
+  else if (isDisposableEmail(f.email)) errors.email = i18n.t('auth.validation.disposableEmail');
   if (f.password.length < MIN_PASSWORD_LENGTH)
     errors.password = i18n.t('auth.validation.passwordLength', { min: MIN_PASSWORD_LENGTH });
   if (f.confirm !== f.password) errors.confirm = i18n.t('auth.validation.passwordMismatch');
@@ -61,15 +63,26 @@ export default function Register() {
     if (Object.keys(errors).length > 0) return;
 
     setSubmitting(true);
-    const { error } = await authClient().signUp.email({
+    const email = fields.email.trim();
+    const { data, error } = await authClient().signUp.email({
       name: fields.name.trim(),
-      email: fields.email.trim(),
+      email,
       password: fields.password,
       username: fields.username,
+      ...localeHeaders(),
     });
     setSubmitting(false);
+    if (error?.code === 'DISPOSABLE_EMAIL') {
+      setFieldErrors({ email: t('auth.validation.disposableEmail') });
+      return;
+    }
     if (error) {
       setFormError(error.message ?? t('errors.signUpFailed'));
+      return;
+    }
+    // No token: the instance requires a verified email, and the code is on its way.
+    if (!data?.token) {
+      router.replace({ pathname: '/verify', params: { email } });
       return;
     }
     router.replace('/onboarding');

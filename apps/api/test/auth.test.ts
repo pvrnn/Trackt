@@ -4,17 +4,31 @@ import { memoryAdapter } from 'better-auth/adapters/memory';
 import { loadEnv } from '@trackt/shared';
 import { buildApp, type App } from '../src/app.js';
 import { baseAuthOptions, type Auth } from '../src/auth.js';
+import type { Mailer, MailMessage } from '../src/lib/mail/mailer.js';
+import type { Env } from '@trackt/shared';
 
-const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
+/** Most suites predate verification and want a session straight from sign-up. */
+const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error', AUTH_EMAIL_VERIFICATION: 'off' });
+
+function capturingMailer(): Mailer & { sent: MailMessage[] } {
+  const sent: MailMessage[] = [];
+  return {
+    kind: 'console',
+    sent,
+    async send(message) {
+      sent.push(message);
+    },
+  };
+}
 
 /**
  * Exercises the real auth option set (username plugin, trusted origins) and the
  * Fastify↔WHATWG bridge in app.ts, with better-auth's memory adapter standing in
  * for Postgres. The adapter is the only divergence from production wiring.
  */
-function buildAuth() {
+function buildAuth(authEnv: Env = env, mailer: Mailer = capturingMailer()) {
   return betterAuth({
-    ...baseAuthOptions(env),
+    ...baseAuthOptions(authEnv, mailer),
     database: memoryAdapter({ user: [], session: [], account: [], verification: [] }),
   }) as unknown as Auth;
 }
@@ -72,6 +86,28 @@ describe('auth routes', () => {
     );
     expect(response.statusCode).toBeGreaterThanOrEqual(400);
     expect(response.json().code).toBe('USERNAME_IS_ALREADY_TAKEN');
+  });
+
+  it('refuses a disposable or relay address before creating anything', async () => {
+    for (const [email, username] of [
+      ['x9k2@mozmail.com', 'relayed'],
+      ['someone@mailinator.com', 'throwaway'],
+    ] as const) {
+      const response = await app.inject(
+        signUp({ name: 'Ghost', email, password: 'password123', username }),
+      );
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe('DISPOSABLE_EMAIL');
+    }
+    const retry = await app.inject(
+      signUp({
+        name: 'Ghost',
+        email: 'ghost@example.com',
+        password: 'password123',
+        username: 'relayed',
+      }),
+    );
+    expect(retry.statusCode).toBe(200);
   });
 
   it('signs in and returns the session for the cookie', async () => {
@@ -135,6 +171,128 @@ describe('auth routes', () => {
   });
 });
 
+describe('email verification', () => {
+  const verifyEnv = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
+  const mailer = capturingMailer();
+  const account = {
+    name: 'Vera',
+    email: 'vera@example.com',
+    password: 'password123',
+    username: 'vera',
+  };
+  let app: App;
+
+  const signIn = () =>
+    app.inject({
+      method: 'POST',
+      url: '/api/auth/sign-in/email',
+      headers: { origin: verifyEnv.APP_URL },
+      payload: { email: account.email, password: account.password },
+    });
+  const verify = (otp: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/auth/email-otp/verify-email',
+      headers: { origin: verifyEnv.APP_URL },
+      payload: { email: account.email, otp },
+    });
+  const codeIn = (message: MailMessage | undefined) => /\b(\d{6})\b/.exec(message?.text ?? '')?.[1];
+
+  beforeAll(async () => {
+    app = await buildApp({ env: verifyEnv, auth: buildAuth(verifyEnv, mailer) });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('is on unless switched off', () => {
+    expect(verifyEnv.AUTH_EMAIL_VERIFICATION).toBe('on');
+  });
+
+  it('signs up without a session and mails a code with a link to the web page', async () => {
+    const response = await app.inject(signUp(account));
+    expect(response.statusCode).toBe(200);
+    expect(response.json().token).toBeNull();
+    expect(String(response.headers['set-cookie'] ?? '')).not.toMatch(/session_token=/);
+
+    expect(mailer.sent).toHaveLength(1);
+    const [message] = mailer.sent;
+    expect(message?.to).toBe(account.email);
+    const code = codeIn(message);
+    expect(code).toMatch(/^\d{6}$/);
+    expect(message?.subject).toContain(code);
+    expect(message?.text).toContain(
+      `${verifyEnv.APP_URL}/verify-email?email=vera%40example.com&code=${code}`,
+    );
+  });
+
+  it('refuses sign-in before verification and mails a fresh code', async () => {
+    const response = await signIn();
+    expect(response.statusCode).toBe(403);
+    expect(response.json().code).toBe('EMAIL_NOT_VERIFIED');
+    expect(mailer.sent).toHaveLength(2);
+  });
+
+  it('rejects a wrong code, then verifies with the right one and signs in', async () => {
+    const code = codeIn(mailer.sent.at(-1)) as string;
+    const wrong = await verify(code === '000000' ? '111111' : '000000');
+    expect(wrong.statusCode).toBe(400);
+    expect(wrong.json().code).toBe('INVALID_OTP');
+
+    const right = await verify(code);
+    expect(right.statusCode).toBe(200);
+    expect(right.json().user.emailVerified).toBe(true);
+    expect(String(right.headers['set-cookie'])).toMatch(/better-auth\.session_token=/);
+  });
+
+  it('signs in once verified', async () => {
+    const response = await signIn();
+    expect(response.statusCode).toBe(200);
+    expect(String(response.headers['set-cookie'])).toMatch(/better-auth\.session_token=/);
+  });
+
+  it('mails in French when the web locale cookie says so', async () => {
+    const response = await app.inject({
+      ...signUp({ ...account, email: 'fr@example.com', username: 'frances' }),
+      headers: { origin: verifyEnv.APP_URL, cookie: 'trackt_locale=fr' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(mailer.sent.at(-1)?.subject).toMatch(/est votre code Trackt$/);
+  });
+
+  it('answers a taken address like a new one and mails its owner instead', async () => {
+    const before = mailer.sent.length;
+    const response = await app.inject(signUp({ ...account, username: 'impostor' }));
+    expect(response.statusCode).toBe(200);
+    expect(response.json().token).toBeNull();
+
+    expect(mailer.sent).toHaveLength(before + 1);
+    const message = mailer.sent.at(-1);
+    expect(message?.to).toBe(account.email);
+    expect(message?.subject).toBe('You already have a Trackt account');
+    expect(message?.text).toContain('nothing was created');
+    expect(message?.text).toContain(`${verifyEnv.APP_URL}/login`);
+    expect(codeIn(message)).toBeUndefined();
+  });
+
+  it('tells an unverified owner to sign in for a new code', async () => {
+    await app.inject(signUp({ ...account, email: 'pending@example.com', username: 'pending' }));
+    await app.inject(signUp({ ...account, email: 'pending@example.com', username: 'pending2' }));
+    expect(mailer.sent.at(-1)?.text).toContain('sign in and we will send you a new code');
+  });
+
+  it('does not offer passwordless sign-in by code', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/sign-in/email-otp',
+      headers: { origin: verifyEnv.APP_URL },
+      payload: { email: account.email, otp: '123456' },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+});
+
 /**
  * ADR-0008 §3's two server lines, asserted as configuration rather than as
  * behaviour: better-auth only enforces `trustedOrigins` on the redirect and
@@ -159,6 +317,7 @@ describe('mobile trusted origins', () => {
       baseAuthOptions(
         loadEnv({
           NODE_ENV: 'production',
+          AUTH_EMAIL_VERIFICATION: 'off',
           APP_URL: 'https://trackt.example.com',
           AUTH_SECRET: 'x'.repeat(32),
           DATABASE_URL: 'postgres://trackt:trackt@localhost:5432/trackt',
