@@ -53,7 +53,7 @@ import {
   canonicalMediaId,
   emptySeed,
   mergeSeedFiles,
-  isExcludedByGenre,
+  isRefusedAdultWork,
   normalizeGenres,
   planAdaptation,
   prose,
@@ -404,6 +404,8 @@ type AniListNodeLike = {
   synonyms?: string[] | null;
   genres?: string[] | null;
   averageScore?: number | null;
+  popularity?: number | null;
+  isAdult?: boolean | null;
   episodes?: number | null;
   chapters?: number | null;
   seasonYear?: number | null;
@@ -439,7 +441,7 @@ export interface RowResult {
 export function rowFromMedia(media: AniListNodeLike, options: RowOptions = {}): RowResult {
   const decision = mapAniListKind(media.type ?? null, media.format ?? null);
   if (!decision.kind) return { row: null, kind: null, reason: decision.reason };
-  if (isExcludedByGenre(media.genres)) return { row: null, kind: decision.kind, reason: 'hentai' };
+  if (isRefusedAdultWork(media)) return { row: null, kind: decision.kind, reason: 'adult' };
 
   const title = titleOf(media);
   if (!title) return { row: null, kind: decision.kind, reason: 'no title on the AniList record' };
@@ -460,6 +462,7 @@ export function rowFromMedia(media: AniListNodeLike, options: RowOptions = {}): 
     externalIds: externalIdsOf(media),
     metadata: providerMetadata({
       score: media.averageScore ?? null,
+      popularity: media.popularity ?? null,
       format: media.format ?? null,
       startDate: isoDate(media.startDate),
       endDate: isoDate(media.endDate),
@@ -560,8 +563,8 @@ export function planEdges(
       skip(`target is a ${targetDecision.kind}, which has no canonical identity`);
       continue;
     }
-    if (isExcludedByGenre(node.genres)) {
-      skip('hentai');
+    if (isRefusedAdultWork(node)) {
+      skip('adult');
       continue;
     }
 

@@ -15,7 +15,8 @@ const row = (over: Partial<SeedRow>): SeedRow => ({
   title: over.title ?? 'Some Work',
   year: over.year ?? 2020,
   externalIds: over.externalIds ?? { anilist: 1, mal: 2 },
-  metadata: over.metadata ?? { format: 'manga' },
+  // Well above the popularity floor unless a test says otherwise.
+  metadata: { providerPopularity: 5000, ...(over.metadata ?? { format: 'manga' }) },
 });
 
 const oneShot = (over: Partial<SeedRow> = {}) => row({ metadata: { format: 'one shot' }, ...over });
@@ -57,6 +58,21 @@ describe('what the evidence floor keeps', () => {
   it('leaves a serialised manga alone whatever its score', () => {
     const weak = row({ metadata: { format: 'manga', providerScore: 12 } });
     assert.equal(isKept(weak, DEFAULT_POLICY), true, 'a chapter count is not evidence of quality');
+  });
+
+  it('drops a manga too few AniList users list, and one AniList no longer returns', () => {
+    const niche = row({ metadata: { format: 'manga', providerPopularity: 344 } });
+    const listed = row({ metadata: { format: 'manga', providerPopularity: 500 } });
+    const gone = { ...row({}), metadata: { format: 'manga' } };
+    assert.equal(isKept(niche, DEFAULT_POLICY), false);
+    assert.equal(isKept(listed, DEFAULT_POLICY), true);
+    assert.equal(isKept(gone, DEFAULT_POLICY), false);
+    assert.equal(isKept(niche, { ...DEFAULT_POLICY, minPopularity: null }), true);
+    assert.equal(
+      isKept({ ...niche, kind: 'anime' }, DEFAULT_POLICY),
+      true,
+      'the floor is about manga volume',
+    );
   });
 
   it('honours a moved threshold and a policy that keeps everything', () => {
@@ -118,6 +134,23 @@ describe('pruning across the two seeds', () => {
       policy,
     );
     assert.equal(seeds[0]!.seed.catalog_media_relation!.length, 1);
+  });
+
+  it('judges a row by the popularity either seed knows for it', () => {
+    // The anime walk carried this manga as a relation target, without the field.
+    const stale = { ...row({ id: 'm1' }), metadata: { format: 'manga' } };
+    const fresh = row({ id: 'm1', metadata: { format: 'manga', providerPopularity: 900 } });
+    const { report } = pruneSeeds(
+      [
+        { file: 'anime.json', seed: seed([stale]) },
+        { file: 'manga.json', seed: seed([fresh]) },
+      ],
+      policy,
+    );
+    assert.deepEqual(
+      report.map((entry) => entry.after),
+      [1, 1],
+    );
   });
 
   it('records the policy it applied', () => {

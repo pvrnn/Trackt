@@ -32,3 +32,6 @@ docker-compose.local.yml
 # misc
 .DS_Store
 *.log
+
+# per-run apply-patch reports (catalog data, like the seeds)
+scripts/catalog-research/*.report-*.json
