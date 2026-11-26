@@ -238,6 +238,35 @@ describe('import routes', () => {
     expect(queue.jobs.get(jobId)?.state).toBe('waiting');
   });
 
+  it('wakes an idle-mode worker for a queued job, and not for a running one', async () => {
+    const local = fakeQueue();
+    let wakes = 0;
+    const woken = await buildApp({
+      env: baseEnv,
+      auth: fakeAuth(USER_ID),
+      importQueue: local.queue,
+      wakeWorker: () => {
+        wakes++;
+      },
+    });
+    try {
+      await woken.inject({
+        method: 'POST',
+        url: '/api/v1/me/import',
+        payload: { source: 'anilist', profile: 'alice' },
+      });
+      expect(wakes).toBe(1);
+      // Polling a job that still waits wakes again, in case the first was lost.
+      await woken.inject({ method: 'GET', url: `/api/v1/me/import/${jobId}` });
+      expect(wakes).toBe(2);
+      (local.jobs.get(jobId) as StoredJob).state = 'active';
+      await woken.inject({ method: 'GET', url: `/api/v1/me/import/${jobId}` });
+      expect(wakes).toBe(2);
+    } finally {
+      await woken.close();
+    }
+  });
+
   it('re-runs a source once its previous job has finished', async () => {
     const stored = queue.jobs.get(jobId) as StoredJob;
     stored.state = 'completed';

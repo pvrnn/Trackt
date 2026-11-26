@@ -18,6 +18,7 @@ import type { Db } from '@trackt/db';
 import type { Auth } from './auth.js';
 import { errorHandler } from './lib/error-handler.js';
 import type { ImportQueue } from './lib/import-queue.js';
+import type { WakeWorker } from './lib/worker-wake.js';
 import { toWebHeaders } from './lib/session.js';
 import { healthRoutes } from './routes/health.js';
 import { v1Routes } from './routes/v1/index.js';
@@ -31,6 +32,8 @@ export interface AppDeps {
   redisPing?: () => Promise<void>;
   /** Absent in unit tests and when Redis is not wired: the import routes answer 503. */
   importQueue?: ImportQueue;
+  /** Set when imports run in a separate idle-mode worker (`WORKER_WAKE_URL`). */
+  wakeWorker?: WakeWorker;
 }
 
 declare module 'fastify' {

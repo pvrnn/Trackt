@@ -7,6 +7,7 @@ import { buildApp } from './app.js';
 import { createAuth } from './auth.js';
 import { createImportQueue } from './lib/import-queue.js';
 import { createMailer } from './lib/mail/mailer.js';
+import { createWorkerWaker } from './lib/worker-wake.js';
 
 async function main(): Promise<void> {
   let env;
@@ -33,6 +34,7 @@ async function main(): Promise<void> {
     db,
     auth,
     importQueue,
+    ...(env.WORKER_WAKE_URL ? { wakeWorker: createWorkerWaker(env.WORKER_WAKE_URL) } : {}),
     dbPing: async () => {
       await db.execute(sql`select 1`);
     },
