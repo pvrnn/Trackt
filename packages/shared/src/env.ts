@@ -9,6 +9,9 @@ import { z } from 'zod';
 
 export const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
 
+export const WORKER_QUEUE_NAMES = ['importer', 'trophies'] as const;
+export type WorkerQueueName = (typeof WORKER_QUEUE_NAMES)[number];
+
 const optionalString = z.preprocess(
   (value) => (value === '' ? undefined : value),
   z.string().optional(),
@@ -113,6 +116,29 @@ const RawEnvSchema = z.object({
     (value) => (value === '' ? undefined : value),
     z.enum(['on', 'off']).default('on'),
   ),
+  /** The queues this worker process consumes, comma-separated; both when unset. */
+  WORKER_QUEUES: z.preprocess(
+    (value) =>
+      typeof value === 'string' && value.trim() !== ''
+        ? value
+            .split(',')
+            .map((name) => name.trim())
+            .filter(Boolean)
+        : undefined,
+    z.array(z.enum(WORKER_QUEUE_NAMES)).nonempty().optional(),
+  ),
+  /**
+   * Idle mode for a worker on a host that sleeps services without outbound
+   * traffic (Railway serverless): after this many seconds with no import
+   * waiting or running, it drops its Redis and database connections and serves
+   * only `POST /wake` on PORT.
+   */
+  WORKER_IDLE_SECONDS: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().int().positive().optional(),
+  ),
+  /** Where the API pings an idle-mode worker after queueing an import, e.g. http://worker.railway.internal:8080/wake. */
+  WORKER_WAKE_URL: z.preprocess((value) => (value === '' ? undefined : value), z.url().optional()),
 });
 
 const DEV_DEFAULTS = {
@@ -158,6 +184,11 @@ const HINTS: Record<string, string> = {
   MAIL_FROM: 'sender address for verification mail, e.g. Trackt <no-reply@trackt.example.com>',
   AUTH_EMAIL_VERIFICATION:
     'on|off — set off to let new accounts sign in without confirming their email (no mail transport needed)',
+  WORKER_QUEUES: 'optional — comma-separated subset of importer,trophies; both when unset',
+  WORKER_IDLE_SECONDS:
+    'optional — seconds without an import before the worker drops its connections so the host can sleep it',
+  WORKER_WAKE_URL:
+    'optional — URL the API POSTs to after queueing an import, e.g. http://worker.railway.internal:8080/wake',
 };
 
 export class EnvValidationError extends Error {
@@ -206,6 +237,18 @@ export interface Env {
   SMTP_URL?: string | undefined;
   MAIL_FROM: string;
   AUTH_EMAIL_VERIFICATION: 'on' | 'off';
+  WORKER_QUEUES: WorkerQueueName[];
+  WORKER_IDLE_SECONDS?: number | undefined;
+  WORKER_WAKE_URL?: string | undefined;
+}
+
+export interface LoadEnvOptions {
+  /**
+   * `worker` boots in production with only its database and Redis: auth and
+   * mail settings belong to the API, and a separately deployed worker should not
+   * need the instance's AUTH_SECRET.
+   */
+  role?: 'api' | 'worker';
 }
 
 function withHint(key: string): string {
@@ -216,7 +259,10 @@ function withHint(key: string): string {
  * Parse and validate configuration from `source` (defaults to process.env).
  * Throws {@link EnvValidationError} with a human-readable, actionable message on failure.
  */
-export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
+export function loadEnv(
+  source: Record<string, string | undefined> = process.env,
+  { role = 'api' }: LoadEnvOptions = {},
+): Env {
   const parsed = RawEnvSchema.safeParse(source);
   if (!parsed.success) {
     const lines = parsed.error.issues.map((issue) => {
@@ -229,7 +275,15 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   const raw = parsed.data;
   const isProduction = raw.NODE_ENV === 'production';
 
-  if (isProduction) {
+  if (isProduction && role === 'worker') {
+    const missing = (['DATABASE_URL', 'REDIS_URL'] as const).filter((key) => !raw[key]);
+    if (missing.length > 0) {
+      const lines = missing.map((key) => `  ✗ ${withHint(key)}`);
+      throw new EnvValidationError(
+        `Missing required environment variables in production:\n${lines.join('\n')}`,
+      );
+    }
+  } else if (isProduction) {
     // APP_URL feeds better-auth's baseURL/trustedOrigins and the CORS allowlist:
     // a localhost fallback boots green but breaks every sign-in, so require it.
     const missing = (['DATABASE_URL', 'REDIS_URL', 'AUTH_SECRET', 'APP_URL'] as const).filter(
@@ -288,5 +342,6 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
       raw.CATALOG_URL ?? (raw.NODE_ENV === 'development' ? DEV_DEFAULTS.CATALOG_URL : undefined),
     TMDB_API_KEY: tmdbApiKey,
     MAIL_FROM: raw.MAIL_FROM ?? DEV_DEFAULTS.MAIL_FROM,
+    WORKER_QUEUES: raw.WORKER_QUEUES ?? [...WORKER_QUEUE_NAMES],
   };
 }

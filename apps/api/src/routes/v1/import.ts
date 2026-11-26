@@ -107,6 +107,11 @@ function normalizeState(state: string): ImportJobState {
   return (JOB_STATES as readonly string[]).includes(state) ? (state as ImportJobState) : 'unknown';
 }
 
+/** Queued but not yet claimed: an idle-mode worker may need waking to pick it up. */
+function isPending(state: ImportJobState): boolean {
+  return state === 'waiting' || state === 'delayed';
+}
+
 /** BullMQ progress is `0` until the processor reports, and an object afterwards. */
 function readProgress(value: unknown): { done: number; total: number; errorKind: string | null } {
   if (typeof value !== 'object' || value === null) return { done: 0, total: 0, errorKind: null };
@@ -250,6 +255,7 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
         const state = normalizeState(await existing.getState());
         // Waiting, running or scheduled: this IS the job the viewer meant.
         if (state !== 'completed' && state !== 'failed' && state !== 'unknown') {
+          if (isPending(state)) app.deps.wakeWorker?.(request.log);
           const runId = tracked ? await liveRunId(db, user.id, source) : null;
           return reply.status(202).send({ jobId, state, runId });
         }
@@ -314,6 +320,7 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
         if (db && runId) await db.delete(importRun).where(eq(importRun.id, runId));
         throw error;
       }
+      app.deps.wakeWorker?.(request.log);
       return reply
         .status(202)
         .send({ jobId: job.id ?? jobId, state: normalizeState(await job.getState()), runId });
@@ -340,6 +347,7 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
         .where(eq(importRun.userId, user.id))
         .orderBy(desc(importRun.createdAt))
         .limit(50);
+      if (rows.some((row) => row.state === 'queued')) app.deps.wakeWorker?.(request.log);
 
       return {
         runs: rows.map((row) => ({
@@ -451,6 +459,7 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
       }
 
       const state = normalizeState(await job.getState());
+      if (isPending(state)) app.deps.wakeWorker?.(request.log);
       const progress = readProgress(job.progress);
 
       return {

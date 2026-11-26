@@ -132,4 +132,39 @@ describe('loadEnv', () => {
   it('rejects an SMTP_URL that is not an smtp URL', () => {
     expect(() => loadEnv({ SMTP_URL: 'https://mail.example.com' })).toThrowError(/SMTP_URL/);
   });
+
+  it('boots a production worker on its database and Redis alone', () => {
+    const env = loadEnv(
+      {
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgres://u:p@db:5432/trackt',
+        REDIS_URL: 'redis://redis:6379',
+      },
+      { role: 'worker' },
+    );
+    expect(env.DATABASE_URL).toBe('postgres://u:p@db:5432/trackt');
+    expect(() => loadEnv({ NODE_ENV: 'production' }, { role: 'worker' })).toThrowError(
+      /DATABASE_URL[\s\S]*REDIS_URL/,
+    );
+  });
+
+  it('consumes both queues unless WORKER_QUEUES picks some', () => {
+    expect(loadEnv({}).WORKER_QUEUES).toEqual(['importer', 'trophies']);
+    expect(loadEnv({ WORKER_QUEUES: '' }).WORKER_QUEUES).toEqual(['importer', 'trophies']);
+    expect(loadEnv({ WORKER_QUEUES: ' importer ' }).WORKER_QUEUES).toEqual(['importer']);
+    expect(() => loadEnv({ WORKER_QUEUES: 'importer,mail' })).toThrowError(/WORKER_QUEUES/);
+  });
+
+  it('reads the idle-mode worker settings', () => {
+    const env = loadEnv({
+      WORKER_IDLE_SECONDS: '120',
+      WORKER_WAKE_URL: 'http://worker.railway.internal:8080/wake',
+    });
+    expect(env.WORKER_IDLE_SECONDS).toBe(120);
+    expect(env.WORKER_WAKE_URL).toBe('http://worker.railway.internal:8080/wake');
+    expect(loadEnv({ WORKER_IDLE_SECONDS: '', WORKER_WAKE_URL: '' })).toMatchObject({
+      WORKER_IDLE_SECONDS: undefined,
+      WORKER_WAKE_URL: undefined,
+    });
+  });
 });
