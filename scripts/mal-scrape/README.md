@@ -119,7 +119,13 @@ The floor, applied to manga rows only (anime is untouched):
   one-chapter work with no score is indistinguishable from spam. Every other
   manga format keeps its row whatever it scores: a chapter count is not evidence
   of quality. `--one-shot-min-score <n>` moves the bar, `--keep-unmatched-mal`
-  switches the id rule off.
+  switches the id rule off;
+- a manga row needs **500 AniList users** with it on a list (`metadata.providerPopularity`).
+  A MAL id is no evidence of readership — both sites index any work one reader
+  adds — and AniList shows no score below roughly 300 users. A row the walk did
+  not return has no popularity and goes too. `--min-popularity <n|off>` moves or
+  disables the floor; the script refuses to run it on seeds scraped before the
+  field existed.
 
 Edges whose endpoint the floor removes go with it, computed across both seeds at
 once (an edge may point into the other file), so the graph stays closed and

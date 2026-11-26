@@ -79,7 +79,12 @@ describe.runIf(available)('friends (postgres)', () => {
     await runMigrations(TEST_DATABASE_URL);
     db = createDb(TEST_DATABASE_URL, { max: 1 });
     await seedMedia(db);
-    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error', CATALOG_URL: '' });
+    const env = loadEnv({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'error',
+      AUTH_EMAIL_VERIFICATION: 'off',
+      CATALOG_URL: '',
+    });
     app = await buildApp({ env, db, auth: createAuth(db, env) });
   });
 

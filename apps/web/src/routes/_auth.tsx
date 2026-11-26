@@ -4,7 +4,7 @@ import { authClient } from '../lib/auth-client';
 import { doorsOpening } from '../lib/door-transition';
 
 /**
- * Pathless parent of /login and /register. It renders both forms itself so it
+ * Pathless parent of /login, /register and /verify-email. It renders both forms itself so it
  * can slide between them; the child routes only own the URL, title and search.
  */
 export const Route = createFileRoute('/_auth')({
@@ -13,7 +13,7 @@ export const Route = createFileRoute('/_auth')({
 
 function AuthShell() {
   const pathname = useLocation({ select: (location) => location.pathname });
-  const { redirect } = useSearch({ strict: false });
+  const { redirect, email, code } = useSearch({ strict: false });
   const { data: session } = authClient.useSession();
 
   // Arriving already signed in: go straight on. Not while the doors are
@@ -21,10 +21,10 @@ function AuthShell() {
   // (`href`, when set, takes precedence over `to` in the router.)
   if (session && !doorsOpening()) return <Navigate to="/home" href={redirect} />;
 
-  return (
-    <AuthLayout
-      mode={pathname.startsWith('/register') ? 'register' : 'login'}
-      redirect={redirect}
-    />
-  );
+  const mode = pathname.startsWith('/register')
+    ? 'register'
+    : pathname.startsWith('/verify-email')
+      ? 'verify'
+      : 'login';
+  return <AuthLayout mode={mode} redirect={redirect} email={email} code={code} />;
 }

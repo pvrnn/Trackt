@@ -32,7 +32,8 @@
     "list": "{{name}} · Trackt",
     "user": "{{name}} (@{{username}}) · Trackt",
     "userHistory": "Historique de @{{username}} · Trackt",
-    "newsArticle": "{{title}} · Trackt"
+    "newsArticle": "{{title}} · Trackt",
+    "verifyEmail": "Vérifier l’adresse · Trackt"
   },
   "locale": {
     "switch": "Langue",
@@ -126,7 +127,12 @@
     "signInFailed": "Connexion impossible. Réessayez.",
     "signUpFailed": "Création du compte impossible. Réessayez.",
     "instanceUnreachable": "Impossible de joindre l’API de l’instance. Est-elle démarrée ? Réessayez dans un instant.",
-    "searchFailed": "La recherche a échoué. L’API de l’instance est-elle joignable ? Réessayez dans un instant."
+    "searchFailed": "La recherche a échoué. L’API de l’instance est-elle joignable ? Réessayez dans un instant.",
+    "emailNotVerified": "Confirmez votre adresse e-mail pour vous connecter.",
+    "invalidCode": "Ce code est incorrect. Vérifiez l’e-mail et réessayez.",
+    "codeExpired": "Ce code a expiré. Demandez-en un nouveau.",
+    "tooManyAttempts": "Trop de tentatives. Demandez un nouveau code.",
+    "verifyFailed": "La vérification a échoué. Réessayez."
   },
   "shell": {
     "accountMenu": "menu du compte",
@@ -157,6 +163,19 @@
       "title": "Lancez votre journal",
       "pitchTop": "Tout ce que vous regardez,",
       "pitchBottom": "lisez et jouez."
+    },
+    "verify": {
+      "title": "Vérifiez vos e-mails",
+      "sentTo": "Nous avons envoyé un code à 6 chiffres à",
+      "codeLabel": "Code",
+      "codeFormat": "Saisissez les 6 chiffres de l’e-mail.",
+      "submit": "VÉRIFIER L’ADRESSE",
+      "submitting": "VÉRIFICATION…",
+      "noCode": "Pas d’e-mail ?",
+      "resend": "Envoyer un nouveau code",
+      "resendIn": "Nouveau code dans {{seconds}} s",
+      "resent": "Un nouveau code est en route.",
+      "noEmail": "Ouvrez le lien de votre e-mail, ou connectez-vous pour recevoir un nouveau code."
     },
     "fields": {
       "username": "Nom d’utilisateur",
@@ -190,6 +209,7 @@
     "validation": {
       "usernameFormat": "3 à 30 caractères : lettres, chiffres, points, tirets bas",
       "emailRequired": "L’e-mail est obligatoire",
+      "disposableEmail": "Utilisez une adresse permanente : les e-mails jetables et les alias (Firefox Relay, Masquer mon adresse…) ne sont pas acceptés",
       "passwordLength": "Au moins {{min}} caractères"
     }
   },

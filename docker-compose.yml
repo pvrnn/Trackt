@@ -24,6 +24,12 @@ services:
       DATABASE_URL: postgres://trackt:${POSTGRES_PASSWORD:-trackt}@postgres:5432/trackt
       REDIS_URL: redis://redis:6379
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env — generate one with `openssl rand -base64 32`}
+      # Sign-up verification mail: RESEND_API_KEY or SMTP_URL, plus MAIL_FROM —
+      # or AUTH_EMAIL_VERIFICATION=off. The app refuses to boot with neither.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      AUTH_EMAIL_VERIFICATION: ${AUTH_EMAIL_VERIFICATION:-}
       CATALOG_URL: ${CATALOG_URL:-}
       FEATURE_FLAGS: ${FEATURE_FLAGS:-}
       FLAG_COUNTRY_HEADER: ${FLAG_COUNTRY_HEADER:-}

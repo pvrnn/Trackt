@@ -16,12 +16,23 @@ See the full product spec in [docs/PRD.md](docs/PRD.md) and the current status i
 ## Quick start (self-hosting)
 
 ```sh
-cp .env.example .env        # set AUTH_SECRET (openssl rand -base64 32), optionally TMDB_API_KEY
+cp .env.example .env        # set AUTH_SECRET (openssl rand -base64 32) and a mail transport (below)
 docker compose up -d
 open http://localhost:3000
 ```
 
 Migrations run automatically on boot; upgrading is `docker compose pull && docker compose up -d`. A nightly `pg_dump` sidecar is included (`--profile backup`), and optional MinIO for S3-compatible cover storage (`--profile minio`). TLS is not bundled — put [Caddy](https://caddyserver.com/) in front, or deploy on a platform that terminates TLS for you.
+
+### Email
+
+New accounts confirm their address before they can sign in: one email carries a 6-digit code and a link that submits it. Configure one transport:
+
+- **Resend** (`RESEND_API_KEY`): plain HTTPS. Use this on Railway, which blocks outbound SMTP below the Pro plan.
+- **SMTP** (`SMTP_URL`, e.g. `smtps://user:pass@smtp.example.com:465`), used when no Resend key is set.
+
+Set `MAIL_FROM` to a sender your provider accepts. An instance that cannot send mail can set `AUTH_EMAIL_VERIFICATION=off`. Without a transport or that switch, production refuses to boot. In development, with no transport, the code and link go to the API log.
+
+Sign-up refuses disposable inboxes and on-demand relay aliases (Firefox Relay, DuckDuckGo, Apple Hide My Email, SimpleLogin, addy.io, Proton Pass). The list is [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains), through `disposable-email-domains-js`, plus the relay domains in `packages/shared/src/disposable-email.ts`. Accounts that already exist are unaffected.
 
 ## Development
 

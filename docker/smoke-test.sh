@@ -43,6 +43,7 @@ docker run -d --name "$APP" --network "$NETWORK" -p "127.0.0.1:${PORT}:3000" \
   -e REDIS_URL="redis://${REDIS}:6379" \
   -e AUTH_SECRET=smoke-test-secret-0123456789 \
   -e APP_URL="http://127.0.0.1:${PORT}" \
+  -e AUTH_EMAIL_VERIFICATION=off \
   "$IMAGE" >/dev/null
 
 echo "[smoke] waiting for /healthz..."

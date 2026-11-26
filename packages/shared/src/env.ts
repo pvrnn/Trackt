@@ -100,6 +100,19 @@ const RawEnvSchema = z.object({
   DISCORD_APPLICATION_ID: optionalString,
   /** Registers slash commands on one guild (instant) instead of globally; for development. */
   DISCORD_GUILD_ID: optionalString,
+  /** Resend API key; when set, mail goes over Resend's HTTPS API (works where SMTP is blocked). */
+  RESEND_API_KEY: optionalString,
+  /** `smtp://` or `smtps://` URL with credentials; used when RESEND_API_KEY is unset. */
+  SMTP_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().startsWith('smtp', 'must be an smtp:// or smtps:// URL').optional(),
+  ),
+  MAIL_FROM: optionalString,
+  /** `off` lets an account sign in without confirming its email; for instances that cannot send mail. */
+  AUTH_EMAIL_VERIFICATION: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.enum(['on', 'off']).default('on'),
+  ),
 });
 
 const DEV_DEFAULTS = {
@@ -107,6 +120,7 @@ const DEV_DEFAULTS = {
   REDIS_URL: 'redis://localhost:6379',
   AUTH_SECRET: 'trackt-dev-secret-do-not-use-in-production',
   CATALOG_URL: 'http://localhost:3002',
+  MAIL_FROM: 'Trackt <no-reply@localhost>',
 } as const;
 
 /** How to fix each missing/invalid variable — shown in startup errors. */
@@ -137,6 +151,13 @@ const HINTS: Record<string, string> = {
   FLAG_COUNTRY_HEADER:
     'optional — the header your own reverse proxy sets with the viewer country, e.g. cf-ipcountry',
   FLAG_COUNTRY: 'optional — ISO 3166-1 alpha-2 country for a single-region deployment, e.g. FR',
+  RESEND_API_KEY:
+    'sends sign-up verification mail over HTTPS; create a key at https://resend.com/api-keys (preferred on hosts that block SMTP, e.g. Railway)',
+  SMTP_URL:
+    'sends sign-up verification mail over SMTP, e.g. smtps://user:pass@smtp.example.com:465',
+  MAIL_FROM: 'sender address for verification mail, e.g. Trackt <no-reply@trackt.example.com>',
+  AUTH_EMAIL_VERIFICATION:
+    'on|off — set off to let new accounts sign in without confirming their email (no mail transport needed)',
 };
 
 export class EnvValidationError extends Error {
@@ -181,6 +202,10 @@ export interface Env {
   DISCORD_BOT_TOKEN?: string | undefined;
   DISCORD_APPLICATION_ID?: string | undefined;
   DISCORD_GUILD_ID?: string | undefined;
+  RESEND_API_KEY?: string | undefined;
+  SMTP_URL?: string | undefined;
+  MAIL_FROM: string;
+  AUTH_EMAIL_VERIFICATION: 'on' | 'off';
 }
 
 function withHint(key: string): string {
@@ -216,6 +241,20 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
         `Missing required environment variables in production:\n${lines.join('\n')}`,
       );
     }
+    // Verification on with no way to send the code means nobody can ever sign up.
+    if (raw.AUTH_EMAIL_VERIFICATION === 'on' && !raw.RESEND_API_KEY && !raw.SMTP_URL) {
+      throw new EnvValidationError(
+        'Email verification is on but no mail transport is configured:\n' +
+          `  ✗ ${withHint('RESEND_API_KEY')}\n` +
+          `  ✗ ${withHint('SMTP_URL')}\n` +
+          `  or ${withHint('AUTH_EMAIL_VERIFICATION')}`,
+      );
+    }
+    if (raw.AUTH_EMAIL_VERIFICATION === 'on' && !raw.MAIL_FROM) {
+      throw new EnvValidationError(
+        `Missing required environment variables in production:\n  ✗ ${withHint('MAIL_FROM')}`,
+      );
+    }
   }
 
   // NODE_ENV defaults to development, so a bare-metal deployment that forgets
@@ -234,7 +273,8 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
 
   return {
     ...raw,
-    APP_URL: raw.APP_URL ?? `http://localhost:${raw.PORT}`,
+    // The web dev server, not this API: mail links and Discord embeds point here.
+    APP_URL: raw.APP_URL ?? 'http://localhost:3000',
     DATABASE_URL: raw.DATABASE_URL ?? DEV_DEFAULTS.DATABASE_URL,
     REDIS_URL: raw.REDIS_URL ?? DEV_DEFAULTS.REDIS_URL,
     AUTH_SECRET: raw.AUTH_SECRET ?? DEV_DEFAULTS.AUTH_SECRET,
@@ -247,5 +287,6 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     CATALOG_URL:
       raw.CATALOG_URL ?? (raw.NODE_ENV === 'development' ? DEV_DEFAULTS.CATALOG_URL : undefined),
     TMDB_API_KEY: tmdbApiKey,
+    MAIL_FROM: raw.MAIL_FROM ?? DEV_DEFAULTS.MAIL_FROM,
   };
 }

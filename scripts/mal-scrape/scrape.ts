@@ -111,6 +111,8 @@ export interface MalPage {
 /** `catalog_media.metadata` keys the importers write. */
 export const PROVIDER_SCORE_KEY = 'providerScore';
 export const FORMAT_KEY = 'format';
+/** AniList `popularity`: users with the work on a list. `prune:seeds` floors manga on it. */
+export const PROVIDER_POPULARITY_KEY = 'providerPopularity';
 
 /** One provider credit, kept whole: the role is the provider's own vocabulary. */
 export interface ProviderCredit {
@@ -133,6 +135,7 @@ export interface ProviderCredit {
  */
 export function providerMetadata(facts: {
   score?: number | null;
+  popularity?: number | null;
   format?: string | null;
   startDate?: string | null;
   endDate?: string | null;
@@ -145,6 +148,8 @@ export function providerMetadata(facts: {
   const format = facts.format?.trim().toLowerCase().replaceAll('_', ' ');
   if (format) metadata[FORMAT_KEY] = format;
   if (facts.score !== null && facts.score !== undefined) metadata[PROVIDER_SCORE_KEY] = facts.score;
+  if (facts.popularity !== null && facts.popularity !== undefined)
+    metadata[PROVIDER_POPULARITY_KEY] = facts.popularity;
   if (facts.startDate) metadata.startDate = facts.startDate;
   if (facts.endDate) metadata.endDate = facts.endDate;
   if (facts.duration !== null && facts.duration !== undefined) metadata.duration = facts.duration;
@@ -742,6 +747,24 @@ export function isExcludedByGenre(genres: readonly string[] | null | undefined):
   return (genres ?? []).some((genre) => genre.toLowerCase().trim() === 'hentai');
 }
 
+/** AniList users an `isAdult` work needs for the catalog to keep it. */
+export const ADULT_MIN_POPULARITY = 5000;
+
+/**
+ * Adult works the catalog refuses: hentai always, and AniList `isAdult` works
+ * below `ADULT_MIN_POPULARITY`. Many adult manhwa carry no `Hentai` genre, and
+ * anilist.co 404s every `isAdult` page for anonymous visitors; the floor keeps
+ * well-known mature titles (Redo of Healer, Killing Stalking).
+ */
+export function isRefusedAdultWork(record: {
+  isAdult?: boolean | null;
+  popularity?: number | null;
+  genres?: readonly string[] | null;
+}): boolean {
+  if (isExcludedByGenre(record.genres)) return true;
+  return record.isAdult === true && (record.popularity ?? 0) < ADULT_MIN_POPULARITY;
+}
+
 /** MAL's `Sequel`/`Prequel`/… vocabulary → the four stored types, as an edge plan. */
 export type RelationRule =
   | { action: 'edge'; type: MediaRelationType; direction: 'forward' | 'reverse' }
@@ -1011,10 +1034,12 @@ export interface AniListRecord {
   coverImage?: { extraLarge?: string | null; large?: string | null };
   bannerImage?: string | null;
   averageScore?: number | null;
+  popularity?: number | null;
+  isAdult?: boolean | null;
   format?: string | null;
 }
 
-const ANILIST_FIELDS = `id idMal title { romaji english native } synonyms genres averageScore format episodes chapters volumes status seasonYear coverImage { extraLarge large } bannerImage`;
+const ANILIST_FIELDS = `id idMal title { romaji english native } synonyms genres averageScore popularity isAdult format episodes chapters volumes status seasonYear coverImage { extraLarge large } bannerImage`;
 
 const ANILIST_STATUS: Record<string, MediaStatus> = {
   RELEASING: 'airing',
@@ -1223,6 +1248,7 @@ export function applyAniList(work: ScrapedWork, record: AniListRecord): void {
   if (media.bannerUrl === null) media.bannerUrl = record.bannerImage ?? null;
   const backfill = providerMetadata({
     score: media.metadata[PROVIDER_SCORE_KEY] === undefined ? record.averageScore : null,
+    popularity: record.popularity,
     format: media.metadata[FORMAT_KEY] === undefined ? record.format : null,
   });
   if (Object.keys(backfill).length > 0) media.metadata = { ...media.metadata, ...backfill };
@@ -1255,8 +1281,9 @@ export function assemblePayload(works: ScrapedWork[], options: AssembleOptions =
       if (record) applyAniList(work, record);
       else warnings.push(`no AniList entry for ${work.page.titleRomaji}; row has no canonical id`);
     }
-    if (isExcludedByGenre(work.media.genres)) {
-      skipped.push({ malId: work.page.malId, title: work.media.title, reason: 'hentai' });
+    const aniList = options.anilist?.get(`${work.page.malType}:${work.page.malId}`);
+    if (isRefusedAdultWork({ ...aniList, genres: work.media.genres })) {
+      skipped.push({ malId: work.page.malId, title: work.media.title, reason: 'adult' });
       continue;
     }
     if (work.media.id) media.set(work.media.id, work.media);
@@ -1281,7 +1308,14 @@ export function assemblePayload(works: ScrapedWork[], options: AssembleOptions =
   const seen = new Set<string>();
   for (const work of works) {
     const sourceId = work.media.id;
-    if (!sourceId || isExcludedByGenre(work.media.genres)) continue;
+    if (
+      !sourceId ||
+      isRefusedAdultWork({
+        ...options.anilist?.get(`${work.page.malType}:${work.page.malId}`),
+        genres: work.media.genres,
+      })
+    )
+      continue;
     for (const planned of work.relations) {
       const targetKey = `${planned.target.malType}:${planned.target.malId}`;
       const targetRecord = options.anilist?.get(targetKey);
@@ -1293,11 +1327,11 @@ export function assemblePayload(works: ScrapedWork[], options: AssembleOptions =
         });
         continue;
       }
-      if (isExcludedByGenre(targetRecord.genres)) {
+      if (isRefusedAdultWork(targetRecord)) {
         skipped.push({
           malId: planned.target.malId,
           title: planned.target.title,
-          reason: 'hentai',
+          reason: 'adult',
         });
         continue;
       }

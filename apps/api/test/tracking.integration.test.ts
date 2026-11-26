@@ -79,7 +79,12 @@ describe.runIf(available)('media detail + tracking (postgres)', () => {
     // No CATALOG_URL: this suite covers the two *local* relation paths (stored
     // edges and derived season siblings). Federation has its own suite, and the
     // dev default would otherwise make every detail fetch dial localhost:3002.
-    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error', CATALOG_URL: '' });
+    const env = loadEnv({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'error',
+      AUTH_EMAIL_VERIFICATION: 'off',
+      CATALOG_URL: '',
+    });
     app = await buildApp({ env, db, auth: createAuth(db, env) });
 
     // Unique per run — the test database persists between runs.

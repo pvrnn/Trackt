@@ -21,6 +21,7 @@ interface Fields {
 type ValidationKey =
   | 'auth.validation.usernameFormat'
   | 'auth.validation.emailRequired'
+  | 'auth.validation.disposableEmail'
   | 'auth.validation.passwordLength';
 
 function validate(f: Fields): Partial<Record<keyof Fields, ValidationKey>> {
@@ -47,21 +48,36 @@ export function RegisterForm() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const errors = validate(fields);
+    if (!errors.email) {
+      // Loaded on submit: the blocklist is ~200 kB and only this form needs it.
+      const { isDisposableEmail } = await import('@trackt/shared/disposable-email');
+      if (isDisposableEmail(fields.email)) errors.email = 'auth.validation.disposableEmail';
+    }
     setFieldErrors(errors);
     setFormError(null);
     if (Object.keys(errors).length > 0) return;
 
     setSubmitting(true);
-    const { error } = await authClient.signUp.email({
+    const email = fields.email.trim();
+    const { data, error } = await authClient.signUp.email({
       // The display name starts as the username; it is editable on the profile.
       name: fields.username,
-      email: fields.email.trim(),
+      email,
       password: fields.password,
       username: fields.username,
     });
     setSubmitting(false);
+    if (error?.code === 'DISPOSABLE_EMAIL') {
+      setFieldErrors({ email: 'auth.validation.disposableEmail' });
+      return;
+    }
     if (error) {
       setFormError(t(authErrorKey(error, 'errors.signUpFailed')));
+      return;
+    }
+    // No token: the instance requires a verified email, and the code is on its way.
+    if (!data?.token) {
+      await navigate({ to: '/verify-email', search: { email } });
       return;
     }
     await openDoors(() => navigate({ to: '/home', search: { onboarding: true } }));

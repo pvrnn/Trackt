@@ -144,7 +144,11 @@
     "instanceUnreachableDetailed": "Couldn't reach that address. Check the URL, the port, and that you're on the same network.",
     "notTracktInstance": "That address answered, but it isn't a Trackt instance.",
     "instanceTooOld": "That instance runs {{version}}; this app needs {{min}} or newer. Ask its admin to update.",
-    "noInstanceSelected": "No instance selected — auth is unavailable until the picker has run."
+    "noInstanceSelected": "No instance selected — auth is unavailable until the picker has run.",
+    "invalidCode": "That code is not right. Check the email and try again.",
+    "codeExpired": "That code has expired. Send a new one.",
+    "tooManyAttempts": "Too many tries. Send a new code.",
+    "verifyFailed": "Verification failed. Try again."
   },
   "shell": {
     "accountMenu": "account menu",
@@ -174,6 +178,17 @@
       "title": "Create account",
       "subtitle": "Your history, ratings, and lists, exportable any time."
     },
+    "verify": {
+      "title": "Check your inbox",
+      "sentTo": "We sent a 6-digit code to",
+      "codeLabel": "Code",
+      "codeFormat": "Enter the 6 digits from the email.",
+      "submit": "VERIFY EMAIL",
+      "submitting": "VERIFYING…",
+      "resend": "SEND A NEW CODE",
+      "resendIn": "NEW CODE IN {{seconds}}S",
+      "resent": "A new code is on its way."
+    },
     "fields": {
       "name": "Name",
       "username": "Username",
@@ -198,6 +213,7 @@
       "nameRequired": "Name is required",
       "usernameFormat": "3–30 characters: letters, numbers, dots, underscores",
       "emailRequired": "Email is required",
+      "disposableEmail": "Use a permanent address: disposable and relay emails (Firefox Relay, Hide My Email…) are not accepted",
       "passwordLength": "At least {{min}} characters",
       "passwordMismatch": "Passwords do not match"
     },

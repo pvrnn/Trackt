@@ -6,7 +6,7 @@ import { GlassCard } from '../../src/components/GlassCard';
 import { PrismButton } from '../../src/components/PrismButton';
 import { PrismText } from '../../src/components/PrismText';
 import { Screen } from '../../src/components/Screen';
-import { authClient } from '../../src/lib/auth-client';
+import { authClient, localeHeaders } from '../../src/lib/auth-client';
 import { useInstance } from '../../src/lib/instance-provider';
 import { color, space } from '../../src/theme/tokens';
 import { useTranslation } from 'react-i18next';
@@ -25,8 +25,17 @@ export default function Login() {
   async function submit() {
     setSubmitting(true);
     setFormError(null);
-    const { error } = await authClient().signIn.email({ email: email.trim(), password });
+    const { error } = await authClient().signIn.email({
+      email: email.trim(),
+      password,
+      ...localeHeaders(),
+    });
     setSubmitting(false);
+    // The server has already mailed a fresh code.
+    if (error?.code === 'EMAIL_NOT_VERIFIED') {
+      router.push({ pathname: '/verify', params: { email: email.trim() } });
+      return;
+    }
     if (error) {
       setFormError(error.message ?? t('errors.signInFailed'));
       return;

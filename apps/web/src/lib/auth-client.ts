@@ -1,5 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
-import { inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
+import { emailOTPClient, inferAdditionalFields, usernameClient } from 'better-auth/client/plugins';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { safeRedirect } from '@trackt/client';
@@ -14,6 +14,7 @@ import type { AppNavUser } from '../components/layout/AppNav';
 export const authClient = createAuthClient({
   plugins: [
     usernameClient(),
+    emailOTPClient(),
     inferAdditionalFields({ user: { role: { type: 'string', input: false } } }),
   ],
 });
@@ -56,7 +57,7 @@ export interface AuthedPage {
  * Replaces the guard `useEffect` + `navUser` object that used to be
  * copy-pasted across the app routes.
  */
-const AUTH_PAGE = /^\/(login|register)\/?$/;
+const AUTH_PAGE = /^\/(login|register|verify-email)\/?$/;
 
 export function useAuthedPage(): AuthedPage {
   const navigate = useNavigate();

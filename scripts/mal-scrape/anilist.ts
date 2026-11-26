@@ -147,6 +147,8 @@ export interface AniListNode {
   genres?: string[] | null;
   /** AniList's own 0–100 weighted mean of user scores; null when unscored. */
   averageScore?: number | null;
+  popularity?: number | null;
+  isAdult?: boolean | null;
   startDate?: AniListDate | null;
   endDate?: AniListDate | null;
   /** Minutes per episode; for a film, its running time. */
@@ -179,9 +181,9 @@ export interface AniListPage<T> {
 }
 
 const NODE_FIELDS = `
-  id idMal type format status seasonYear episodes chapters
+  id idMal type format isAdult status seasonYear episodes chapters
   title { romaji english native }
-  synonyms genres averageScore startDate { year month day } endDate { year month day }
+  synonyms genres averageScore popularity startDate { year month day } endDate { year month day }
   duration volumes coverImage { extraLarge large } bannerImage
 `;
 

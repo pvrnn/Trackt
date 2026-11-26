@@ -52,7 +52,11 @@ describe.runIf(available)('GET /api/v1/me/home (postgres)', () => {
     await runMigrations(TEST_DATABASE_URL);
     db = createDb(TEST_DATABASE_URL, { max: 1 });
     await seedMedia(db);
-    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' });
+    const env = loadEnv({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'error',
+      AUTH_EMAIL_VERIFICATION: 'off',
+    });
     app = await buildApp({ env, db, auth: createAuth(db, env) });
 
     const stamp = Date.now();

@@ -368,6 +368,33 @@ describe('edges from AniList relations', () => {
     assert.ok(!page.edges.some((edge) => edge.fromId === hentaiId || edge.toId === hentaiId));
   });
 
+  it('drops a work AniList flags adult even without a Hentai genre, and edges to it', () => {
+    // Pitch Perfect Love (212705): an adult manhwa tagged only Drama/Romance.
+    const adult = {
+      ...fmab,
+      id: 212_705,
+      idMal: 197_008,
+      genres: ['Drama', 'Romance'],
+      isAdult: true,
+      popularity: 344,
+    } as AniListMedia;
+    assert.equal(rowFromMedia(adult).row, null);
+    assert.equal(rowFromMedia(adult).reason, 'adult');
+    const referrer = {
+      ...frieren,
+      relations: { edges: [{ relationType: 'SEQUEL', node: adult }] },
+    } as AniListMedia;
+    const page = importAniListMedia([referrer]);
+    const adultId = canonicalMediaId('anime', adult.id);
+    assert.ok(!page.edges.some((edge) => edge.fromId === adultId || edge.toId === adultId));
+  });
+
+  it('keeps an adult-flagged work that enough AniList users list', () => {
+    const known = { ...fmab, id: 101_165, genres: ['Ecchi'], isAdult: true } as AniListMedia;
+    assert.equal(rowFromMedia({ ...known, popularity: 4999 }).row, null);
+    assert.notEqual(rowFromMedia({ ...known, popularity: 151_467 }).row, null);
+  });
+
   it('keeps the top-level row when a work is also a target on the same page', () => {
     // The relation node carries no credits or studios, so letting it overwrite
     // the work's own row would drop the very fields the target is poorer on —

@@ -105,6 +105,7 @@ function App() {
             <Stack.Protected guard={!!origin}>
               <Stack.Screen name="(auth)/login" />
               <Stack.Screen name="(auth)/register" />
+              <Stack.Screen name="(auth)/verify" />
               {/* The four-tab shell, and the screens that push over it. The tabs
                 animate as a fade; a push should read as a push, so the pushed
                 routes take the platform's native stack animation. */}

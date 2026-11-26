@@ -123,7 +123,12 @@ describe.runIf(available)('me/history (postgres)', () => {
     await db.delete(userMedia);
     await db.update(media).set({ deletedAt: null });
 
-    const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error', CATALOG_URL: '' });
+    const env = loadEnv({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'error',
+      AUTH_EMAIL_VERIFICATION: 'off',
+      CATALOG_URL: '',
+    });
     app = await buildApp({ env, db, auth: createAuth(db, env) });
 
     const stamp = Date.now();

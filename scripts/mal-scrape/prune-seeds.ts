@@ -14,7 +14,10 @@
  *   "nobody outside the provider has ever indexed it";
  * - a one-shot is kept only above a provider score, because a one-chapter work
  *   with no score is indistinguishable from spam. Any other manga format keeps
- *   its row: chapter count is not evidence of quality.
+ *   its row: chapter count is not evidence of quality;
+ * - a manga row is kept only when at least `minPopularity` AniList users list
+ *   it. MAL and AniList both index any work a single reader adds, so a MAL id
+ *   alone lets through thousands of works with a few dozen readers and no score.
  *
  * A row whose genres include `hentai` is dropped whatever its kind. Otherwise
  * anime rows are never touched — the rules are about manga volume. Edges whose
@@ -26,7 +29,7 @@ import { copyFile, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { isExcludedByGenre } from './scrape.ts';
+import { isExcludedByGenre, PROVIDER_POPULARITY_KEY } from './scrape.ts';
 
 export type SeedRow = {
   id: string;
@@ -53,10 +56,20 @@ export type Policy = {
   requireMalId: boolean;
   /** Provider score a one-shot needs; `null` keeps every one-shot. */
   oneShotMinScore: number | null;
+  /** AniList users a manga row needs on their lists; `null` switches the floor off. */
+  minPopularity: number | null;
 };
 
-/** AniList's averageScore is 0–100, and 60 is "above average" on it. */
-export const DEFAULT_POLICY: Policy = { requireMalId: true, oneShotMinScore: 60 };
+/**
+ * AniList's averageScore is 0–100, and 60 is "above average" on it. AniList
+ * shows no score below roughly 300 listing users, so 500 sits just above the
+ * point where a work has a score at all.
+ */
+export const DEFAULT_POLICY: Policy = {
+  requireMalId: true,
+  oneShotMinScore: 60,
+  minPopularity: 500,
+};
 
 const MANGA_KINDS = new Set(['manga', 'webtoon']);
 
@@ -64,6 +77,11 @@ export function isKept(row: SeedRow, policy: Policy): boolean {
   if (isExcludedByGenre(row.genres as string[] | undefined)) return false;
   if (!MANGA_KINDS.has(row.kind)) return true;
   if (policy.requireMalId && !row.externalIds.mal) return false;
+  if (policy.minPopularity !== null) {
+    // A row with no popularity is one AniList no longer returns.
+    const popularity = Number(row.metadata[PROVIDER_POPULARITY_KEY] ?? 0);
+    if (!(popularity >= policy.minPopularity)) return false;
+  }
   const format = String(row.metadata.format ?? '');
   if (policy.oneShotMinScore === null || format !== 'one shot') return true;
   const score = Number(row.metadata.providerScore ?? 0);
@@ -81,9 +99,24 @@ export function pruneSeeds(
   seeds: { file: string; seed: SeedFile }[],
   policy: Policy,
 ): { seeds: { file: string; seed: SeedFile }[]; report: PrunedSeed[] } {
+  // A row in both seeds may carry popularity in only one (the other walk saw it
+  // as a relation target before the field existed), so the verdict is per id.
+  const popularity = new Map<string, unknown>();
+  for (const { seed } of seeds)
+    for (const row of seed.catalog_media) {
+      const value = row.metadata[PROVIDER_POPULARITY_KEY];
+      if (value !== undefined && !popularity.has(row.id)) popularity.set(row.id, value);
+    }
   const keptIds = seeds.map(({ seed }) => {
     const kept = new Set<string>();
-    for (const row of seed.catalog_media) if (isKept(row, policy)) kept.add(row.id);
+    for (const row of seed.catalog_media) {
+      const known = popularity.get(row.id);
+      const judged =
+        known === undefined
+          ? row
+          : { ...row, metadata: { ...row.metadata, [PROVIDER_POPULARITY_KEY]: known } };
+      if (isKept(judged, policy)) kept.add(row.id);
+    }
     return kept;
   });
   const surviving = new Set<string>();
@@ -132,6 +165,9 @@ async function main(): Promise<number> {
   for (let index = 0; index < argv.length; index++) {
     if (argv[index] === '--one-shot-min-score') {
       policy.oneShotMinScore = Number(argv[++index]);
+    } else if (argv[index] === '--min-popularity') {
+      const value = argv[++index];
+      policy.minPopularity = value === 'off' ? null : Number(value);
     } else if (argv[index] === '--keep-unmatched-mal') {
       policy.requireMalId = false;
     }
@@ -143,6 +179,18 @@ async function main(): Promise<number> {
   for (const file of files) {
     const path = resolve(dir, file);
     seeds.push({ file: path, seed: JSON.parse(await readFile(path, 'utf8')) as SeedFile });
+  }
+
+  if (
+    policy.minPopularity !== null &&
+    !seeds.some(({ seed }) =>
+      seed.catalog_media.some((row) => row.metadata[PROVIDER_POPULARITY_KEY] !== undefined),
+    )
+  ) {
+    throw new Error(
+      'no row carries AniList popularity: these seeds predate the field and the floor would ' +
+        'drop every manga. Re-scrape with --source anilist-all, or pass --min-popularity off.',
+    );
   }
 
   const { seeds: pruned, report } = pruneSeeds(seeds, policy);
