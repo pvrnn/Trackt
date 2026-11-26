@@ -46,4 +46,11 @@ describe('loadLlmEnv', () => {
   it('rejects LLM_EXTRA_BODY that is not valid JSON', () => {
     expect(() => loadLlmEnv({ LLM_EXTRA_BODY: 'not json' })).toThrow(LlmEnvValidationError);
   });
+
+  it.each(['[1]', '"abc"', 'null', '1'])(
+    'rejects LLM_EXTRA_BODY %s, which is not an object',
+    (value) => {
+      expect(() => loadLlmEnv({ LLM_EXTRA_BODY: value })).toThrow(LlmEnvValidationError);
+    },
+  );
 });

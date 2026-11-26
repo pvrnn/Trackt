@@ -2,9 +2,9 @@
 
 > **Status:** **Phases 1–3 shipped** (contracts, catalog service, instance API + web) —
 > recorded as [ADR-0005](adr/0005-news-and-newsroom-agent.md), which is authoritative
-> where it and this plan disagree. **Phases 0, 4, 5 and 6 — `packages/llm`, `apps/newsroom`,
-> the MCP server, and the offline prompt optimizer — are not built**; the sections below are
-> still the plan for them.
+> where it and this plan disagree. **Phase 0 (`packages/llm`) shipped.** **Phases 4, 5 and
+> 6 — `apps/newsroom`, the MCP server, and the offline prompt optimizer — are not built**;
+> the sections below are still the plan for them.
 > Deltas the implementation settled differently are noted inline as **[shipped: …]**.
 > Deeper context: [PRD](PRD.md), [ROADMAP](ROADMAP.md), [ADR-0001](adr/0001-central-slim-catalog.md),
 > [ADR-0002](adr/0002-federated-catalog-search.md), [ADR-0003](adr/0003-per-season-media.md),
@@ -85,6 +85,12 @@ nothing in the diagram above calls it, and deleting it leaves a working agent.
 ---
 
 ## Phase 0 — Provider-agnostic LLM layer (`packages/llm`, `@trackt/llm`)
+
+> **[shipped: Zod 4's own `z.toJSONSchema` replaces `zod-to-json-schema`; `strict` is sent
+> only for schemas strict mode accepts; `auto` downgrades only on a 400/422, never on auth,
+> timeout or 5xx; a `max_tokens` cut-off fails without a repair round; `<think>` blocks and
+> prose around the JSON are stripped. Config lives in `packages/llm/src/env.ts` until
+> Phase 4 gives it a deployed consumer, then moves to `packages/shared`.]**
 
 The seam that keeps everything else portable. New workspace package alongside
 `shared`/`db`/`providers` (named `llm`, not `providers`, which is already the *metadata*

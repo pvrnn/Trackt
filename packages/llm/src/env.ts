@@ -44,10 +44,14 @@ export function loadLlmEnv(source: Record<string, string | undefined> = process.
     throw new LlmEnvValidationError(`Invalid LLM environment configuration:\n${lines.join('\n')}`);
   }
 
-  let extraBody: Record<string, unknown>;
+  let extraBody: unknown;
   try {
-    extraBody = JSON.parse(parsed.data.LLM_EXTRA_BODY) as Record<string, unknown>;
+    extraBody = JSON.parse(parsed.data.LLM_EXTRA_BODY);
   } catch {
+    extraBody = undefined;
+  }
+  // It is spread into every request body, where an array or a string spreads into indexed keys.
+  if (extraBody === null || typeof extraBody !== 'object' || Array.isArray(extraBody)) {
     throw new LlmEnvValidationError('LLM_EXTRA_BODY must be a valid JSON object string');
   }
 
@@ -58,6 +62,6 @@ export function loadLlmEnv(source: Record<string, string | undefined> = process.
     maxOutputTokens: parsed.data.LLM_MAX_OUTPUT_TOKENS,
     timeoutMs: parsed.data.LLM_TIMEOUT_MS,
     jsonMode: parsed.data.LLM_JSON_MODE,
-    extraBody,
+    extraBody: extraBody as Record<string, unknown>,
   };
 }

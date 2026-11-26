@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { toJsonSchema } from './json-schema.js';
+import { isStrictCompatible, toJsonSchema } from './json-schema.js';
 import { LlmError } from './types.js';
 import type { LlmClient, LlmJsonMode, LlmJsonRequest, LlmRequest, LlmResult } from './types.js';
 
@@ -21,6 +21,7 @@ interface ChatResult {
   content: string | null | undefined;
   usage: { inputTokens: number; outputTokens: number };
   model: string;
+  truncated: boolean;
 }
 
 interface JsonModeExtras {
@@ -36,6 +37,7 @@ const ChatCompletionResponseSchema = z.object({
         message: z.object({
           content: z.string().nullable().optional(),
         }),
+        finish_reason: z.string().nullable().optional(),
       }),
     )
     .min(1),
@@ -51,6 +53,8 @@ type ResolvedJsonMode = Exclude<LlmJsonMode, 'auto'>;
 
 const JSON_MODE_LADDER: readonly ResolvedJsonMode[] = ['json_schema', 'json_object', 'prompt'];
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+/** How a provider answers a `response_format` it does not support; anything else is a real failure. */
+const MODE_REJECTED_STATUSES = new Set([400, 422]);
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_OUTPUT_TOKENS = 8000;
 const DEFAULT_MAX_RETRIES = 2;
@@ -104,29 +108,22 @@ export class OpenAiCompatibleClient implements LlmClient {
           ? [this.resolvedJsonMode]
           : JSON_MODE_LADDER;
 
-    let lastError: unknown;
-    for (const mode of modesToTry) {
+    for (const [index, mode] of modesToTry.entries()) {
       let raw: ChatResult;
       try {
         raw = await this.chat(req, this.buildJsonModeExtras(mode, req));
       } catch (error) {
-        // This mode isn't supported by the provider (a rejected response_format,
-        // typically) — try the next one. One extra round trip, not a hard failure.
-        lastError = error;
+        // Only a probe that the provider rejected moves down the ladder: an auth failure or a
+        // timeout would fail every rung the same way, and hide its own status behind the ladder.
+        const isLastRung = index === modesToTry.length - 1;
+        if (isLastRung || !isModeRejection(error)) throw error;
         continue;
       }
 
       if (this.jsonMode === 'auto') this.resolvedJsonMode = mode;
-      const parsed = await this.parseJsonWithRepair(req, raw.content ?? '', mode);
-      return { value: parsed, usage: raw.usage, model: raw.model };
+      return this.parseJsonWithRepair(req, raw, mode);
     }
-
-    throw new LlmError(
-      'openai-compatible',
-      `no supported JSON mode produced a response (tried: ${modesToTry.join(', ')})`,
-      undefined,
-      lastError,
-    );
+    throw new LlmError('openai-compatible', 'no JSON mode to try');
   }
 
   private buildJsonModeExtras<T>(mode: ResolvedJsonMode, req: LlmJsonRequest<T>): JsonModeExtras {
@@ -135,7 +132,11 @@ export class OpenAiCompatibleClient implements LlmClient {
       return {
         responseFormat: {
           type: 'json_schema',
-          json_schema: { name: req.schemaName, schema: jsonSchema, strict: true },
+          json_schema: {
+            name: req.schemaName,
+            schema: jsonSchema,
+            strict: isStrictCompatible(jsonSchema),
+          },
         },
       };
     }
@@ -150,16 +151,16 @@ export class OpenAiCompatibleClient implements LlmClient {
     };
   }
 
-  /** Parses `rawContent` against `req.schema`, allowing exactly one repair round trip. */
+  /** Parses `raw` against `req.schema`, allowing exactly one repair round trip. */
   private async parseJsonWithRepair<T>(
     req: LlmJsonRequest<T>,
-    rawContent: string,
+    raw: ChatResult,
     mode: ResolvedJsonMode,
-  ): Promise<T> {
+  ): Promise<LlmResult<T>> {
     const attempt = (text: string): { ok: true; value: T } | { ok: false; error: string } => {
       let candidate: unknown;
       try {
-        candidate = JSON.parse(stripCodeFence(text));
+        candidate = parseJsonLenient(text);
       } catch (error) {
         return { ok: false, error: `invalid JSON: ${(error as Error).message}` };
       }
@@ -168,9 +169,17 @@ export class OpenAiCompatibleClient implements LlmClient {
         ? { ok: true, value: result.data }
         : { ok: false, error: result.error.message };
     };
+    const truncationError = (): LlmError =>
+      new LlmError(
+        'openai-compatible',
+        `response for schema "${req.schemaName}" was cut off at max_tokens (${req.maxOutputTokens ?? this.maxOutputTokens}); raise maxOutputTokens`,
+      );
 
+    const rawContent = raw.content ?? '';
     const first = attempt(rawContent);
-    if (first.ok) return first.value;
+    if (first.ok) return { value: first.value, usage: raw.usage, model: raw.model };
+    // A repair has the same budget, so a truncated answer would only be truncated again.
+    if (raw.truncated) throw truncationError();
 
     const repaired = await this.chat(
       {
@@ -181,8 +190,13 @@ export class OpenAiCompatibleClient implements LlmClient {
       },
       this.buildJsonModeExtras(mode, req),
     );
+    const usage = {
+      inputTokens: raw.usage.inputTokens + repaired.usage.inputTokens,
+      outputTokens: raw.usage.outputTokens + repaired.usage.outputTokens,
+    };
     const second = attempt(repaired.content ?? '');
-    if (second.ok) return second.value;
+    if (second.ok) return { value: second.value, usage, model: repaired.model };
+    if (repaired.truncated) throw truncationError();
 
     throw new LlmError(
       'openai-compatible',
@@ -220,6 +234,7 @@ export class OpenAiCompatibleClient implements LlmClient {
         outputTokens: parsed.data.usage?.completion_tokens ?? 0,
       },
       model: parsed.data.model ?? this.model,
+      truncated: choice?.finish_reason === 'length',
     };
   }
 
@@ -264,10 +279,35 @@ export class OpenAiCompatibleClient implements LlmClient {
   }
 }
 
-function stripCodeFence(text: string): string {
-  const trimmed = text.trim();
-  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/.exec(trimmed);
-  return fenced?.[1] ?? trimmed;
+function isModeRejection(error: unknown): boolean {
+  return (
+    error instanceof LlmError &&
+    error.status !== undefined &&
+    MODE_REJECTED_STATUSES.has(error.status)
+  );
+}
+
+/**
+ * Reasoning models served through OpenAI-compatible endpoints (DeepSeek-R1, Qwen3 on Ollama)
+ * put a `<think>` block before the answer, and prompt-mode models often wrap it in prose or
+ * a fence; all three are peeled off before the JSON is parsed.
+ */
+function parseJsonLenient(text: string): unknown {
+  const unthought = text.replace(/^\s*<think>[\s\S]*?<\/think>/, '').trim();
+  const candidate = /^```(?:json)?\s*([\s\S]*?)\s*```$/.exec(unthought)?.[1] ?? unthought;
+  try {
+    return JSON.parse(candidate);
+  } catch (error) {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    const isWrapped = start !== -1 && end > start && (start > 0 || end < candidate.length - 1);
+    if (!isWrapped) throw error;
+    try {
+      return JSON.parse(candidate.slice(start, end + 1));
+    } catch {
+      throw error;
+    }
+  }
 }
 
 function sleep(ms: number): Promise<void> {

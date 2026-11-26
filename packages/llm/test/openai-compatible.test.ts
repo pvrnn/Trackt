@@ -19,11 +19,12 @@ function chatCompletion(
   overrides: {
     model?: string;
     usage?: { prompt_tokens: number; completion_tokens: number };
+    finishReason?: string;
   } = {},
 ): unknown {
   return {
     model: overrides.model ?? 'test-model',
-    choices: [{ message: { content } }],
+    choices: [{ message: { content }, finish_reason: overrides.finishReason ?? 'stop' }],
     usage: overrides.usage ?? { prompt_tokens: 10, completion_tokens: 5 },
   };
 }
@@ -34,7 +35,7 @@ function asFetch(mock: ReturnType<typeof vi.fn>): typeof fetch {
 
 interface FakeRequestBody {
   stream?: boolean;
-  response_format?: { type: string };
+  response_format?: { type: string; json_schema?: { strict: boolean } };
   messages: { role: string; content: string }[];
 }
 
@@ -305,5 +306,158 @@ describe('OpenAiCompatibleClient', () => {
     await keyed.complete({ system: 's', user: 'u' });
     const [, keyedInit] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect((keyedInit.headers as Record<string, string>).authorization).toBe('Bearer secret');
+  });
+
+  it('auto mode surfaces an auth failure instead of walking the ladder', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(401, { error: 'bad key' }));
+    const client = new OpenAiCompatibleClient({
+      baseUrl: 'https://api.test/v1',
+      model: 'm',
+      fetchImpl: asFetch(fetchImpl),
+    });
+
+    const error = await client
+      .completeJson({ system: 's', user: 'u', schema: TestSchema, schemaName: 'Test' })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(LlmError);
+    expect((error as LlmError).status).toBe(401);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('auto mode does not retry a timeout on the next rung', async () => {
+    const fetchImpl = vi.fn().mockImplementation(() => {
+      const error = new Error('The operation was aborted');
+      error.name = 'TimeoutError';
+      return Promise.reject(error);
+    });
+    const client = new OpenAiCompatibleClient({
+      baseUrl: 'https://api.test/v1',
+      model: 'm',
+      fetchImpl: asFetch(fetchImpl),
+    });
+
+    await expect(
+      client.completeJson({ system: 's', user: 'u', schema: TestSchema, schemaName: 'Test' }),
+    ).rejects.toThrow(/timed out/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('auto mode throws the last rung’s own error when every rung is rejected', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(400, { error: 'context too long' }));
+    const client = new OpenAiCompatibleClient({
+      baseUrl: 'https://api.test/v1',
+      model: 'm',
+      fetchImpl: asFetch(fetchImpl),
+    });
+
+    const error = await client
+      .completeJson({ system: 's', user: 'u', schema: TestSchema, schemaName: 'Test' })
+      .catch((caught: unknown) => caught);
+
+    expect((error as LlmError).status).toBe(400);
+    expect((error as LlmError).message).toContain('context too long');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('sends strict json_schema only for a schema strict mode accepts', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, chatCompletion(JSON.stringify({ answer: '42' }))));
+    const client = new OpenAiCompatibleClient({
+      baseUrl: 'https://api.test/v1',
+      model: 'm',
+      jsonMode: 'json_schema',
+      fetchImpl: asFetch(fetchImpl),
+    });
+
+    await client.completeJson({ system: 's', user: 'u', schema: TestSchema, schemaName: 'Test' });
+    await client.completeJson({
+      system: 's',
+      user: 'u',
+      schema: z.object({ answer: z.string(), note: z.string().optional() }),
+      schemaName: 'Loose',
+    });
+
+    expect(requestBody(fetchImpl, 0).response_format?.json_schema?.strict).toBe(true);
+    expect(requestBody(fetchImpl, 1).response_format?.json_schema?.strict).toBe(false);
+  });
+
+  it('counts the repair round in usage', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          200,
+          chatCompletion('nope', { usage: { prompt_tokens: 10, completion_tokens: 5 } }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(
+          200,
+          chatCompletion(JSON.stringify({ answer: 'fixed' }), {
+            usage: { prompt_tokens: 30, completion_tokens: 7 },
+          }),
+        ),
+      );
+    const client = new OpenAiCompatibleClient({
+      baseUrl: 'https://api.test/v1',
+      model: 'm',
+      jsonMode: 'prompt',
+      fetchImpl: asFetch(fetchImpl),
+    });
+
+    const result = await client.completeJson({
+      system: 's',
+      user: 'u',
+      schema: TestSchema,
+      schemaName: 'Test',
+    });
+
+    expect(result.usage).toEqual({ inputTokens: 40, outputTokens: 12 });
+  });
+
+  it('fails a truncated JSON response without spending a repair round', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(200, chatCompletion('{"answer": "4', { finishReason: 'length' })),
+      );
+    const client = new OpenAiCompatibleClient({
+      baseUrl: 'https://api.test/v1',
+      model: 'm',
+      jsonMode: 'prompt',
+      maxOutputTokens: 64,
+      fetchImpl: asFetch(fetchImpl),
+    });
+
+    await expect(
+      client.completeJson({ system: 's', user: 'u', schema: TestSchema, schemaName: 'Test' }),
+    ).rejects.toThrow(/cut off at max_tokens \(64\)/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['a reasoning block', '<think>\nThe user wants {"answer"}.\n</think>\n{"answer":"42"}'],
+    ['a reasoning block before a fence', '<think>hm</think>\n```json\n{"answer":"42"}\n```'],
+    ['surrounding prose', 'Here is the JSON you asked for:\n{"answer":"42"}\nHope that helps!'],
+  ])('parses JSON wrapped in %s without a repair round', async (_label, content) => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, chatCompletion(content)));
+    const client = new OpenAiCompatibleClient({
+      baseUrl: 'https://api.test/v1',
+      model: 'm',
+      jsonMode: 'prompt',
+      fetchImpl: asFetch(fetchImpl),
+    });
+
+    const result = await client.completeJson({
+      system: 's',
+      user: 'u',
+      schema: TestSchema,
+      schemaName: 'Test',
+    });
+
+    expect(result.value).toEqual({ answer: '42' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

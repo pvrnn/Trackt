@@ -18,3 +18,21 @@ export function toJsonSchema<T>(schema: z.ZodType<T>, _name: string): Record<str
   };
   return rest;
 }
+
+/**
+ * Whether `strict: true` structured output can accept this schema: strict mode rejects any
+ * object with an optional property or open `additionalProperties`, and that 400 would push
+ * `auto` down the ladder for every later call, not just this schema's.
+ */
+export function isStrictCompatible(node: unknown): boolean {
+  if (Array.isArray(node)) return node.every(isStrictCompatible);
+  if (node === null || typeof node !== 'object') return true;
+  const schema = node as Record<string, unknown>;
+  if (schema.type === 'object') {
+    if (schema.additionalProperties !== false) return false;
+    const required = Array.isArray(schema.required) ? (schema.required as unknown[]) : [];
+    const properties = (schema.properties ?? {}) as Record<string, unknown>;
+    if (Object.keys(properties).some((key) => !required.includes(key))) return false;
+  }
+  return Object.values(schema).every(isStrictCompatible);
+}
