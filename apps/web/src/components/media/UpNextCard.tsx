@@ -6,6 +6,7 @@ import type { MediaKind } from '@trackt/shared';
 import { coverGradient } from '@trackt/client';
 import { useLabels } from '../../lib/labels';
 import { kindDotClass } from '../ui/KindDot';
+import { Bone } from '../ui/Skeleton';
 
 export interface UpNextCardProps {
   kind: MediaKind;
@@ -98,6 +99,24 @@ export function UpNextCard({
       >
         ✓
       </m.button>
+    </div>
+  );
+}
+
+/** An `UpNextCard` still loading: same frame, bones for its content. */
+export function UpNextCardSkeleton() {
+  return (
+    <div
+      aria-hidden
+      className="flex min-w-0 items-center gap-3.5 rounded-card-sm border border-glass-border bg-glass py-2.5 pr-3.5 pl-2.5 backdrop-blur-[16px]"
+    >
+      <Bone className="h-[81px] w-[54px] shrink-0 rounded-[7px]" />
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <Bone className="h-2.5 w-14" />
+        <Bone className="h-3.5 w-3/4" />
+        <Bone className="h-3 w-1/2" />
+      </div>
+      <Bone className="size-11 shrink-0 rounded-full" />
     </div>
   );
 }

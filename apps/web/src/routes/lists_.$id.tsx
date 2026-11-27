@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { KindDot } from '../components/ui/KindDot';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { Bone, SkeletonRegion } from '../components/ui/Skeleton';
 import { FlagGate } from '../components/ui/FlagGate';
 import { useAuthedPage } from '../lib/auth-client';
 import { useFormat } from '../lib/format';
@@ -92,7 +93,7 @@ function ListDetailPage() {
   if (!data) {
     return (
       <Shell user={navUser}>
-        <div className="h-40" aria-busy />
+        <ListDetailSkeleton />
       </Shell>
     );
   }
@@ -364,5 +365,40 @@ function Shell({ user, children }: { user: AppNavUser; children: React.ReactNode
         </main>
       </div>
     </div>
+  );
+}
+
+/** The list's header and rows while it loads. */
+function ListDetailSkeleton() {
+  return (
+    <SkeletonRegion className="flex flex-col gap-7">
+      <div className="flex flex-col gap-3">
+        <Bone className="h-3 w-20" />
+        <Bone className="h-12 w-2/5" />
+        <Bone className="h-3.5 w-3/5" />
+        <div className="flex gap-3.5">
+          <Bone className="h-3 w-16" />
+          <Bone className="h-3 w-14" />
+          <Bone className="h-3 w-24" />
+        </div>
+      </div>
+      <Bone className="h-8 w-32" />
+      <ul className="flex flex-col gap-2">
+        {Array.from({ length: 6 }, (_, index) => (
+          <GlassCard
+            as="li"
+            key={index}
+            aria-hidden
+            className="flex items-center gap-3 rounded-card-sm px-3 py-3 sm:gap-4.5 sm:px-4.5"
+          >
+            <Bone className="h-[62px] w-11 shrink-0 rounded-thumb" />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <Bone className="h-4 w-2/5" />
+              <Bone className="h-3 w-1/4" />
+            </div>
+          </GlassCard>
+        ))}
+      </ul>
+    </SkeletonRegion>
   );
 }

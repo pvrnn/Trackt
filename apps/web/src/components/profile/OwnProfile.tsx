@@ -28,6 +28,7 @@ import { useLabels } from '../../lib/labels';
 import { Favourites } from './Favourites';
 import { ImportDialog } from './ImportDialog';
 import { ProfileHeader } from './ProfileHeader';
+import { FriendRowsSkeleton, ProfileSkeleton } from './ProfileSkeleton';
 import {
   profileCardClass,
   profileCardTitleClass,
@@ -54,7 +55,7 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
   const { t } = useTranslation();
   const labels = useLabels();
   const { data: summary, isError: loadError } = useProfileSummary();
-  const { data: friendsOverview } = useFriends();
+  const { data: friendsOverview, isLoading: friendsLoading } = useFriends();
   const [editing, setEditing] = useState(false);
   const [addingFriend, setAddingFriend] = useState(false);
   const [sendingFeedback, setSendingFeedback] = useState(false);
@@ -73,7 +74,7 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
       </p>
     </main>
   ) : !summary ? (
-    <main className="h-40" aria-busy />
+    <ProfileSkeleton own />
   ) : (
     <>
       <main className="mx-auto flex max-w-[1360px] flex-col gap-9 px-4 pt-11 pb-20 sm:px-10">
@@ -124,6 +125,7 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
               friends={friendsOverview?.friends ?? []}
               count={summary.stats.friendCount}
               requests={summary.stats.incomingRequestCount}
+              loading={friendsLoading}
               onOpen={() => setAddingFriend(true)}
             />
             <div className="flex items-center justify-between px-1.5 py-1">
@@ -179,11 +181,13 @@ function FriendsCard({
   friends,
   count,
   requests,
+  loading,
   onOpen,
 }: {
   friends: Friend[];
   count: number;
   requests: number;
+  loading: boolean;
   onOpen: () => void;
 }) {
   const { t } = useTranslation();
@@ -208,7 +212,9 @@ function FriendsCard({
           {t('social.addFriend')}
         </button>
       </div>
-      {shown.length > 0 ? (
+      {loading && count > 0 ? (
+        <FriendRowsSkeleton count={Math.min(count, FRIENDS_SHOWN)} />
+      ) : shown.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {shown.map((friend) => (
             <li key={friend.id}>

@@ -19,6 +19,7 @@ import { TrophyMedal } from '../components/trophies/TrophyMedal';
 import { TrophyShelf } from '../components/trophies/TrophyShelf';
 import { gradient, tierChip, useTrophyCopy } from '../components/trophies/copy';
 import { GlassCard } from '../components/ui/GlassCard';
+import { Bone, SkeletonRegion } from '../components/ui/Skeleton';
 import { useAuthedPage } from '../lib/auth-client';
 
 /** The trophy cabinet (docs/design/Trophies.dc.html): spotlight, two shelves, the leaderboard beside them. */
@@ -282,13 +283,16 @@ function TrophiesPage() {
               <h1 className="m-0 font-display text-display font-normal uppercase">
                 {t('trophies.title')}
               </h1>
-              {cabinet && (
+              {cabinet ? (
                 <span className="font-label text-[13px] font-bold tracking-[0.08em] text-muted">
                   {t('trophies.unlockedOf', { unlocked: cabinet.unlocked, total: cabinet.total })}
                 </span>
+              ) : (
+                !isError && <Bone className="h-3 w-28" />
               )}
             </div>
             {isError && <p className="text-sm text-muted">{t('trophies.loadError')}</p>}
+            {!cabinet && !isError && <CabinetSkeleton />}
             {cabinet && selected && (
               <>
                 <Summary cabinet={cabinet} />
@@ -322,5 +326,45 @@ function TrophiesPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+/** Summary, spotlight and a shelf while the cabinet loads. */
+function CabinetSkeleton() {
+  return (
+    <SkeletonRegion className="flex flex-col gap-8">
+      <Bone className="h-[92px] rounded-[18px]" />
+      <GlassCard className="grid items-center overflow-hidden rounded-[18px] md:grid-cols-[340px_minmax(0,1fr)]">
+        <div className="flex justify-center py-8">
+          <Bone className="size-48 rounded-full" />
+        </div>
+        <div className="flex min-w-0 flex-col gap-3.5 px-6 pt-2 pb-7 md:py-7 md:pr-8 md:pl-2">
+          <Bone className="h-3 w-40" />
+          <Bone className="h-12 w-3/5" />
+          <div className="flex flex-col gap-2">
+            <Bone className="h-3.5 w-full max-w-[520px]" />
+            <Bone className="h-3.5 w-4/5 max-w-[420px]" />
+          </div>
+          <Bone className="h-2 w-full max-w-[420px] rounded-full" />
+          <div className="mt-1 flex gap-6">
+            <Bone className="h-9 w-16" />
+            <Bone className="h-9 w-16" />
+            <Bone className="h-9 w-16" />
+          </div>
+        </div>
+      </GlassCard>
+      <div className="flex flex-col gap-4">
+        <Bone className="h-8 w-48" />
+        <div className="grid grid-cols-4 gap-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index} className="flex flex-col items-center gap-2.5">
+              <Bone className="h-20 w-12 rounded-lg" />
+              <Bone className="h-3.5 w-20" />
+              <Bone className="h-2.5 w-14" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </SkeletonRegion>
   );
 }

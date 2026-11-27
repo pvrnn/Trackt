@@ -10,6 +10,7 @@ import { FlagGate } from '../components/ui/FlagGate';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { Modal, ModalTitle } from '../components/ui/Modal';
+import { Bone, SkeletonRegion } from '../components/ui/Skeleton';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useAuthedPage } from '../lib/auth-client';
 import { useFormat } from '../lib/format';
@@ -90,7 +91,7 @@ function ListsPage() {
                 {t('lists.error')}
               </p>
             ) : lists === undefined ? (
-              <div className="h-40" aria-busy />
+              <ListCardsSkeleton />
             ) : lists.length === 0 ? (
               <GlassCard className="px-6 py-5 text-[15px] text-muted">{t('lists.empty')}</GlassCard>
             ) : (
@@ -280,5 +281,29 @@ function NewListDialog({ onClose }: { onClose: () => void }) {
         </div>
       </form>
     </Modal>
+  );
+}
+
+/** `ListCard`s still loading: the cover fan, the title and the meta row. */
+function ListCardsSkeleton() {
+  return (
+    <SkeletonRegion as="ul" className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      {Array.from({ length: 4 }, (_, index) => (
+        <li key={index} aria-hidden>
+          <GlassCard className="overflow-hidden">
+            <Bone className="h-[170px] rounded-none" />
+            <div className="flex flex-col gap-3 px-6 py-5">
+              <Bone className="h-5.5 w-1/2" />
+              <Bone className="h-3.5 w-4/5" />
+              <div className="mt-1 flex gap-3.5">
+                <Bone className="h-3 w-16" />
+                <Bone className="h-3 w-14" />
+                <Bone className="h-3 w-24" />
+              </div>
+            </div>
+          </GlassCard>
+        </li>
+      ))}
+    </SkeletonRegion>
   );
 }

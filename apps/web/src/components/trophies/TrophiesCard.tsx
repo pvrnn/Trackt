@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { nextUpTrophies, recentTrophies, useTrophyCabinet } from '@trackt/client';
 import { GlassCard } from '../ui/GlassCard';
+import { Bone, SkeletonRegion } from '../ui/Skeleton';
 import { useTrophyCopy } from './copy';
 import { TrophyShelf } from './TrophyShelf';
 
@@ -9,7 +10,8 @@ import { TrophyShelf } from './TrophyShelf';
 export function TrophiesCard() {
   const { t } = useTranslation();
   const copy = useTrophyCopy();
-  const { data: cabinet } = useTrophyCabinet();
+  const { data: cabinet, isLoading } = useTrophyCabinet();
+  if (isLoading) return <TrophiesCardSkeleton />;
   if (!cabinet) return null;
 
   const recent = recentTrophies(cabinet, 3);
@@ -46,6 +48,28 @@ export function TrophiesCard() {
           <span className="font-semibold text-dim">{t('trophies.rankAmongFriends')}</span>
         </span>
       </div>
+    </GlassCard>
+  );
+}
+
+function TrophiesCardSkeleton() {
+  return (
+    <GlassCard className="flex flex-col gap-2.5 p-[22px]">
+      <SkeletonRegion className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between">
+          <Bone className="h-6 w-28" />
+          <Bone className="h-3 w-14" />
+        </div>
+        <div className="grid h-[84px] grid-cols-3 items-end gap-4">
+          {Array.from({ length: 3 }, (_, index) => (
+            <Bone key={index} className="mx-auto h-16 w-11 rounded-lg" />
+          ))}
+        </div>
+        <div className="flex justify-between pt-3 shadow-[inset_0_1px_0_rgb(255_255_255/0.09)]">
+          <Bone className="h-3 w-16" />
+          <Bone className="h-3 w-24" />
+        </div>
+      </SkeletonRegion>
     </GlassCard>
   );
 }

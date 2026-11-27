@@ -4,6 +4,7 @@ import type { NewsArticleSummary } from '@trackt/shared';
 import { coverGradient, useTrackedNews } from '@trackt/client';
 import { useFormat } from '../../lib/format';
 import { useLabels } from '../../lib/labels';
+import { Bone, SkeletonRegion } from '../ui/Skeleton';
 
 /** In-progress titles asked for news: one rate-limited by-media read each. */
 const NEWS_SOURCES = 4;
@@ -61,7 +62,7 @@ export function NewsWidget({ mediaIds }: { mediaIds: readonly string[] }) {
 
       {!lead ? (
         isPending && mediaIds.length > 0 ? (
-          <div className="h-64" aria-busy />
+          <NewsWidgetSkeleton />
         ) : (
           <p className="rounded-card-sm border border-dashed border-white/20 px-5 py-4 text-sm text-muted">
             {t('home.news.empty')}
@@ -138,5 +139,41 @@ export function NewsWidget({ mediaIds }: { mediaIds: readonly string[] }) {
         </>
       )}
     </section>
+  );
+}
+
+/** The lead story and its briefs, still loading. */
+export function NewsWidgetSkeleton() {
+  return (
+    <SkeletonRegion className="flex flex-col">
+      <div className="overflow-hidden rounded-card border border-glass-border bg-glass backdrop-blur-[16px]">
+        <Bone className="h-[250px] rounded-none" />
+        <div className="flex flex-col gap-3 px-6 pt-5 pb-5.5">
+          <div className="flex items-center gap-2.5">
+            <Bone className="h-5 w-20 rounded-full" />
+            <Bone className="h-2.5 w-28" />
+          </div>
+          <Bone className="h-6 w-11/12" />
+          <Bone className="h-6 w-2/3" />
+          <Bone className="mt-1 h-3.5 w-full" />
+          <Bone className="h-3.5 w-4/5" />
+        </div>
+      </div>
+      {Array.from({ length: 3 }, (_, index) => (
+        <div
+          key={index}
+          className="flex items-center gap-4 py-3.5 shadow-[inset_0_-1px_0_rgb(255_255_255/0.08)]"
+        >
+          <Bone className="h-[69px] w-[46px] shrink-0 rounded-thumb" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <Bone className="h-5 w-20 rounded-full" />
+              <Bone className="h-2.5 w-24" />
+            </div>
+            <Bone className="h-4 w-3/4" />
+          </div>
+        </div>
+      ))}
+    </SkeletonRegion>
   );
 }

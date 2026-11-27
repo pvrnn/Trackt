@@ -6,6 +6,8 @@ import { useEffect, useRef } from 'react';
 import { kindDotClass } from '../ui/KindDot';
 import { FilterCell, KindStrip } from '../ui/FilterBar';
 import type { SelectItem } from '../ui/Select';
+import { Bone } from '../ui/Skeleton';
+import { HistoryGridSkeleton, TimelineSkeleton } from './HistorySkeleton';
 import { HistoryTimeline } from './HistoryTimeline';
 import {
   ALL_STATUSES,
@@ -193,7 +195,13 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
               {' · '}
             </>
           )}
-          {nothingTracked ? t('history.nothingTracked') : t('history.scope', { scope, titles })}
+          {history.isLoading ? (
+            <Bone className="inline-block h-3.5 w-40 align-middle" />
+          ) : nothingTracked ? (
+            t('history.nothingTracked')
+          ) : (
+            t('history.scope', { scope, titles })
+          )}
         </span>
         <span className="flex-1" />
         <div
@@ -265,7 +273,9 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
               <dt className="order-last truncate font-label text-[11px] font-semibold tracking-[0.1em] text-dim uppercase">
                 {stat.label}
               </dt>
-              <dd className="m-0 text-prism font-display text-[28px] leading-none">{stat.value}</dd>
+              <dd className="m-0 text-prism font-display text-[28px] leading-none">
+                {history.isLoading ? <Bone className="h-7 w-10" /> : stat.value}
+              </dd>
             </div>
           ))}
         </dl>
@@ -276,9 +286,11 @@ export function HistoryView({ username, search, setSearch }: HistoryViewProps) {
           {username ? t('history.public.error', { username }) : t('history.error')}
         </p>
       ) : pending ? (
-        <p aria-busy className="text-[15px] text-muted">
-          {t('history.loading', { scope: scope.toLowerCase() })}
-        </p>
+        view === 'timeline' ? (
+          <TimelineSkeleton label={t('history.loading', { scope: scope.toLowerCase() })} />
+        ) : (
+          <HistoryGridSkeleton label={t('history.loading', { scope: scope.toLowerCase() })} />
+        )
       ) : view === 'timeline' ? (
         timelineEmpty ? (
           <EmptyHistory

@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Modal, ModalTitle } from '../ui/Modal';
+import { CardRowSkeletons, SkeletonRegion } from '../ui/Skeleton';
 import { listsApi, useCreateList, useLists, useListsInvalidator } from '@trackt/client';
 
 /**
@@ -74,7 +75,9 @@ export function AddToListDialog({
             {t('media.addToList.loadFailed')}
           </p>
         ) : lists === undefined ? (
-          <div className="h-24" aria-busy />
+          <SkeletonRegion as="ul" className="flex flex-col gap-2">
+            <CardRowSkeletons count={3} />
+          </SkeletonRegion>
         ) : lists.length === 0 ? (
           <p className="text-[15px] text-muted">{t('media.addToList.empty')}</p>
         ) : (

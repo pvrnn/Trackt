@@ -9,6 +9,7 @@ import { Favourites } from '../components/profile/Favourites';
 import { NoSuchUser } from '../components/profile/NoSuchUser';
 import { OwnProfile } from '../components/profile/OwnProfile';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
+import { ProfileSkeleton } from '../components/profile/ProfileSkeleton';
 import {
   ProfileTimeline,
   RecentActivity,
@@ -69,7 +70,7 @@ function PublicProfile({ username, signedIn }: { username: string; signedIn: boo
       </p>
     </main>
   ) : isPending ? (
-    <main className="h-40" aria-busy />
+    <ProfileSkeleton />
   ) : !profile ? (
     <NoSuchUser username={username} />
   ) : (

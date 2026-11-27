@@ -17,6 +17,7 @@ import { useLabels } from '../../lib/labels';
 import { Avatar } from '../ui/Avatar';
 import { BrandTile, type Brand } from '../ui/BrandLogo';
 import { kindDotClass } from '../ui/KindDot';
+import { Bone, SkeletonRegion } from '../ui/Skeleton';
 
 type FileSourceId = 'tvtime';
 type ProfileSourceId = 'letterboxd' | 'mal' | 'anilist' | 'steam';
@@ -675,7 +676,22 @@ function FriendsStep({
           {t('onboarding.friends.searchFailed')}
         </p>
       ) : searching && isFetching && people.length === 0 ? (
-        <div className="h-16" aria-busy />
+        <SkeletonRegion as="ul" className="flex flex-col">
+          {Array.from({ length: 3 }, (_, index) => (
+            <li
+              key={index}
+              aria-hidden
+              className="flex items-center gap-3.5 py-2.75 shadow-[inset_0_-1px_0_rgb(255_255_255/0.08)]"
+            >
+              <Bone className="size-9 shrink-0 rounded-full" />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <Bone className="h-4 w-2/5" />
+                <Bone className="h-2.5 w-1/4" />
+              </div>
+              <Bone className="h-10 w-24 rounded-full" />
+            </li>
+          ))}
+        </SkeletonRegion>
       ) : people.length > 0 ? (
         <ul className="flex flex-col">
           {people.map((person) => (

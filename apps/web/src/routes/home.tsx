@@ -5,12 +5,13 @@ import { useState } from 'react';
 import { IN_PROGRESS_LIMIT, type UpNextEntry } from '@trackt/shared';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
-import { UpNextCard } from '../components/media/UpNextCard';
-import { NewsWidget } from '../components/news/NewsWidget';
+import { UpNextCard, UpNextCardSkeleton } from '../components/media/UpNextCard';
+import { NewsWidget, NewsWidgetSkeleton } from '../components/news/NewsWidget';
 import { OnboardingDialog } from '../components/onboarding/OnboardingDialog';
 import { Avatar } from '../components/ui/Avatar';
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
+import { Bone, SkeletonRegion } from '../components/ui/Skeleton';
 import { useAuthedPage } from '../lib/auth-client';
 import { useLabels } from '../lib/labels';
 import {
@@ -111,7 +112,7 @@ function HomePage() {
               {t('home.errors.load')}
             </p>
           ) : !summary ? (
-            <div className="h-40" aria-busy />
+            <HomeSkeleton />
           ) : summary.upNext.length === 0 && summary.inProgress.length === 0 ? (
             /* Fresh account: nothing tracked yet: point at Discover. */
             <section className="flex flex-col items-start gap-5 pt-8">
@@ -241,5 +242,51 @@ function HomePage() {
         </main>
       </div>
     </div>
+  );
+}
+
+/** The dashboard's shape while its summary loads: up next, then news beside activity. */
+function HomeSkeleton() {
+  return (
+    <SkeletonRegion className="flex flex-col gap-11">
+      <div className="flex flex-col gap-3.5">
+        <Bone className="h-8 w-44" />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-3">
+          {Array.from({ length: 3 }, (_, index) => (
+            <UpNextCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <Bone className="h-12 w-40" />
+          <NewsWidgetSkeleton />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <Bone className="h-12 w-56" />
+          <ActivitySkeleton />
+        </div>
+      </div>
+    </SkeletonRegion>
+  );
+}
+
+function ActivitySkeleton() {
+  return (
+    <ul aria-hidden className="flex flex-col gap-2.5">
+      {Array.from({ length: 5 }, (_, index) => (
+        <GlassCard
+          as="li"
+          key={index}
+          className="flex items-start gap-3.5 rounded-card-sm py-3.5 pr-3.5 pl-4"
+        >
+          <Bone className="size-8 shrink-0 rounded-full" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-1">
+            <Bone className="h-3.5 w-5/6" />
+            <Bone className="h-2.5 w-16" />
+          </div>
+        </GlassCard>
+      ))}
+    </ul>
   );
 }

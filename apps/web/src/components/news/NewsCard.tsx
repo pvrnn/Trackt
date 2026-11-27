@@ -4,6 +4,7 @@ import { coverGradient } from '@trackt/client';
 import { useFormat } from '../../lib/format';
 import { useLabels } from '../../lib/labels';
 import { KindDot } from '../ui/KindDot';
+import { Bone } from '../ui/Skeleton';
 
 /**
  * One story in the feed (mockup `News.dc.html`).
@@ -73,5 +74,27 @@ export function NewsCard({
         {article.dek && <p className="text-[13px] leading-[1.55] text-muted">{article.dek}</p>}
       </div>
     </article>
+  );
+}
+
+/** A `NewsCard` still loading, at the cover height the feed would give it. */
+export function NewsCardSkeleton({ coverHeight = 180 }: { coverHeight?: number }) {
+  return (
+    <div
+      aria-hidden
+      className="overflow-hidden rounded-card border border-glass-border bg-glass backdrop-blur-[16px]"
+    >
+      <Bone className="rounded-none" style={{ height: coverHeight }} />
+      <div className="flex flex-col gap-2.5 px-4.5 py-4">
+        <div className="flex items-center gap-2">
+          <Bone className="h-4.5 w-16 rounded-full" />
+          <Bone className="h-2.5 w-20" />
+        </div>
+        <Bone className="h-4 w-11/12" />
+        <Bone className="h-4 w-3/5" />
+        <Bone className="mt-1 h-3 w-full" />
+        <Bone className="h-3 w-4/5" />
+      </div>
+    </div>
   );
 }
