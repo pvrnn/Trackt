@@ -15,6 +15,7 @@ import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { FilterPanel, FilterTokens, FiltersCell } from '../components/search/DiscoverFilterPanel';
 import { DiscoverPoster } from '../components/search/DiscoverPoster';
+import { DiscoverSkeleton } from '../components/search/DiscoverSkeleton';
 import { FilterBar, FilterCell, KindStrip } from '../components/ui/FilterBar';
 import { Select } from '../components/ui/Select';
 import type { SelectItem } from '../components/ui/Select';
@@ -170,6 +171,8 @@ function SearchPage() {
   const tooShort = q.trim().length > 0 && q.trim().length < MIN_MEDIA_SEARCH_QUERY;
   const browsing = !q || tooShort;
   const browseItems = browsing ? showcase : [];
+  const shelfLoading = browsing && showcasePending && showcase.length === 0;
+  const resultsLoading = status === 'loading' && results.length === 0;
 
   const sortItems: SelectItem[] = [
     { value: 'relevance', label: t('discover.sortRelevance') },
@@ -366,7 +369,9 @@ function SearchPage() {
 
           {/* Nothing typed yet (or not enough): the instance's own catalog,
               narrowed by the same tabs and year. No heading over it, by design. */}
-          {browseItems.length > 0 ? (
+          {shelfLoading ? (
+            <DiscoverSkeleton className={GRID} />
+          ) : browseItems.length > 0 ? (
             <>
               <ul className={GRID}>
                 {browseItems.map((item) => (
@@ -420,7 +425,9 @@ function SearchPage() {
                 </div>
               </div>
 
-              {status === 'error' ? (
+              {resultsLoading ? (
+                <DiscoverSkeleton className={GRID} />
+              ) : status === 'error' ? (
                 <p role="alert" className="text-[15px] text-red-400">
                   {t('errors.searchFailed')}
                 </p>
