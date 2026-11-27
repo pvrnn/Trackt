@@ -40,6 +40,7 @@
   "gameFor": "for {{title}}",
   "relatedReleases_one": "{{count}} related release",
   "relatedReleases_other": "{{count}} related releases",
+  "loading": "Loading titles",
   "loadingMore": "Loading more…",
   "empty": "Nothing on this instance matches “{{query}}”.",
   "emptyInKind": "Nothing on this instance matches “{{query}}” in {{kind}}.",
