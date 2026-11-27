@@ -2,7 +2,7 @@
  * better-auth messages are English, and the API is not localized. The UI maps
  * its codes to catalog keys and never renders the raw body inside French chrome.
  */
-type AuthErrorKey =
+export type AuthErrorKey =
   | 'errors.invalidCredentials'
   | 'errors.emailTaken'
   | 'errors.usernameTaken'

@@ -12,6 +12,7 @@
  *
  * Configure it once at startup with `configureClient()`; see `runtime.ts`.
  */
+export * from './auth-errors.js';
 export * from './brand-marks.js';
 export * from './cover.js';
 export * from './external.js';
