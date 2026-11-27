@@ -23,6 +23,7 @@ import {
 import { Avatar } from '../ui/Avatar';
 import { FilterCell } from '../ui/FilterBar';
 import { GlassCard } from '../ui/GlassCard';
+import { Bone, SkeletonRegion } from '../ui/Skeleton';
 import { gradient, tierChip, useTrophyCopy } from './copy';
 
 const ROW_TIERS: TrophyTier[] = ['prism', 'gold', 'silver'];
@@ -198,7 +199,7 @@ export function Leaderboard({ className }: { className?: string }) {
   const copy = useTrophyCopy();
   const [scope, setScope] = useState<LeaderboardScope>('friends');
   const [period, setPeriod] = useState<LeaderboardPeriod>('month');
-  const { data: board } = useLeaderboard(scope, period);
+  const { data: board, isError } = useLeaderboard(scope, period);
   const [rising, setRising] = useState(true);
   const shown = board?.scope === scope && board.period === period ? board : undefined;
 
@@ -255,6 +256,7 @@ export function Leaderboard({ className }: { className?: string }) {
         />
       </div>
 
+      {!shown && !isError && <LeaderboardSkeleton />}
       {shown && !lonely && !nobody && <Podium rows={shown.rows} rising={rising} />}
       {lonely && (
         <p className="py-6 text-center text-sm text-muted">{t('trophies.leaderboard.noFriends')}</p>
@@ -287,5 +289,28 @@ export function Leaderboard({ className }: { className?: string }) {
         </div>
       )}
     </GlassCard>
+  );
+}
+
+/** The board's rows while a scope or period loads. */
+function LeaderboardSkeleton() {
+  return (
+    <SkeletonRegion className="flex flex-col gap-1">
+      {Array.from({ length: 5 }, (_, index) => (
+        <div
+          key={index}
+          className="flex min-h-[60px] items-center gap-3 rounded-[14px] bg-white/3 px-3.5"
+        >
+          <Bone className="h-3 w-6 shrink-0" />
+          <span className="w-4 shrink-0" />
+          <Bone className="size-9 shrink-0 rounded-full" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Bone className="h-3.5 w-1/2" />
+            <Bone className="h-2.5 w-1/3" />
+          </div>
+          <Bone className="h-3 w-10" />
+        </div>
+      ))}
+    </SkeletonRegion>
   );
 }

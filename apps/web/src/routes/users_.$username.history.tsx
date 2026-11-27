@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
+import { HistoryPageSkeleton } from '../components/history/HistorySkeleton';
 import { HistoryView, type HistoryViewProps } from '../components/history/HistoryView';
 import { NoSuchUser } from '../components/profile/NoSuchUser';
 import { isViewer, useOptionalSession } from '../lib/auth-client';
@@ -66,7 +67,7 @@ function PublicHistory({ username, search, setSearch }: HistoryViewProps & { use
       </p>
     </main>
   ) : isPending ? (
-    <main className="h-40" aria-busy />
+    <HistoryPageSkeleton />
   ) : !profile ? (
     <NoSuchUser username={username} />
   ) : (

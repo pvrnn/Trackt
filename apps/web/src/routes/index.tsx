@@ -14,6 +14,7 @@ import { BrandMark, BrandTile, brandTitle, type Brand } from '../components/ui/B
 import { buttonClassName } from '../components/ui/Button';
 import { GlassCard } from '../components/ui/GlassCard';
 import { kindDotClass } from '../components/ui/KindDot';
+import { Bone, SkeletonRegion } from '../components/ui/Skeleton';
 import { useLabels } from '../lib/labels';
 
 const MotionLink = m.create(Link);
@@ -635,8 +636,28 @@ function NewsDemo() {
           },
         ];
 
+  if (isLoading) {
+    return (
+      <SkeletonRegion as="ul" className="m-0 flex list-none flex-col p-0">
+        {Array.from({ length: 2 }, (_, index) => (
+          <li
+            key={index}
+            aria-hidden
+            className="flex items-center gap-3.5 border-t border-white/8 py-3"
+          >
+            <Bone className="h-[57px] w-[38px] shrink-0 rounded-[5px]" />
+            <span className="flex min-w-0 flex-1 flex-col gap-2">
+              <Bone className="h-4.5 w-20 rounded-full" />
+              <Bone className="h-4 w-4/5" />
+            </span>
+          </li>
+        ))}
+      </SkeletonRegion>
+    );
+  }
+
   return (
-    <ul className={clsx('m-0 flex list-none flex-col p-0', isLoading && 'opacity-0')}>
+    <ul className="m-0 flex list-none flex-col p-0">
       {stories.map((story) => {
         const body = (
           <>

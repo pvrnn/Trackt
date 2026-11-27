@@ -7,6 +7,7 @@ import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
 import { Markdown } from '../components/news/Markdown';
 import { KindDot } from '../components/ui/KindDot';
+import { Bone, SkeletonRegion } from '../components/ui/Skeleton';
 import { useOptionalSession } from '../lib/auth-client';
 import { useFormat } from '../lib/format';
 import { useLabels } from '../lib/labels';
@@ -48,9 +49,7 @@ function ArticlePage() {
           </Link>
 
           {articlePending ? (
-            <p aria-busy className="text-[15px] text-muted">
-              {t('common.loading')}
-            </p>
+            <ArticleSkeleton />
           ) : notFound ? (
             <Missing />
           ) : error || !article ? (
@@ -188,5 +187,35 @@ function Missing() {
         {t('news.article.backToNews')}
       </Link>
     </div>
+  );
+}
+
+/** The article's shape while it loads: the cover band, the dek, then the body. */
+function ArticleSkeleton() {
+  return (
+    <SkeletonRegion className="flex flex-col gap-6">
+      <div className="flex h-[220px] flex-col justify-end gap-3 overflow-hidden rounded-card bg-glass p-6">
+        <div className="flex items-center gap-2">
+          <Bone className="h-4.5 w-20 rounded-full" />
+          <Bone className="h-2.5 w-24" />
+        </div>
+        <Bone className="h-9 w-4/5" />
+        <Bone className="h-9 w-1/2" />
+      </div>
+      <div className="flex flex-col gap-2.5">
+        <Bone className="h-4.5 w-full" />
+        <Bone className="h-4.5 w-3/4" />
+      </div>
+      {[
+        ['w-full', 'w-11/12', 'w-full', 'w-2/3'],
+        ['w-full', 'w-5/6', 'w-3/5'],
+      ].map((lines, index) => (
+        <div key={index} className="flex flex-col gap-2.5">
+          {lines.map((width, line) => (
+            <Bone key={line} className={`h-3.5 ${width}`} />
+          ))}
+        </div>
+      ))}
+    </SkeletonRegion>
   );
 }

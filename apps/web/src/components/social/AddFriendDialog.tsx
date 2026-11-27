@@ -14,6 +14,7 @@ import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Modal, ModalTitle } from '../ui/Modal';
+import { CardRowSkeletons } from '../ui/Skeleton';
 
 /** Search-result action label per viewer-relative `friendState`. */
 const ACTION_KEY = {
@@ -118,9 +119,12 @@ export function AddFriendDialog({ onClose }: { onClose: () => void }) {
         />
 
         {debounced.length >= 2 && (
-          <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+          <ul
+            aria-busy={isFetching && (results === undefined || results.length === 0)}
+            className="flex max-h-64 flex-col gap-2 overflow-y-auto"
+          >
             {isFetching && (results === undefined || results.length === 0) ? (
-              <li className="h-16" aria-busy />
+              <CardRowSkeletons count={2} avatar />
             ) : searchFailed ? (
               // Not silence: with no results *and* a failed request, rendering
               // nothing (or "no one matches") would state a negative we don't

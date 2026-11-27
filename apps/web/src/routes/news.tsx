@@ -5,10 +5,11 @@ import { MEDIA_KINDS, type MediaKind, type NewsArticleSummary } from '@trackt/sh
 import { AppNav } from '../components/layout/AppNav';
 import { AuraBackground } from '../components/layout/AuraBackground';
 import { MarketingNav } from '../components/layout/MarketingNav';
-import { NewsCard } from '../components/news/NewsCard';
+import { NewsCard, NewsCardSkeleton } from '../components/news/NewsCard';
 import { DatePicker } from '../components/ui/DatePicker';
 import { FilterBar, FilterCell, KindStrip } from '../components/ui/FilterBar';
 import { Masonry } from '../components/ui/Masonry';
+import { SkeletonRegion } from '../components/ui/Skeleton';
 import { useOptionalSession } from '../lib/auth-client';
 import { useHomeSummary, useNewsFeed, useTrackedNews } from '@trackt/client';
 
@@ -61,6 +62,8 @@ const LIBRARY_SHOWN = 6;
 
 /** Stories per page of Latest, as the design pages them. */
 const PAGE_SIZE = 12;
+/** Placeholder keys: `coverHeightFor` turns each into a stable, varied cover. */
+const SKELETON_CARDS = Array.from({ length: 8 }, (_, index) => `skeleton-${index}`);
 
 /** The design's three cover heights, picked per story so the masonry has shapes to pack. */
 const COVER_HEIGHTS = [130, 180, 240] as const;
@@ -107,7 +110,7 @@ function NewsPage() {
   const feed = useNewsFeed({ kinds: kind ? [kind] : undefined, from, to, limit: PAGE_SIZE });
   // News is public; the library section and the SHOW filter exist only for a
   // signed-in viewer (useHomeSummary stays idle otherwise).
-  const { data: summary } = useHomeSummary();
+  const { data: summary, isLoading: summaryLoading } = useHomeSummary();
   const libraryIds = (summary?.inProgress ?? []).slice(0, LIBRARY_SOURCES).map((e) => e.id);
   const tracked = useTrackedNews(libraryIds, LIBRARY_SHOWN);
   const library = navUser
@@ -252,7 +255,15 @@ function NewsPage() {
           )}
 
           {libraryOnly ? (
-            library.length === 0 && !tracked.isPending && <EmptyFeed filtered={filtered} library />
+            summaryLoading || (tracked.isPending && libraryIds.length > 0) ? (
+              <SkeletonRegion className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }, (_, index) => (
+                  <NewsCardSkeleton key={index} />
+                ))}
+              </SkeletonRegion>
+            ) : (
+              library.length === 0 && <EmptyFeed filtered={filtered} library />
+            )
           ) : (
             <section ref={latestRef} className="flex scroll-mt-24 flex-col gap-4">
               <div className="flex items-baseline justify-between gap-4">
@@ -269,9 +280,15 @@ function NewsPage() {
               </div>
 
               {feed.isLoading || walking ? (
-                <p aria-busy className="text-[15px] text-muted">
-                  {walking ? t('news.loadingMore') : t('news.loadingFeed')}
-                </p>
+                <SkeletonRegion label={walking ? t('news.loadingMore') : t('news.loadingFeed')}>
+                  <Masonry
+                    items={SKELETON_CARDS}
+                    itemKey={(id) => id}
+                    estimate={(id) => coverHeightFor(id) + 150}
+                  >
+                    {(id) => <NewsCardSkeleton coverHeight={coverHeightFor(id)} />}
+                  </Masonry>
+                </SkeletonRegion>
               ) : feed.isError ? (
                 <p role="alert" className="text-[15px] text-red-400">
                   {t('news.feedError')}

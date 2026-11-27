@@ -23,6 +23,7 @@ import { MediaNews } from '../components/news/MediaNews';
 import { Button } from '../components/ui/Button';
 import { KindDot } from '../components/ui/KindDot';
 import { Select, type SelectItem } from '../components/ui/Select';
+import { Bone, SkeletonRegion } from '../components/ui/Skeleton';
 import { useAuthedPage } from '../lib/auth-client';
 import { useFormat } from '../lib/format';
 import { useLabels } from '../lib/labels';
@@ -295,9 +296,7 @@ function MediaPage() {
   if (!data) {
     return (
       <Shell user={navUser}>
-        <main className="mx-auto max-w-[1360px] px-4 pt-14 pb-20 sm:px-10">
-          <div className="h-40" aria-busy />
-        </main>
+        <MediaSkeleton />
       </Shell>
     );
   }
@@ -819,6 +818,46 @@ function MediaPage() {
         />
       )}
     </Shell>
+  );
+}
+
+/** The page's shape while the work loads: header, facts strip, parts beside the log card. */
+function MediaSkeleton() {
+  return (
+    <SkeletonRegion>
+      <div className="mx-auto flex max-w-[1360px] flex-col gap-9 px-4 pt-[60px] pb-9 sm:px-10 md:flex-row md:items-end">
+        <Bone className="h-[330px] w-[220px] shrink-0 rounded-cover" />
+        <div className="flex max-w-[600px] min-w-0 flex-1 flex-col gap-3.5">
+          <Bone className="h-3 w-40" />
+          <Bone className="h-[clamp(40px,5.4vw,68px)] w-4/5" />
+          <div className="flex flex-col gap-2">
+            <Bone className="h-4 w-full" />
+            <Bone className="h-4 w-11/12" />
+            <Bone className="h-4 w-2/3" />
+          </div>
+          <Bone className="h-3 w-32" />
+          <div className="mt-2 flex flex-wrap items-center gap-2.5">
+            <Bone className="h-[52px] w-48 rounded-full" />
+            <Bone className="h-[52px] w-36 rounded-full" />
+            <Bone className="h-[52px] w-36 rounded-full" />
+          </div>
+        </div>
+      </div>
+      <div className="mx-auto max-w-[1360px] px-4 pt-1 sm:px-10">
+        <Bone className="h-[76px] rounded-card" />
+      </div>
+      <div className="mx-auto grid max-w-[1360px] grid-cols-1 items-start gap-12 px-4 pt-9 pb-20 sm:px-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-[18px]">
+          <Bone className="h-8 w-40" />
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 6 }, (_, index) => (
+              <Bone key={index} className="h-14 rounded-card-sm" />
+            ))}
+          </div>
+        </div>
+        <Bone className="h-[260px] rounded-card" />
+      </div>
+    </SkeletonRegion>
   );
 }
 

@@ -14,6 +14,7 @@ import { useViewerUsername } from '../../lib/auth-client';
 import { useFormat } from '../../lib/format';
 import type { HistorySearchParams } from '../../lib/history-search';
 import { useLabels } from '../../lib/labels';
+import { TimelineSkeleton } from '../history/HistorySkeleton';
 import { HistoryTimeline } from '../history/HistoryTimeline';
 import { GlassCard } from '../ui/GlassCard';
 import { kindDotClass } from '../ui/KindDot';
@@ -155,7 +156,8 @@ export function ProfileTimeline({ username }: { username?: string }) {
   // One page of the largest size, not the whole history: the embed is a
   // glance, and OPEN IN HISTORY is the way further back.
   const history = useHistory({ username, limit: 200 });
-  if (history.isLoading || history.isError || history.entries.length === 0) return null;
+  if (history.isLoading) return <TimelineSkeleton mini />;
+  if (history.isError || history.entries.length === 0) return null;
   return (
     <section aria-labelledby="timeline-heading" className="flex min-w-0 flex-col gap-4">
       <SectionHeading

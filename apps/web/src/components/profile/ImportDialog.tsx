@@ -17,6 +17,7 @@ import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Modal, ModalTitle } from '../ui/Modal';
+import { Bone, SkeletonRegion } from '../ui/Skeleton';
 
 /**
  * The import wizard (PRD §6): choose a source, preview what it would write, then
@@ -215,9 +216,14 @@ function ChooseStep({
       <p className="text-sm leading-relaxed text-muted">{t('profile.import.intro')}</p>
 
       {sources.isPending ? (
-        <p aria-busy className="text-[15px] text-muted">
-          {t('profile.import.sources.loading')}
-        </p>
+        <SkeletonRegion label={t('profile.import.sources.loading')} className="flex flex-col gap-3">
+          <Bone className="h-5 w-40" />
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {Array.from({ length: 4 }, (_, index) => (
+              <Bone key={index} className="h-[72px] rounded-card-sm" />
+            ))}
+          </div>
+        </SkeletonRegion>
       ) : sources.isError ? (
         <div className="flex flex-col items-start gap-3">
           <p role="alert" className="text-[15px] text-red-400">
