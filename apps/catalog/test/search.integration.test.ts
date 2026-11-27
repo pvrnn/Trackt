@@ -352,6 +352,175 @@ describe.runIf(available)('GET /v1/catalog/search (postgres)', () => {
   });
 });
 
+describe.runIf(available)('GET /v1/catalog/showcase (postgres)', () => {
+  let app: App;
+  let db: CatalogDb;
+
+  const id = (n: number) => `5c0a1e2b-3d4f-5a6b-8c7d-${String(n).padStart(12, '0')}`;
+  const cover = 'https://example.test/cover.jpg';
+
+  beforeAll(async () => {
+    await runCatalogMigrations(TEST_DATABASE_URL);
+    db = createCatalogDb(TEST_DATABASE_URL, { max: 1 });
+    app = await buildApp({ env: loadCatalogEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error' }), db });
+  });
+
+  beforeEach(async () => {
+    const base = { synonyms: [], status: 'ended' as const, externalIds: {}, coverUrl: cover };
+    await db.insert(catalogMedia).values([
+      // Anime and manga rank by AniList list users; the rest by rating count.
+      {
+        ...base,
+        id: id(1),
+        kind: 'anime',
+        title: 'Niche Anime',
+        year: 2020,
+        genres: ['drama'],
+        metadata: { providerPopularity: 900, format: 'tv' },
+      },
+      {
+        ...base,
+        id: id(2),
+        kind: 'anime',
+        title: 'Hit Anime',
+        year: 2010,
+        genres: ['action'],
+        metadata: { providerPopularity: 900_000, format: 'tv' },
+      },
+      {
+        ...base,
+        id: id(3),
+        kind: 'anime',
+        title: 'Hit Anime Music',
+        year: 2011,
+        genres: [],
+        metadata: { providerPopularity: 5_000_000, format: 'music' },
+      },
+      {
+        ...base,
+        id: id(4),
+        kind: 'anime',
+        title: 'Coverless Anime',
+        year: 2012,
+        genres: [],
+        coverUrl: null,
+        metadata: { providerPopularity: 9_000_000, format: 'tv' },
+      },
+      {
+        ...base,
+        id: id(5),
+        kind: 'anime',
+        title: 'Spicy Anime',
+        year: 2013,
+        genres: ['Ecchi'],
+        metadata: { providerPopularity: 8_000_000, format: 'tv' },
+      },
+      {
+        ...base,
+        id: id(6),
+        kind: 'movie',
+        title: 'Hit Movie',
+        year: 2014,
+        genres: ['action'],
+        metadata: { ratingCount: 40_000 },
+      },
+      {
+        ...base,
+        id: id(7),
+        kind: 'movie',
+        title: 'Small Movie',
+        year: 2014,
+        genres: [],
+        metadata: { ratingCount: 10_001 },
+      },
+      {
+        ...base,
+        id: id(8),
+        kind: 'movie',
+        title: 'Pulled Movie',
+        year: 2014,
+        genres: [],
+        metadata: { ratingCount: 99_999 },
+        deletedAt: new Date(),
+      },
+      {
+        ...base,
+        id: id(9),
+        kind: 'series',
+        title: 'Hit Show',
+        year: 2008,
+        genres: [],
+        seasonNumber: 2,
+        metadata: { ratingCount: 20_000 },
+      },
+      {
+        ...base,
+        id: id(10),
+        kind: 'series',
+        title: 'Hit Show',
+        year: 2008,
+        genres: [],
+        seasonNumber: 1,
+        metadata: { ratingCount: 20_000 },
+      },
+    ]);
+  });
+
+  afterEach(async () => {
+    await db.delete(catalogMedia);
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  async function shelf(query = ''): Promise<{ id: string; kind: string; title: string }[]> {
+    const response = await app.inject({ method: 'GET', url: `/v1/catalog/showcase${query}` });
+    expect(response.statusCode).toBe(200);
+    return (response.json() as { results: { id: string; kind: string; title: string }[] }).results;
+  }
+
+  it('round-robins kinds, each led by its most-followed work', async () => {
+    const rows = await shelf();
+    expect(rows.slice(0, 3).map((row) => row.title)).toEqual([
+      'Hit Anime',
+      'Hit Movie',
+      'Hit Show',
+    ]);
+  });
+
+  it('ranks within a kind by audience, derived formats and coverless works after', async () => {
+    const titles = (await shelf('?kind=anime')).map((row) => row.title);
+    expect(titles).toEqual(['Hit Anime', 'Niche Anime', 'Hit Anime Music', 'Coverless Anime']);
+  });
+
+  it('keeps tombstoned and ecchi works off, and a series to its first season', async () => {
+    const rows = await shelf();
+    const ids = rows.map((row) => row.id);
+    expect(ids).not.toContain(id(8));
+    expect(ids).not.toContain(id(5));
+    expect(rows.filter((row) => row.title === 'Hit Show').map((row) => row.id)).toEqual([id(10)]);
+  });
+
+  it('applies the year and genre filters, and pages by offset', async () => {
+    expect((await shelf('?year=2014')).map((row) => row.title)).toEqual([
+      'Hit Movie',
+      'Small Movie',
+    ]);
+    expect((await shelf('?genres=action')).map((row) => row.title)).toEqual([
+      'Hit Anime',
+      'Hit Movie',
+    ]);
+    const all = await shelf();
+    expect(await shelf('?limit=2&offset=2')).toEqual(all.slice(2, 4));
+  });
+
+  it('is cacheable', async () => {
+    const response = await app.inject({ method: 'GET', url: '/v1/catalog/showcase' });
+    expect(response.headers['cache-control']).toMatch(/public/);
+  });
+});
+
 describe.runIf(!available)('GET /v1/catalog/search (postgres)', () => {
   it.skip('skipped: dev Postgres not reachable — run docker compose -f docker-compose.dev.yml up -d', () => {});
 });

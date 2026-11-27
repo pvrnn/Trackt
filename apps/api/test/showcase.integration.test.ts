@@ -1,5 +1,7 @@
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import postgres from 'postgres';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { createDb, media, runMigrations, seedMedia, type Db } from '@trackt/db';
 import { SHOWCASE_LIMIT, SHOWCASE_MAX_OFFSET, SearchResultSchema, loadEnv } from '@trackt/shared';
@@ -281,3 +283,140 @@ describe.runIf(available)('GET /api/v1/media/showcase (postgres)', () => {
 describe.runIf(!available)('showcase (postgres)', () => {
   it.skip('skipped: dev Postgres not reachable — run docker compose -f docker-compose.dev.yml up -d', () => {});
 });
+
+describe.runIf(available)(
+  'GET /api/v1/media/showcase — from the central catalog (postgres)',
+  () => {
+    let app: App | undefined;
+    let db: Db;
+    let server: Server | undefined;
+    let lastQuery: URLSearchParams | undefined;
+
+    const ids = {
+      first: '8e1f2a3b-4c5d-5e6f-8a7b-000000000101',
+      second: '8e1f2a3b-4c5d-5e6f-8a7b-000000000102',
+      pulled: '8e1f2a3b-4c5d-5e6f-8a7b-000000000103',
+    };
+
+    function work(id: string, title: string): Record<string, unknown> {
+      return {
+        id,
+        kind: 'movie',
+        title,
+        synonyms: [],
+        year: 2031,
+        status: 'ended',
+        genres: [],
+        partCount: null,
+        seasonNumber: null,
+        externalIds: {},
+        metadata: {},
+        description: null,
+        coverUrl: null,
+        bannerUrl: null,
+      };
+    }
+
+    function catalog(status: number, body: unknown): Promise<string> {
+      server = createServer((req, res) => {
+        lastQuery = new URL(req.url ?? '/', 'http://stub').searchParams;
+        res.writeHead(status, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(body));
+      });
+      return new Promise((resolve) => {
+        server!.listen(0, '127.0.0.1', () => {
+          const address = server!.address() as AddressInfo;
+          resolve(`http://127.0.0.1:${address.port}`);
+        });
+      });
+    }
+
+    async function shelfVia(catalogUrl: string, query = '') {
+      app = await buildApp({
+        env: loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'error', CATALOG_URL: catalogUrl }),
+        db,
+      });
+      const response = await app.inject({ method: 'GET', url: `/api/v1/media/showcase${query}` });
+      expect(response.statusCode).toBe(200);
+      return {
+        rows: response.json() as { id: string; slug: string; title: string }[],
+        hasMore: response.headers['x-has-more'],
+      };
+    }
+
+    beforeAll(async () => {
+      await runMigrations(TEST_DATABASE_URL);
+      db = createDb(TEST_DATABASE_URL, { max: 1 });
+      await seedMedia(db);
+    });
+
+    afterEach(async () => {
+      await app?.close();
+      server?.close();
+      app = undefined;
+      server = undefined;
+    });
+
+    afterAll(async () => {
+      await db.delete(media).where(inArray(media.id, Object.values(ids)));
+    });
+
+    it("serves the catalog's shelf in its order, materialized under local slugs", async () => {
+      const url = await catalog(200, {
+        results: [work(ids.first, 'Shelf Probe One'), work(ids.second, 'Shelf Probe Two')],
+      });
+      const { rows, hasMore } = await shelfVia(url, '?kind=movie&year=2031&offset=24');
+      expect(rows.map((row) => row.id)).toEqual([ids.first, ids.second]);
+      expect(rows[0]?.slug).toBe('shelf-probe-one-2031');
+      expect(hasMore).toBe('false');
+      expect(Object.fromEntries(lastQuery ?? [])).toMatchObject({
+        kind: 'movie',
+        year: '2031',
+        offset: '24',
+        limit: String(SHOWCASE_LIMIT + 1),
+      });
+      const stored = await db.select().from(media).where(eq(media.id, ids.first));
+      expect(stored[0]).toMatchObject({ source: 'provider', moderation: 'verified' });
+    });
+
+    it('says there is more when the catalog answers past the batch', async () => {
+      const results = Array.from({ length: SHOWCASE_LIMIT + 1 }, (_, n) =>
+        work(ids.first, `Shelf Probe ${n}`),
+      );
+      const { hasMore } = await shelfVia(await catalog(200, { results }));
+      expect(hasMore).toBe('true');
+    });
+
+    it('keeps a work this instance pulled off the shelf', async () => {
+      await db
+        .insert(media)
+        .values({
+          id: ids.pulled,
+          kind: 'movie',
+          title: 'Shelf Probe Pulled',
+          slug: 'shelf-probe-pulled-2031',
+          source: 'provider',
+          moderation: 'verified',
+          deletedAt: new Date(),
+        })
+        .onConflictDoNothing();
+      const url = await catalog(200, {
+        results: [work(ids.pulled, 'Shelf Probe Pulled'), work(ids.second, 'Shelf Probe Two')],
+      });
+      const { rows } = await shelfVia(url);
+      expect(rows.map((row) => row.id)).toEqual([ids.second]);
+    });
+
+    it('falls back to local rows when the catalog fails or predates the route', async () => {
+      for (const status of [500, 404]) {
+        const { rows } = await shelfVia(await catalog(status, { error: 'nope' }));
+        expect(rows.length).toBeGreaterThan(0);
+        expect(rows.map((row) => row.id)).not.toContain(ids.pulled);
+        await app?.close();
+        server?.close();
+        app = undefined;
+        server = undefined;
+      }
+    });
+  },
+);

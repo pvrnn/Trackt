@@ -9,6 +9,7 @@ import {
   RelationDirectionSchema,
   StatusFilterSchema,
 } from './media.js';
+import { SHOWCASE_LIMIT, SHOWCASE_MAX_OFFSET } from './api.js';
 import { SEARCH_SORTS } from './search-rank.js';
 
 /** Free-form lowercase genre tags — deliberately not an enum, sources disagree too much. */
@@ -123,6 +124,31 @@ export const CatalogSearchResponseSchema = z.object({
   results: z.array(CatalogSearchHitSchema),
 });
 export type CatalogSearchResponse = z.infer<typeof CatalogSearchResponseSchema>;
+
+/**
+ * `GET /v1/catalog/showcase`: the browse shelf an instance shows before anything
+ * is typed — the catalog's most-followed works, kinds round-robined, paged by
+ * `offset` under the same ceiling as the instance route that relays it.
+ */
+export const CatalogShowcaseQuerySchema = z.object({
+  kind: MediaKindSchema.optional(),
+  year: z.coerce.number().int().min(1800).max(2200).optional(),
+  genres: GenreListSchema.optional(),
+  status: StatusFilterSchema.optional(),
+  offset: z.coerce.number().int().min(0).max(SHOWCASE_MAX_OFFSET).default(0),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(SHOWCASE_LIMIT + 1)
+    .default(SHOWCASE_LIMIT),
+});
+export type CatalogShowcaseQuery = z.infer<typeof CatalogShowcaseQuerySchema>;
+
+export const CatalogShowcaseResponseSchema = z.object({
+  results: z.array(SlimMediaSchema),
+});
+export type CatalogShowcaseResponse = z.infer<typeof CatalogShowcaseResponseSchema>;
 
 /** Params for `GET /v1/catalog/media/:id` — one work, for a permalink to a work not yet materialized. */
 export const CatalogMediaParamsSchema = z.object({ id: z.uuid() });

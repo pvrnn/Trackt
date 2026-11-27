@@ -163,6 +163,45 @@ export async function fetchCatalogGenres(
   return CatalogGenresResponseSchema.parse(await response.json()).genres;
 }
 
+export interface FetchCatalogShowcaseOptions extends CatalogFilterOptions {
+  kind?: string | undefined;
+  year?: number | undefined;
+  offset?: number;
+  limit?: number;
+  timeoutMs: number;
+  fetchImpl?: typeof fetch;
+}
+
+export interface FetchCatalogShowcaseResult {
+  /** Works that match this build's contract, in shelf order as served. */
+  results: SlimMedia[];
+  skipped: SkippedItem[];
+}
+
+/** One batch of the catalog's browse shelf, or null when the catalog predates the route (404). */
+export async function fetchCatalogShowcase(
+  catalogUrl: string,
+  options: FetchCatalogShowcaseOptions,
+): Promise<FetchCatalogShowcaseResult | null> {
+  const { kind, year, offset, limit, timeoutMs, fetchImpl = fetch } = options;
+  const url = new URL('/v1/catalog/showcase', catalogUrl);
+  if (kind) url.searchParams.set('kind', kind);
+  if (year) url.searchParams.set('year', String(year));
+  setFilterParams(url, options);
+  if (offset) url.searchParams.set('offset', String(offset));
+  if (limit) url.searchParams.set('limit', String(limit));
+
+  const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`catalog showcase failed: ${response.status} ${response.statusText}`);
+  }
+
+  const envelope = SearchEnvelopeSchema.parse(await response.json());
+  const { items, skipped } = parseItems(envelope.results, SlimMediaSchema, '(work)');
+  return { results: items, skipped };
+}
+
 export interface FetchCatalogRelationsOptions {
   limit?: number;
   timeoutMs: number;

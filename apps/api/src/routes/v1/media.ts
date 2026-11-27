@@ -22,6 +22,8 @@ import {
   StatusFilterSchema,
   fetchCatalogMedia,
   fetchCatalogSearch,
+  fetchCatalogShowcase,
+  type CatalogShowcaseQuery,
   type MediaDetail,
   type SearchResult,
   type ViewerState,
@@ -189,10 +191,142 @@ async function materializeFromCatalog(
   }
 }
 
+/** A shelf batch plus whether another follows it (`x-has-more`). */
+interface ShowcaseShelf {
+  results: SearchResult[];
+  hasMore: boolean;
+}
+
+type ShowcaseQuery = Omit<CatalogShowcaseQuery, 'limit'>;
+
+/**
+ * The catalog's own shelf, materialized like a search page so every card links
+ * to a local slug. Null — and the caller falls back to local rows — when no
+ * catalog is configured, it predates the route, or it fails: the landing band
+ * must not go blank because the catalog is down.
+ */
+async function catalogShowcase(
+  db: Db,
+  catalogUrl: string | undefined,
+  { kind, year, genres, status, offset }: ShowcaseQuery,
+  { timeoutMs, logger }: { timeoutMs: number; logger: FastifyBaseLogger },
+): Promise<ShowcaseShelf | null> {
+  if (!catalogUrl) return null;
+  try {
+    const response = await fetchCatalogShowcase(catalogUrl, {
+      kind,
+      year,
+      genres,
+      status,
+      offset,
+      limit: SHOWCASE_LIMIT + 1,
+      timeoutMs,
+    });
+    if (!response) return null;
+    if (response.skipped.length > 0) {
+      logger.warn(
+        { skipped: response.skipped },
+        'skipping central showcase works that do not match this build (upgrade to pick them up)',
+      );
+    }
+    const hasMore = response.results.length + response.skipped.length > SHOWCASE_LIMIT;
+    const page = response.results.slice(0, SHOWCASE_LIMIT);
+    const persisted = await insertNewProviderMedia(db, page.map(buildProviderMediaRow));
+    const byId = new Map(persisted.map((row) => [row.id, row]));
+    // A row this instance pulled or rejected stays off its shelf, as it does off search.
+    const results = page.flatMap((work): SearchResult[] => {
+      const row = byId.get(work.id);
+      if (!row || row.deletedAt !== null || row.moderation !== 'verified') return [];
+      return [
+        {
+          id: row.id,
+          slug: row.slug,
+          kind: row.kind,
+          title: row.title,
+          year: row.year,
+          status: row.status,
+          seasonNumber: row.seasonNumber,
+          coverUrl: row.coverUrl,
+          description: row.description,
+        },
+      ];
+    });
+    return { results, hasMore };
+  } catch (error) {
+    logger.warn({ err: error }, 'central catalog showcase failed, serving local rows');
+    return null;
+  }
+}
+
+/** The shelf from this instance's own rows, for an instance with no reachable catalog. */
+async function localShowcase(
+  db: Db,
+  { kind, year, offset, ...filters }: ShowcaseQuery,
+): Promise<ShowcaseShelf> {
+  const rows = await db.execute(sql`
+    WITH visible AS (
+      SELECT id, slug, kind, title, year, status, season_number, cover_url, description
+      FROM media
+      WHERE deleted_at IS NULL AND moderation = 'verified'
+        -- Anonymous marketing surface: keep adult-leaning covers off it.
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(genres) AS genre
+          WHERE lower(genre) IN ('ecchi', 'hentai')
+        )
+        ${kind ? sql`AND kind = ${kind}` : sql``}
+        ${year ? sql`AND year = ${year}` : sql``}
+        ${mediaFilterSql(filters)}
+    ),
+    one_per_title AS (
+      -- A series is one media *per season* (ADR-0003), so "Breaking Bad"
+      -- is several rows with one title. A shelf would show it twice for
+      -- no reason a visitor could work out; keep the earliest season.
+      SELECT *, row_number() OVER (
+               PARTITION BY kind, title
+               ORDER BY (cover_url IS NOT NULL) DESC, season_number ASC NULLS FIRST, id
+             ) AS title_rank
+      FROM visible
+    ),
+    ranked AS (
+      SELECT *, row_number() OVER (
+               PARTITION BY kind
+               ORDER BY (cover_url IS NOT NULL) DESC, year DESC NULLS LAST, id
+             ) AS kind_rank
+      FROM one_per_title
+      WHERE title_rank = 1
+    )
+    SELECT id, slug, kind, title, year, status, season_number, cover_url, description
+    FROM ranked
+    ORDER BY kind_rank, kind
+    LIMIT ${SHOWCASE_LIMIT + 1}
+    OFFSET ${offset}
+  `);
+
+  // One row past the batch is how "there is another page" is known without a
+  // second count over a table this endpoint exists to sample.
+  const page = [...rows];
+  return {
+    hasMore: page.length > SHOWCASE_LIMIT,
+    results: page.slice(0, SHOWCASE_LIMIT).map((row): SearchResult => ({
+      id: row.id as string,
+      slug: row.slug as string,
+      kind: row.kind as SearchResult['kind'],
+      title: row.title as string,
+      year: row.year as number | null,
+      status: row.status as SearchResult['status'],
+      seasonNumber: row.season_number as number | null,
+      coverUrl: row.cover_url as string | null,
+      description: row.description as string | null,
+    })),
+  };
+}
+
 export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
   /**
-   * A page of what this instance actually carries: the landing page's cover
-   * band, and the Discover page's shelf when nothing has been typed yet.
+   * The landing page's cover band, and the Discover page's shelf when nothing
+   * has been typed yet: the central catalog's most-followed works
+   * (`/v1/catalog/showcase`), materialized as they are served. Only an instance
+   * with no reachable catalog falls back to its own rows, newest first.
    * Anonymous and viewer-independent by construction: it serves `verified` rows
    * only, so there is no session to read and nothing that varies per caller —
    * which is what makes it safe to cache at the edge.
@@ -245,68 +379,17 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const db = app.deps.db;
       if (!db) return reply.status(503).send({ error: 'database unavailable' });
-      const { kind, year, offset, ...filters } = request.query;
-
-      const rows = await db.execute(sql`
-        WITH visible AS (
-          SELECT id, slug, kind, title, year, status, season_number, cover_url, description
-          FROM media
-          WHERE deleted_at IS NULL AND moderation = 'verified'
-            -- Anonymous marketing surface: keep adult-leaning covers off it.
-            AND NOT EXISTS (
-              SELECT 1 FROM unnest(genres) AS genre
-              WHERE lower(genre) IN ('ecchi', 'hentai')
-            )
-            ${kind ? sql`AND kind = ${kind}` : sql``}
-            ${year ? sql`AND year = ${year}` : sql``}
-            ${mediaFilterSql(filters)}
-        ),
-        one_per_title AS (
-          -- A series is one media *per season* (ADR-0003), so "Breaking Bad"
-          -- is several rows with one title. A shelf would show it twice for
-          -- no reason a visitor could work out; keep the earliest season.
-          SELECT *, row_number() OVER (
-                   PARTITION BY kind, title
-                   ORDER BY (cover_url IS NOT NULL) DESC, season_number ASC NULLS FIRST, id
-                 ) AS title_rank
-          FROM visible
-        ),
-        ranked AS (
-          SELECT *, row_number() OVER (
-                   PARTITION BY kind
-                   ORDER BY (cover_url IS NOT NULL) DESC, year DESC NULLS LAST, id
-                 ) AS kind_rank
-          FROM one_per_title
-          WHERE title_rank = 1
-        )
-        SELECT id, slug, kind, title, year, status, season_number, cover_url, description
-        FROM ranked
-        ORDER BY kind_rank, kind
-        LIMIT ${SHOWCASE_LIMIT + 1}
-        OFFSET ${offset}
-      `);
-
-      // One row past the batch is how "there is another page" is known without a
-      // second count over a table this endpoint exists to sample.
-      const page = [...rows];
-      const hasMore = page.length > SHOWCASE_LIMIT;
+      const shelf =
+        (await catalogShowcase(db, app.deps.env.CATALOG_URL, request.query, {
+          timeoutMs: app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+          logger: app.log,
+        })) ?? (await localShowcase(db, request.query));
 
       // Anonymous and identical for everyone, so it may sit in a shared cache.
       // Short enough that a freshly populated catalog shows up promptly.
       reply.header('cache-control', 'public, max-age=300');
-      reply.header('x-has-more', String(hasMore));
-
-      return page.slice(0, SHOWCASE_LIMIT).map((row): SearchResult => ({
-        id: row.id as string,
-        slug: row.slug as string,
-        kind: row.kind as SearchResult['kind'],
-        title: row.title as string,
-        year: row.year as number | null,
-        status: row.status as SearchResult['status'],
-        seasonNumber: row.season_number as number | null,
-        coverUrl: row.cover_url as string | null,
-        description: row.description as string | null,
-      }));
+      reply.header('x-has-more', String(shelf.hasMore));
+      return shelf.results;
     },
   );
 

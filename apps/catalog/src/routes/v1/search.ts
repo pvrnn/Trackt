@@ -8,6 +8,8 @@ import {
   CatalogGenresQuerySchema,
   CatalogGenresResponseSchema,
   CatalogSearchResponseSchema,
+  CatalogShowcaseQuerySchema,
+  CatalogShowcaseResponseSchema,
   DERIVATIVE_FORMATS,
   GENRE_SUGGESTION_LIMIT,
   SEARCH_RANK_WEIGHTS,
@@ -43,12 +45,17 @@ interface MatchFilters {
 }
 
 /** The rows a query matches, shared by the ranked search and its per-kind counts. */
-function matchSql(q: string, { year, genres, status }: MatchFilters) {
+function matchSql(q: string, filters: MatchFilters) {
   return sql`deleted_at IS NULL
     AND (immutable_unaccent(lower(title)) % immutable_unaccent(lower(${q}))
          OR immutable_unaccent(lower(title)) LIKE '%' || immutable_unaccent(lower(${q})) || '%'
          OR immutable_unaccent(lower(immutable_array_to_string(synonyms, ' '))) LIKE '%' || immutable_unaccent(lower(${q})) || '%')
-    AND (${year ?? null}::int IS NULL OR year = ${year ?? null}::int)
+    ${filterSql(filters)}`;
+}
+
+/** Discover's narrowing filters, as `AND` clauses over `catalog_media`. */
+function filterSql({ year, genres, status }: MatchFilters) {
+  return sql`AND (${year ?? null}::int IS NULL OR year = ${year ?? null}::int)
     ${
       genres?.length
         ? sql`AND genres @> ARRAY[${sql.join(
@@ -169,6 +176,92 @@ export const searchRoutes: FastifyPluginAsyncZod = async (app) => {
         rank: row.rank as number,
       }));
       return { results };
+    },
+  );
+
+  /**
+   * Discover's shelf before anything is typed, and the landing page's cover
+   * band: the works most people follow, so a fresh instance opens on the
+   * catalog rather than on the handful of rows it happens to have materialized.
+   * The audience is `providerPopularity` (AniList list users) or `ratingCount`
+   * (IGDB, TMDB); the two scales never meet because kinds are round-robined,
+   * each ranked on its own. Covers first, derived formats (specials, music
+   * videos) after the main works, one row per title so a series shows once.
+   */
+  app.get(
+    '/catalog/showcase',
+    {
+      schema: {
+        tags: ['catalog'],
+        querystring: CatalogShowcaseQuerySchema,
+        response: { 200: CatalogShowcaseResponseSchema, 503: ApiErrorSchema },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const { kind, offset, limit, ...filters } = request.query;
+      const rows = await db.execute(sql`
+        WITH visible AS (
+          SELECT id, kind, title, synonyms, year, status, genres,
+                 part_count, season_number,
+                 external_ids, metadata, description, cover_url, banner_url,
+                 (CASE WHEN ${derivativeFormatSql} THEN 0 ELSE 1 END) AS format_class,
+                 COALESCE(
+                   CASE WHEN metadata->>'providerPopularity' ~ '^[0-9]+$'
+                     THEN (metadata->>'providerPopularity')::bigint END,
+                   CASE WHEN metadata->>'ratingCount' ~ '^[0-9]+$'
+                     THEN (metadata->>'ratingCount')::bigint END,
+                   0
+                 ) AS audience
+          FROM catalog_media
+          WHERE deleted_at IS NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM unnest(genres) AS genre
+              WHERE lower(genre) IN ('ecchi', 'hentai')
+            )
+            AND (${kind ?? null}::text IS NULL OR kind = ${kind ?? null}::text)
+            ${filterSql(filters)}
+        ),
+        one_per_title AS (
+          SELECT *, row_number() OVER (
+                   PARTITION BY kind, title
+                   ORDER BY (cover_url IS NOT NULL) DESC, season_number ASC NULLS FIRST, id
+                 ) AS title_rank
+          FROM visible
+        ),
+        ranked AS (
+          SELECT *, row_number() OVER (
+                   PARTITION BY kind
+                   ORDER BY (cover_url IS NOT NULL) DESC, format_class DESC, audience DESC, id
+                 ) AS kind_rank
+          FROM one_per_title
+          WHERE title_rank = 1
+        )
+        SELECT * FROM ranked
+        ORDER BY kind_rank, kind
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `);
+      reply.header('cache-control', 'public, max-age=300');
+      return {
+        results: [...rows].map((row) => ({
+          id: row.id as string,
+          kind: row.kind as CatalogSearchHit['kind'],
+          title: row.title as string,
+          synonyms: row.synonyms as string[],
+          year: row.year as number | null,
+          status: row.status as CatalogSearchHit['status'],
+          genres: row.genres as string[],
+          partCount: row.part_count as number | null,
+          seasonNumber: row.season_number as number | null,
+          externalIds: row.external_ids as ExternalIds,
+          metadata: (row.metadata as Record<string, unknown> | null) ?? {},
+          description: row.description as string | null,
+          coverUrl: row.cover_url as string | null,
+          bannerUrl: (row.banner_url as string | null) ?? null,
+        })),
+      };
     },
   );
 
