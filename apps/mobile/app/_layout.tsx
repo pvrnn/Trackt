@@ -60,7 +60,7 @@ export default function RootLayout() {
 }
 
 function App() {
-  const { ready, origin } = useInstance();
+  const { origin } = useInstance();
   const [fontsLoaded] = useFonts(fontAssets);
   const [localeReady, setLocaleReady] = useState(false);
 
@@ -78,7 +78,7 @@ function App() {
     };
   }, []);
 
-  if (!ready || !fontsLoaded || !localeReady) return <Splash />;
+  if (!fontsLoaded || !localeReady) return <Splash />;
 
   return (
     // Keyed on the origin, which remounts everything below on an instance
@@ -101,7 +101,6 @@ function App() {
             }}
           >
             <Stack.Screen name="index" />
-            <Stack.Screen name="(setup)/instance" />
             <Stack.Protected guard={!!origin}>
               <Stack.Screen name="(auth)/login" />
               <Stack.Screen name="(auth)/register" />

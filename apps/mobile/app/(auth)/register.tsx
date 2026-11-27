@@ -1,60 +1,57 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { authErrorKey } from '@trackt/client';
+import { isDisposableEmail } from '@trackt/shared/disposable-email';
 import { Field } from '../../src/components/Field';
 import { GlassCard } from '../../src/components/GlassCard';
+import { PasswordToggle } from '../../src/components/PasswordToggle';
 import { PrismButton } from '../../src/components/PrismButton';
 import { PrismText } from '../../src/components/PrismText';
 import { Screen } from '../../src/components/Screen';
 import { authClient, localeHeaders } from '../../src/lib/auth-client';
 import { color, space } from '../../src/theme/tokens';
-import { useTranslation } from 'react-i18next';
-import { i18n } from '../../src/i18n';
-import { isDisposableEmail } from '@trackt/shared/disposable-email';
 import { type } from '../../src/theme/typography';
 
-/**
- * Mirrors `apps/web/src/routes/register.tsx`, including its client-side
- * validation — the rules are better-auth's username-plugin defaults and the
- * server's password minimum, and duplicating them here is what turns a 400 into
- * a message attached to the field that caused it.
- */
+/** Mirrors web's `RegisterForm`: better-auth's username-plugin rule and the server's password minimum. */
 const USERNAME_RE = /^[a-zA-Z0-9_.]{3,30}$/;
 const MIN_PASSWORD_LENGTH = 8;
 
 interface Fields {
-  name: string;
   username: string;
   email: string;
   password: string;
-  confirm: string;
 }
 
-type FieldErrors = Partial<Record<keyof Fields, string>>;
+type ValidationKey =
+  | 'auth.validation.usernameFormat'
+  | 'auth.validation.emailRequired'
+  | 'auth.validation.disposableEmail'
+  | 'auth.validation.passwordLength';
 
-function validate(f: Fields): FieldErrors {
-  const errors: FieldErrors = {};
-  if (!f.name.trim()) errors.name = i18n.t('auth.validation.nameRequired');
-  if (!USERNAME_RE.test(f.username)) errors.username = i18n.t('auth.validation.usernameFormat');
-  if (!f.email.trim()) errors.email = i18n.t('auth.validation.emailRequired');
-  else if (isDisposableEmail(f.email)) errors.email = i18n.t('auth.validation.disposableEmail');
-  if (f.password.length < MIN_PASSWORD_LENGTH)
-    errors.password = i18n.t('auth.validation.passwordLength', { min: MIN_PASSWORD_LENGTH });
-  if (f.confirm !== f.password) errors.confirm = i18n.t('auth.validation.passwordMismatch');
+function validate(f: Fields): Partial<Record<keyof Fields, ValidationKey>> {
+  const errors: Partial<Record<keyof Fields, ValidationKey>> = {};
+  if (!USERNAME_RE.test(f.username)) errors.username = 'auth.validation.usernameFormat';
+  if (!f.email.trim()) errors.email = 'auth.validation.emailRequired';
+  else if (isDisposableEmail(f.email)) errors.email = 'auth.validation.disposableEmail';
+  if (f.password.length < MIN_PASSWORD_LENGTH) errors.password = 'auth.validation.passwordLength';
   return errors;
 }
 
-const EMPTY: Fields = { name: '', username: '', email: '', password: '', confirm: '' };
-
+/** Username, email and password; the display name starts as the username. */
 export default function Register() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [fields, setFields] = useState<Fields>(EMPTY);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [fields, setFields] = useState<Fields>({ username: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof Fields, ValidationKey>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const set = (key: keyof Fields) => (value: string) => setFields((f) => ({ ...f, [key]: value }));
+  const error = (key: keyof Fields) =>
+    fieldErrors[key] && t(fieldErrors[key], { min: MIN_PASSWORD_LENGTH });
 
   async function submit() {
     const errors = validate(fields);
@@ -64,20 +61,21 @@ export default function Register() {
 
     setSubmitting(true);
     const email = fields.email.trim();
-    const { data, error } = await authClient().signUp.email({
-      name: fields.name.trim(),
+    const { data, error: signUpError } = await authClient().signUp.email({
+      // The display name starts as the username; it is editable on the profile.
+      name: fields.username,
       email,
       password: fields.password,
       username: fields.username,
       ...localeHeaders(),
     });
     setSubmitting(false);
-    if (error?.code === 'DISPOSABLE_EMAIL') {
-      setFieldErrors({ email: t('auth.validation.disposableEmail') });
+    if (signUpError?.code === 'DISPOSABLE_EMAIL') {
+      setFieldErrors({ email: 'auth.validation.disposableEmail' });
       return;
     }
-    if (error) {
-      setFormError(error.message ?? t('errors.signUpFailed'));
+    if (signUpError) {
+      setFormError(t(authErrorKey(signUpError, 'errors.signUpFailed')));
       return;
     }
     // No token: the instance requires a verified email, and the code is on its way.
@@ -97,21 +95,15 @@ export default function Register() {
 
       <GlassCard strongBorder style={styles.card}>
         <Field
-          label={t('auth.fields.name')}
-          value={fields.name}
-          onChangeText={set('name')}
-          autoComplete="name"
-          error={fieldErrors.name}
-        />
-        <Field
           label={t('auth.fields.username')}
-          placeholder="handle"
+          placeholder="marav"
           value={fields.username}
           onChangeText={set('username')}
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete="username-new"
-          error={fieldErrors.username}
+          textContentType="username"
+          error={error('username')}
         />
         <Field
           label={t('auth.fields.email')}
@@ -121,26 +113,27 @@ export default function Register() {
           autoCapitalize="none"
           autoComplete="email"
           keyboardType="email-address"
-          error={fieldErrors.email}
+          textContentType="emailAddress"
+          error={error('email')}
         />
         <Field
           label={t('auth.fields.password')}
-          placeholder="••••••••••"
+          placeholder={t('auth.passwordHint.register')}
           value={fields.password}
           onChangeText={set('password')}
-          secureTextEntry
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
           autoComplete="new-password"
-          error={fieldErrors.password}
-        />
-        <Field
-          label={t('auth.fields.confirmPassword')}
-          placeholder="••••••••••"
-          value={fields.confirm}
-          onChangeText={set('confirm')}
-          secureTextEntry
+          textContentType="newPassword"
           returnKeyType="go"
           onSubmitEditing={() => void submit()}
-          error={fieldErrors.confirm}
+          error={error('password')}
+          trailing={
+            <PasswordToggle
+              shown={showPassword}
+              onToggle={() => setShowPassword((current) => !current)}
+            />
+          }
         />
         {formError ? (
           <Text style={[type.bodySm, styles.error]} accessibilityRole="alert">

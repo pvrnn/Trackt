@@ -27,9 +27,12 @@ export interface SessionState {
  * the signed-out landing and (from phase 2) News.
  */
 export function useOptionalSession(): SessionState {
-  const { data, isPending, refetch } = authClient().useSession();
+  const { data, isPending, isRefetching, refetch } = authClient().useSession();
   return {
-    isPending,
+    // Sign-in, sign-up and verification refetch the session asynchronously; until
+    // that lands there is no user, and a gate reading that as signed-out bounces
+    // the screen it was just sent to back to login.
+    isPending: isPending || (isRefetching && !data),
     user: data
       ? {
           name: data.user.name,

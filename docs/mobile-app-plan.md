@@ -24,8 +24,8 @@ obvious.
 
 | Concern       | Choice                                                                                       | Note                                                                                              |
 | ------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Runtime       | **Expo SDK 57** (RN 0.86, React 19.2)                                                        | New Architecture on by default — Reanimated 4 requires it                                         |
-| Routing       | **expo-router** (the version shipping with SDK 57)                                           | File-based; six tabs mirroring `AppNav`'s `NAV_ITEMS`, native stack for pushes                     |
+| Runtime       | **Expo SDK 58** (RN 0.88, React 19.3)                                                        | New Architecture on by default — Reanimated 4 requires it                                         |
+| Routing       | **expo-router** (the version shipping with SDK 58)                                           | File-based; six tabs mirroring `AppNav`'s `NAV_ITEMS`, native stack for pushes                     |
 | Data          | `@tanstack/react-query` (already a web dep)                                                  | Same query keys and invalidation as web, via `packages/client`                                     |
 | Auth          | `better-auth` + `@better-auth/expo` + `expo-secure-store`                                    | Also `expo-network`, `expo-linking`, `expo-constants` per the plugin's requirements                |
 | Animation     | `react-native-reanimated` 4 + `react-native-gesture-handler`                                 | CSS-style declarative API for the simple cases, worklets for gestures                              |

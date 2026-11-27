@@ -27,7 +27,7 @@ import { TRACKING_MUTATION_KEY, type PartWrite } from '../../../src/lib/offline'
 import { useAuthedScreen } from '../../../src/lib/session';
 import { useToast, useWriteFailedToast } from '../../../src/lib/toast';
 import { color, layout, space, text } from '../../../src/theme/tokens';
-import { font, type } from '../../../src/theme/typography';
+import { displayLine, font, type } from '../../../src/theme/typography';
 
 /** How many in-progress titles feed "news from what you track": one read each. */
 const NEWS_SOURCES = 4;
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   wordmark: {
     fontFamily: font.display,
     fontSize: 26,
-    lineHeight: 30,
+    lineHeight: displayLine(26),
   },
   appBarActions: {
     flexDirection: 'row',

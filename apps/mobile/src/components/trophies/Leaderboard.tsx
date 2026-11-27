@@ -25,7 +25,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { color, radius, space, surface } from '../../theme/tokens';
-import { font } from '../../theme/typography';
+import { font, displayLine } from '../../theme/typography';
 import { Avatar } from '../Avatar';
 import { Touchable } from '../Touchable';
 import { useTrophyCopy } from './copy';
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   blockRank: {
     fontFamily: font.display,
     fontSize: 40,
-    lineHeight: 44,
+    lineHeight: displayLine(40),
     color: 'rgba(20,16,26,0.72)',
   },
   chase: {
@@ -252,7 +252,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: surface.pinkBorder,
   },
-  chaseArrow: { fontFamily: font.display, fontSize: 26, lineHeight: 28, color: color.pinkInk },
+  chaseArrow: {
+    fontFamily: font.display,
+    fontSize: 26,
+    lineHeight: displayLine(26),
+    color: color.pinkInk,
+  },
   chaseText: { flex: 1, gap: 3 },
   chaseHead: { fontFamily: font.label, fontSize: 11, letterSpacing: 0.88, color: color.fg },
   chaseBody: { fontFamily: font.body, fontSize: 13, lineHeight: 18, color: color.muted },

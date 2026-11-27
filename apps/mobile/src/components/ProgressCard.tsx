@@ -7,7 +7,7 @@ import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import type { LayoutChangeEvent } from 'react-native';
 import { commitHaptic } from '../lib/haptics';
 import { PRISM, color, radius, space, stroke, surface, text } from '../theme/tokens';
-import { type } from '../theme/typography';
+import { displayLine, type } from '../theme/typography';
 import { Icon } from './Icon';
 
 /**
@@ -303,9 +303,10 @@ const styles = StyleSheet.create({
   number: {
     fontFamily: type.stat.fontFamily,
     fontSize: 44,
-    lineHeight: 46,
+    lineHeight: displayLine(44),
   },
   editing: {
+    lineHeight: undefined,
     color: color.fg,
     borderBottomWidth: 2,
     borderBottomColor: color.pink,

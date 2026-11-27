@@ -48,7 +48,7 @@ export default function ProfileTab() {
   const { t } = useTranslation();
   const listsOn = useFlag('lists.custom');
   const { data: lists } = useLists();
-  const { origin, forgetInstance } = useInstance();
+  const { origin } = useInstance();
   const { data, dataUpdatedAt, isPending, isError, refetch, isRefetching } = useProfileSummary();
   const queryClient = useQueryClient();
   const bottomInset = useTabContentInset();
@@ -181,11 +181,6 @@ export default function ProfileTab() {
             label={t('shell.signOut')}
             variant="secondary"
             onPress={() => void authClient().signOut()}
-          />
-          <PrismButton
-            label={t('profile.changeServer')}
-            variant="secondary"
-            onPress={() => void forgetInstance()}
           />
           {/* Last, and quiet: required for App Store submission and the missing
               half of the portability principle, but nothing anyone is looking

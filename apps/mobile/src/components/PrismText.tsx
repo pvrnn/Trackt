@@ -1,8 +1,14 @@
-import MaskedView from '@react-native-masked-view/masked-view';
+import MaskedViewNative from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { ComponentType, ReactElement } from 'react';
 import { Text, View } from 'react-native';
-import type { StyleProp, TextStyle } from 'react-native';
+import type { StyleProp, TextStyle, ViewProps } from 'react-native';
 import { PRISM } from '../theme/tokens';
+
+// masked-view 0.3.2's class type is built on `NativeMethods`, which React Native 0.88 no longer exports.
+const MaskedView = MaskedViewNative as unknown as ComponentType<
+  ViewProps & { maskElement: ReactElement }
+>;
 
 /**
  * PRISM gradient text (design README: "only on key display words and hero

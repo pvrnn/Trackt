@@ -10,6 +10,8 @@ docs/
 **/routeTree.gen.ts
 apps/mobile/.expo/
 apps/mobile/expo-env.d.ts
+apps/mobile/ios/
+apps/mobile/android/
 LICENSE
 
 # captured MyAnimeList markup — fixtures for the scraper, not formatting targets

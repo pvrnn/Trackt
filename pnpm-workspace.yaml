@@ -30,7 +30,7 @@ overrides:
 packageExtensions:
   '@react-native-community/datetimepicker':
     dependencies:
-      '@expo/config-plugins': '^57.0.8'
+      '@expo/config-plugins': '^58.0.14'
 
 # pnpm 11 holds freshly published versions back by default; `expo install` picks
 # the version the SDK expects, so the SDK's own packages are exempted by name.

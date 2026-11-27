@@ -36,6 +36,7 @@ const config: ExpoConfig = {
     'expo-font',
     'expo-image',
     'expo-localization',
+    'expo-status-bar',
     // Phase 3. The date picker is a native module and needs the plugin even
     // though it takes no options; the image picker carries the avatar flow's
     // purpose string, which iOS rejects the build without.
@@ -54,17 +55,8 @@ const config: ExpoConfig = {
     ],
   ],
   extra: {
-    /**
-     * An instance the picker can offer with one tap, or null.
-     *
-     * Set at build time (`TRACKT_DEMO_INSTANCE=https://demo.example`), never at
-     * runtime, and normally unset — the app still has no default server and the
-     * picker still never guesses. It exists for App Review: a reviewer has no
-     * Trackt instance, and a server-picker-first app with nothing behind the
-     * field reads as "minimum functionality" (guideline 4.2). A production
-     * build for the stores sets it; a self-hoster's build does not have to.
-     */
-    demoInstance: process.env.TRACKT_DEMO_INSTANCE ?? null,
+    /** The instance this build talks to; unset means `src/lib/build-config.ts` picks the default. */
+    instance: process.env.TRACKT_INSTANCE ?? null,
   },
   experiments: {
     typedRoutes: true,

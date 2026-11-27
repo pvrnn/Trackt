@@ -148,7 +148,8 @@
     "invalidCode": "Ce code est incorrect. Vérifiez l’e-mail et réessayez.",
     "codeExpired": "Ce code a expiré. Demandez-en un nouveau.",
     "tooManyAttempts": "Trop de tentatives. Demandez un nouveau code.",
-    "verifyFailed": "La vérification a échoué. Réessayez."
+    "verifyFailed": "La vérification a échoué. Réessayez.",
+    "emailNotVerified": "Confirmez votre adresse e-mail pour vous connecter."
   },
   "shell": {
     "accountMenu": "menu du compte",
@@ -187,7 +188,9 @@
       "submitting": "VÉRIFICATION…",
       "resend": "ENVOYER UN NOUVEAU CODE",
       "resendIn": "NOUVEAU CODE DANS {{seconds}} S",
-      "resent": "Un nouveau code est en route."
+      "resent": "Un nouveau code est en route.",
+      "noCode": "Pas d’e-mail ?",
+      "noEmail": "Ouvrez le lien de votre e-mail, ou connectez-vous pour recevoir un nouveau code."
     },
     "fields": {
       "name": "Nom",
@@ -222,7 +225,14 @@
       "body": "Apportez votre export RGPD : 1 000 épisodes importés en moins d’une minute.",
       "cta": "IMPORTER · BIENTÔT",
       "tooltip": "L’import TV Time arrive bientôt"
-    }
+    },
+    "passwordHint": {
+      "login": "Votre mot de passe",
+      "register": "Choisissez un mot de passe"
+    },
+    "showPassword": "AFFICHER",
+    "hidePassword": "MASQUER",
+    "showPasswordAria": "Afficher le mot de passe"
   },
   "marketing": {
     "hero": {

@@ -148,7 +148,8 @@
     "invalidCode": "That code is not right. Check the email and try again.",
     "codeExpired": "That code has expired. Send a new one.",
     "tooManyAttempts": "Too many tries. Send a new code.",
-    "verifyFailed": "Verification failed. Try again."
+    "verifyFailed": "Verification failed. Try again.",
+    "emailNotVerified": "Confirm your email to sign in."
   },
   "shell": {
     "accountMenu": "account menu",
@@ -187,7 +188,9 @@
       "submitting": "VERIFYING…",
       "resend": "SEND A NEW CODE",
       "resendIn": "NEW CODE IN {{seconds}}S",
-      "resent": "A new code is on its way."
+      "resent": "A new code is on its way.",
+      "noCode": "No email?",
+      "noEmail": "Open the link from your email, or sign in to get a new code."
     },
     "fields": {
       "name": "Name",
@@ -222,7 +225,14 @@
       "body": "Bring your GDPR export: 1,000 episodes import in under a minute.",
       "cta": "IMPORT · SOON",
       "tooltip": "The TV Time importer is coming soon"
-    }
+    },
+    "passwordHint": {
+      "login": "Your password",
+      "register": "Choose a password"
+    },
+    "showPassword": "SHOW",
+    "hidePassword": "HIDE",
+    "showPasswordAria": "Show password"
   },
   "marketing": {
     "hero": {

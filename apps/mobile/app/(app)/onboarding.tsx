@@ -24,6 +24,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuraBackground } from '../../src/components/AuraBackground';
@@ -50,7 +51,7 @@ import {
   surface,
   text,
 } from '../../src/theme/tokens';
-import { font, type } from '../../src/theme/typography';
+import { displayLine, font, type } from '../../src/theme/typography';
 
 /**
  * First run, after sign-up (`Mobile App.dc.html` — "ONBOARDING"): import,
@@ -80,7 +81,7 @@ export default function Onboarding() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { user } = useAuthedScreen();
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
 
   const [step, setStep] = useState<Step>('import');
   const idx = STEPS.indexOf(step);
@@ -114,7 +115,7 @@ export default function Onboarding() {
   const back = () => {
     if (idx > 0) go(STEPS[idx - 1]!);
   };
-  const leave = (to: '/home' | '/discover' = '/home') => router.replace(to);
+  const leave = () => router.replace('/home');
 
   // Android's back walks the steps; on the first one it does what it always does.
   useEffect(() => {
@@ -295,21 +296,13 @@ export default function Onboarding() {
               <FooterPrimary label={nextLabel} onPress={next} live={ready} busy={busy} flex={1.3} />
             </>
           ) : (
-            <>
-              <PrismButton
-                label={t('onboarding.done.addTitle')}
-                variant="secondary"
-                onPress={() => leave('/discover')}
-                style={styles.secondary}
-              />
-              <FooterPrimary
-                label={t('onboarding.done.home')}
-                onPress={() => leave()}
-                live
-                busy={false}
-                flex={1.4}
-              />
-            </>
+            <FooterPrimary
+              label={t('onboarding.done.home')}
+              onPress={() => leave()}
+              live
+              busy={false}
+              flex={1}
+            />
           )}
         </View>
       </KeyboardAvoidingView>
@@ -611,7 +604,7 @@ function SourceRow({
                 : t('onboarding.import.placeholder', { name: source.label })
             }
             placeholderTextColor={color.faint}
-            style={[type.body, styles.input]}
+            style={[type.input, styles.input]}
           />
           <RowAction
             label={t('onboarding.import.add')}
@@ -865,7 +858,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: font.display,
     fontSize: 34,
-    lineHeight: 34,
+    lineHeight: displayLine(34),
     color: color.fg,
   },
   lede: {
@@ -922,15 +915,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondary: {
-    flex: 1,
-  },
   input: {
     flex: 1,
     minWidth: 0,
     height: layout.touchTarget,
     paddingHorizontal: 14,
-    paddingVertical: 0,
+    // Same lift as `Field`: iOS draws single-line input text a few points low.
+    paddingTop: 0,
+    paddingBottom: 6,
     borderRadius: radius.cover,
     borderWidth: stroke,
     borderColor: 'rgba(255,255,255,0.14)',
@@ -1026,7 +1018,7 @@ const styles = StyleSheet.create({
   recapValue: {
     fontFamily: font.display,
     fontSize: 34,
-    lineHeight: 36,
+    lineHeight: displayLine(34),
   },
   closing: {
     fontFamily: font.body,

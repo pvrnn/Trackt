@@ -15,7 +15,7 @@ import { Medal } from '../../../src/components/trophies/Medal';
 import { TierChip } from '../../../src/components/trophies/TierChip';
 import { useInstance } from '../../../src/lib/instance-provider';
 import { color, radius, space, surface } from '../../../src/theme/tokens';
-import { font, type } from '../../../src/theme/typography';
+import { displayLine, font, type } from '../../../src/theme/typography';
 import { useLabels } from '../../../src/lib/labels';
 
 /** One trophy as a medal you can spin (`Mobile Trophies.dc.html` — TROPHY · DETAIL). */
@@ -209,7 +209,12 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', marginTop: space.lg },
   stat: { flex: 1, alignItems: 'center', gap: 5, paddingVertical: space.md },
   ruled: { borderLeftWidth: 1, borderLeftColor: surface.divider },
-  statValue: { fontFamily: font.display, fontSize: 20, lineHeight: 22, color: color.fg },
+  statValue: {
+    fontFamily: font.display,
+    fontSize: 20,
+    lineHeight: displayLine(20),
+    color: color.fg,
+  },
   statKey: { fontFamily: font.label, fontSize: 8, letterSpacing: 0.8, color: color.dim },
   h2: { color: color.fg, marginTop: space.xl, marginBottom: space.md },
   evidence: {
