@@ -111,10 +111,10 @@ const RawEnvSchema = z.object({
     z.string().startsWith('smtp', 'must be an smtp:// or smtps:// URL').optional(),
   ),
   MAIL_FROM: optionalString,
-  /** `off` lets an account sign in without confirming its email; for instances that cannot send mail. */
+  /** `off` lets an account sign in without confirming its email; for instances that cannot send mail. Off by default in development. */
   AUTH_EMAIL_VERIFICATION: z.preprocess(
     (value) => (value === '' ? undefined : value),
-    z.enum(['on', 'off']).default('on'),
+    z.enum(['on', 'off']).optional(),
   ),
   /** The queues this worker process consumes, comma-separated; both when unset. */
   WORKER_QUEUES: z.preprocess(
@@ -274,6 +274,8 @@ export function loadEnv(
 
   const raw = parsed.data;
   const isProduction = raw.NODE_ENV === 'production';
+  const emailVerification =
+    raw.AUTH_EMAIL_VERIFICATION ?? (raw.NODE_ENV === 'development' ? 'off' : 'on');
 
   if (isProduction && role === 'worker') {
     const missing = (['DATABASE_URL', 'REDIS_URL'] as const).filter((key) => !raw[key]);
@@ -296,7 +298,7 @@ export function loadEnv(
       );
     }
     // Verification on with no way to send the code means nobody can ever sign up.
-    if (raw.AUTH_EMAIL_VERIFICATION === 'on' && !raw.RESEND_API_KEY && !raw.SMTP_URL) {
+    if (emailVerification === 'on' && !raw.RESEND_API_KEY && !raw.SMTP_URL) {
       throw new EnvValidationError(
         'Email verification is on but no mail transport is configured:\n' +
           `  ✗ ${withHint('RESEND_API_KEY')}\n` +
@@ -304,7 +306,7 @@ export function loadEnv(
           `  or ${withHint('AUTH_EMAIL_VERIFICATION')}`,
       );
     }
-    if (raw.AUTH_EMAIL_VERIFICATION === 'on' && !raw.MAIL_FROM) {
+    if (emailVerification === 'on' && !raw.MAIL_FROM) {
       throw new EnvValidationError(
         `Missing required environment variables in production:\n  ✗ ${withHint('MAIL_FROM')}`,
       );
@@ -342,6 +344,7 @@ export function loadEnv(
       raw.CATALOG_URL ?? (raw.NODE_ENV === 'development' ? DEV_DEFAULTS.CATALOG_URL : undefined),
     TMDB_API_KEY: tmdbApiKey,
     MAIL_FROM: raw.MAIL_FROM ?? DEV_DEFAULTS.MAIL_FROM,
+    AUTH_EMAIL_VERIFICATION: emailVerification,
     WORKER_QUEUES: raw.WORKER_QUEUES ?? [...WORKER_QUEUE_NAMES],
   };
 }
