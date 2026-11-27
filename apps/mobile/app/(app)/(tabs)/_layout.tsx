@@ -4,7 +4,7 @@ import type { TabTriggerSlotProps } from 'expo-router/ui';
 import { forwardRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Ref } from 'react';
-import type { View as RNView } from 'react-native';
+import type { HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon, type TabName } from '../../../src/components/TabIcon';
 import { color, layout, nativeInk, space, stroke, surface } from '../../../src/theme/tokens';
@@ -69,8 +69,8 @@ const TabButton = forwardRef(function TabButton(
     isFocused,
     style: _slotStyle,
     ...props
-  }: TabTriggerSlotProps & { icon: TabName; label: string },
-  ref: Ref<RNView>,
+  }: Omit<TabTriggerSlotProps, 'ref'> & { icon: TabName; label: string },
+  ref: Ref<HostInstance>,
 ) {
   const tint = isFocused ? nativeInk.pinkInk : color.muted;
   return (

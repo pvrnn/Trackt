@@ -3,7 +3,7 @@ import type { TrophyCabinet } from '@trackt/shared';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { color, space, surface } from '../../theme/tokens';
-import { font } from '../../theme/typography';
+import { font, displayLine } from '../../theme/typography';
 import { GlassCard } from '../GlassCard';
 import { PrismText } from '../PrismText';
 import { useTrophyCopy } from './copy';
@@ -55,13 +55,13 @@ const styles = StyleSheet.create({
   },
   points: { gap: 4 },
   lab: { fontFamily: font.label, fontSize: 10, letterSpacing: 1, color: color.dim },
-  big: { fontFamily: font.display, fontSize: 34, lineHeight: 38 },
+  big: { fontFamily: font.display, fontSize: 34, lineHeight: displayLine(34) },
   ranks: { alignItems: 'flex-end', gap: 6 },
   rank: { fontFamily: font.label, fontSize: 12, letterSpacing: 0.72, color: color.fg },
   rankLab: { color: color.dim },
   mix: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: surface.divider },
   cell: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: space.md },
   ruled: { borderLeftWidth: 1, borderLeftColor: surface.divider },
-  n: { fontFamily: font.display, fontSize: 20, lineHeight: 22, color: color.fg },
+  n: { fontFamily: font.display, fontSize: 20, lineHeight: displayLine(20), color: color.fg },
   cellLab: { fontFamily: font.label, fontSize: 8, letterSpacing: 0.8, color: color.dim },
 });

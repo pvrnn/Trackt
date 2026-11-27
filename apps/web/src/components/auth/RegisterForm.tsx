@@ -1,10 +1,10 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { authErrorKey } from '@trackt/client';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { authClient } from '../../lib/auth-client';
-import { authErrorKey } from '../../lib/auth-errors';
 import { openDoors } from '../../lib/door-transition';
 import { AuthSwitch, PasswordToggle } from './AuthControls';
 

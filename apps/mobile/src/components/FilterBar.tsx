@@ -8,7 +8,13 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import type { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle } from 'react-native';
+import type {
+  GestureResponderEvent,
+  HostInstance,
+  LayoutChangeEvent,
+  LayoutRectangle,
+  ScrollViewInstance,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, {
   runOnJS,
@@ -79,7 +85,7 @@ export function FilterBar({
   // One menu at a time: they are all anchored to the same row.
   const [open, setOpen] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<Anchor>({ top: 0, left: 0, width: 0 });
-  const row = useRef<View>(null);
+  const row = useRef<HostInstance>(null);
   // The row's window rect and each pill's layout inside it. An open menu's
   // modal covers the row, so a tap meant for another pill arrives at the
   // backdrop; these are what let it be routed to the pill under the finger
@@ -372,7 +378,7 @@ function FilterMenu({
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   const { mounted, panelStyle } = useDisclosure(open);
-  const list = useRef<ScrollView>(null);
+  const list = useRef<ScrollViewInstance>(null);
 
   // Re-keyed on every open so the fresh ScrollView can scroll the current choice
   // into view: a menu that stays mounted fires `onContentSizeChange` once and

@@ -29,9 +29,9 @@
   },
   "devDependencies": {
     "@tanstack/react-query": "^5.101.4",
-    "@types/react": "^19.2.17",
+    "@types/react": "^19.3.3",
     "ky": "^2.0.2",
-    "react": "19.2.3",
+    "react": "19.3.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }

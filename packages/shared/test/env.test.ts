@@ -122,11 +122,15 @@ describe('loadEnv', () => {
     expect(env.RESEND_API_KEY).toBeUndefined();
   });
 
-  it('defaults verification on and MAIL_FROM to localhost in development', () => {
+  it('defaults verification off and MAIL_FROM to localhost in development', () => {
     const env = loadEnv({ AUTH_EMAIL_VERIFICATION: '', SMTP_URL: '' });
-    expect(env.AUTH_EMAIL_VERIFICATION).toBe('on');
+    expect(env.AUTH_EMAIL_VERIFICATION).toBe('off');
     expect(env.SMTP_URL).toBeUndefined();
     expect(env.MAIL_FROM).toBe('Trackt <no-reply@localhost>');
+  });
+
+  it('turns verification on in development when asked', () => {
+    expect(loadEnv({ AUTH_EMAIL_VERIFICATION: 'on' }).AUTH_EMAIL_VERIFICATION).toBe('on');
   });
 
   it('rejects an SMTP_URL that is not an smtp URL', () => {

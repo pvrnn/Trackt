@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TextInputProps } from 'react-native';
 import { color, radius, space, stroke, surface } from '../theme/tokens';
@@ -15,19 +16,23 @@ import { type } from '../theme/typography';
 export function Field({
   label,
   error,
+  trailing,
   style,
   ...props
-}: TextInputProps & { label: string; error?: string | undefined }) {
+}: TextInputProps & { label: string; error?: string | undefined; trailing?: ReactNode }) {
   return (
     <View style={styles.wrap}>
       <Text style={[type.eyebrow, styles.label]}>{label.toUpperCase()}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        accessibilityHint={error}
-        placeholderTextColor={color.dim}
-        style={[styles.input, type.body, error ? styles.inputError : null, style]}
-        {...props}
-      />
+      <View style={[styles.box, error ? styles.inputError : null]}>
+        <TextInput
+          accessibilityLabel={label}
+          accessibilityHint={error}
+          placeholderTextColor={color.dim}
+          style={[styles.input, type.input, style]}
+          {...props}
+        />
+        {trailing}
+      </View>
       {error ? (
         <Text style={[type.bodySm, styles.error]} accessibilityRole="alert">
           {error}
@@ -44,13 +49,22 @@ const styles = StyleSheet.create({
   label: {
     color: color.dim,
   },
-  input: {
+  box: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
     backgroundColor: surface.glassWell,
     borderWidth: stroke,
     borderColor: surface.glassBorder,
     borderRadius: radius.cover,
+  },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    height: 48,
     paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    // iOS draws a single-line input's text a few points below centre; this lifts it back.
+    paddingTop: 0,
+    paddingBottom: 6,
     color: color.fg,
   },
   inputError: {

@@ -18,7 +18,7 @@ import {
   surface,
   text,
 } from '../theme/tokens';
-import { font, type } from '../theme/typography';
+import { font, type, displayLine } from '../theme/typography';
 import { Icon } from './Icon';
 import { AnimatedPressable, ripple, usePressMotion } from './Press';
 import { PrismText } from './PrismText';
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: font.display,
     fontSize: 20,
-    lineHeight: 22,
+    lineHeight: displayLine(20),
     color: color.fg,
     marginBottom: 14,
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   score: {
     fontFamily: font.display,
     fontSize: 42,
-    lineHeight: 40,
+    lineHeight: displayLine(42),
   },
   bars: {
     flex: 1,

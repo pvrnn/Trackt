@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import type { NativeScrollEvent, NativeSyntheticEvent, ScrollViewInstance } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Line } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
@@ -95,7 +95,7 @@ export function MiniTimeline({
   const labels = useLabels();
   const locale = intlLocale(i18n.language);
   const reduced = useReducedMotion();
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ScrollViewInstance>(null);
   const [viewport, setViewport] = useState(0);
   const offset = useRef(0);
   const [edge, setEdge] = useState<'start' | 'end' | null>('end');

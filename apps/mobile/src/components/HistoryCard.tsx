@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { intlLocale } from '../i18n';
 import { useLabels } from '../lib/labels';
 import { color, layout, radius, space, stroke, surface } from '../theme/tokens';
-import { font, type } from '../theme/typography';
+import { font, type, displayLine } from '../theme/typography';
 import { Cover } from './Cover';
 import { KindDot } from './KindDot';
 import { PrismText } from './PrismText';
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   score: {
     fontFamily: font.display,
     fontSize: 20,
-    lineHeight: 24,
+    lineHeight: displayLine(20),
     color: color.pink,
   },
   strip: {
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: font.display,
     fontSize: 22,
-    lineHeight: 24,
+    lineHeight: displayLine(22),
   },
   statLabel: {
     color: color.dim,

@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { authErrorKey } from '@trackt/client';
 import { Field } from '../../src/components/Field';
 import { GlassCard } from '../../src/components/GlassCard';
 import { PrismButton } from '../../src/components/PrismButton';
@@ -9,26 +10,10 @@ import { PrismText } from '../../src/components/PrismText';
 import { Screen } from '../../src/components/Screen';
 import { authClient, localeHeaders } from '../../src/lib/auth-client';
 import { color, space } from '../../src/theme/tokens';
-import { type } from '../../src/theme/typography';
+import { font, type } from '../../src/theme/typography';
 
 const CODE_RE = /^\d{6}$/;
 const RESEND_COOLDOWN_S = 30;
-
-type VerifyErrorKey =
-  'errors.invalidCode' | 'errors.codeExpired' | 'errors.tooManyAttempts' | 'errors.verifyFailed';
-
-function verifyErrorKey(code: string | undefined): VerifyErrorKey {
-  switch (code) {
-    case 'INVALID_OTP':
-      return 'errors.invalidCode';
-    case 'OTP_EXPIRED':
-      return 'errors.codeExpired';
-    case 'TOO_MANY_ATTEMPTS':
-      return 'errors.tooManyAttempts';
-    default:
-      return 'errors.verifyFailed';
-  }
-}
 
 /**
  * Mirrors web's `/verify-email`: the 6-digit code from the verification email.
@@ -63,7 +48,7 @@ export default function Verify() {
     const { error } = await authClient().emailOtp.verifyEmail({ email, otp });
     setSubmitting(false);
     if (error) {
-      setFormError(t(verifyErrorKey(error.code)));
+      setFormError(t(authErrorKey(error, 'errors.verifyFailed')));
       return;
     }
     router.replace('/onboarding');
@@ -79,10 +64,24 @@ export default function Verify() {
       ...localeHeaders(),
     });
     if (error) {
-      setFormError(t('errors.generic'));
+      setFormError(t(authErrorKey(error, 'errors.generic')));
       return;
     }
     setNotice(t('auth.verify.resent'));
+  }
+
+  if (!email) {
+    return (
+      <Screen center auraIntensity={1.6}>
+        <PrismText style={type.title}>{t('auth.verify.title').toUpperCase()}</PrismText>
+        <Text style={[type.body, styles.lede]}>{t('auth.verify.noEmail')}</Text>
+        <PrismButton
+          label={t('auth.alreadyMember')}
+          variant="secondary"
+          onPress={() => router.replace('/login')}
+        />
+      </Screen>
+    );
   }
 
   return (
@@ -121,14 +120,19 @@ export default function Verify() {
         />
       </GlassCard>
 
-      <PrismButton
-        label={
-          cooldown > 0 ? t('auth.verify.resendIn', { seconds: cooldown }) : t('auth.verify.resend')
-        }
-        variant="secondary"
-        disabled={cooldown > 0}
-        onPress={() => void resend()}
-      />
+      <Text style={[type.bodySm, styles.lede]}>
+        {t('auth.verify.noCode')}{' '}
+        <Text
+          accessibilityRole="button"
+          accessibilityState={{ disabled: cooldown > 0 }}
+          onPress={cooldown > 0 ? undefined : () => void resend()}
+          style={cooldown > 0 ? styles.resendWaiting : styles.resend}
+        >
+          {cooldown > 0
+            ? t('auth.verify.resendIn', { seconds: cooldown })
+            : t('auth.verify.resend')}
+        </Text>
+      </Text>
     </Screen>
   );
 }
@@ -152,5 +156,13 @@ const styles = StyleSheet.create({
   },
   error: {
     color: color.pink,
+  },
+  resend: {
+    fontFamily: font.bodyBold,
+    color: color.pink,
+  },
+  resendWaiting: {
+    fontFamily: font.bodyBold,
+    color: color.dim,
   },
 });

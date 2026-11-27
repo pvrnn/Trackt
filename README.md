@@ -30,7 +30,7 @@ New accounts confirm their address before they can sign in: one email carries a 
 - **Resend** (`RESEND_API_KEY`): plain HTTPS. Use this on Railway, which blocks outbound SMTP below the Pro plan.
 - **SMTP** (`SMTP_URL`, e.g. `smtps://user:pass@smtp.example.com:465`), used when no Resend key is set.
 
-Set `MAIL_FROM` to a sender your provider accepts. An instance that cannot send mail can set `AUTH_EMAIL_VERIFICATION=off`. Without a transport or that switch, production refuses to boot. In development, with no transport, the code and link go to the API log.
+Set `MAIL_FROM` to a sender your provider accepts. An instance that cannot send mail can set `AUTH_EMAIL_VERIFICATION=off`. Without a transport or that switch, production refuses to boot. Verification is off by default in development. Set `AUTH_EMAIL_VERIFICATION=on` to try it, and with no transport the code and link go to the API log.
 
 Sign-up refuses disposable inboxes and on-demand relay aliases (Firefox Relay, DuckDuckGo, Apple Hide My Email, SimpleLogin, addy.io, Proton Pass). The list is [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains), through `disposable-email-domains-js`, plus the relay domains in `packages/shared/src/disposable-email.ts`. Accounts that already exist are unaffected.
 

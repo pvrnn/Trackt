@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLabels } from '../lib/labels';
 import { PRISM, color, layout, radius, space, stroke, surface, text } from '../theme/tokens';
-import { font, type } from '../theme/typography';
+import { font, type, displayLine } from '../theme/typography';
 import { Avatar } from './Avatar';
 import { Cover } from './Cover';
 import { GlassCard } from './GlassCard';
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: font.display,
     fontSize: 28,
-    lineHeight: 29,
+    lineHeight: displayLine(28),
     color: color.fg,
   },
   strip: {
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   stripValue: {
     fontFamily: font.display,
     fontSize: 22,
-    lineHeight: 23,
+    lineHeight: displayLine(22),
   },
   stripLabel: {
     ...type.tabLabel,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: font.display,
     fontSize: 20,
-    lineHeight: 22,
+    lineHeight: displayLine(20),
     color: color.fg,
   },
   tasteBlock: {

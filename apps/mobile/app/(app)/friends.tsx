@@ -138,7 +138,7 @@ export default function FriendsScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
-            style={[type.body, styles.searchInput]}
+            style={[type.input, styles.searchInput]}
           />
           {query.length > 0 ? (
             <Pressable
