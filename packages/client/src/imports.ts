@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MediaKindSchema } from '@trackt/shared';
 import { z } from 'zod';
 import { toError } from './http.js';
+import { invalidateTracking } from './media.js';
 import { http, useIsAuthed } from './runtime.js';
 
 /**
@@ -63,6 +64,8 @@ export const ImportPlanSummarySchema = z.object({
   pending: z.number().default(0),
   warnings: z.number().default(0),
   matchedByTitle: z.number().default(0),
+  /** Unmatched entries kept for the viewer to settle on the matches page. */
+  uncertain: z.number().default(0),
 });
 export type ImportPlanSummary = z.infer<typeof ImportPlanSummarySchema>;
 
@@ -328,6 +331,116 @@ export function useImportJob(jobId: string | null, attempt = 0) {
       if (query.state.status === 'error') return false;
       const data = query.state.data;
       return data && isImportJobTerminal(data.state) ? false : POLL_MS;
+    },
+  });
+}
+
+/**
+ * The latest run of each source, newest first: what a profile's import card
+ * lists. Older runs of a source are history the viewer does not need there.
+ */
+export function latestRunPerSource(runs: readonly ImportRun[]): ImportRun[] {
+  const seen = new Set<string>();
+  const latest: ImportRun[] = [];
+  for (const run of [...runs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
+    if (seen.has(run.source)) continue;
+    seen.add(run.source);
+    latest.push(run);
+  }
+  return latest;
+}
+
+export const ImportMatchCandidateSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  year: z.number().nullable().default(null),
+  score: z.number().default(0),
+  kind: MediaKindSchema.nullable().catch(null).default(null),
+  slug: z.string().nullable().default(null),
+  coverUrl: z.string().nullable().default(null),
+  seasonNumber: z.number().nullable().default(null),
+  inLog: z.boolean().default(false),
+});
+export type ImportMatchCandidate = z.infer<typeof ImportMatchCandidateSchema>;
+
+/** A title an import could not decide on, and the works it might be. */
+export const ImportMatchSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  externalId: z.string(),
+  kind: MediaKindSchema.catch('movie'),
+  /** As the source wrote it — often in the viewer's language, not the catalog's. */
+  title: z.string(),
+  year: z.number().nullable().default(null),
+  seasonNumber: z.number().nullable().default(null),
+  status: z.string(),
+  progress: z.number().default(0),
+  startedAt: z.string().nullable().default(null),
+  finishedAt: z.string().nullable().default(null),
+  /** `tie`: several works answer to the name; `below-threshold`: one came close. */
+  outcome: z.enum(['tie', 'below-threshold']).catch('below-threshold'),
+  bestScore: z.number().default(0),
+  candidates: z.array(ImportMatchCandidateSchema).default([]),
+  createdAt: z.string(),
+});
+export type ImportMatch = z.infer<typeof ImportMatchSchema>;
+
+export const ImportMatchListSchema = z.object({ matches: z.array(ImportMatchSchema) });
+
+export const importMatchesKey = ['import:matches'] as const;
+
+/** The viewer's open matches, closest call first. An instance without the route has none. */
+export async function fetchImportMatches(): Promise<ImportMatch[]> {
+  try {
+    const response = await http().get('me/import/uncertain', { throwHttpErrors: false });
+    if (response.status === 404) return [];
+    if (!response.ok) throw new Error(`import matches responded ${response.status}`);
+    return ImportMatchListSchema.parse(await response.json()).matches;
+  } catch (error) {
+    throw await toError(error, 'import matches');
+  }
+}
+
+export function useImportMatches() {
+  const isAuthed = useIsAuthed();
+  return useQuery({ queryKey: importMatchesKey, queryFn: fetchImportMatches, enabled: isAuthed });
+}
+
+export type ResolveImportMatchInput =
+  { id: string; action: 'pick'; mediaId: string } | { id: string; action: 'skip' };
+
+export const ResolveImportMatchResultSchema = z.object({
+  outcome: z.enum(['created', 'updated', 'merged', 'skipped']).catch('skipped'),
+  mediaId: z.string().nullable().default(null),
+});
+export type ResolveImportMatchResult = z.infer<typeof ResolveImportMatchResultSchema>;
+
+/** Answer one match: log the picked work from the import's entry, or skip the question. */
+export async function resolveImportMatch(
+  input: ResolveImportMatchInput,
+): Promise<ResolveImportMatchResult> {
+  const { id, ...body } = input;
+  try {
+    const json = await http()
+      .post(`me/import/uncertain/${encodeURIComponent(id)}`, { json: body })
+      .json();
+    return ResolveImportMatchResultSchema.parse(json);
+  } catch (error) {
+    throw await toError(error, 'import match');
+  }
+}
+
+/**
+ * The list is not refetched on success: the page folds an answered row in
+ * place, and a refetch would pull it out from under its UNDO. What a pick wrote
+ * is tracking data, so those views are invalidated.
+ */
+export function useResolveImportMatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: resolveImportMatch,
+    onSuccess: (_result, input) => {
+      if (input.action === 'pick') void invalidateTracking(queryClient);
     },
   });
 }

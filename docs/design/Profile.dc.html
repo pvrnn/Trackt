@@ -48,6 +48,33 @@
     @keyframes tspin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 
     @media (prefers-reduced-motion: reduce) { .tp { animation: none !important; } }
+    /* ── import pieces ── */
+    .lab { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    /* source tile: the brand colour, and a dashed slot where the service's official 24×24 mark goes (marks are never redrawn here) */
+    .stile { position: relative; flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); }
+    .stile .smark { width: 18px; height: 18px; border-radius: 4px; border: 1.5px dashed rgba(255,255,255,0.72); box-sizing: border-box; }
+    .stile.lg { width: 40px; height: 40px; border-radius: 11px; }
+    .stile.lg .smark { width: 24px; height: 24px; }
+    .stile.sm { width: 22px; height: 22px; border-radius: 6px; }
+    .stile.sm .smark { width: 14px; height: 14px; border-width: 1px; }
+    .pbar { position: relative; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .pbar > span { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); transition: width 160ms linear; }
+    .pbar.thin { height: 3px; }
+    .pbar.indet > span { width: 34%; animation: pindet 1.5s ease-in-out infinite; }
+    @keyframes pindet { from { left: -34%; } to { left: 100%; } }
+    /* the one loud line: titles waiting for an answer */
+    .nudge { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 48px; padding: 8px 16px; border-radius: 12px; background: rgba(217,107,176,0.12); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; text-decoration: none; transition: background 140ms ease; }
+    .nudge:hover { background: rgba(217,107,176,0.2); color: #f0edf4; }
+    .nudge .n { font-family: Anton, sans-serif; font-size: 22px; font-weight: 400; letter-spacing: 0; line-height: 1; }
+    .nudge .go { margin-left: auto; color: #e58cc4; white-space: nowrap; }
+    .pill2 { height: 44px; padding: 0 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #f0edf4; white-space: nowrap; cursor: pointer; transition: box-shadow 140ms ease; }
+    .pill2:hover { box-shadow: inset 0 0 0 1px #d96bb0; color: #f0edf4; }
+    .pill1 { height: 48px; padding: 0 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; white-space: nowrap; cursor: pointer; transition: filter 140ms ease, background 200ms ease; }
+    .pill1:hover { filter: brightness(1.12); color: #14101a; }
+    .pill1[aria-disabled="true"] { background: rgba(255,255,255,0.08); color: #948da1; cursor: default; filter: none; }
+    .ghost { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4; white-space: nowrap; cursor: pointer; }
+    .ghost:hover { color: #f0edf4; }
+    @media (prefers-reduced-motion: reduce) { .pbar.indet > span { animation: none; left: 0; width: 100%; opacity: 0.5; } .pbar > span { transition: none; } }
   </style>
 </helmet>
 
@@ -305,6 +332,64 @@
         </div>
       </section>
 
+      <!-- IMPORTS — owner only. Empty: an invitation. After: one row per source. When titles wait for an answer, that is the loudest line. -->
+      <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+        <section aria-labelledby="h-import" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px; backdrop-filter: blur(16px);">
+          <sc-if value="{{ imp.empty }}" hint-placeholder-val="{{ false }}">
+            <h2 id="h-import" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; line-height: 1.05; text-transform: uppercase;">{{ imp.t.bring }}</h2>
+            <p style="margin: -6px 0 0; color: #b8b1c4; font-size: 14px; line-height: 1.5; text-wrap: pretty;">{{ imp.t.bringCopy }}</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <sc-for list="{{ imp.allTiles }}" as="x" hint-placeholder-count="7"><span class="stile" title="{{ x.name }}" aria-label="{{ x.name }}" style="background: {{ x.color }};"><span class="smark" style="border-color: {{ x.mark }};"></span></span></sc-for>
+            </div>
+            <a href="Import.dc.html" class="pill2" style="align-self: flex-start;">{{ imp.t.import }}</a>
+          </sc-if>
+          <sc-if value="{{ imp.hasRuns }}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 id="h-import" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 24px; text-transform: uppercase;">{{ imp.t.imports }}</h2>
+              <span class="lab">{{ imp.runsMeta }}</span>
+            </div>
+            <sc-if value="{{ imp.needs }}" hint-placeholder-val="{{ true }}">
+              <a href="Import Matches.dc.html" class="nudge"><span class="n">10</span><span>{{ imp.needLabel }}</span><span class="go">{{ imp.t.resolve }}</span></a>
+            </sc-if>
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{ imp.runs }}" as="r" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0; box-shadow: {{ r.rule }};">
+                  <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+                    <span class="stile" aria-hidden="true" style="background: {{ r.color }};"><span class="smark" style="border-color: {{ r.mark }};"></span></span>
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                      <span class="one-line" style="font-size: 14px; font-weight: 600;">{{ r.name }}</span>
+                      <span class="one-line" style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 500; color: #948da1;">{{ r.label }}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; text-align: right;">
+                      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">{{ r.when }}</span>
+                      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ r.resultFg }};">{{ r.result }}</span>
+                    </div>
+                  </div>
+                  <sc-if value="{{ r.running }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-direction: column; gap: 6px; padding-left: 40px;">
+                      <div class="pbar thin"><span style="width: {{ r.pct }};"></span></div>
+                      <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #cfc9d8;">{{ r.progress }}</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ r.failed }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; align-items: center; gap: 12px; padding-left: 40px;">
+                      <span style="flex: 1; min-width: 0; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #d9a441;">{{ r.reason }}</span>
+                      <a href="Import.dc.html" class="ghost">{{ imp.t.retry }}</a>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ imp.needs }}" hint-placeholder-val="{{ true }}">
+              <a href="Import.dc.html" class="ghost" style="align-self: flex-start; padding: 4px 0;">{{ imp.t.importMore }}</a>
+            </sc-if>
+            <sc-if value="{{ imp.calm }}" hint-placeholder-val="{{ false }}">
+              <a href="Import.dc.html" class="pill2" style="align-self: flex-start;">{{ imp.t.import }}</a>
+            </sc-if>
+          </sc-if>
+        </section>
+      </sc-if>
+
       <!-- TROPHIES — three crystals from the cabinet, the points, and the way in -->
       <section aria-labelledby="h-trophies" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(16px);">
         <div style="display: flex; align-items: baseline; justify-content: space-between;">
@@ -352,7 +437,7 @@
 </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"viewer":{"editor":"enum","options":["owner","visitor"],"default":"owner","section":"States"}}'>
+<script type="text/x-dc" data-dc-script data-props='{"viewer":{"editor":"enum","options":["owner","visitor"],"default":"owner","section":"States"},"imports":{"editor":"enum","options":["none","done","running","failed","needs"],"default":"needs","section":"Imports"},"lang":{"editor":"enum","options":["en","fr"],"default":"en","section":"Imports"}}'>
 // Placeholder artwork. Deliberately includes light, flat and loud covers.
 const ARTS = [
   'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
@@ -419,6 +504,85 @@ function trophyPrism(t) {
 }
 
 
+// ── sources: brand colour for the tile, what each covers, how it's read ──
+const SOURCES = {
+  TVTIME: { name: 'TV Time', color: '#FFD400', dark: true, kinds: ['SERIES', 'MOVIE', 'ANIME'], type: 'file', file: 'tvtime-shows.json · tvtime-movies.json' },
+  NETFLIX: { name: 'Netflix', color: '#E50914', kinds: ['MOVIE', 'SERIES', 'ANIME'], type: 'file', file: 'NetflixViewingHistory.csv' },
+  LETTERBOXD: { name: 'Letterboxd', color: '#202830', kinds: ['MOVIE'], type: 'profile', url: 'letterboxd.com/' },
+  MAL: { name: 'MyAnimeList', color: '#2E51A2', kinds: ['ANIME', 'MANGA'], type: 'profile', url: 'myanimelist.net/profile/' },
+  ANILIST: { name: 'AniList', color: '#02A9FF', kinds: ['ANIME', 'MANGA'], type: 'profile', url: 'anilist.co/user/' },
+  STEAM: { name: 'Steam', color: '#1B2838', kinds: ['GAME'], type: 'profile', url: 'steamcommunity.com/id/', off: 'STEAM_API_KEY' },
+  TRAKT: { name: 'Trakt', color: '#ED1C24', kinds: ['MOVIE', 'SERIES'], type: 'profile', url: 'trakt.tv/users/' },
+};
+const SOURCE_ORDER = ['TVTIME', 'NETFLIX', 'LETTERBOXD', 'MAL', 'ANILIST', 'STEAM', 'TRAKT'];
+const IKDOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+const tileOf = (id) => ({ id, name: SOURCES[id].name, color: SOURCES[id].color, mark: SOURCES[id].dark ? 'rgba(20,16,26,0.6)' : 'rgba(255,255,255,0.72)' });
+
+// ── copy, English and French. French runs ~20% longer: every container below is sized for it. ──
+const STR = {
+  en: {
+    imports: 'Imports', bring: 'Bring your history', bringCopy: "Pull in what you've already watched, read and played. Nothing is written until you say so.",
+    import: 'IMPORT', importMore: '＋ IMPORT ANOTHER', need: (n) => 'TITLES NEED YOU', resolve: 'RESOLVE →',
+    logged: (a, b) => a + ' OF ' + b + ' LOGGED', writing: (a, b) => 'WRITING ' + a + ' / ' + b, matching: 'MATCHING TITLES…', retry: 'RETRY',
+    sources: (n) => n + ' SOURCES', ago: { d2: '2 DAYS AGO', w3: '3 WEEKS AGO', m1: '1 MONTH AGO', today: 'TODAY', now: 'NOW' },
+    historyTo: 'history to 2026-11-26', privateList: 'YOUR ANILIST LIST IS PRIVATE',
+    step: 'STEP', of: 'OF', stepNames: ['WHERE FROM', 'PREVIEW', 'IMPORT'], close: 'CLOSE', back: 'BACK',
+    t1: 'Where from?', l1: 'Pick a service. Nothing is written before the last step.',
+    username: 'USERNAME', choose: 'CHOOSE FILE', dropHere: (f) => 'Drop ' + f + ' here', orDrop: 'or drag it onto this box', how: 'HOW TO GET THE FILE',
+    preview: 'PREVIEW', offReason: (k) => k + ' is not set on this instance',
+    reading: (s) => 'READING YOUR ' + s.toUpperCase() + ' HISTORY', nothingYet: 'NOTHING HAS BEEN WRITTEN YET.',
+    readingNote: 'Each title is looked up in the catalog, so a large history takes a minute or two.',
+    t2: "Here's what we found", l2: 'Read, not written. Titles that need you are kept aside: nothing is guessed.',
+    stats: ['ENTRIES', 'IN THE CATALOG', 'ALREADY LOGGED', 'WOULD BE WRITTEN', 'NEED YOU'],
+    notInCat: 'Not in the catalog', more: (n) => '… ' + n + ' MORE', importNow: 'IMPORT NOW',
+    t3w: 'Writing your history', closeOk: 'You can close this, the import carries on.', t3d: 'Done',
+    doneStats: ['CREATED', 'MERGED', 'ALREADY LOGGED', 'RATINGS'], openHistory: 'OPEN HISTORY →',
+    howNetflix: [['Open ', 'netflix.com/settings/viewed', ''], ['Click ', '', 'Download all at the bottom of the list'], ['Drop ', '', 'NetflixViewingHistory.csv here']],
+    howTvtime: [['Request your data with ', 'the TV Time Out tool', ''], ['Unzip ', '', 'what it sends you'], ['Drop ', '', 'the two JSON files, or the HTML summary, here']],
+    // matches
+    mTitle: 'Needs you', scope: (n, s) => n + (n === 1 ? ' TITLE FROM ' : ' TITLES FROM ') + s, scopeMany: (n, k) => n + (n === 1 ? ' TITLE' : ' TITLES') + ' FROM ' + k + ' SOURCES',
+    mLede: "An import never guesses. These are the titles it couldn't decide on: pick the right one and it's logged straight away.",
+    wrote: (s) => 'AS ' + s.toUpperCase() + ' WROTE IT', wouldLog: 'WOULD LOG', season: 'SEASON',
+    tie: (n) => 'TIE · ' + n + ' WORKS SHARE THIS NAME', closeR: (p) => 'CLOSE · BEST IS ' + p + '%',
+    none: 'NONE OF THESE', skip: 'SKIP', loggedOne: 'LOGGED', merged: 'MERGED INTO YOUR LOG', skipped: 'SKIPPED', undo: 'UNDO', inLog: 'IN YOUR LOG',
+    searchPh: 'Search the catalog…', cancel: 'CANCEL', noResult: (q) => 'Nothing in the catalog for “' + q + '”.',
+    settled: 'All settled', settledCopy: 'Every title from your imports found its place.',
+    fSource: 'SOURCE', fKind: 'KIND', all: 'All', status: { COMPLETED: 'COMPLETED', PROGRESS: 'IN PROGRESS', EPISODES: 'EPISODES' },
+    page: (a, b, n) => a + '–' + b + ' OF ' + n, prev: '← PREV', next: 'NEXT →',
+  },
+  fr: {
+    imports: 'Imports', bring: 'Apportez votre historique', bringCopy: "Récupérez ce que vous avez déjà vu, lu et joué. Rien n'est écrit sans votre accord.",
+    import: 'IMPORTER', importMore: '＋ IMPORTER UNE AUTRE SOURCE', need: (n) => 'TITRES ONT BESOIN DE VOUS', resolve: 'RÉSOUDRE →',
+    logged: (a, b) => a + ' SUR ' + b + ' ENREGISTRÉS', writing: (a, b) => 'ÉCRITURE ' + a + ' / ' + b, matching: 'RAPPROCHEMENT DES TITRES…', retry: 'RÉESSAYER',
+    sources: (n) => n + ' SOURCES', ago: { d2: 'IL Y A 2 JOURS', w3: 'IL Y A 3 SEMAINES', m1: 'IL Y A 1 MOIS', today: "AUJOURD'HUI", now: 'EN COURS' },
+    historyTo: "historique jusqu'au 2026-11-26", privateList: 'VOTRE LISTE ANILIST EST PRIVÉE',
+    step: 'ÉTAPE', of: 'SUR', stepNames: ['SOURCE', 'APERÇU', 'IMPORT'], close: 'FERMER', back: 'RETOUR',
+    t1: "D'où ?", l1: "Choisissez un service. Rien n'est écrit avant la dernière étape.",
+    username: "NOM D'UTILISATEUR", choose: 'CHOISIR UN FICHIER', dropHere: (f) => 'Déposez ' + f + ' ici', orDrop: 'ou glissez-le sur ce cadre', how: 'COMMENT OBTENIR LE FICHIER',
+    preview: 'APERÇU', offReason: (k) => k + " n'est pas défini sur cette instance",
+    reading: (s) => 'LECTURE DE VOTRE HISTORIQUE ' + s.toUpperCase(), nothingYet: "RIEN N'A ENCORE ÉTÉ ÉCRIT.",
+    readingNote: 'Chaque titre est cherché dans le catalogue : un gros historique prend une à deux minutes.',
+    t2: "Voici ce qu'on a trouvé", l2: "Lu, pas écrit. Les titres à trancher sont mis de côté : rien n'est deviné.",
+    stats: ['ENTRÉES', 'DANS LE CATALOGUE', 'DÉJÀ ENREGISTRÉS', 'SERAIENT ÉCRITS', 'ONT BESOIN DE VOUS'],
+    notInCat: 'Absents du catalogue', more: (n) => '… ' + n + ' DE PLUS', importNow: 'IMPORTER MAINTENANT',
+    t3w: 'Écriture de votre historique', closeOk: "Vous pouvez fermer : l'import continue.", t3d: 'Terminé',
+    doneStats: ['CRÉÉS', 'FUSIONNÉS', 'DÉJÀ ENREGISTRÉS', 'NOTES'], openHistory: "OUVRIR L'HISTORIQUE →",
+    howNetflix: [['Ouvrez ', 'netflix.com/settings/viewed', ''], ['Cliquez sur ', '', 'Tout télécharger, en bas de la liste'], ['Déposez ', '', 'NetflixViewingHistory.csv ici']],
+    howTvtime: [['Demandez vos données avec ', "l'outil TV Time Out", ''], ['Décompressez ', '', 'ce qu’il vous envoie'], ['Déposez ', '', 'les deux fichiers JSON, ou le résumé HTML, ici']],
+    mTitle: 'À trancher', scope: (n, s) => n + (n === 1 ? ' TITRE DE ' : ' TITRES DE ') + s, scopeMany: (n, k) => n + (n === 1 ? ' TITRE' : ' TITRES') + ' DE ' + k + ' SOURCES',
+    mLede: "Un import ne devine jamais. Voici les titres sur lesquels il a hésité : choisissez le bon, il est enregistré aussitôt.",
+    wrote: (s) => 'TEL QUE ' + s.toUpperCase() + " L'A ÉCRIT", wouldLog: 'ENREGISTRERAIT', season: 'SAISON',
+    tie: (n) => 'ÉGALITÉ · ' + n + ' ŒUVRES PORTENT CE NOM', closeR: (p) => 'PROCHE · MEILLEURE PISTE ' + p + ' %',
+    none: 'AUCUN DE CEUX-LÀ', skip: 'IGNORER', loggedOne: 'ENREGISTRÉ', merged: 'FUSIONNÉ DANS VOTRE JOURNAL', skipped: 'IGNORÉ', undo: 'ANNULER', inLog: 'DANS VOTRE JOURNAL',
+    searchPh: 'Chercher dans le catalogue…', cancel: 'ANNULER', noResult: (q) => 'Rien dans le catalogue pour « ' + q + ' ».',
+    settled: 'Tout est réglé', settledCopy: 'Chaque titre de vos imports a trouvé sa place.',
+    fSource: 'SOURCE', fKind: 'TYPE', all: 'Tous', status: { COMPLETED: 'TERMINÉ', PROGRESS: 'EN COURS', EPISODES: 'ÉPISODES' },
+    page: (a, b, n) => a + '–' + b + ' SUR ' + n, prev: '← PRÉC.', next: 'SUIV. →',
+  },
+};
+const MONTHS_FR = { JAN: 'JANV', FEB: 'FÉVR', MAR: 'MARS', APR: 'AVR', MAY: 'MAI', JUN: 'JUIN', JUL: 'JUIL', AUG: 'AOÛT', SEP: 'SEPT', OCT: 'OCT', NOV: 'NOV', DEC: 'DÉC' };
+const frDate = (s, lang) => lang === 'fr' ? s.replace(/[A-Z]{3}/g, (m) => MONTHS_FR[m] || m) : s;
+
 class Component extends DCLogic {
   state = { tab: 'TOP', requested: false, shared: false };
 
@@ -455,6 +619,23 @@ class Component extends DCLogic {
 
     return {
       isOwner, isVisitor: !isOwner,
+      imp: (() => {
+        const mode = this.props.imports ?? 'needs', lang = this.props.lang ?? 'en', t = STR[lang] || STR.en;
+        const run = (id, label, when, result, extra) => Object.assign(tileOf(id), { label, when: t.ago[when], result, resultFg: '#b8b1c4', running: false, failed: false }, extra || {});
+        let runs = [
+          run('NETFLIX', t.historyTo, 'd2', t.logged(185, 239)),
+          run('MAL', 'regelegorila', 'w3', t.logged(212, 214)),
+          run('LETTERBOXD', 'regelegorila', 'm1', t.logged(96, 96)),
+        ];
+        if (mode === 'running') runs[0] = run('NETFLIX', t.historyTo, 'now', '50%', { running: true, pct: '50%', progress: t.writing(120, 239), resultFg: '#e58cc4' });
+        if (mode === 'failed') runs = [run('ANILIST', 'regelegorila', 'today', '', { failed: true, reason: t.privateList })].concat(runs);
+        return {
+          t, empty: mode === 'none', hasRuns: mode !== 'none', needs: mode === 'needs', calm: mode !== 'none' && mode !== 'needs',
+          needLabel: t.need(10), runsMeta: t.sources(runs.length),
+          allTiles: SOURCE_ORDER.map(tileOf),
+          runs: runs.map((r, n) => Object.assign(r, { rule: n ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none' })),
+        };
+      })(),
       requested: this.state.requested,
       addFriend: () => this.setState((s) => ({ requested: !s.requested })),
       addLabel: this.state.requested ? 'REQUESTED ✓' : '＋ ADD FRIEND',

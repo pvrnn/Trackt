@@ -11,15 +11,20 @@ import {
   ImportRequestSchema,
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_FILES,
+  ResolveMatchRequestSchema,
+  ResolveMatchResultSchema,
   UncertainMatchListSchema,
+  applyPickedEntry,
   credentialsFromEnv,
   importJobId,
   isFileSource,
   readImportUpload,
   type ImportJobData,
+  type ImportEntry,
   type ImportJobResult,
   type ImportSource,
 } from '@trackt/imports';
+import { loadMatchMedia, loggedMediaIds, type CatalogAccess } from '../../lib/import-matches.js';
 import { getSessionUser } from '../../lib/session.js';
 
 /**
@@ -399,24 +404,131 @@ export const importRoutes: FastifyPluginAsyncZod = async (app) => {
         .orderBy(desc(importMatch.bestScore), desc(importMatch.createdAt))
         .limit(200);
 
-      return {
-        matches: rows.map((row) => ({
-          id: row.id,
-          // The column is text (a new source must not need a migration); the
-          // contract is the registry's closed set.
-          source: row.source as ImportSource,
-          externalId: row.externalId,
-          kind: row.kind,
-          title: row.title,
-          year: row.year,
-          seasonNumber: row.seasonNumber,
-          status: row.status,
-          outcome: row.outcome,
-          bestScore: row.bestScore,
-          candidates: row.candidates,
-          createdAt: row.createdAt.toISOString(),
-        })),
+      const catalog: CatalogAccess = {
+        catalogUrl: app.deps.env.CATALOG_URL,
+        timeoutMs: app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+        logger: request.log,
       };
+      const works = await loadMatchMedia(
+        db,
+        rows.flatMap((row) => row.candidates.map((candidate) => candidate.id)),
+        catalog,
+      );
+      const logged = await loggedMediaIds(db, user.id, [...works.keys()]);
+
+      return {
+        matches: rows.map((row) => {
+          const entry = row.entry as Partial<ImportEntry>;
+          return {
+            id: row.id,
+            // The column is text (a new source must not need a migration); the
+            // contract is the registry's closed set.
+            source: row.source as ImportSource,
+            externalId: row.externalId,
+            kind: row.kind,
+            title: row.title,
+            year: row.year,
+            seasonNumber: row.seasonNumber,
+            status: row.status,
+            progress: typeof entry.progress === 'number' ? entry.progress : 0,
+            startedAt: entry.startedAt ?? null,
+            finishedAt: entry.finishedAt ?? entry.completesAtPartCount?.finishedAt ?? null,
+            outcome: row.outcome,
+            bestScore: row.bestScore,
+            candidates: row.candidates.map((candidate) => {
+              const work = works.get(candidate.id);
+              return {
+                ...candidate,
+                title: work?.title ?? candidate.title,
+                kind: work?.kind ?? null,
+                slug: work?.slug ?? null,
+                coverUrl: work?.coverUrl ?? null,
+                seasonNumber: work?.seasonNumber ?? null,
+                inLog: work ? logged.has(work.id) : false,
+              };
+            }),
+            createdAt: row.createdAt.toISOString(),
+          };
+        }),
+      };
+    },
+  );
+
+  /**
+   * The viewer's answer to one match: a work they picked (a candidate, or one
+   * they searched for) is logged from the entry the import kept, merging into a
+   * log they already have; a skip only closes the question. Either way the row
+   * is answered, so a later run of the same source leaves it alone.
+   */
+  app.post(
+    '/me/import/uncertain/:id',
+    {
+      schema: {
+        tags: ['imports'],
+        params: z.object({ id: z.uuid() }),
+        body: ResolveMatchRequestSchema,
+        response: {
+          200: ResolveMatchResultSchema,
+          401: ApiErrorSchema,
+          404: ApiErrorSchema,
+          409: ApiErrorSchema,
+          503: ApiErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const db = app.deps.db;
+      if (!db) return reply.status(503).send({ error: 'database unavailable' });
+      const user = await getSessionUser(app, request);
+      if (!user) return reply.status(401).send({ error: 'authentication required' });
+
+      const owned = and(eq(importMatch.id, request.params.id), eq(importMatch.userId, user.id));
+      const [match] = await db.select().from(importMatch).where(owned);
+      if (!match) return reply.status(404).send({ error: 'import match not found' });
+      if (match.resolvedAt) return reply.status(409).send({ error: 'already answered' });
+
+      const body = request.body;
+      if (body.action === 'skip') {
+        await db
+          .update(importMatch)
+          .set({ resolvedAt: new Date(), resolvedMediaId: null })
+          .where(and(owned, isNull(importMatch.resolvedAt)));
+        return { outcome: 'skipped' as const, mediaId: null };
+      }
+
+      const works = await loadMatchMedia(db, [body.mediaId], {
+        catalogUrl: app.deps.env.CATALOG_URL,
+        timeoutMs: app.deps.env.CATALOG_SEARCH_TIMEOUT_MS,
+        logger: request.log,
+      });
+      const work = works.get(body.mediaId);
+      if (!work) return reply.status(404).send({ error: 'media not found' });
+
+      // Claim the row first: a double tap must not write the log twice.
+      const claimed = await db
+        .update(importMatch)
+        .set({ resolvedAt: new Date(), resolvedMediaId: work.id })
+        .where(and(owned, isNull(importMatch.resolvedAt)))
+        .returning({ id: importMatch.id });
+      if (claimed.length === 0) return reply.status(409).send({ error: 'already answered' });
+
+      const candidate = match.candidates.find((row) => row.id === work.id);
+      try {
+        const outcome = await applyPickedEntry(db, user.id, match.entry as unknown as ImportEntry, {
+          id: work.id,
+          kind: work.kind,
+          title: work.title,
+          partCount: work.partCount,
+          seasonNumber: work.seasonNumber,
+          matchedBy: 'title',
+          matchScore: candidate?.score ?? null,
+        });
+        return { outcome, mediaId: work.id };
+      } catch (error) {
+        // Reopen the question rather than leave it answered with nothing logged.
+        await db.update(importMatch).set({ resolvedAt: null, resolvedMediaId: null }).where(owned);
+        throw error;
+      }
     },
   );
 

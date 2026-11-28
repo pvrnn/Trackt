@@ -29,6 +29,9 @@
       "tvtime": {
         "idle": "Envoyez votre export de données TV Time"
       },
+      "netflix": {
+        "idle": "Envoyez NetflixViewingHistory.csv depuis netflix.com/settings/viewed"
+      },
       "letterboxd": {
         "idle": "Indiquez votre pseudo Letterboxd",
         "placeholder": "Pseudo Letterboxd"

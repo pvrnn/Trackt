@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   ImportJobStatusSchema,
+  ImportMatchSchema,
+  ImportRunSchema,
   ImportSourcesSchema,
   importJobPhase,
   importProgressPercent,
   isImportJobTerminal,
+  latestRunPerSource,
   type ImportJobState,
 } from '../src/imports.js';
 
@@ -169,5 +172,41 @@ describe('ImportJobStatusSchema', () => {
 
   it('rejects a body that is not a job, such as the 404', () => {
     expect(ImportJobStatusSchema.safeParse({ error: 'import job not found' }).success).toBe(false);
+  });
+});
+
+describe('latestRunPerSource', () => {
+  const run = (source: string, createdAt: string, state = 'completed') =>
+    ImportRunSchema.parse({ id: `${source}-${createdAt}`, source, profile: 'p', state, createdAt });
+
+  it('keeps the newest run of each source, newest first', () => {
+    const runs = [
+      run('netflix', '2026-11-01T10:00:00Z'),
+      run('mal', '2026-11-20T10:00:00Z'),
+      run('netflix', '2026-11-28T10:00:00Z', 'running'),
+    ];
+    expect(latestRunPerSource(runs).map((entry) => entry.id)).toEqual([
+      'netflix-2026-11-28T10:00:00Z',
+      'mal-2026-11-20T10:00:00Z',
+    ]);
+  });
+});
+
+describe('ImportMatchSchema', () => {
+  it('reads a match from an instance that served no candidate details', () => {
+    const match = ImportMatchSchema.parse({
+      id: 'm1',
+      source: 'netflix',
+      externalId: 'shaft',
+      kind: 'movie',
+      title: 'Shaft',
+      status: 'completed',
+      outcome: 'tie',
+      bestScore: 1,
+      candidates: [{ id: 'a', title: 'Shaft', year: 2019, score: 1 }],
+      createdAt: '2026-11-28T10:00:00Z',
+    });
+    expect(match.progress).toBe(0);
+    expect(match.candidates[0]).toMatchObject({ kind: null, coverUrl: null, inLog: false });
   });
 });

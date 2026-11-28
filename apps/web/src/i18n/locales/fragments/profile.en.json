@@ -1,8 +1,7 @@
 {
   "action": {
     "editProfile": "EDIT PROFILE",
-    "feedback": "SEND FEEDBACK",
-    "import": "IMPORT"
+    "feedback": "SEND FEEDBACK"
   },
   "loadError": "Couldn’t load your profile. Is the instance API reachable?",
   "public": {
@@ -138,8 +137,27 @@
         "choose": "CHOOSE FILES",
         "none": "No file chosen",
         "chosen": "{{names}}",
-        "hint": "The two JSON files (movies and series) from your TV Time export, or its HTML summary. The JSON files carry watch dates; the summary does not.",
-        "readError": "Couldn’t read {{name}}."
+        "readError": "Couldn’t read {{name}}.",
+        "how": "HOW TO GET THE FILE",
+        "drop": "Drop {{file}} here",
+        "dropOr": "or drag it onto this box",
+        "remove": "Remove {{name}}",
+        "steps": {
+          "netflix": {
+            "one": "Open <site>netflix.com/settings/viewed</site>",
+            "two": "Click <b>Download all</b> at the bottom of the list",
+            "three": "Drop <b>NetflixViewingHistory.csv</b> here"
+          },
+          "tvtime": {
+            "one": "Export your data with the <b>TV Time Out</b> tool",
+            "two": "Unzip what it sends you",
+            "three": "Drop <b>the two JSON files</b> here (they carry watch dates), or the HTML summary"
+          }
+        },
+        "fileName": {
+          "netflix": "NetflixViewingHistory.csv",
+          "tvtime": "your TV Time export"
+        }
       }
     },
     "preview": {
@@ -158,7 +176,9 @@
       "nothing": "Everything on that profile is already logged. Nothing would be written.",
       "importNow": "IMPORT NOW",
       "unreadable": "The preview finished, but its result could not be read. Try again.",
-      "readingFile": "Reading your {{source}} export. Nothing has been written yet."
+      "readingFile": "Reading your {{source}} export. Nothing has been written yet.",
+      "readingNote": "Each title is looked up in the catalog, so a large history takes a minute or two.",
+      "needYou": "Need you"
     },
     "run": {
       "running": "Writing your library. You can close this — the import carries on.",
@@ -189,6 +209,67 @@
     "errors": {
       "start": "Couldn’t start the import.",
       "poll": "Couldn’t read the import’s progress."
+    },
+    "matches": {
+      "back": "← PROFILE",
+      "title": "Needs you",
+      "scope_one": "{{count}} TITLE FROM {{source}}",
+      "scope_other": "{{count}} TITLES FROM {{source}}",
+      "scopeMany": "{{count}} TITLES FROM {{sources}} SOURCES",
+      "lede": "An import never guesses. These are the titles it couldn’t decide on: pick the right one and it’s logged straight away.",
+      "wrote": "AS {{source}} WROTE IT",
+      "season": "SEASON {{n}}",
+      "wouldLog": "WOULD LOG",
+      "episodes_one": "{{count}} EPISODE",
+      "episodes_other": "{{count}} EPISODES",
+      "chapters_one": "{{count}} CHAPTER",
+      "chapters_other": "{{count}} CHAPTERS",
+      "tie": "TIE · {{count}} WORKS SHARE THIS NAME",
+      "close": "CLOSE · BEST IS {{percent}}%",
+      "none": "NONE OF THESE",
+      "skip": "SKIP",
+      "logged": "LOGGED",
+      "merged": "MERGED INTO YOUR LOG",
+      "skipped": "SKIPPED",
+      "undo": "UNDO",
+      "inLog": "IN YOUR LOG",
+      "candidate": "{{title}}, {{year}}, {{percent}}% match",
+      "searchPlaceholder": "Search the catalog…",
+      "cancel": "CANCEL",
+      "noResult": "Nothing in the catalog for “{{query}}”.",
+      "settled": "All settled",
+      "settledCopy": "Every title from your imports found its place.",
+      "openHistory": "OPEN HISTORY →",
+      "filterSource": "SOURCE",
+      "filterKind": "KIND",
+      "allSources": "All sources",
+      "allKinds": "All kinds",
+      "loading": "Loading the titles that need you…",
+      "loadError": "Couldn’t load the titles that need you.",
+      "saveError": "Couldn’t save that answer. Try again."
+    },
+    "card": {
+      "bring": "Bring your history",
+      "bringCopy": "Pull in what you’ve already watched, read and played. Nothing is written until you say so.",
+      "title": "Imports",
+      "sources_one": "{{count}} SOURCE",
+      "sources_other": "{{count}} SOURCES",
+      "import": "IMPORT",
+      "importMore": "＋ IMPORT ANOTHER",
+      "needs_one": "TITLE NEEDS YOU",
+      "needs_other": "TITLES NEED YOU",
+      "resolve": "RESOLVE →",
+      "logged": "{{matched}} OF {{total}} LOGGED",
+      "queued": "WAITING TO START",
+      "matching": "MATCHING TITLES…",
+      "writing": "WRITING {{done}} / {{total}}",
+      "retry": "RETRY"
+    },
+    "steps": {
+      "of": "STEP {{n}} OF 3",
+      "choose": "WHERE FROM",
+      "preview": "PREVIEW",
+      "import": "IMPORT"
     }
   },
   "timeline": {

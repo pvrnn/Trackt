@@ -5,7 +5,12 @@ export {
 } from './anilist/client.js';
 export { mapAniListEntry } from './anilist/map.js';
 export type { AniListDate, AniListListEntry, AniListMedia } from './anilist/schemas.js';
-export { applyImportPlan, type ApplyOptions, type ImportReport } from './apply.js';
+export {
+  applyImportPlan,
+  applyPickedEntry,
+  type ApplyOptions,
+  type ImportReport,
+} from './apply.js';
 export {
   applyDateRules,
   dateFromParts,
@@ -43,6 +48,8 @@ export {
   ImportSourceSchema,
   ImportWarningSchema,
   MAX_JOB_UNMATCHED,
+  ResolveMatchRequestSchema,
+  ResolveMatchResultSchema,
   UncertainCandidateSchema,
   UncertainMatchListSchema,
   UncertainMatchSchema,
@@ -56,6 +63,7 @@ export {
   type ImportPlanSummary,
   type ImportRequest,
   type ImportUnmatchedEntry,
+  type ResolveMatchRequest,
   type UncertainMatchList,
 } from './job.js';
 export { updateImportRun, type ImportRunPatch } from './runs.js';
@@ -109,6 +117,15 @@ export {
 } from './steam/client.js';
 export { mapSteamGame, type SteamMapOptions } from './steam/map.js';
 export type { SteamOwnedGame } from './steam/schemas.js';
+export { fetchNetflixEntries } from './netflix/adapter.js';
+export { mapNetflixMovie, mapNetflixSeason, type NetflixMapOptions } from './netflix/map.js';
+export {
+  NetflixExportSchema,
+  type NetflixExport,
+  type NetflixMovie,
+  type NetflixSeason,
+} from './netflix/schemas.js';
+export { netflixUploadLabel, readNetflixUpload, type NetflixFile } from './netflix/upload.js';
 export { fetchTvTimeEntries } from './tvtime/adapter.js';
 export { mapTvTimeMovie, mapTvTimeShow, type TvTimeMapOptions } from './tvtime/map.js';
 export {

@@ -1,8 +1,7 @@
 {
   "action": {
     "editProfile": "MODIFIER LE PROFIL",
-    "feedback": "ENVOYER UN AVIS",
-    "import": "IMPORTER"
+    "feedback": "ENVOYER UN AVIS"
   },
   "loadError": "Impossible de charger votre profil. L’API de l’instance est-elle joignable ?",
   "public": {
@@ -138,8 +137,27 @@
         "choose": "CHOISIR DES FICHIERS",
         "none": "Aucun fichier choisi",
         "chosen": "{{names}}",
-        "hint": "Les deux fichiers JSON (films et séries) de votre export TV Time, ou son résumé HTML. Les fichiers JSON contiennent les dates de visionnage ; le résumé non.",
-        "readError": "Impossible de lire {{name}}."
+        "readError": "Impossible de lire {{name}}.",
+        "how": "COMMENT OBTENIR LE FICHIER",
+        "drop": "Déposez {{file}} ici",
+        "dropOr": "ou faites-le glisser dans ce cadre",
+        "remove": "Retirer {{name}}",
+        "steps": {
+          "netflix": {
+            "one": "Ouvrez <site>netflix.com/settings/viewed</site>",
+            "two": "Cliquez sur <b>Tout télécharger</b> en bas de la liste",
+            "three": "Déposez <b>NetflixViewingHistory.csv</b> ici"
+          },
+          "tvtime": {
+            "one": "Exportez vos données avec l’outil <b>TV Time Out</b>",
+            "two": "Décompressez ce qu’il vous envoie",
+            "three": "Déposez <b>les deux fichiers JSON</b> ici (ils contiennent les dates), ou le résumé HTML"
+          }
+        },
+        "fileName": {
+          "netflix": "NetflixViewingHistory.csv",
+          "tvtime": "votre export TV Time"
+        }
       }
     },
     "preview": {
@@ -158,7 +176,9 @@
       "nothing": "Tout ce profil est déjà suivi. Rien ne serait écrit.",
       "importNow": "IMPORTER MAINTENANT",
       "unreadable": "L’aperçu est terminé, mais son résultat est illisible. Réessayez.",
-      "readingFile": "Lecture de votre export {{source}}. Rien n’a encore été écrit."
+      "readingFile": "Lecture de votre export {{source}}. Rien n’a encore été écrit.",
+      "readingNote": "Chaque titre est cherché dans le catalogue : un long historique prend une minute ou deux.",
+      "needYou": "À trancher"
     },
     "run": {
       "running": "Écriture de votre bibliothèque. Vous pouvez fermer : l’import continue.",
@@ -189,6 +209,67 @@
     "errors": {
       "start": "Impossible de lancer l’import.",
       "poll": "Impossible de lire la progression de l’import."
+    },
+    "matches": {
+      "back": "← PROFIL",
+      "title": "À trancher",
+      "scope_one": "{{count}} TITRE DEPUIS {{source}}",
+      "scope_other": "{{count}} TITRES DEPUIS {{source}}",
+      "scopeMany": "{{count}} TITRES DEPUIS {{sources}} SOURCES",
+      "lede": "Un import ne devine jamais. Voici les titres sur lesquels il n’a pas su trancher : choisissez le bon et il est enregistré aussitôt.",
+      "wrote": "TEL QUE {{source}} L’ÉCRIT",
+      "season": "SAISON {{n}}",
+      "wouldLog": "SERAIT ENREGISTRÉ",
+      "episodes_one": "{{count}} ÉPISODE",
+      "episodes_other": "{{count}} ÉPISODES",
+      "chapters_one": "{{count}} CHAPITRE",
+      "chapters_other": "{{count}} CHAPITRES",
+      "tie": "ÉGALITÉ · {{count}} ŒUVRES PORTENT CE NOM",
+      "close": "PROCHE · AU MIEUX {{percent}} %",
+      "none": "AUCUN DE CEUX-LÀ",
+      "skip": "IGNORER",
+      "logged": "ENREGISTRÉ",
+      "merged": "FUSIONNÉ AVEC VOTRE JOURNAL",
+      "skipped": "IGNORÉ",
+      "undo": "ANNULER",
+      "inLog": "DÉJÀ SUIVI",
+      "candidate": "{{title}}, {{year}}, correspondance {{percent}} %",
+      "searchPlaceholder": "Chercher dans le catalogue…",
+      "cancel": "ANNULER",
+      "noResult": "Rien dans le catalogue pour « {{query}} ».",
+      "settled": "Tout est réglé",
+      "settledCopy": "Chaque titre de vos imports a trouvé sa place.",
+      "openHistory": "OUVRIR L’HISTORIQUE →",
+      "filterSource": "SOURCE",
+      "filterKind": "TYPE",
+      "allSources": "Toutes les sources",
+      "allKinds": "Tous les types",
+      "loading": "Chargement des titres à trancher…",
+      "loadError": "Impossible de charger les titres à trancher.",
+      "saveError": "Impossible d’enregistrer ce choix. Réessayez."
+    },
+    "card": {
+      "bring": "Ramenez votre historique",
+      "bringCopy": "Récupérez ce que vous avez déjà vu, lu et joué. Rien n’est écrit sans votre accord.",
+      "title": "Imports",
+      "sources_one": "{{count}} SOURCE",
+      "sources_other": "{{count}} SOURCES",
+      "import": "IMPORTER",
+      "importMore": "＋ IMPORTER UNE AUTRE SOURCE",
+      "needs_one": "TITRE À TRANCHER",
+      "needs_other": "TITRES À TRANCHER",
+      "resolve": "TRANCHER →",
+      "logged": "{{matched}} SUR {{total}} ENREGISTRÉS",
+      "queued": "EN ATTENTE",
+      "matching": "RECHERCHE DES TITRES…",
+      "writing": "ÉCRITURE {{done}} / {{total}}",
+      "retry": "RÉESSAYER"
+    },
+    "steps": {
+      "of": "ÉTAPE {{n}} SUR 3",
+      "choose": "SOURCE",
+      "preview": "APERÇU",
+      "import": "IMPORT"
     }
   },
   "timeline": {

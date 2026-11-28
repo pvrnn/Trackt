@@ -8,9 +8,9 @@ import {
   type Db,
   type ImportMatchCandidate,
 } from '@trackt/db';
-import type { ImportPlan, ImportPlanRow } from './plan.js';
-import { entryKey } from './resolve.js';
-import type { ImportSource, ImportWarning } from './types.js';
+import { buildImportPlan, type ImportPlan, type ImportPlanRow } from './plan.js';
+import { entryKey, findLoggedMediaIds, type ImportTarget } from './resolve.js';
+import type { ImportEntry, ImportSource, ImportWarning } from './types.js';
 
 export interface ApplyOptions {
   /**
@@ -268,6 +268,29 @@ export async function applyImportPlan(
 
   report.uncertain = await recordUncertainMatches(db, userId, plan);
   return report;
+}
+
+/**
+ * The viewer's answer to an uncertain match: the one entry, planned against the
+ * work they picked and written exactly as the import would have, merging into a
+ * log they already have. Unlike `applyImportPlan` it leaves the other open
+ * matches alone.
+ */
+export async function applyPickedEntry(
+  db: Db,
+  userId: string,
+  entry: ImportEntry,
+  target: ImportTarget,
+): Promise<'created' | 'updated' | 'merged' | 'skipped'> {
+  const loggedMediaIds = await findLoggedMediaIds(db, userId, [target.id]);
+  const [row] = buildImportPlan({
+    source: entry.source,
+    profile: '',
+    entries: [entry],
+    targets: new Map([[entryKey(entry), target]]),
+    loggedMediaIds,
+  }).rows;
+  return writeLogRow(db, userId, row!, false);
 }
 
 /**

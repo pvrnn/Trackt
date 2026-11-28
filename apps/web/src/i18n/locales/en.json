@@ -33,7 +33,8 @@
     "user": "{{name}} (@{{username}}) · Trackt",
     "userHistory": "{{username}}’s history · Trackt",
     "newsArticle": "{{title}} · Trackt",
-    "verifyEmail": "Verify email · Trackt"
+    "verifyEmail": "Verify email · Trackt",
+    "importMatches": "Needs you · Trackt"
   },
   "locale": {
     "switch": "Language",

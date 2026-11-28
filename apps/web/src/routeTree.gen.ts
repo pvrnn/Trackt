@@ -22,6 +22,7 @@ import { Route as UsersUsernameRouteImport } from './routes/users.$username'
 import { Route as NewsSlugRouteImport } from './routes/news_.$slug'
 import { Route as MediaSlugRouteImport } from './routes/media.$slug'
 import { Route as ListsIdRouteImport } from './routes/lists_.$id'
+import { Route as ImportMatchesRouteImport } from './routes/import.matches'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth.verify-email'
 import { Route as AuthRegisterRouteImport } from './routes/_auth.register'
 import { Route as AuthLoginRouteImport } from './routes/_auth.login'
@@ -92,6 +93,11 @@ const ListsIdRoute = ListsIdRouteImport.update({
   path: '/lists/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImportMatchesRoute = ImportMatchesRouteImport.update({
+  id: '/import/matches',
+  path: '/import/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/import/matches': typeof ImportMatchesRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/import/matches': typeof ImportMatchesRoute
   '/lists/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
+  '/import/matches': typeof ImportMatchesRoute
   '/lists_/$id': typeof ListsIdRoute
   '/media/$slug': typeof MediaSlugRoute
   '/news_/$slug': typeof NewsSlugRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/verify-email'
+    | '/import/matches'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/verify-email'
+    | '/import/matches'
     | '/lists/$id'
     | '/media/$slug'
     | '/news/$slug'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/register'
     | '/_auth/verify-email'
+    | '/import/matches'
     | '/lists_/$id'
     | '/media/$slug'
     | '/news_/$slug'
@@ -248,6 +260,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   TrophiesRoute: typeof TrophiesRoute
+  ImportMatchesRoute: typeof ImportMatchesRoute
   ListsIdRoute: typeof ListsIdRoute
   MediaSlugRoute: typeof MediaSlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/import/matches': {
+      id: '/import/matches'
+      path: '/import/matches'
+      fullPath: '/import/matches'
+      preLoaderRoute: typeof ImportMatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_auth/verify-email': {
       id: '/_auth/verify-email'
       path: '/verify-email'
@@ -411,6 +431,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   TrophiesRoute: TrophiesRoute,
+  ImportMatchesRoute: ImportMatchesRoute,
   ListsIdRoute: ListsIdRoute,
   MediaSlugRoute: MediaSlugRoute,
   NewsSlugRoute: NewsSlugRoute,

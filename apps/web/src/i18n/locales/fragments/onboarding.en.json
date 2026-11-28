@@ -29,6 +29,9 @@
       "tvtime": {
         "idle": "Upload your TV Time data export"
       },
+      "netflix": {
+        "idle": "Upload NetflixViewingHistory.csv from netflix.com/settings/viewed"
+      },
       "letterboxd": {
         "idle": "Give your Letterboxd username",
         "placeholder": "Letterboxd username"
