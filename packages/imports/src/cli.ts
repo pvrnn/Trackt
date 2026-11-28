@@ -11,7 +11,7 @@ import type { ImportCredentials, ImportSource } from './types.js';
 import { isFileSource, readImportUpload } from './upload.js';
 
 /**
- * `pnpm import -- --source <mal|anilist|letterboxd|trakt|steam|tvtime> --user <email|uuid> (--profile <name> | --file <path>…) [--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]`
+ * `pnpm import -- --source <mal|anilist|letterboxd|trakt|steam|tvtime|netflix> --user <email|uuid> (--profile <name> | --file <path>…) [--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>]`
  *
  * The first driver of the importer: the product surface (a wizard that enqueues
  * an `importer` job) is a later step, so the pipeline is exercised without
@@ -22,7 +22,7 @@ interface Args {
   source: ImportSource;
   user: string;
   profile: string;
-  /** File sources (TV Time): the export files, repeatable. */
+  /** File sources (TV Time, Netflix): the export files, repeatable. */
   files: string[];
   dryRun: boolean;
   overwrite: boolean;
@@ -38,7 +38,7 @@ interface Args {
 const DEFAULT_SOURCE: ImportSource = 'mal';
 
 const USAGE =
-  'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt|steam|tvtime> --user <email|uuid> ' +
+  'usage: pnpm import -- --source <mal|anilist|letterboxd|trakt|steam|tvtime|netflix> --user <email|uuid> ' +
   '(--profile <name> | --file <path> [--file <path>]) ' +
   '[--dry-run] [--overwrite] [--enrich] [--report <file>] [--from-report <file>] [--no-catalog]';
 
@@ -90,7 +90,7 @@ function parseArgs(argv: string[]): Args {
   if (args.files.some((file) => !file)) throw new Error(`--file needs a path\n${USAGE}`);
   if (args.files.length > 0 && !isFileSource(args.source))
     throw new Error(
-      `--file is for file sources (tvtime); ${args.source} reads --profile\n${USAGE}`,
+      `--file is for file sources (tvtime, netflix); ${args.source} reads --profile\n${USAGE}`,
     );
   if (isFileSource(args.source) && !args.fromReport && args.files.length === 0)
     throw new Error(`${args.source} imports an export: pass it with --file\n${USAGE}`);

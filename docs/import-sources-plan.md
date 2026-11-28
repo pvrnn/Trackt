@@ -13,6 +13,7 @@ the MyAnimeList importer shipped in `@trackt/imports` (ROADMAP "Done").
 | Trakt | API v2, `trakt-api-key` | movie, series (per season) | `external_ids.tmdb` (+ `season_number`) | `TRAKT_CLIENT_ID` |
 | Steam | Web API v1, keyed | game | `external_ids.steam`, else title | `STEAM_API_KEY` |
 | TV Time | uploaded export (TV Time Out JSON pair or HTML summary) | movie, series (per season), anime | `external_ids.tvdb` / `.imdb`, else title | none |
+| Netflix | uploaded `NetflixViewingHistory.csv` (netflix.com/settings/viewed → Download all) | movie, series (per season), anime | exact title only (no ids, no years) | none |
 
 Everything runs through one pipeline — fetch → map → resolve → plan → apply — and one
 CLI (`pnpm import -- --source <id> --user <email|uuid> --profile <name>`), plus an
@@ -89,6 +90,41 @@ that embeds a lossier copy of both as `var SHOWS = […]` / `var MOVIES = […]`
 - **Measured on a real export** (333 shows, 62 movies; dev catalog): 593
   entries, **427 matched** (359 from the catalog, 217 through the anime
   fallback), 166 not — 125 of those are anime seasons after the first.
+
+## Netflix: a viewing history, titles only
+
+Netflix's "Download all" on `netflix.com/settings/viewed` saves one
+`NetflixViewingHistory.csv` per profile: `Title,Date`, one row per title per day,
+in the profile's language and the account's date format. No ids, no years, no
+ratings, nothing planned or finished — so it is the weakest file source, and the
+reader is built around what the history does say.
+
+- **Titles are split on `: `**, Netflix's separator (a title's own French colon,
+  `Suits : avocats sur mesure`, survives the join). A segment that is a season
+  marker — `Season 2` / `Saison 2` / `Temporada 2`…, `Part 2` (Netflix's word
+  for *La casa de papel*'s seasons), `Limited Series` / `Mini-série` (season 1)
+  — makes everything before it the show. `Final Season` names no number: those
+  episodes are reported, not placed.
+- **A row without a marker is an episode only when the history says so**:
+  another row shares its leading segments (the longest shared run is the show,
+  so `JoJo's Bizarre Adventure: Stone Ocean` keeps its arc), a marked row names
+  that show, or it ends in `Episode N`. Such a show is season 1, the form Netflix
+  writes for a one-season show; a season-1 guess for a show whose other rows do
+  number their seasons carries a warning. Everything else is a film —
+  `Mad Max: Fury Road` reads like an episode and is not one. Two films that
+  share a prefix would read as a show; that is the known miss.
+- **Dates** are `M/D/YY` in the US and `D/M/YYYY` elsewhere: the order is read
+  off the whole file (a field past 12 settles it), and slashes default to the US
+  order when nothing does.
+- **A season is its distinct episodes, in progress.** The history cannot say a
+  season is finished, so the entry carries `completesAtPartCount`: once resolved,
+  a season whose episode count reaches the catalog's `partCount` is completed on
+  its last watch day. Films are completed over the days they were played.
+- **Resolution is by exact title.** With no year the local title fallback does
+  not run, and the catalog lookup takes only a hit whose title or synonym is
+  identical once normalised. The TMDB seeds carry French and Spanish titles as
+  synonyms, which is what makes `Rick et Morty` land. Season 1 and films fall
+  back to `anime` as TV Time's do.
 
 ## Steam: keyed, because the public page is gone
 

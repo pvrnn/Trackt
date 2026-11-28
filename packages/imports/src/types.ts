@@ -7,7 +7,8 @@ import type { FetchLike, PageFetcher } from './http/fetch.js';
  * (`scripts/*-scrape` + `apps/catalog`) — nothing here publishes media, and a
  * row the catalog does not carry is reported, never invented.
  */
-export type ImportSource = 'mal' | 'anilist' | 'letterboxd' | 'trakt' | 'steam' | 'tvtime';
+export type ImportSource =
+  'mal' | 'anilist' | 'letterboxd' | 'trakt' | 'steam' | 'tvtime' | 'netflix';
 
 /** The media kinds an import can target — the catalog's own vocabulary, not a source's. */
 export type ImportKind = MediaKind;
@@ -51,6 +52,11 @@ export interface ImportEntry {
    * files anime as TVDB shows, the catalog files them as `anime`.
    */
   fallbackKind?: ImportKind;
+  /**
+   * The source counts parts seen but never says a work is finished (Netflix logs
+   * episodes): reaching the catalog's part count completes it, on this day.
+   */
+  completesAtPartCount?: { finishedAt: string | null };
 }
 
 export type ImportWarningCode =
@@ -119,7 +125,7 @@ export interface FetchEntriesOptions {
   enrichFilmPages?: boolean;
   /** Hard cap on those per-work requests (default 200). */
   maxEnrich?: number;
-  /** File sources (TV Time): the compact export the API read off the upload. */
+  /** File sources (TV Time, Netflix): the compact export the API read off the upload. */
   upload?: unknown;
 }
 

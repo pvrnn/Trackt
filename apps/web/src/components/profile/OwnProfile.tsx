@@ -27,6 +27,7 @@ import { Tooltip } from '../ui/Tooltip';
 import { useLabels } from '../../lib/labels';
 import { Favourites } from './Favourites';
 import { ImportDialog } from './ImportDialog';
+import { ImportsCard } from './ImportsCard';
 import { ProfileHeader } from './ProfileHeader';
 import { FriendRowsSkeleton, ProfileSkeleton } from './ProfileSkeleton';
 import {
@@ -59,7 +60,8 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
   const [editing, setEditing] = useState(false);
   const [addingFriend, setAddingFriend] = useState(false);
   const [sendingFeedback, setSendingFeedback] = useState(false);
-  const [importing, setImporting] = useState(false);
+  /** `false` when closed; otherwise the source to open on, or null for the list. */
+  const [importing, setImporting] = useState<string | null | false>(false);
 
   /** After an edit: re-pull the summary and the session (nav name/avatar). */
   const applyEdits = async () => {
@@ -128,6 +130,7 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
               loading={friendsLoading}
               onOpen={() => setAddingFriend(true)}
             />
+            <ImportsCard onImport={(source) => setImporting(source ?? null)} />
             <div className="flex items-center justify-between px-1.5 py-1">
               <span className="font-label text-[11px] font-semibold tracking-[0.08em] text-dim">
                 {t('profile.visibility.title')}
@@ -142,13 +145,6 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
               </Tooltip>
             </div>
             <div className="flex flex-wrap gap-2.5 px-1.5">
-              <button
-                type="button"
-                onClick={() => setImporting(true)}
-                className="cursor-pointer rounded-full border border-glass-border bg-glass px-4 py-2 font-label text-[11px] font-bold tracking-[0.08em] text-muted transition hover:border-pink hover:text-pink"
-              >
-                {t('profile.action.import')}
-              </button>
               <button
                 type="button"
                 onClick={() => setSendingFeedback(true)}
@@ -169,7 +165,9 @@ export function OwnProfile({ onSessionChange }: { onSessionChange: () => void })
       )}
       {addingFriend && <AddFriendDialog onClose={() => setAddingFriend(false)} />}
       {sendingFeedback && <FeedbackDialog onClose={() => setSendingFeedback(false)} />}
-      {importing && <ImportDialog onClose={() => setImporting(false)} />}
+      {importing !== false && (
+        <ImportDialog initialSource={importing} onClose={() => setImporting(false)} />
+      )}
     </>
   );
 }

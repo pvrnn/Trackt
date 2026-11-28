@@ -1,9 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   importJobPhase,
+  importMatchesKey,
   importProgressPercent,
   useImportJob,
   useImportSources,
@@ -17,7 +19,10 @@ import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Modal, ModalTitle } from '../ui/Modal';
+import { PrismProgress } from '../ui/PrismProgress';
 import { Bone, SkeletonRegion } from '../ui/Skeleton';
+import { BrandTile, sourceBrand } from '../ui/BrandLogo';
+import { kindDotClass } from '../ui/KindDot';
 
 /**
  * The import wizard (PRD §6): choose a source, preview what it would write, then
@@ -60,22 +65,36 @@ type ErrorKindKey =
   (typeof ERROR_KIND_KEY)[keyof typeof ERROR_KIND_KEY] | 'profile.import.errorKind.other';
 const ERROR_KIND_BY_ID: Partial<Record<string, ErrorKindKey>> = ERROR_KIND_KEY;
 
-function errorKindKey(kind: string | null): ErrorKindKey {
+export function errorKindKey(kind: string | null): ErrorKindKey {
   return (kind !== null ? ERROR_KIND_BY_ID[kind] : undefined) ?? 'profile.import.errorKind.other';
 }
+
+const STEP_NUMBER: Record<Step, number> = { choose: 1, preview: 2, running: 3 };
+const STEP_NAME = {
+  choose: 'profile.import.steps.choose',
+  preview: 'profile.import.steps.preview',
+  running: 'profile.import.steps.import',
+} as const satisfies Record<Step, string>;
 
 /** How many unmatched titles a preview names before it stops listing them. */
 const UNMATCHED_SHOWN = 10;
 
 type Step = 'choose' | 'preview' | 'running';
 
-export function ImportDialog({ onClose }: { onClose: () => void }) {
+export function ImportDialog({
+  initialSource = null,
+  onClose,
+}: {
+  /** Opens on this source's input, as RETRY on the profile's import card does. */
+  initialSource?: string | null;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const sources = useImportSources();
   const startImport = useStartImport();
   const [step, setStep] = useState<Step>('choose');
-  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [sourceId, setSourceId] = useState<string | null>(initialSource);
   const [profile, setProfile] = useState('');
   const [files, setFiles] = useState<ImportFileInput[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -93,7 +112,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   const runCompleted = step === 'running' && job.data?.state === 'completed';
   useEffect(() => {
     if (!runCompleted) return;
-    for (const queryKey of [['profile'], ['history'], ['home']]) {
+    for (const queryKey of [['profile'], ['history'], ['home'], importMatchesKey]) {
       void queryClient.invalidateQueries({ queryKey });
     }
   }, [runCompleted, queryClient]);
@@ -127,7 +146,12 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div className="flex flex-col gap-5">
-        <ModalTitle>{t('profile.import.title')}</ModalTitle>
+        <div className="flex flex-col gap-1.5">
+          <span className="font-label text-[10px] font-bold tracking-[0.1em] text-dim">
+            {t('profile.import.steps.of', { n: STEP_NUMBER[step] })} · {t(STEP_NAME[step])}
+          </span>
+          <ModalTitle>{t('profile.import.title')}</ModalTitle>
+        </div>
 
         {step === 'choose' && (
           <ChooseStep
@@ -169,6 +193,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
         {step === 'running' && (
           <RunningStep
             status={job.data}
+            onResolve={onClose}
             loadError={job.isError ? job.error.message : null}
             onClose={onClose}
           />
@@ -250,7 +275,7 @@ function ChooseStep({
           </div>
 
           {selected?.access === 'file' ? (
-            <FilePicker files={files} onFiles={onFiles} />
+            <FilePicker sourceId={selected.id} files={files} onFiles={onFiles} />
           ) : (
             <>
               <Input
@@ -289,20 +314,51 @@ function ChooseStep({
   );
 }
 
+/** Where each file source's export comes from, and what the picker offers. */
+const FILE_SOURCES = {
+  tvtime: {
+    steps: [
+      'profile.import.choose.file.steps.tvtime.one',
+      'profile.import.choose.file.steps.tvtime.two',
+      'profile.import.choose.file.steps.tvtime.three',
+    ],
+    fileName: 'profile.import.choose.file.fileName.tvtime',
+    href: undefined,
+    accept: '.json,.html,.htm,application/json,text/html',
+  },
+  netflix: {
+    steps: [
+      'profile.import.choose.file.steps.netflix.one',
+      'profile.import.choose.file.steps.netflix.two',
+      'profile.import.choose.file.steps.netflix.three',
+    ],
+    fileName: 'profile.import.choose.file.fileName.netflix',
+    href: 'https://www.netflix.com/settings/viewed',
+    accept: '.csv,text/csv',
+  },
+} as const;
+
+function fileSource(id: string) {
+  return id in FILE_SOURCES ? FILE_SOURCES[id as keyof typeof FILE_SOURCES] : null;
+}
+
 /** An export read as text in the browser; the API reduces it to what the import needs. */
 function FilePicker({
+  sourceId,
   files,
   onFiles,
 }: {
+  sourceId: string;
   files: ImportFileInput[];
   onFiles: (files: ImportFileInput[]) => void;
 }) {
+  const definition = fileSource(sourceId);
   const { t } = useTranslation();
   const [readError, setReadError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
-  const read = async (list: FileList | null) => {
+  const read = async (chosen: File[]) => {
     setReadError(null);
-    const chosen = [...(list ?? [])];
     const read: ImportFileInput[] = [];
     for (const file of chosen) {
       try {
@@ -317,38 +373,115 @@ function FilePicker({
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className="font-label text-xs tracking-label text-dim uppercase">
-        {t('profile.import.choose.file.field')}
-      </span>
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="cursor-pointer rounded-card-sm border border-glass-border bg-glass px-4 py-2 text-sm font-bold text-fg transition focus-within:border-pink hover:border-pink">
-          {t('profile.import.choose.file.choose')}
-          <input
-            type="file"
-            name="importFiles"
-            multiple
-            accept=".json,.html,.htm,application/json,text/html"
-            className="sr-only"
-            onChange={(event) => void read(event.target.files)}
-          />
-        </label>
-        <span className="min-w-0 truncate text-sm text-muted">
-          {files.length > 0
-            ? t('profile.import.choose.file.chosen', {
-                names: files.map((file) => file.name).join(', '),
-              })
-            : t('profile.import.choose.file.none')}
-        </span>
-      </div>
+    <div className="flex flex-col gap-3">
+      {definition && (
+        <div className="flex flex-col gap-2.5">
+          <span className="font-label text-[10px] font-bold tracking-[0.1em] text-dim">
+            {t('profile.import.choose.file.how')}
+          </span>
+          <ol className="m-0 flex list-none flex-col gap-2 p-0">
+            {definition.steps.map((key, index) => (
+              <li key={key} className="flex items-baseline gap-3 text-sm leading-normal text-muted">
+                <span
+                  aria-hidden
+                  className="inline-flex size-[22px] shrink-0 items-center justify-center rounded-full bg-white/8 font-label text-[11px] font-bold text-fg"
+                >
+                  {index + 1}
+                </span>
+                <span>
+                  <Trans
+                    i18nKey={key}
+                    components={{
+                      // Not `link`: Trans parses its tags as HTML, where <link> is void and drops its text.
+                      site: (
+                        <a
+                          href={definition.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-fg underline underline-offset-3 hover:text-pink"
+                        />
+                      ),
+                      b: <strong className="font-semibold text-fg" />,
+                    }}
+                  />
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {files.length > 0 ? (
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          {files.map((file) => (
+            <li
+              key={file.name}
+              className="flex items-center gap-3 rounded-xl bg-white/6 px-3.5 py-2.5 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)]"
+            >
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{file.name}</span>
+              <span className="font-label text-[11px] font-semibold text-dim">
+                {formatBytes(file.content.length)}
+              </span>
+              <button
+                type="button"
+                aria-label={t('profile.import.choose.file.remove', { name: file.name })}
+                onClick={() => onFiles(files.filter((other) => other !== file))}
+                className="px-1 text-dim hover:text-fg"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            void read([...event.dataTransfer.files]);
+          }}
+          className={clsx(
+            'flex flex-col items-center gap-3 rounded-[14px] border-[1.5px] border-dashed px-5 py-6 text-center transition',
+            dragging ? 'border-pink bg-pink/8' : 'border-white/20 bg-white/3',
+          )}
+        >
+          <span className="text-[15px] font-semibold">
+            {t('profile.import.choose.file.drop', {
+              file: definition ? t(definition.fileName) : '',
+            })}
+          </span>
+          <label className="inline-flex h-10 cursor-pointer items-center rounded-full bg-white/6 px-5 font-label text-xs font-bold tracking-[0.08em] text-fg shadow-[inset_0_0_0_1px_rgb(255_255_255/0.22)] transition focus-within:shadow-[inset_0_0_0_1px_var(--color-pink)] hover:shadow-[inset_0_0_0_1px_var(--color-pink)]">
+            {t('profile.import.choose.file.choose')}
+            <input
+              type="file"
+              name="importFiles"
+              multiple
+              accept={definition?.accept}
+              className="sr-only"
+              onChange={(event) => void read([...(event.target.files ?? [])])}
+            />
+          </label>
+          <span className="text-xs text-dim">{t('profile.import.choose.file.dropOr')}</span>
+        </div>
+      )}
       {readError && (
         <p role="alert" className="text-sm text-red-400">
           {readError}
         </p>
       )}
-      <p className="text-xs leading-relaxed text-faint">{t('profile.import.choose.file.hint')}</p>
     </div>
   );
+}
+
+function formatBytes(chars: number): string {
+  return chars < 1024 * 1024
+    ? `${Math.max(1, Math.round(chars / 1024))} KB`
+    : `${(chars / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function SourceCard({
@@ -362,6 +495,7 @@ function SourceCard({
 }) {
   const labels = useLabels();
   const unavailable = !source.available;
+  const brand = sourceBrand(source.id);
 
   return (
     <button
@@ -370,20 +504,30 @@ function SourceCard({
       aria-pressed={unavailable ? undefined : selected}
       onClick={onSelect}
       className={clsx(
-        'flex flex-col gap-1 rounded-card-sm border px-4 py-3 text-left transition',
+        'flex flex-col gap-2 rounded-card-sm border px-4 py-3 text-left transition',
         unavailable
           ? 'cursor-not-allowed border-white/8 bg-white/3 opacity-55'
           : 'cursor-pointer border-glass-border bg-glass hover:border-pink',
         selected && 'border-pink bg-white/8',
       )}
     >
-      <span className="text-[15px] font-bold text-fg">{source.label}</span>
-      <span className="text-xs leading-relaxed text-dim">
-        {/* An unavailable source's only line is why: its kinds are moot. */}
-        {unavailable
-          ? source.reason
-          : source.kinds.map((kind) => labels.kindSingular(kind)).join(' · ')}
+      <span className="flex items-center gap-2.5">
+        {brand && <BrandTile brand={brand} className="size-7 rounded-lg" />}
+        <span className="text-[15px] font-bold text-fg">{source.label}</span>
       </span>
+      {/* An unavailable source's only line is why: its kinds are moot. */}
+      {unavailable ? (
+        <span className="text-xs leading-relaxed text-dim">{source.reason}</span>
+      ) : (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-label text-[10px] font-bold tracking-[0.08em] text-muted uppercase">
+          {source.kinds.map((kind) => (
+            <span key={kind} className="inline-flex items-center gap-1.5">
+              <span aria-hidden className={clsx('size-1.5 rounded-full', kindDotClass[kind])} />
+              {labels.kindSingular(kind)}
+            </span>
+          ))}
+        </span>
+      )}
     </button>
   );
 }
@@ -445,7 +589,12 @@ function PreviewStep({
               ? t('profile.import.preview.readingFile', { source: sourceLabel })
               : t('profile.import.preview.reading', { source: sourceLabel })}
         </p>
-        <ProgressBar percent={null} />
+        <PrismProgress percent={null} label={t('profile.import.steps.preview')} />
+        {phase !== 'queued' && (
+          <p className="text-xs leading-relaxed text-dim">
+            {t('profile.import.preview.readingNote')}
+          </p>
+        )}
       </div>
     );
   }
@@ -507,7 +656,7 @@ function PreviewResult({
         <Count label={t('profile.import.preview.unmatched')} value={plan.unmatched} />
         <Count label={t('profile.import.preview.existing')} value={plan.existing} />
         <Count label={t('profile.import.preview.pending')} value={plan.pending} />
-        <Count label={t('profile.import.preview.warnings')} value={plan.warnings} />
+        <Count label={t('profile.import.preview.needYou')} value={plan.uncertain} />
       </div>
 
       {plan.matchedByTitle > 0 && (
@@ -546,15 +695,19 @@ function PreviewResult({
 function RunningStep({
   status,
   loadError,
+  onResolve,
   onClose,
 }: {
   status: ImportJobStatus | undefined;
   loadError: string | null;
+  /** Following the NEED YOU link leaves the dialog behind. */
+  onResolve: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const phase = status ? importJobPhase(status.state) : 'queued';
   const report = status?.result?.report ?? null;
+  const waiting = status?.result?.plan.uncertain ?? 0;
   const percent = status ? importProgressPercent(status.progress) : null;
   const finished = phase === 'done' || phase === 'failed' || phase === 'unknown';
 
@@ -588,6 +741,21 @@ function RunningStep({
                 {t('profile.import.run.warnings', { n: report.warnings.length })}
               </p>
             )}
+            {waiting > 0 && (
+              <Link
+                to="/import/matches"
+                onClick={onResolve}
+                className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-pink/50 bg-pink/12 px-4 py-2 font-label text-[11px] font-bold tracking-[0.08em] text-fg transition hover:bg-pink/20"
+              >
+                <span className="font-display text-[22px] leading-none font-normal tracking-normal">
+                  {waiting}
+                </span>
+                <span>{t('profile.import.card.needs', { count: waiting })}</span>
+                <span className="ml-auto whitespace-nowrap text-[#e58cc4]">
+                  {t('profile.import.card.resolve')}
+                </span>
+              </Link>
+            )}
           </>
         ) : (
           <p role="alert" className="text-[15px] text-muted">
@@ -602,7 +770,7 @@ function RunningStep({
         <p className="text-[15px] text-muted">
           {phase === 'queued' ? t('profile.import.queued') : t('profile.import.run.running')}
         </p>
-        <ProgressBar percent={percent} />
+        <PrismProgress percent={percent} label={t('profile.import.steps.import')} />
         {status && percent !== null && (
           <p className="text-xs text-dim">
             {t('profile.import.run.progress', {
@@ -633,31 +801,6 @@ function Count({ label, value }: { label: string; value: number }) {
       <span className="font-heading text-2xl leading-none">{value}</span>
       <span className="font-label text-[10px] tracking-label text-dim uppercase">{label}</span>
     </GlassCard>
-  );
-}
-
-/**
- * Determinate when the job reported a total, a pulsing third when it has not.
- * The bar is never given a number nobody reported: `done / 0` is not 0%.
- */
-function ProgressBar({ percent }: { percent: number | null }) {
-  return (
-    <div
-      className="h-1.5 w-full overflow-hidden rounded-full bg-white/10"
-      {...(percent === null
-        ? {}
-        : {
-            role: 'progressbar',
-            'aria-valuemin': 0,
-            'aria-valuemax': 100,
-            'aria-valuenow': percent,
-          })}
-    >
-      <div
-        className={clsx('h-full rounded-full bg-prism', percent === null && 'w-1/3 animate-pulse')}
-        style={percent === null ? undefined : { width: `${percent}%` }}
-      />
-    </div>
   );
 }
 

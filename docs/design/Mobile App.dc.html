@@ -38,6 +38,37 @@
     .mtok { height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 1px 0 10px; border-radius: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; white-space: nowrap; }
     .mtok .tl { color: #948da1; }
     .mtok button { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 7px; background: none; color: #b8b1c4; font-family: Archivo, sans-serif; font-size: 15px; line-height: 1; cursor: pointer; }
+    /* ── import pieces ── */
+    .lab { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    /* source tile: the brand colour, and a dashed slot where the service's official 24×24 mark goes (marks are never redrawn here) */
+    .stile { position: relative; flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); }
+    .stile .smark { width: 18px; height: 18px; border-radius: 4px; border: 1.5px dashed rgba(255,255,255,0.72); box-sizing: border-box; }
+    .stile.lg { width: 40px; height: 40px; border-radius: 11px; }
+    .stile.lg .smark { width: 24px; height: 24px; }
+    .stile.sm { width: 22px; height: 22px; border-radius: 6px; }
+    .stile.sm .smark { width: 14px; height: 14px; border-width: 1px; }
+    .pbar { position: relative; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .pbar > span { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); transition: width 160ms linear; }
+    .pbar.thin { height: 3px; }
+    .pbar.indet > span { width: 34%; animation: pindet 1.5s ease-in-out infinite; }
+    @keyframes pindet { from { left: -34%; } to { left: 100%; } }
+    /* the one loud line: titles waiting for an answer */
+    .nudge { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 48px; padding: 8px 16px; border-radius: 12px; background: rgba(217,107,176,0.12); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; text-decoration: none; transition: background 140ms ease; }
+    .nudge:hover { background: rgba(217,107,176,0.2); color: #f0edf4; }
+    .nudge .n { font-family: Anton, sans-serif; font-size: 22px; font-weight: 400; letter-spacing: 0; line-height: 1; }
+    .nudge .go { margin-left: auto; color: #e58cc4; white-space: nowrap; }
+    .pill2 { height: 44px; padding: 0 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #f0edf4; white-space: nowrap; cursor: pointer; transition: box-shadow 140ms ease; }
+    .pill2:hover { box-shadow: inset 0 0 0 1px #d96bb0; color: #f0edf4; }
+    .pill1 { height: 48px; padding: 0 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; white-space: nowrap; cursor: pointer; transition: filter 140ms ease, background 200ms ease; }
+    .pill1:hover { filter: brightness(1.12); color: #14101a; }
+    .pill1[aria-disabled="true"] { background: rgba(255,255,255,0.08); color: #948da1; cursor: default; filter: none; }
+    .ghost { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4; white-space: nowrap; cursor: pointer; }
+    .ghost:hover { color: #f0edf4; }
+    @media (prefers-reduced-motion: reduce) { .pbar.indet > span { animation: none; left: 0; width: 100%; opacity: 0.5; } .pbar > span { transition: none; } }
+    .mcand { flex: 0 0 108px; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; scroll-snap-align: start; padding: 6px; margin: -6px; border-radius: 12px; border: 0; background: none; color: inherit; cursor: pointer; text-align: left; }
+    .mcand:active { background: rgba(217,107,176,0.12); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6); }
+    .mcands { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 6px 20px 6px 6px; margin: -6px -16px -6px -6px; }
+    .mtb { height: 44px; padding: 0 2px; border: 0; background: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
   </style>
 </helmet>
 
@@ -1034,6 +1065,88 @@
                 </div>
               </sc-for>
             </div>
+            <!-- imports: owner only, under Friends. The pink line is the only call to action. -->
+            <div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 14px; border-radius: 16px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);">
+              <div style="display: flex; align-items: baseline; justify-content: space-between;"><div style="font-family: Anton; font-size: 24px; text-transform: uppercase;">Imports</div><span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">3 SOURCES</span></div>
+              <a href="Import Matches.dc.html" class="nudge"><span class="n">10</span><span>TITLES NEED YOU</span><span class="go">RESOLVE →</span></a>
+              <sc-for list="{{ v2iRuns }}" as="r" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; box-shadow: {{ r.rule }};">
+                  <span class="stile" aria-hidden="true" style="background: {{ r.color }};"><span class="smark"></span></span>
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 600;">{{ r.name }}</span><span style="font-family: 'Space Grotesk'; font-size: 10px; color: #948da1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ r.label }}</span></div>
+                  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right;"><span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; font-size: 9px;">{{ r.when }}</span><span style="font-family: 'Space Grotesk'; font-size: 9px; font-weight: 600; letter-spacing: 0.06em; color: #b8b1c4;">{{ r.result }}</span></div>
+                </div>
+              </sc-for>
+              <span class="ghost" style="padding: 6px 0 2px;">＋ IMPORT ANOTHER</span>
+            </div>
+          </div>
+          <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.92); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
+            <sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 10px;">
+                <div style="width: 24px; height: 24px; background: {{ t.icon }} center / 24px 24px no-repeat;"></div>
+                <div style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: {{ t.fg }};">{{ t.label }}</div>
+                <div style="width: 18px; height: 2px; border-radius: 2px; background: {{ t.rule }};"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height: 34px; flex-shrink: 0; background: rgba(14,12,16,0.92); position: relative;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ========== IMPORT · NEEDS YOU (the matches page on a phone) ========== -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #d96bb0;">IMPORT · NEEDS YOU</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; position: relative; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif;">
+          <div style="position: absolute; inset: 0; background: radial-gradient(420px 320px at 15% 0%, rgba(139,92,246,0.4), transparent 68%), radial-gradient(380px 300px at 100% 30%, rgba(217,107,176,0.3), transparent 68%), radial-gradient(400px 340px at 30% 100%, rgba(217,164,65,0.3), transparent 70%); pointer-events: none;"></div>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; padding: 54px 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; min-height: 44px; flex-shrink: 0;">
+              <span aria-hidden="true" style="width: 44px; height: 44px; margin-left: -12px; display: flex; align-items: center; justify-content: center;"><span style="width: 10px; height: 10px; border-left: 2px solid #f0edf4; border-bottom: 2px solid #f0edf4; transform: translateX(2px) rotate(45deg);"></span></span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; color: #b8b1c4;">PROFILE</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; padding: 0 4px;">
+              <div style="font-family: Anton; font-size: 34px; line-height: 1.05; text-transform: uppercase;">Needs you</div>
+              <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; align-self: flex-start;">{{ v2iScope }}</span>
+              <div style="color: #b8b1c4; font-size: 14px; line-height: 1.45; margin-top: 2px;">Tap the right one and it's logged straight away.</div>
+            </div>
+            <sc-for list="{{ v2iRows }}" as="r" hint-placeholder-count="3">
+              <sc-if value="{{ r.isDone }}" hint-placeholder-val="{{ false }}">
+                <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 4px 6px 4px 16px; border-radius: 14px; background: rgba(255,255,255,0.03); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);">
+                  <span style="width: 22px; height: 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: #3fbf8f; color: #14101a; font-size: 11px; font-weight: 700;">✓</span>
+                  <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ r.doneTitle }} <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">· LOGGED</span></span>
+                  <button class="mtb" onClick="{{ r.undo }}" style="color: #e58cc4; padding: 0 10px;">UNDO</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ r.isOpen }}" hint-placeholder-val="{{ true }}">
+                <div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 6px; border-radius: 16px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); overflow: hidden;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="stile sm" aria-hidden="true" style="background: #E50914;"><span class="smark"></span></span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">AS NETFLIX WROTE IT</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="font-size: 18px; font-weight: 700; line-height: 1.2;">{{ r.written }}</div>
+                    <div style="display: flex; align-items: center; gap: 7px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;"><span style="width: 6px; height: 6px; border-radius: 999px; background: {{ r.dot }};"></span>{{ r.meta }}</div>
+                    <div style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;"><span style="color: #948da1;">WOULD LOG ·</span> {{ r.would }}</div>
+                  </div>
+                  <span style="align-self: flex-start; display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 7px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #cfc9d8;">{{ r.reason }}</span>
+                  <!-- candidates: a swipe strip, pick by tap -->
+                  <div class="mcands">
+                    <sc-for list="{{ r.cands }}" as="c" hint-placeholder-count="3">
+                      <button class="mcand" onClick="{{ c.pick }}" aria-label="{{ c.aria }}">
+                        <span style="display: block; aspect-ratio: 2/3; border-radius: 8px; background: {{ c.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></span>
+                        <span style="display: flex; align-items: baseline; justify-content: space-between;"><span style="font-family: Anton; font-size: {{ c.yearSize }}; line-height: 1;">{{ c.year }}</span><span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; color: {{ c.scoreFg }};">{{ c.score }}</span></span>
+                        <span style="font-size: 12px; font-weight: 600; line-height: 1.25;">{{ c.title }}</span>
+                        <span style="display: flex; align-items: center; gap: 5px; font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;"><span style="width: 5px; height: 5px; border-radius: 999px; background: {{ c.dot }};"></span>{{ c.kind }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                  <div style="display: flex; gap: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); margin: 2px -16px 0; padding: 0 16px;">
+                    <button class="mtb" style="color: #cfc9d8;">NONE OF THESE</button>
+                    <button class="mtb" onClick="{{ r.skip }}" style="color: #948da1;">SKIP</button>
+                  </div>
+                </div>
+              </sc-if>
+            </sc-for>
           </div>
           <div style="position: relative; flex-shrink: 0; background: rgba(14,12,16,0.92); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); padding: 10px 0 0; display: flex;">
             <sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="4">
@@ -1774,6 +1887,34 @@ class Component extends DCLogic {
     set('busy');
     setTimeout(() => set('done'), 1100);
   }
+  // import, on a phone: the matches page and the profile card
+  v2i() {
+    const done = this.state.v2iDone || { shaft: 'Shaft (2019)' };
+    const ARTI = (n) => V2_ARTS[n % V2_ARTS.length];
+    const ROWS = [
+      { id: 'shaft', written: 'Shaft', kind: 'MOVIE', meta: 'MOVIE', would: 'COMPLETED · 14 MAR 21', tie: true, cands: [['Shaft', 2019, 'MOVIE', 100], ['Shaft', 2000, 'MOVIE', 100], ['Shaft', 1971, 'MOVIE', 100]] },
+      { id: 'witcher', written: 'The Witcher: Season 1', kind: 'SERIES', meta: 'SERIES · SEASON 1', would: 'COMPLETED · 22 DEC 19 → 04 JAN 20', tie: true, cands: [['The Witcher', 2019, 'SERIES', 100], ['The Witcher', 2002, 'SERIES', 100]] },
+      { id: 'shallows', written: 'Instinct de survie', kind: 'MOVIE', meta: 'MOVIE', would: 'COMPLETED · 22 DEC 24', tie: false, cands: [['The Shallows', 2016, 'MOVIE', 74], ['Basic Instinct', 1992, 'MOVIE', 56], ['Instinct', 2018, 'SERIES', 52]] },
+      { id: 'monster', written: 'Monster: Season 1', kind: 'ANIME', meta: 'ANIME · SEASON 1', would: 'IN PROGRESS · 4 EPISODES · 05 JUN → 02 JUL 19', tie: true, cands: [['Monster', 2004, 'ANIME', 100], ['Monster', 2023, 'MOVIE', 100], ['Monster', 2003, 'MOVIE', 100]] },
+    ];
+    const set = (id, v) => { const d = Object.assign({}, this.state.v2iDone || { shaft: 'Shaft (2019)' }); if (v) d[id] = v; else delete d[id]; this.setState({ v2iDone: d }); };
+    let art = 0;
+    const open = 9 + ROWS.filter((r) => !done[r.id]).length - 3;
+    return {
+      v2iScope: open + (open === 1 ? ' TITLE' : ' TITLES') + ' FROM NETFLIX',
+      v2iRows: ROWS.map((r) => ({
+        isDone: !!done[r.id], isOpen: !done[r.id], doneTitle: done[r.id] || '', undo: () => set(r.id, null), skip: () => set(r.id, r.written + ' — skipped'),
+        written: r.written, dot: V2_DOT[r.kind], meta: r.meta, would: r.would,
+        reason: r.tie ? 'TIE · ' + r.cands.length + ' WORKS SHARE THIS NAME' : 'CLOSE · BEST IS ' + r.cands[0][3] + '%',
+        cands: r.cands.map((c) => ({ title: c[0], year: String(c[1]), kind: c[2], dot: V2_DOT[c[2]], art: ARTI(art++ * 5 + 1), score: c[3] + '%',
+          scoreFg: c[3] >= 100 ? '#b8b1c4' : c[3] >= 70 ? '#e58cc4' : '#948da1', yearSize: r.tie ? '22px' : '18px',
+          aria: c[0] + ', ' + c[1] + ', ' + c[3] + '%', pick: () => set(r.id, c[0] + ' (' + c[1] + ')') })),
+      })),
+      v2iRuns: [['Netflix', '#E50914', 'history to 2026-11-26', '2 DAYS AGO', '185 OF 239 LOGGED'], ['MyAnimeList', '#2E51A2', 'regelegorila', '3 WEEKS AGO', '212 OF 214 LOGGED']]
+        .map((x, n) => ({ name: x[0], color: x[1], label: x[2], when: x[3], result: x[4], rule: n ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none' })),
+    };
+  }
+
   v2c() {
     const prism = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
     const src = this.state.obSrc || { al: 'done' };
@@ -1895,6 +2036,7 @@ class Component extends DCLogic {
       ...this.v2(),
       ...this.v2b(),
       ...this.v2c(),
+      ...this.v2i(),
       staticRows: all.slice(0, 3),
       tabs: mkTabs('HOME'),
       tabsDiscover: mkTabs('DISCOVER'),

@@ -54,6 +54,7 @@ const result: ImportJobResult = {
     favourites: 0,
     warnings: 0,
     matchedByTitle: 0,
+    uncertain: 0,
   },
   unmatched: { entries: [], truncated: false },
 };
@@ -186,6 +187,32 @@ describe('import routes', () => {
       });
       expect(wrong.statusCode).toBe(400);
       expect(wrong.json().error).toMatch(/notes\.json is not a TV Time export/);
+    });
+
+    it('reads a Netflix viewing history and refuses a file that is not one', async () => {
+      const response = await post({
+        source: 'netflix',
+        dryRun: true,
+        files: [
+          {
+            name: 'NetflixViewingHistory.csv',
+            content: 'Title,Date\n"Arcane: Season 1: Welcome to the Playground","11/6/24"\n',
+          },
+        ],
+      });
+      expect(response.statusCode).toBe(202);
+      expect(queue.adds.at(-1)?.data).toMatchObject({
+        source: 'netflix',
+        profile: 'history to 2024-11-06',
+        upload: { seasons: [{ show: 'Arcane', number: 1, episodes: 1 }] },
+      });
+
+      const wrong = await post({
+        source: 'netflix',
+        files: [{ name: 'tvtime-movies.json', content: JSON.stringify(movies) }],
+      });
+      expect(wrong.statusCode).toBe(400);
+      expect(wrong.json().error).toMatch(/is not a Netflix viewing history/);
     });
 
     it('accepts an export larger than the default body limit', async () => {
@@ -354,6 +381,7 @@ describe('GET /v1/me/import/sources', () => {
       'trakt',
       'steam',
       'tvtime',
+      'netflix',
     ]);
 
     const byId = new Map(sources.map((source) => [source.id, source]));

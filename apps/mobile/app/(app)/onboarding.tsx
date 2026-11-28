@@ -67,7 +67,7 @@ const STEPS = ['import', 'friends', 'done'] as const;
 type Step = (typeof STEPS)[number];
 
 /** The design's order; a source the instance adds later goes last. */
-const SOURCE_ORDER = ['letterboxd', 'mal', 'anilist', 'tvtime', 'steam', 'trakt'];
+const SOURCE_ORDER = ['letterboxd', 'mal', 'anilist', 'tvtime', 'netflix', 'steam', 'trakt'];
 
 /**
  * Sized to the longest label a row action wears in either language (§08 "one

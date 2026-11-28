@@ -5,6 +5,7 @@ import { lookupCatalog } from './catalog.js';
 import type { FetchLike, PageFetcher } from './http/fetch.js';
 import { fetchLetterboxdEntries } from './letterboxd/adapter.js';
 import { fetchMalEntries } from './mal/adapter.js';
+import { fetchNetflixEntries } from './netflix/adapter.js';
 import { buildImportPlan, type ImportPlan } from './plan.js';
 import {
   entryKey,
@@ -87,6 +88,7 @@ const ADAPTERS: Record<ImportSource, (options: FetchEntriesOptions) => Promise<F
   trakt: fetchTraktEntries,
   steam: fetchSteamEntries,
   tvtime: fetchTvTimeEntries,
+  netflix: fetchNetflixEntries,
 };
 
 interface Resolution {

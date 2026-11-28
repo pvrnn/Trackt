@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { ImportError } from './errors.js';
 import { IMPORT_SOURCES } from './sources.js';
-import { readTvTimeUpload, tvTimeUploadLabel, type TvTimeFile } from './tvtime/upload.js';
+import { netflixUploadLabel, readNetflixUpload } from './netflix/upload.js';
+import { readTvTimeUpload, tvTimeUploadLabel } from './tvtime/upload.js';
 import type { ImportSource } from './types.js';
 
 /**
@@ -28,8 +29,12 @@ export interface ImportUpload {
   profile: string;
 }
 
-const READERS: Partial<Record<ImportSource, (files: readonly TvTimeFile[]) => ImportUpload>> = {
+const READERS: Partial<Record<ImportSource, (files: readonly ImportFile[]) => ImportUpload>> = {
   tvtime: (files) => ({ upload: readTvTimeUpload(files), profile: tvTimeUploadLabel(files) }),
+  netflix: (files) => {
+    const upload = readNetflixUpload(files);
+    return { upload, profile: netflixUploadLabel(upload) };
+  },
 };
 
 export function isFileSource(source: ImportSource): boolean {

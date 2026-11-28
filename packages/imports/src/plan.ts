@@ -114,6 +114,16 @@ export function datesForTarget(entry: ImportEntry, target: ImportTarget): Import
   return { ...entry, startedAt: day, finishedAt: day };
 }
 
+/** A source that cannot say "finished" finishes a work once it has seen every part the catalog lists. */
+function completionForTarget(entry: ImportEntry, target: ImportTarget): ImportEntry {
+  const { completesAtPartCount, ...rest } = entry;
+  if (!completesAtPartCount || entry.status !== 'in_progress') return entry;
+  const total = target.partCount;
+  if (total === null || total <= 0 || entry.progress < total) return entry;
+  const { finishedAt } = completesAtPartCount;
+  return { ...rest, status: 'completed', finishedAt };
+}
+
 export function buildImportPlan(input: BuildPlanInput): ImportPlan {
   const rows: ImportPlanRow[] = [];
   let matched = 0;
@@ -122,7 +132,7 @@ export function buildImportPlan(input: BuildPlanInput): ImportPlan {
   for (const rawEntry of input.entries) {
     const key = entryKey(rawEntry);
     const target = input.targets.get(key) ?? null;
-    const entry = target ? datesForTarget(rawEntry, target) : rawEntry;
+    const entry = target ? datesForTarget(completionForTarget(rawEntry, target), target) : rawEntry;
     const rowWarnings = [...(input.entryWarnings?.get(key) ?? [])];
     const isExisting = target ? input.loggedMediaIds.has(target.id) : false;
 

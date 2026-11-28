@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MediaKindSchema } from '@trackt/shared';
 import type { ImportReport } from './apply.js';
 import { ImportError, type ImportErrorKind } from './errors.js';
 import type { ImportRun } from './run.js';
@@ -96,6 +97,8 @@ export interface ImportPlanSummary {
   warnings: number;
   /** Entries that only matched through the title + year fallback. */
   matchedByTitle: number;
+  /** Unmatched entries kept for the viewer to settle (`import_match`). */
+  uncertain: number;
 }
 
 export interface ImportUnmatchedEntry {
@@ -132,6 +135,7 @@ export function toJobResult(run: ImportRun): ImportJobResult {
       favourites: plan.summary.favourites,
       warnings: plan.summary.warnings,
       matchedByTitle: plan.rows.filter((row) => row.matchedBy === 'title').length,
+      uncertain: plan.rows.filter((row) => row.target === null && row.uncertain !== null).length,
     },
     unmatched: { entries, truncated: missing.length > entries.length },
   };
@@ -174,6 +178,7 @@ export const ImportPlanSummarySchema = z.object({
   favourites: z.number(),
   warnings: z.number(),
   matchedByTitle: z.number(),
+  uncertain: z.number().default(0),
 });
 
 export const ImportJobResultSchema = z.object({
@@ -192,6 +197,13 @@ export const UncertainCandidateSchema = z.object({
   year: z.number().int().nullable(),
   score: z.number().min(0).max(1),
   origin: z.enum(['local', 'catalog']),
+  /** Read off the instance's row when the list is served; null when it could not be. */
+  kind: MediaKindSchema.nullable(),
+  slug: z.string().nullable(),
+  coverUrl: z.string().nullable(),
+  seasonNumber: z.number().int().nullable(),
+  /** The viewer already logs this work: picking it merges. */
+  inLog: z.boolean(),
 });
 
 export const UncertainMatchSchema = z.object({
@@ -203,6 +215,10 @@ export const UncertainMatchSchema = z.object({
   year: z.number().int().nullable(),
   seasonNumber: z.number().int().nullable(),
   status: z.string(),
+  /** What picking writes, from the entry the import kept. */
+  progress: z.number().int().nonnegative(),
+  startedAt: z.string().nullable(),
+  finishedAt: z.string().nullable(),
   /** `tie` when several rows scored alike, `below-threshold` when one was close. */
   outcome: z.enum(['tie', 'below-threshold']),
   bestScore: z.number().min(0).max(1),
@@ -215,6 +231,19 @@ export const UncertainMatchListSchema = z.object({
 });
 
 export type UncertainMatchList = z.infer<typeof UncertainMatchListSchema>;
+
+/** The viewer's answer: a work (a candidate, or one found by search), or a skip. */
+export const ResolveMatchRequestSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('pick'), mediaId: z.uuid() }),
+  z.object({ action: z.literal('skip') }),
+]);
+export type ResolveMatchRequest = z.infer<typeof ResolveMatchRequestSchema>;
+
+export const ResolveMatchResultSchema = z.object({
+  /** `skipped` for a skip, or when the pick merged nothing new into an existing log. */
+  outcome: z.enum(['created', 'updated', 'merged', 'skipped']),
+  mediaId: z.uuid().nullable(),
+});
 
 /** The env var each credential field is filled from. */
 const CREDENTIAL_FIELDS = {

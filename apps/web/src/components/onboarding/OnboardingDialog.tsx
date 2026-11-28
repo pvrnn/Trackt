@@ -19,7 +19,7 @@ import { BrandTile, type Brand } from '../ui/BrandLogo';
 import { kindDotClass } from '../ui/KindDot';
 import { Bone, SkeletonRegion } from '../ui/Skeleton';
 
-type FileSourceId = 'tvtime';
+type FileSourceId = 'tvtime' | 'netflix';
 type ProfileSourceId = 'letterboxd' | 'mal' | 'anilist' | 'steam';
 type OnboardingSourceId = FileSourceId | ProfileSourceId;
 
@@ -35,6 +35,7 @@ type Source =
 
 const SOURCES: Source[] = [
   { id: 'tvtime', name: 'TV Time', brand: 'tvtime', kinds: ['series', 'movie'], how: 'file' },
+  { id: 'netflix', name: 'Netflix', brand: 'netflix', kinds: ['series', 'movie'], how: 'file' },
   { id: 'letterboxd', name: 'Letterboxd', brand: 'letterboxd', kinds: ['movie'], how: 'profile' },
   {
     id: 'mal',

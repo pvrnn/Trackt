@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import Matches</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #d96bb0; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    input::placeholder { color: #948da1; }
+    .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    /* ── import pieces ── */
+    .lab { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    /* source tile: the brand colour, and a dashed slot where the service's official 24×24 mark goes (marks are never redrawn here) */
+    .stile { position: relative; flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); }
+    .stile .smark { width: 18px; height: 18px; border-radius: 4px; border: 1.5px dashed rgba(255,255,255,0.72); box-sizing: border-box; }
+    .stile.lg { width: 40px; height: 40px; border-radius: 11px; }
+    .stile.lg .smark { width: 24px; height: 24px; }
+    .stile.sm { width: 22px; height: 22px; border-radius: 6px; }
+    .stile.sm .smark { width: 14px; height: 14px; border-width: 1px; }
+    .pbar { position: relative; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .pbar > span { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); transition: width 160ms linear; }
+    .pbar.thin { height: 3px; }
+    .pbar.indet > span { width: 34%; animation: pindet 1.5s ease-in-out infinite; }
+    @keyframes pindet { from { left: -34%; } to { left: 100%; } }
+    /* the one loud line: titles waiting for an answer */
+    .nudge { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 48px; padding: 8px 16px; border-radius: 12px; background: rgba(217,107,176,0.12); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; text-decoration: none; transition: background 140ms ease; }
+    .nudge:hover { background: rgba(217,107,176,0.2); color: #f0edf4; }
+    .nudge .n { font-family: Anton, sans-serif; font-size: 22px; font-weight: 400; letter-spacing: 0; line-height: 1; }
+    .nudge .go { margin-left: auto; color: #e58cc4; white-space: nowrap; }
+    .pill2 { height: 44px; padding: 0 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #f0edf4; white-space: nowrap; cursor: pointer; transition: box-shadow 140ms ease; }
+    .pill2:hover { box-shadow: inset 0 0 0 1px #d96bb0; color: #f0edf4; }
+    .pill1 { height: 48px; padding: 0 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; white-space: nowrap; cursor: pointer; transition: filter 140ms ease, background 200ms ease; }
+    .pill1:hover { filter: brightness(1.12); color: #14101a; }
+    .pill1[aria-disabled="true"] { background: rgba(255,255,255,0.08); color: #948da1; cursor: default; filter: none; }
+    .ghost { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4; white-space: nowrap; cursor: pointer; }
+    .ghost:hover { color: #f0edf4; }
+    @media (prefers-reduced-motion: reduce) { .pbar.indet > span { animation: none; left: 0; width: 100%; opacity: 0.5; } .pbar > span { transition: none; } }
+    /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; container-type: inline-size; }
+    .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
+    .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
+    .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fcell .dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 999px; }
+    .fcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-overflow: ellipsis; padding: 19px 22px 19px 0; margin-right: -4px; cursor: pointer; color-scheme: dark; }
+    .fcell select option { background: #191520; color: #f0edf4; }
+    .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
+    .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
+    /* kind: the same grammar as every other cell. KIND label, a value that names the pick, then the picker itself.
+       The picker is the six kind dots plus a hollow ring for All; hovering or focusing a dot previews it in the value. Nothing resizes. */
+    .kcell { flex: 0 0 auto; padding-right: 12px; }
+    .kval { width: 100px; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 120ms ease; }
+    .kval .kn { font-weight: 500; color: #948da1; }
+    .kdots { display: flex; align-items: center; }
+    .kdot { width: 28px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    .kdot > span { width: 10px; height: 10px; border-radius: 999px; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .kdot:hover > span, .kdot:focus-visible > span { transform: scale(1.3); }
+    .kdot:focus-visible { outline-offset: -2px; }
+    @media (prefers-reduced-motion: reduce) { .kval, .kdot > span { transition: none; } }
+    @container (max-width: 520px) { .fcell { flex-grow: 1; } }
+    /* a row: the source's line on the left, its candidates as a strip of covers on the right; the strip wraps under on narrow widths */
+    .mrow { display: flex; flex-wrap: wrap; gap: 20px 26px; padding: 22px; border-radius: 18px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); backdrop-filter: blur(16px); }
+    .mleft { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .mright { flex: 999 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    .cands { display: flex; flex-wrap: wrap; gap: 12px; }
+    /* the whole tile is the target: picking logs it at once */
+    .cand { width: 118px; display: flex; flex-direction: column; gap: 7px; padding: 8px; margin: -8px; border-radius: 14px; transition: background 140ms ease, box-shadow 140ms ease; }
+    .cand:hover, .cand:focus-visible { background: rgba(217,107,176,0.1); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.6); }
+    .cand .cv { position: relative; aspect-ratio: 2/3; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 10px 24px -14px rgba(0,0,0,0.9); transition: transform 160ms ease; }
+    .cand:hover .cv { transform: translateY(-3px); }
+    .tbtn { height: 36px; padding: 0 4px; font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #cfc9d8; }
+    .tbtn:hover { color: #f0edf4; }
+    .chip { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 7px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #cfc9d8; }
+    .sfield { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: 12px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px #d96bb0, 0 0 0 4px rgba(217,107,176,0.14); }
+    .sfield input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: Archivo, sans-serif; font-size: 16px; padding: 0; }
+    .sres { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 10px; border-radius: 12px; text-align: left; }
+    .sres:hover { background: rgba(217,107,176,0.1); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); }
+    .done { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 56px; padding: 8px 12px 8px 22px; border-radius: 14px; background: rgba(255,255,255,0.03); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+    .pg { min-width: 36px; height: 36px; padding: 0 12px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #b8b1c4; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); }
+    .pg:hover { box-shadow: inset 0 0 0 1px #d96bb0; }
+    @media (prefers-reduced-motion: reduce) { .cand, .cand .cv { transition: none; } .cand:hover .cv { transform: none; } }
+    /* language: a quiet menu control, not a badge. Globe says what it is, caret says it opens. */
+    .lang { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 10px; border-radius: 8px; color: #b8b1c4; cursor: pointer; transition: background 140ms ease; }
+    .lang:hover, .lang:focus-within { background: rgba(255,255,255,0.08); color: #f0edf4; }
+    .lang .globe { width: 17px; height: 17px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23b8b1c4%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%228.5%22/%3E%3Cpath%20d%3D%22M3.5%2012h17M12%203.5c2.6%202.4%203.9%205.2%203.9%208.500s-1.300%206.100-3.900%208.500c-2.600-2.400-3.900-5.200-3.900-8.500S9.400%205.900%2012%203.500z%22/%3E%3C/svg%3E") center / contain no-repeat; }
+    .lang select { -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 9px 15px 9px 0; cursor: pointer; color-scheme: dark; }
+    .lang select option { background: #191520; color: #f0edf4; }
+    .lang .caret { position: absolute; right: 9px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; opacity: 0.8; }
+    /* filter bar: every filter is the same cell (label, value, chevron). Cells share the row and wrap when it gets narrow. */
+    .fbar { display: flex; flex-wrap: wrap; align-items: stretch; overflow: hidden; container-type: inline-size; }
+    .fcell { position: relative; flex: 1 1 170px; min-width: 0; min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09); transition: background 140ms ease; }
+    .fcell:hover, .fcell:focus-within { background: rgba(255,255,255,0.045); }
+    .fcell .lab { flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    .fcell .dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 999px; }
+    .fcell select { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-overflow: ellipsis; padding: 19px 22px 19px 0; margin-right: -4px; cursor: pointer; color-scheme: dark; }
+    .fcell select option { background: #191520; color: #f0edf4; }
+    .fcell:has(select:focus-visible) { box-shadow: inset -1px 0 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.09), inset 0 0 0 2px #d96bb0; }
+    .fcell .chev { position: absolute; right: 20px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate(45deg); pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { .fcell { transition: none; } }
+    /* kind: the same grammar as every other cell. KIND label, a value that names the pick, then the picker itself.
+       The picker is the six kind dots plus a hollow ring for All; hovering or focusing a dot previews it in the value. Nothing resizes. */
+    .kcell { flex: 0 0 auto; padding-right: 12px; }
+    .kval { width: 100px; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 120ms ease; }
+    .kval .kn { font-weight: 500; color: #948da1; }
+    .kdots { display: flex; align-items: center; }
+    .kdot { width: 28px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    .kdot > span { width: 10px; height: 10px; border-radius: 999px; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .kdot:hover > span, .kdot:focus-visible > span { transform: scale(1.3); }
+    .kdot:focus-visible { outline-offset: -2px; }
+    @media (prefers-reduced-motion: reduce) { .kval, .kdot > span { transition: none; } }
+    /* once the bar wraps, the cells on each row share it; on a phone-width bar the value slot goes and the dots stay */
+    @container (max-width: 900px) { .kcell { flex-grow: 1; } }
+    @container (max-width: 440px) { .kval { display: none; } }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(850px 550px at 10% -10%, rgba(139,92,246,0.35), transparent 65%), radial-gradient(750px 500px at 100% 15%, rgba(217,107,176,0.28), transparent 65%), radial-gradient(800px 600px at 30% 115%, rgba(217,164,65,0.30), transparent 70%); pointer-events: none;"></div>
+<div style="position: fixed; inset: 0; background-image: url('noise.svg'); background-size: 220px; opacity: 0.5; mix-blend-mode: overlay; pointer-events: none;"></div>
+
+<div style="position: relative;">
+<nav aria-label="Main" style="display: flex; align-items: center; gap: 32px; padding: 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.09); position: sticky; top: 0; background: rgba(14,12,16,0.75); backdrop-filter: blur(16px); z-index: 20;">
+  <a href="Landing.dc.html" style="font-family: Anton; font-size: 26px; letter-spacing: 0.02em; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">TRACKT</a>
+  <div style="display: flex; gap: 24px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em;">
+    <a href="Home.dc.html" style="color: #948da1;">HOME</a>
+    <a href="Search.dc.html" style="color: #948da1;">DISCOVER</a>
+    <a href="News.dc.html" style="color: #948da1;">NEWS</a>
+    <a href="History.dc.html" style="color: #948da1;">HISTORY</a>
+    <a href="Trophies.dc.html" style="color: #948da1;">TROPHIES</a>
+    <a href="Profile.dc.html" aria-current="page" style="color: #f0edf4; border-bottom: 2px solid #d96bb0; padding-bottom: 2px;">PROFILE</a>
+  </div>
+  <div style="flex: 1;"></div>
+  <a href="Search.dc.html" style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 14px 10px 18px; width: 260px; color: #948da1; font-size: 14px;"><span aria-hidden="true">⌕</span><span style="flex: 1;">Search titles or people…</span><span aria-hidden="true" style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); border-radius: 5px; padding: 2px 6px;">⌘K</span></a>
+  <label class="lang"><span class="globe" aria-hidden="true"></span><select aria-label="Language"><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="de">DE</option><option value="ja">JA</option></select><span class="caret" aria-hidden="true"></span></label>
+  <a href="Profile.dc.html" aria-label="Your profile" style="width: 36px; height: 36px; border-radius: 999px; background: linear-gradient(135deg, #d96bb0, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #14101a; font-weight: 700; font-size: 14px;">M</a>
+</nav>
+
+<main style="max-width: 880px; margin: 0 auto; padding: 48px 24px 96px; display: flex; flex-direction: column; gap: 22px;">
+  <a href="Profile.dc.html" style="align-self: flex-start; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4; text-transform: uppercase;">← {{ t.imports }}</a>
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;">
+      <h1 style="margin: 0; font-family: Anton; font-weight: 400; font-size: 64px; line-height: 1; text-transform: uppercase;">{{ t.mTitle }}</h1>
+      <span aria-live="polite" style="font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ scopeLabel }}</span>
+    </div>
+    <p style="margin: 0; color: #b8b1c4; font-size: 15px; line-height: 1.55; max-width: 62ch;">{{ t.mLede }}</p>
+  </div>
+
+  <!-- filter console: only once there are 20+ rows -->
+  <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+    <div class="fbar" style="background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); border-radius: 18px; backdrop-filter: blur(16px);">
+      <label class="fcell"><span class="lab">{{ t.fSource }}</span><select value="{{ fSource }}" onChange="{{ onSource }}"><sc-for list="{{ sourceOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span class="chev" aria-hidden="true"></span></label>
+      <label class="fcell"><span class="lab">{{ t.fKind }}</span><select value="{{ fKind }}" onChange="{{ onKind }}"><sc-for list="{{ kindOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select><span class="chev" aria-hidden="true"></span></label>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ allSettled }}" hint-placeholder-val="{{ false }}">
+    <div style="border: 1.5px dashed rgba(255,255,255,0.2); border-radius: 18px; background: rgba(255,255,255,0.03); padding: 52px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+      <div style="font-family: Anton; font-size: 40px; line-height: 1; text-transform: uppercase;">{{ t.settled }}</div>
+      <div style="color: #b8b1c4; font-size: 15px;">{{ t.settledCopy }}</div>
+      <a href="History.dc.html" class="ghost" style="margin-top: 10px; font-size: 12px;">{{ t.openHistory }}</a>
+    </div>
+  </sc-if>
+
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+      <!-- settled: one line, with undo for a few seconds -->
+      <sc-if value="{{ r.isDone }}" hint-placeholder-val="{{ false }}">
+        <div class="done" aria-live="polite">
+          <span style="width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: {{ r.doneBg }}; color: #14101a; font-size: 12px; font-weight: 700;">{{ r.doneMark }}</span>
+          <span style="font-size: 15px; font-weight: 600; color: {{ r.doneFg }};">{{ r.doneTitle }}</span>
+          <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">· {{ r.doneLabel }}</span>
+          <span style="flex: 1;"></span>
+          <sc-if value="{{ r.canUndo }}" hint-placeholder-val="{{ false }}"><button class="tbtn" onClick="{{ r.undo }}" style="color: #e58cc4; padding: 0 10px;">{{ t.undo }}</button></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ r.isOpen }}" hint-placeholder-val="{{ true }}">
+        <article class="mrow" aria-label="{{ r.written }}">
+          <div class="mleft">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="stile sm" aria-hidden="true" style="background: {{ r.src.color }};"><span class="smark" style="border-color: {{ r.src.mark }};"></span></span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ r.wrote }}</span>
+            </div>
+            <div style="font-size: 21px; font-weight: 700; line-height: 1.2; text-wrap: pretty;">{{ r.written }}</div>
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;">
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: {{ r.dot }};"></span><span>{{ r.kind }}</span>
+              <sc-if value="{{ r.hasExtra }}" hint-placeholder-val="{{ false }}"><span style="color: #948da1; font-weight: 600;">· {{ r.extra }}</span></sc-if>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 2px;">
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ t.wouldLog }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #f0edf4;">{{ r.would }}</span>
+            </div>
+            <span class="chip" style="margin-top: 4px;">{{ r.reason }}</span>
+            <div style="flex: 1;"></div>
+            <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+              <button class="tbtn" onClick="{{ r.openSearch }}" aria-expanded="{{ r.searching }}" style="color: {{ r.noneFg }};">{{ t.none }}</button>
+              <button class="tbtn" onClick="{{ r.skip }}" style="color: #948da1;">{{ t.skip }}</button>
+            </div>
+          </div>
+
+          <div class="mright">
+            <sc-if value="{{ r.notSearching }}" hint-placeholder-val="{{ true }}">
+              <div class="cands" role="list">
+                <sc-for list="{{ r.cands }}" as="c" hint-placeholder-count="3">
+                  <button class="cand" role="listitem" onClick="{{ c.pick }}" aria-label="{{ c.aria }}">
+                    <span class="cv" style="background: {{ c.art }};">
+                      <sc-if value="{{ c.inLog }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: 6px; top: 6px; right: 6px; display: flex; justify-content: center; padding: 4px 6px; border-radius: 6px; background: #14101a; box-shadow: inset 0 0 0 1px rgba(63,191,143,0.6); font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; color: #6fdcb2; white-space: nowrap;">✓ {{ c.inLogLabel }}</span></sc-if>
+                    </span>
+                    <span style="display: flex; align-items: baseline; justify-content: space-between; gap: 6px;">
+                      <span style="font-family: Anton; font-size: {{ c.yearSize }}; line-height: 1; color: #f0edf4;">{{ c.year }}</span>
+                      <span style="font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; color: {{ c.scoreFg }};">{{ c.score }}</span>
+                    </span>
+                    <span class="clamp2" style="font-size: 13px; font-weight: 600; line-height: 1.25; text-align: left;">{{ c.title }}</span>
+                    <span style="display: flex; align-items: center; gap: 5px; font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;"><span style="width: 6px; height: 6px; border-radius: 999px; background: {{ c.dot }};"></span>{{ c.kind }}</span>
+                    <span aria-hidden="true" style="height: 3px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden;"><span style="display: block; height: 100%; width: {{ c.bar }}; border-radius: 999px; background: {{ c.barBg }};"></span></span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+            <!-- none of these: search the catalog instead, right here -->
+            <sc-if value="{{ r.searching }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label class="sfield"><span aria-hidden="true" style="color: #948da1; font-size: 17px;">⌕</span><input value="{{ r.query }}" onChange="{{ r.onQuery }}" placeholder="{{ t.searchPh }}" aria-label="{{ t.searchPh }}"><button class="tbtn" onClick="{{ r.closeSearch }}">{{ t.cancel }}</button></label>
+                <sc-for list="{{ r.results }}" as="x" hint-placeholder-count="3">
+                  <button class="sres" onClick="{{ x.pick }}">
+                    <span style="width: 36px; height: 54px; flex-shrink: 0; border-radius: 6px; background: {{ x.art }}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);"></span>
+                    <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                      <span style="font-size: 15px; font-weight: 600;">{{ x.title }}</span>
+                      <span style="display: flex; align-items: center; gap: 6px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;"><span style="width: 6px; height: 6px; border-radius: 999px; background: {{ x.dot }};"></span>{{ x.kind }} <span style="color: #948da1;">· {{ x.year }}</span></span>
+                    </span>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ r.noResults }}" hint-placeholder-val="{{ false }}"><div style="color: #948da1; font-size: 14px; padding: 10px 4px;">{{ r.noResultText }}</div></sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </article>
+      </sc-if>
+    </sc-for>
+  </div>
+
+  <nav aria-label="Pages" style="display: {{ pagerDisplay }}; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+    <button class="pg" onClick="{{ goPrev }}" style="opacity: {{ prevOp }};">{{ t.prev }}</button>
+    <sc-for list="{{ pages }}" as="p" hint-placeholder-count="3"><button class="pg" onClick="{{ p.pick }}" aria-current="{{ p.current }}" style="background: {{ p.bg }}; color: {{ p.fg }}; box-shadow: {{ p.ring }};">{{ p.n }}</button></sc-for>
+    <button class="pg" onClick="{{ goNext }}" style="opacity: {{ nextOp }};">{{ t.next }}</button>
+    <span style="width: 100%; text-align: center; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #948da1; margin-top: 6px;">{{ pageMeta }}</span>
+  </nav>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["netflix","several","long","settled"],"default":"netflix","section":"States"},"lang":{"editor":"enum","options":["en","fr"],"default":"en","section":"States"}}'>
+// ── sources: brand colour for the tile, what each covers, how it's read ──
+const SOURCES = {
+  TVTIME: { name: 'TV Time', color: '#FFD400', dark: true, kinds: ['SERIES', 'MOVIE', 'ANIME'], type: 'file', file: 'tvtime-shows.json · tvtime-movies.json' },
+  NETFLIX: { name: 'Netflix', color: '#E50914', kinds: ['MOVIE', 'SERIES', 'ANIME'], type: 'file', file: 'NetflixViewingHistory.csv' },
+  LETTERBOXD: { name: 'Letterboxd', color: '#202830', kinds: ['MOVIE'], type: 'profile', url: 'letterboxd.com/' },
+  MAL: { name: 'MyAnimeList', color: '#2E51A2', kinds: ['ANIME', 'MANGA'], type: 'profile', url: 'myanimelist.net/profile/' },
+  ANILIST: { name: 'AniList', color: '#02A9FF', kinds: ['ANIME', 'MANGA'], type: 'profile', url: 'anilist.co/user/' },
+  STEAM: { name: 'Steam', color: '#1B2838', kinds: ['GAME'], type: 'profile', url: 'steamcommunity.com/id/', off: 'STEAM_API_KEY' },
+  TRAKT: { name: 'Trakt', color: '#ED1C24', kinds: ['MOVIE', 'SERIES'], type: 'profile', url: 'trakt.tv/users/' },
+};
+const SOURCE_ORDER = ['TVTIME', 'NETFLIX', 'LETTERBOXD', 'MAL', 'ANILIST', 'STEAM', 'TRAKT'];
+const IKDOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+const tileOf = (id) => ({ id, name: SOURCES[id].name, color: SOURCES[id].color, mark: SOURCES[id].dark ? 'rgba(20,16,26,0.6)' : 'rgba(255,255,255,0.72)' });
+
+// ── copy, English and French. French runs ~20% longer: every container below is sized for it. ──
+const STR = {
+  en: {
+    imports: 'Imports', bring: 'Bring your history', bringCopy: "Pull in what you've already watched, read and played. Nothing is written until you say so.",
+    import: 'IMPORT', importMore: '＋ IMPORT ANOTHER', need: (n) => 'TITLES NEED YOU', resolve: 'RESOLVE →',
+    logged: (a, b) => a + ' OF ' + b + ' LOGGED', writing: (a, b) => 'WRITING ' + a + ' / ' + b, matching: 'MATCHING TITLES…', retry: 'RETRY',
+    sources: (n) => n + ' SOURCES', ago: { d2: '2 DAYS AGO', w3: '3 WEEKS AGO', m1: '1 MONTH AGO', today: 'TODAY', now: 'NOW' },
+    historyTo: 'history to 2026-11-26', privateList: 'YOUR ANILIST LIST IS PRIVATE',
+    step: 'STEP', of: 'OF', stepNames: ['WHERE FROM', 'PREVIEW', 'IMPORT'], close: 'CLOSE', back: 'BACK',
+    t1: 'Where from?', l1: 'Pick a service. Nothing is written before the last step.',
+    username: 'USERNAME', choose: 'CHOOSE FILE', dropHere: (f) => 'Drop ' + f + ' here', orDrop: 'or drag it onto this box', how: 'HOW TO GET THE FILE',
+    preview: 'PREVIEW', offReason: (k) => k + ' is not set on this instance',
+    reading: (s) => 'READING YOUR ' + s.toUpperCase() + ' HISTORY', nothingYet: 'NOTHING HAS BEEN WRITTEN YET.',
+    readingNote: 'Each title is looked up in the catalog, so a large history takes a minute or two.',
+    t2: "Here's what we found", l2: 'Read, not written. Titles that need you are kept aside: nothing is guessed.',
+    stats: ['ENTRIES', 'IN THE CATALOG', 'ALREADY LOGGED', 'WOULD BE WRITTEN', 'NEED YOU'],
+    notInCat: 'Not in the catalog', more: (n) => '… ' + n + ' MORE', importNow: 'IMPORT NOW',
+    t3w: 'Writing your history', closeOk: 'You can close this, the import carries on.', t3d: 'Done',
+    doneStats: ['CREATED', 'MERGED', 'ALREADY LOGGED', 'RATINGS'], openHistory: 'OPEN HISTORY →',
+    howNetflix: [['Open ', 'netflix.com/settings/viewed', ''], ['Click ', '', 'Download all at the bottom of the list'], ['Drop ', '', 'NetflixViewingHistory.csv here']],
+    howTvtime: [['Request your data with ', 'the TV Time Out tool', ''], ['Unzip ', '', 'what it sends you'], ['Drop ', '', 'the two JSON files, or the HTML summary, here']],
+    // matches
+    mTitle: 'Needs you', scope: (n, s) => n + (n === 1 ? ' TITLE FROM ' : ' TITLES FROM ') + s, scopeMany: (n, k) => n + (n === 1 ? ' TITLE' : ' TITLES') + ' FROM ' + k + ' SOURCES',
+    mLede: "An import never guesses. These are the titles it couldn't decide on: pick the right one and it's logged straight away.",
+    wrote: (s) => 'AS ' + s.toUpperCase() + ' WROTE IT', wouldLog: 'WOULD LOG', season: 'SEASON',
+    tie: (n) => 'TIE · ' + n + ' WORKS SHARE THIS NAME', closeR: (p) => 'CLOSE · BEST IS ' + p + '%',
+    none: 'NONE OF THESE', skip: 'SKIP', loggedOne: 'LOGGED', merged: 'MERGED INTO YOUR LOG', skipped: 'SKIPPED', undo: 'UNDO', inLog: 'IN YOUR LOG',
+    searchPh: 'Search the catalog…', cancel: 'CANCEL', noResult: (q) => 'Nothing in the catalog for “' + q + '”.',
+    settled: 'All settled', settledCopy: 'Every title from your imports found its place.',
+    fSource: 'SOURCE', fKind: 'KIND', all: 'All', status: { COMPLETED: 'COMPLETED', PROGRESS: 'IN PROGRESS', EPISODES: 'EPISODES' },
+    page: (a, b, n) => a + '–' + b + ' OF ' + n, prev: '← PREV', next: 'NEXT →',
+  },
+  fr: {
+    imports: 'Imports', bring: 'Apportez votre historique', bringCopy: "Récupérez ce que vous avez déjà vu, lu et joué. Rien n'est écrit sans votre accord.",
+    import: 'IMPORTER', importMore: '＋ IMPORTER UNE AUTRE SOURCE', need: (n) => 'TITRES ONT BESOIN DE VOUS', resolve: 'RÉSOUDRE →',
+    logged: (a, b) => a + ' SUR ' + b + ' ENREGISTRÉS', writing: (a, b) => 'ÉCRITURE ' + a + ' / ' + b, matching: 'RAPPROCHEMENT DES TITRES…', retry: 'RÉESSAYER',
+    sources: (n) => n + ' SOURCES', ago: { d2: 'IL Y A 2 JOURS', w3: 'IL Y A 3 SEMAINES', m1: 'IL Y A 1 MOIS', today: "AUJOURD'HUI", now: 'EN COURS' },
+    historyTo: "historique jusqu'au 2026-11-26", privateList: 'VOTRE LISTE ANILIST EST PRIVÉE',
+    step: 'ÉTAPE', of: 'SUR', stepNames: ['SOURCE', 'APERÇU', 'IMPORT'], close: 'FERMER', back: 'RETOUR',
+    t1: "D'où ?", l1: "Choisissez un service. Rien n'est écrit avant la dernière étape.",
+    username: "NOM D'UTILISATEUR", choose: 'CHOISIR UN FICHIER', dropHere: (f) => 'Déposez ' + f + ' ici', orDrop: 'ou glissez-le sur ce cadre', how: 'COMMENT OBTENIR LE FICHIER',
+    preview: 'APERÇU', offReason: (k) => k + " n'est pas défini sur cette instance",
+    reading: (s) => 'LECTURE DE VOTRE HISTORIQUE ' + s.toUpperCase(), nothingYet: "RIEN N'A ENCORE ÉTÉ ÉCRIT.",
+    readingNote: 'Chaque titre est cherché dans le catalogue : un gros historique prend une à deux minutes.',
+    t2: "Voici ce qu'on a trouvé", l2: "Lu, pas écrit. Les titres à trancher sont mis de côté : rien n'est deviné.",
+    stats: ['ENTRÉES', 'DANS LE CATALOGUE', 'DÉJÀ ENREGISTRÉS', 'SERAIENT ÉCRITS', 'ONT BESOIN DE VOUS'],
+    notInCat: 'Absents du catalogue', more: (n) => '… ' + n + ' DE PLUS', importNow: 'IMPORTER MAINTENANT',
+    t3w: 'Écriture de votre historique', closeOk: "Vous pouvez fermer : l'import continue.", t3d: 'Terminé',
+    doneStats: ['CRÉÉS', 'FUSIONNÉS', 'DÉJÀ ENREGISTRÉS', 'NOTES'], openHistory: "OUVRIR L'HISTORIQUE →",
+    howNetflix: [['Ouvrez ', 'netflix.com/settings/viewed', ''], ['Cliquez sur ', '', 'Tout télécharger, en bas de la liste'], ['Déposez ', '', 'NetflixViewingHistory.csv ici']],
+    howTvtime: [['Demandez vos données avec ', "l'outil TV Time Out", ''], ['Décompressez ', '', 'ce qu’il vous envoie'], ['Déposez ', '', 'les deux fichiers JSON, ou le résumé HTML, ici']],
+    mTitle: 'À trancher', scope: (n, s) => n + (n === 1 ? ' TITRE DE ' : ' TITRES DE ') + s, scopeMany: (n, k) => n + (n === 1 ? ' TITRE' : ' TITRES') + ' DE ' + k + ' SOURCES',
+    mLede: "Un import ne devine jamais. Voici les titres sur lesquels il a hésité : choisissez le bon, il est enregistré aussitôt.",
+    wrote: (s) => 'TEL QUE ' + s.toUpperCase() + " L'A ÉCRIT", wouldLog: 'ENREGISTRERAIT', season: 'SAISON',
+    tie: (n) => 'ÉGALITÉ · ' + n + ' ŒUVRES PORTENT CE NOM', closeR: (p) => 'PROCHE · MEILLEURE PISTE ' + p + ' %',
+    none: 'AUCUN DE CEUX-LÀ', skip: 'IGNORER', loggedOne: 'ENREGISTRÉ', merged: 'FUSIONNÉ DANS VOTRE JOURNAL', skipped: 'IGNORÉ', undo: 'ANNULER', inLog: 'DANS VOTRE JOURNAL',
+    searchPh: 'Chercher dans le catalogue…', cancel: 'ANNULER', noResult: (q) => 'Rien dans le catalogue pour « ' + q + ' ».',
+    settled: 'Tout est réglé', settledCopy: 'Chaque titre de vos imports a trouvé sa place.',
+    fSource: 'SOURCE', fKind: 'TYPE', all: 'Tous', status: { COMPLETED: 'TERMINÉ', PROGRESS: 'EN COURS', EPISODES: 'ÉPISODES' },
+    page: (a, b, n) => a + '–' + b + ' SUR ' + n, prev: '← PRÉC.', next: 'SUIV. →',
+  },
+};
+const MONTHS_FR = { JAN: 'JANV', FEB: 'FÉVR', MAR: 'MARS', APR: 'AVR', MAY: 'MAI', JUN: 'JUIN', JUL: 'JUIL', AUG: 'AOÛT', SEP: 'SEPT', OCT: 'OCT', NOV: 'NOV', DEC: 'DÉC' };
+const frDate = (s, lang) => lang === 'fr' ? s.replace(/[A-Z]{3}/g, (m) => MONTHS_FR[m] || m) : s;
+
+// covers: the generated gradient rule, the same set Discover uses
+const ART = {
+  harbor: 'radial-gradient(90% 60% at 70% 18%, #7c6cf0 0%, transparent 62%), linear-gradient(165deg, #35296b 0%, #0e0c1a 100%)',
+  ash: 'radial-gradient(80% 50% at 30% 28%, #ffd98a 0%, transparent 66%), linear-gradient(170deg, #c9742a 0%, #3a1a0a 100%)',
+  static: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 7px), linear-gradient(160deg, #3a55b0 0%, #080b17 100%)',
+  courier: 'radial-gradient(70% 45% at 60% 30%, #fff3fa 0%, transparent 70%), linear-gradient(180deg, #f7a8d2 0%, #b84a8c 100%)',
+  paper: 'linear-gradient(118deg, transparent 0 56%, #c8242b 56% 68%, transparent 68%), linear-gradient(180deg, #f4f0e6 0%, #d8d2c4 100%)',
+  orchard: 'radial-gradient(60% 40% at 50% 38%, #fff7c2 0%, transparent 70%), linear-gradient(180deg, #f2c81e 0%, #e0a80c 100%)',
+  sable: 'linear-gradient(180deg, #d6eefa 0%, #7dbbe0 48%, #1d4f7a 100%)',
+  hollow: 'radial-gradient(46% 32% at 50% 40%, #e9e4f5 0%, transparent 72%), linear-gradient(180deg, #55309a 0%, #0d0817 100%)',
+  ninth: 'linear-gradient(64deg, transparent 0 44%, rgba(255,255,255,0.85) 44% 47%, transparent 47%), linear-gradient(200deg, #c2202a 0%, #2a0608 78%)',
+  bloom: 'radial-gradient(70% 50% at 40% 62%, #ff9bd0 0%, transparent 70%), linear-gradient(180deg, #1b3a2a 0%, #0a1510 100%)',
+  ferry: 'linear-gradient(180deg, #ece6d6 0%, #b9ae95 58%, #5a5140 100%)',
+  tide: 'conic-gradient(from 200deg at 62% 38%, #ff7a59, #ffd23f, #35d6c0, #8b5cf6, #ff7a59)',
+};
+const ARTKEYS = Object.keys(ART);
+const artFor = (s) => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return ART[ARTKEYS[h % ARTKEYS.length]]; };
+
+// [title, year, kind, score, inLog]
+// st: [status, detail, dates] — status COMPLETED | PROGRESS; detail: episodes for in-progress series
+const NETFLIX_ROWS = [
+  { id: 'shaft', src: 'NETFLIX', written: 'Shaft', kind: 'MOVIE', st: ['COMPLETED', 0, '14 MAR 21'], why: 'TIE', cands: [['Shaft', 2019, 'MOVIE', 100], ['Shaft', 2000, 'MOVIE', 100], ['Shaft', 1971, 'MOVIE', 100]] },
+  { id: 'witcher', src: 'NETFLIX', written: 'The Witcher: Season 1', kind: 'SERIES', season: 1, st: ['COMPLETED', 0, '22 DEC 19 → 04 JAN 20'], why: 'TIE', cands: [['The Witcher', 2019, 'SERIES', 100], ['The Witcher', 2002, 'SERIES', 100]] },
+  { id: 'shallows', src: 'NETFLIX', written: 'Instinct de survie', kind: 'MOVIE', st: ['COMPLETED', 0, '22 DEC 24'], why: 'CLOSE', cands: [['The Shallows', 2016, 'MOVIE', 74], ['Basic Instinct', 1992, 'MOVIE', 56], ['Instinct', 2018, 'SERIES', 52]] },
+  { id: 'immortel', src: 'NETFLIX', written: "L'immortel", kind: 'MOVIE', st: ['COMPLETED', 0, '09 AUG 23'], why: 'CLOSE', cands: [["L'Immortel", 2010, 'MOVIE', 78], ['The Immortal', 2019, 'MOVIE', 66], ['Immortals', 2011, 'MOVIE', 51]] },
+  { id: 'monster', src: 'NETFLIX', written: 'Monster: Season 1', kind: 'ANIME', season: 1, st: ['PROGRESS', 4, '05 JUN → 02 JUL 19'], why: 'TIE', cands: [['Monster', 2004, 'ANIME', 100], ['Monster', 2023, 'MOVIE', 100], ['Monster', 2003, 'MOVIE', 100]] },
+  { id: 'deathnote', src: 'NETFLIX', written: 'Death Note', kind: 'ANIME', season: 1, st: ['COMPLETED', 0, '11 FEB → 27 FEB 18'], why: 'TIE', cands: [['Death Note', 2006, 'ANIME', 100, true], ['Death Note', 2017, 'MOVIE', 100], ['Death Note', 2015, 'SERIES', 100]] },
+  { id: 'bureau', src: 'NETFLIX', written: 'Le Bureau des Légendes: Saison 2', kind: 'SERIES', season: 2, st: ['PROGRESS', 6, '03 MAR → 18 MAR 22'], why: 'CLOSE', cands: [['The Bureau', 2015, 'SERIES', 72], ['Le Bureau', 2006, 'SERIES', 61]] },
+  { id: 'lupin', src: 'NETFLIX', written: 'Lupin: Partie 1', kind: 'SERIES', season: 1, st: ['COMPLETED', 0, '08 JAN → 10 JAN 21'], why: 'CLOSE', cands: [['Lupin', 2021, 'SERIES', 79], ['Lupin the Third Part 6', 2021, 'ANIME', 58]] },
+  { id: 'miserables', src: 'NETFLIX', written: 'Les Misérables', kind: 'MOVIE', st: ['COMPLETED', 0, '11 FEB 20'], why: 'TIE', cands: [['Les Misérables', 2019, 'MOVIE', 100], ['Les Misérables', 2012, 'MOVIE', 100], ['Les Misérables', 2018, 'SERIES', 100]] },
+  { id: 'arcane', src: 'NETFLIX', written: 'Arcane: Saison 1', kind: 'ANIME', season: 1, st: ['COMPLETED', 0, '06 NOV → 20 NOV 21'], why: 'CLOSE', cands: [['Arcane', 2021, 'ANIME', 76, true], ['Arcana', 2023, 'SERIES', 54]] },
+];
+const MORE_ROWS = [
+  { id: 'solaris', src: 'LETTERBOXD', written: 'Solaris', year: 2002, kind: 'MOVIE', st: ['COMPLETED', 0, '14 JAN 23'], why: 'TIE', cands: [['Solaris', 1972, 'MOVIE', 100], ['Solaris', 2002, 'MOVIE', 100]] },
+  { id: 'dune', src: 'LETTERBOXD', written: 'Dune', kind: 'MOVIE', st: ['COMPLETED', 0, '22 OCT 21'], why: 'TIE', cands: [['Dune', 2021, 'MOVIE', 100], ['Dune', 1984, 'MOVIE', 100]] },
+  { id: 'crash', src: 'LETTERBOXD', written: 'Crash', kind: 'MOVIE', st: ['COMPLETED', 0, '02 MAY 20'], why: 'TIE', cands: [['Crash', 2004, 'MOVIE', 100], ['Crash', 1996, 'MOVIE', 100]] },
+  { id: 'thing', src: 'LETTERBOXD', written: 'The Thing', kind: 'MOVIE', st: ['COMPLETED', 0, '31 OCT 22'], why: 'TIE', cands: [['The Thing', 1982, 'MOVIE', 100, true], ['The Thing', 2011, 'MOVIE', 100]] },
+  { id: 'suspiria', src: 'LETTERBOXD', written: 'Suspiria', kind: 'MOVIE', st: ['COMPLETED', 0, '13 OCT 19'], why: 'TIE', cands: [['Suspiria', 1977, 'MOVIE', 100], ['Suspiria', 2018, 'MOVIE', 100]] },
+  { id: 'oldboy', src: 'LETTERBOXD', written: 'Oldboy', year: 2003, kind: 'MOVIE', st: ['COMPLETED', 0, '07 JUL 18'], why: 'TIE', cands: [['Oldboy', 2003, 'MOVIE', 100], ['Oldboy', 2013, 'MOVIE', 100]] },
+  { id: 'fruits', src: 'MAL', written: 'Fruits Basket', kind: 'ANIME', st: ['COMPLETED', 0, '06 APR → 21 SEP 19'], why: 'TIE', cands: [['Fruits Basket', 2019, 'ANIME', 100], ['Fruits Basket', 2001, 'ANIME', 100]] },
+  { id: 'hxh', src: 'MAL', written: 'Hunter x Hunter', kind: 'ANIME', st: ['PROGRESS', 58, '02 JAN 17 →'], why: 'TIE', cands: [['Hunter x Hunter', 2011, 'ANIME', 100], ['Hunter x Hunter', 1999, 'ANIME', 100]] },
+  { id: 'dororo', src: 'MAL', written: 'Dororo', kind: 'ANIME', st: ['COMPLETED', 0, '07 JAN → 24 JUN 19'], why: 'TIE', cands: [['Dororo', 2019, 'ANIME', 100], ['Dororo', 1969, 'ANIME', 100]] },
+  { id: 'hellsing', src: 'MAL', written: 'Hellsing OVA', kind: 'ANIME', st: ['COMPLETED', 0, '18 AUG 16'], why: 'CLOSE', cands: [['Hellsing Ultimate', 2006, 'ANIME', 79], ['Hellsing', 2001, 'ANIME', 71]] },
+  { id: 'shameless', src: 'TVTIME', written: 'Shameless', kind: 'SERIES', season: 3, st: ['PROGRESS', 7, '12 FEB 15 →'], why: 'TIE', cands: [['Shameless', 2011, 'SERIES', 100], ['Shameless', 2004, 'SERIES', 100]] },
+  { id: 'office', src: 'TVTIME', written: 'The Office', kind: 'SERIES', season: 2, st: ['COMPLETED', 0, '01 MAR → 30 APR 14'], why: 'TIE', cands: [['The Office', 2005, 'SERIES', 100, true], ['The Office', 2001, 'SERIES', 100]] },
+  { id: 'skins', src: 'TVTIME', written: 'Skins', kind: 'SERIES', season: 1, st: ['COMPLETED', 0, '10 JUN → 22 JUN 13'], why: 'TIE', cands: [['Skins', 2007, 'SERIES', 100], ['Skins', 2011, 'SERIES', 100]] },
+  { id: 'hoc', src: 'TVTIME', written: 'House of Cards', kind: 'SERIES', season: 1, st: ['COMPLETED', 0, '01 FEB → 14 FEB 13'], why: 'TIE', cands: [['House of Cards', 2013, 'SERIES', 100], ['House of Cards', 1990, 'SERIES', 100]] },
+];
+// a few works the inline search can find
+const CATALOG = [['Shaft', 2019, 'MOVIE'], ['Shaft in Africa', 1973, 'MOVIE'], ['The Witcher: Blood Origin', 2022, 'SERIES'], ['The Witcher: Nightmare of the Wolf', 2021, 'ANIME'], ['Instinct', 2019, 'MOVIE'], ['The Shallows', 2016, 'MOVIE'], ["L'Immortel", 2010, 'MOVIE'], ['Monster', 2004, 'ANIME'], ['Death Note', 2006, 'ANIME'], ['Le Bureau des Légendes', 2015, 'SERIES'], ['Lupin', 2021, 'SERIES'], ['Les Misérables', 2019, 'MOVIE'], ['Arcane', 2021, 'ANIME'], ['Dune: Part Two', 2024, 'MOVIE'], ['Solaris', 1972, 'MOVIE'], ['Oldboy', 2003, 'MOVIE'], ['Fruits Basket', 2019, 'ANIME'], ['The Office', 2005, 'SERIES']];
+const PER_PAGE = 20;
+
+class Component extends DCLogic {
+  state = { done: {}, undoable: {}, search: {}, query: {}, fSource: 'ALL', fKind: 'ALL', page: 1 };
+
+  componentWillUnmount() { Object.values(this.timers || {}).forEach(clearTimeout); }
+
+  settle(key, how) {
+    this.timers = this.timers || {};
+    clearTimeout(this.timers[key]);
+    this.setState((s) => ({ done: Object.assign({}, s.done, { [key]: how }), undoable: Object.assign({}, s.undoable, { [key]: true }), search: Object.assign({}, s.search, { [key]: false }) }));
+    this.timers[key] = setTimeout(() => this.setState((s) => ({ undoable: Object.assign({}, s.undoable, { [key]: false }) })), 5000);
+  }
+  undo(key) {
+    clearTimeout((this.timers || {})[key]);
+    this.setState((s) => { const d = Object.assign({}, s.done); delete d[key]; return { done: d, undoable: Object.assign({}, s.undoable, { [key]: false }) }; });
+  }
+
+  renderVals() {
+    const st = this.state, mode = this.props.state ?? 'netflix', lang = this.props.lang ?? 'en', t = STR[lang] || STR.en;
+    let base = mode === 'settled' ? [] : mode === 'netflix' ? NETFLIX_ROWS : NETFLIX_ROWS.concat(MORE_ROWS);
+    if (mode === 'long') { const r = []; for (let i = 0; i < 5; i++) base.forEach((x) => r.push(Object.assign({}, x, { key: x.id + '-' + i }))); base = r.slice(0, 120); }
+    base = base.map((x) => Object.assign({ key: x.id }, x));
+
+    const hasFilters = base.length >= 20;
+    const bySrc = (x) => st.fSource === 'ALL' || x.src === st.fSource;
+    const byKind = (x) => st.fKind === 'ALL' || x.kind === st.fKind;
+    const filtered = base.filter((x) => (!hasFilters) || (bySrc(x) && byKind(x)));
+    const openRows = base.filter((x) => !st.done[x.key]);
+    const srcIds = Array.from(new Set(base.map((x) => x.src)));
+    const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+    const page = Math.min(st.page, pageCount);
+    const shown = mode === 'long' ? filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE) : filtered;
+    const kindLabel = (k) => k;
+
+    const would = (x) => {
+      const s = x.st[0] === 'PROGRESS' ? t.status.PROGRESS + ' · ' + x.st[1] + ' ' + t.status.EPISODES : t.status.COMPLETED;
+      return s + ' · ' + frDate(x.st[2], lang);
+    };
+    const rows = shown.map((x) => {
+      const key = x.key, how = st.done[key], S = SOURCES[x.src];
+      const searching = !!st.search[key];
+      const q = st.query[key] === undefined ? x.written.replace(/:.*$/, '') : st.query[key];
+      const qn = q.trim().toLowerCase();
+      const results = !searching ? [] : CATALOG.filter((c) => qn && c[0].toLowerCase().includes(qn.split(' ')[0])).slice(0, 4);
+      const extra = [];
+      if (x.season) extra.push(t.season + ' ' + x.season);
+      if (x.year) extra.push(String(x.year));
+      const tie = x.why === 'TIE';
+      return {
+        key, isDone: !!how, isOpen: !how,
+        doneMark: how && how.skip ? '–' : '✓', doneBg: how && how.skip ? '#948da1' : '#3fbf8f', doneFg: how && how.skip ? '#948da1' : '#f0edf4',
+        doneTitle: how ? (how.skip ? x.written : how.title + ' (' + how.year + ')') : '',
+        doneLabel: how ? (how.skip ? t.skipped : how.inLog ? t.merged : t.loggedOne) : '',
+        canUndo: !!st.undoable[key], undo: () => this.undo(key),
+        src: tileOf(x.src), wrote: t.wrote(S.name), written: x.written, kind: kindLabel(x.kind), dot: IKDOT[x.kind],
+        hasExtra: extra.length > 0, extra: extra.join(' · '),
+        would: would(x),
+        reason: tie ? t.tie(x.cands.length) : t.closeR(x.cands[0][3]),
+        cands: x.cands.map((c) => ({
+          title: c[0], year: String(c[1]), kind: c[2], dot: IKDOT[c[2]], art: artFor(c[0] + c[1]),
+          score: c[3] + '%', scoreFg: c[3] >= 100 ? '#b8b1c4' : c[3] >= 70 ? '#e58cc4' : '#948da1',
+          bar: c[3] + '%', barBg: c[3] >= 100 ? 'rgba(255,255,255,0.35)' : 'linear-gradient(90deg, #d9a441, #d96bb0)',
+          yearSize: tie ? '26px' : '20px',
+          inLog: !!c[4], inLogLabel: t.inLog,
+          aria: c[0] + ', ' + c[1] + ', ' + c[2] + ', ' + c[3] + '%' + (c[4] ? ', ' + t.inLog : ''),
+          pick: () => this.settle(key, { title: c[0], year: c[1], inLog: !!c[4] }),
+        })),
+        searching, notSearching: !searching, noneFg: searching ? '#e58cc4' : '#cfc9d8',
+        openSearch: () => this.setState((s) => ({ search: Object.assign({}, s.search, { [key]: !s.search[key] }) })),
+        closeSearch: () => this.setState((s) => ({ search: Object.assign({}, s.search, { [key]: false }) })),
+        query: q, onQuery: (e) => { const v = e.target.value; this.setState((s) => ({ query: Object.assign({}, s.query, { [key]: v }) })); },
+        results: results.map((c) => ({ title: c[0], year: String(c[1]), kind: c[2], dot: IKDOT[c[2]], art: artFor(c[0] + c[1]), pick: () => this.settle(key, { title: c[0], year: c[1] }) })),
+        noResults: searching && results.length === 0, noResultText: t.noResult(q),
+        skip: () => this.settle(key, { skip: true }),
+      };
+    });
+
+    const n = openRows.length;
+    return {
+      t,
+      scopeLabel: srcIds.length > 1 ? t.scopeMany(n, srcIds.length) : t.scope(n, (SOURCES[srcIds[0] || 'NETFLIX']).name.toUpperCase()),
+      hasFilters,
+      fSource: st.fSource, onSource: (e) => this.setState({ fSource: e.target.value, page: 1 }),
+      fKind: st.fKind, onKind: (e) => this.setState({ fKind: e.target.value, page: 1 }),
+      sourceOpts: [{ v: 'ALL', label: t.all + ' · ' + openRows.filter(byKind).length }].concat(srcIds.map((id) => ({ v: id, label: SOURCES[id].name + ' · ' + openRows.filter((x) => x.src === id && byKind(x)).length }))),
+      kindOpts: [{ v: 'ALL', label: t.all + ' · ' + openRows.filter(bySrc).length }].concat(['MOVIE', 'SERIES', 'ANIME'].map((k) => ({ v: k, label: k + ' · ' + openRows.filter((x) => x.kind === k && bySrc(x)).length }))),
+      allSettled: n === 0,
+      rows,
+      pagerDisplay: mode === 'long' && pageCount > 1 ? 'flex' : 'none',
+      pages: Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => ({ n: String(p), current: p === page ? 'page' : null, bg: p === page ? 'rgba(217,107,176,0.16)' : 'transparent', fg: p === page ? '#e58cc4' : '#b8b1c4', ring: p === page ? 'inset 0 0 0 1px rgba(217,107,176,0.7)' : 'inset 0 0 0 1px rgba(255,255,255,0.14)', pick: () => this.setState({ page: p }) })),
+      goPrev: () => page > 1 && this.setState({ page: page - 1 }), goNext: () => page < pageCount && this.setState({ page: page + 1 }),
+      prevOp: page > 1 ? 1 : 0.4, nextOp: page < pageCount ? 1 : 0.4,
+      pageMeta: t.page((page - 1) * PER_PAGE + 1, Math.min(page * PER_PAGE, filtered.length), filtered.length),
+    };
+  }
+}
+</script>
+</body>
+</html>

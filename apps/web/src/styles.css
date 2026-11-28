@@ -654,6 +654,27 @@
     display: inline-block;
     clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
   }
+  /* A bar that knows no total yet: a third of it slides across, not a fake 0%. */
+  .prism-indeterminate {
+    width: 34%;
+    animation: prism-indeterminate 1.5s ease-in-out infinite;
+  }
+  @keyframes prism-indeterminate {
+    from {
+      left: -34%;
+    }
+    to {
+      left: 100%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .prism-indeterminate {
+      animation: none;
+      left: 0;
+      width: 100%;
+      opacity: 0.5;
+    }
+  }
   @keyframes tspin {
     from {
       transform: rotateY(0deg);

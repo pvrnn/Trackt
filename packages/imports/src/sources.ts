@@ -103,4 +103,16 @@ export const IMPORT_SOURCES: Record<ImportSource, ImportSourceDefinition> = {
     access: 'file',
     titleFallback: true,
   },
+  netflix: {
+    id: 'netflix',
+    label: 'Netflix',
+    // Anime arrive as shows and films like any other; season 1 and films fall back to anime.
+    kinds: ['movie', 'series', 'anime'],
+    // The history names titles only, in the profile's language: the catalog's
+    // French and Spanish synonyms are what an exact title meets.
+    joinKeys: [],
+    credential: null,
+    access: 'file',
+    titleFallback: true,
+  },
 };

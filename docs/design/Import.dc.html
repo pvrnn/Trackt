@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0e0c10; color: #f0edf4; font-family: Archivo, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :focus-visible { outline: 2px solid #d96bb0; outline-offset: 2px; }
+    input::placeholder { color: #948da1; }
+    /* ── import pieces ── */
+    .lab { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; }
+    /* source tile: the brand colour, and a dashed slot where the service's official 24×24 mark goes (marks are never redrawn here) */
+    .stile { position: relative; flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); }
+    .stile .smark { width: 18px; height: 18px; border-radius: 4px; border: 1.5px dashed rgba(255,255,255,0.72); box-sizing: border-box; }
+    .stile.lg { width: 40px; height: 40px; border-radius: 11px; }
+    .stile.lg .smark { width: 24px; height: 24px; }
+    .stile.sm { width: 22px; height: 22px; border-radius: 6px; }
+    .stile.sm .smark { width: 14px; height: 14px; border-width: 1px; }
+    .pbar { position: relative; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .pbar > span { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); transition: width 160ms linear; }
+    .pbar.thin { height: 3px; }
+    .pbar.indet > span { width: 34%; animation: pindet 1.5s ease-in-out infinite; }
+    @keyframes pindet { from { left: -34%; } to { left: 100%; } }
+    /* the one loud line: titles waiting for an answer */
+    .nudge { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 48px; padding: 8px 16px; border-radius: 12px; background: rgba(217,107,176,0.12); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.55); font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #f0edf4; text-decoration: none; transition: background 140ms ease; }
+    .nudge:hover { background: rgba(217,107,176,0.2); color: #f0edf4; }
+    .nudge .n { font-family: Anton, sans-serif; font-size: 22px; font-weight: 400; letter-spacing: 0; line-height: 1; }
+    .nudge .go { margin-left: auto; color: #e58cc4; white-space: nowrap; }
+    .pill2 { height: 44px; padding: 0 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #f0edf4; white-space: nowrap; cursor: pointer; transition: box-shadow 140ms ease; }
+    .pill2:hover { box-shadow: inset 0 0 0 1px #d96bb0; color: #f0edf4; }
+    .pill1 { height: 48px; padding: 0 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); color: #14101a; font-family: Archivo, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; white-space: nowrap; cursor: pointer; transition: filter 140ms ease, background 200ms ease; }
+    .pill1:hover { filter: brightness(1.12); color: #14101a; }
+    .pill1[aria-disabled="true"] { background: rgba(255,255,255,0.08); color: #948da1; cursor: default; filter: none; }
+    .ghost { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4; white-space: nowrap; cursor: pointer; }
+    .ghost:hover { color: #f0edf4; }
+    @media (prefers-reduced-motion: reduce) { .pbar.indet > span { animation: none; left: 0; width: 100%; opacity: 0.5; } .pbar > span { transition: none; } }
+    .src { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,0.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); text-align: left; transition: box-shadow 140ms ease, background 140ms ease; }
+    .src:hover { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28); }
+    .src[aria-pressed="true"] { background: rgba(217,107,176,0.1); box-shadow: inset 0 0 0 1px rgba(217,107,176,0.65); }
+    .src[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+    .src[aria-disabled="true"]:hover { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+    .field { display: flex; align-items: center; height: 48px; padding: 0 16px; border-radius: 12px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); transition: box-shadow 140ms ease; }
+    .field:focus-within { box-shadow: inset 0 0 0 1px #d96bb0, 0 0 0 4px rgba(217,107,176,0.16); }
+    .field input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #f0edf4; font-family: Archivo, sans-serif; font-size: 16px; padding: 0; }
+    .drop { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 26px 20px; border-radius: 14px; border: 1.5px dashed rgba(255,255,255,0.22); text-align: center; }
+    .howto { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .howto li { display: flex; gap: 12px; align-items: baseline; color: #cfc9d8; font-size: 14px; line-height: 1.45; }
+    .howto .no { flex-shrink: 0; width: 22px; height: 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25); font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: #f0edf4; transform: translateY(-1px); }
+    .howto a { color: #e58cc4; text-decoration: underline; text-decoration-color: rgba(229,140,196,0.4); text-underline-offset: 3px; }
+  </style>
+</helmet>
+
+<!-- the profile sits underneath: the wizard is a layer over it, opened from the import card -->
+<div aria-hidden="true" style="height: 100vh; overflow: hidden; pointer-events: none;">
+  <dc-import name="Profile" imports="done" hint-size="100%,100vh"></dc-import>
+</div>
+
+<div style="position: fixed; inset: 0; z-index: 60; background: rgba(8,6,12,0.74); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: clamp(12px, 3vw, 32px); overflow-y: auto;">
+  <div role="dialog" aria-modal="true" aria-labelledby="im-title" style="width: 100%; max-width: 760px; min-height: min(640px, 100%); max-height: 100%; margin: auto; background: #17131d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 50px 120px -30px rgba(0,0,0,0.95); border-radius: 22px; display: flex; flex-direction: column; overflow: hidden;">
+
+    <!-- same header as onboarding: where you are, and the way out, on one line; progress under it -->
+    <div style="display: flex; align-items: center; gap: 16px; padding: 14px clamp(12px, 3vw, 18px) 0 clamp(20px, 4vw, 32px);">
+      <div style="flex: 1; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ stepLabel }} <span style="color: #f0edf4;">· {{ stepName }}</span></div>
+      <a href="Profile.dc.html" aria-label="{{ closeAria }}" title="{{ closeAria }}" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; color: #cfc9d8;" style-hover="background: rgba(255,255,255,0.12); color: #f0edf4;">✕</a>
+    </div>
+    <div style="display: flex; gap: 8px; padding: 20px clamp(20px, 4vw, 32px) 0;">
+      <sc-for list="{{ bars }}" as="b" hint-placeholder-count="3"><span aria-hidden="true" style="flex: 1; height: 4px; border-radius: 999px; background: {{ b }};"></span></sc-for>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 22px clamp(20px, 4vw, 32px) 24px; display: flex; flex-direction: column; gap: 22px;">
+
+      <!-- STEP 1 — WHERE FROM -->
+      <sc-if value="{{ isSource }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <h1 id="im-title" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(34px, 5vw, 44px); line-height: 0.98; text-transform: uppercase;">{{ t.t1 }}</h1>
+          <p style="margin: 0; color: #b8b1c4; font-size: 15px; line-height: 1.55; max-width: 56ch; text-wrap: pretty;">{{ t.l1 }}</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 10px;">
+          <sc-for list="{{ srcCards }}" as="c" hint-placeholder-count="7">
+            <button class="src" onClick="{{ c.pick }}" aria-pressed="{{ c.on }}" aria-disabled="{{ c.off }}">
+              <span style="display: flex; align-items: center; gap: 12px;">
+                <span class="stile lg" aria-hidden="true" style="background: {{ c.color }};"><span class="smark" style="border-color: {{ c.mark }};"></span></span>
+                <span style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                  <span style="font-size: 16px; font-weight: 700;">{{ c.name }}</span>
+                  <span style="display: flex; flex-wrap: wrap; gap: 4px 10px;">
+                    <sc-for list="{{ c.kinds }}" as="k" hint-placeholder-count="2"><span style="display: inline-flex; align-items: center; gap: 5px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #b8b1c4;"><span style="width: 6px; height: 6px; border-radius: 999px; background: {{ k.dot }};"></span>{{ k.label }}</span></sc-for>
+                  </span>
+                </span>
+              </span>
+              <sc-if value="{{ c.off }}" hint-placeholder-val="{{ false }}"><span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; color: #948da1;">{{ c.offReason }}</span></sc-if>
+            </button>
+          </sc-for>
+        </div>
+
+        <!-- the picked source's input opens below the grid -->
+        <div style="display: flex; flex-direction: column; gap: 14px; padding-top: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
+          <sc-if value="{{ isProfileSrc }}" hint-placeholder-val="{{ false }}">
+            <label style="display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ t.username }} · {{ srcName }}</span>
+              <span class="field"><span style="color: #948da1; font-size: 16px; white-space: nowrap;">{{ srcUrl }}</span><input value="{{ username }}" onChange="{{ onUser }}" placeholder="username" autocomplete="off" spellcheck="false"></span>
+            </label>
+          </sc-if>
+          <sc-if value="{{ isFileSrc }}" hint-placeholder-val="{{ true }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 18px; align-items: start;">
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1;">{{ t.how }}</span>
+                <ol class="howto">
+                  <sc-for list="{{ howSteps }}" as="h" hint-placeholder-count="3"><li><span class="no">{{ h.n }}</span><span>{{ h.a }}<sc-if value="{{ h.hasLink }}" hint-placeholder-val="{{ false }}"><a href="https://{{ h.link }}" target="_blank" rel="noopener">{{ h.link }} ↗</a></sc-if><b style="color: #f0edf4; font-weight: 600;">{{ h.b }}</b></span></li></sc-for>
+                </ol>
+              </div>
+              <sc-if value="{{ noFile }}" hint-placeholder-val="{{ false }}">
+                <div class="drop">
+                  <span style="font-size: 14px; color: #cfc9d8; line-height: 1.4;">{{ dropText }}</span>
+                  <button onClick="{{ chooseFile }}" class="pill2" style="height: 40px; padding: 0 18px; font-size: 12px;">{{ t.choose }}</button>
+                  <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; font-weight: 600;">{{ t.orDrop }}</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ hasFile }}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 8px 10px 14px; border-radius: 14px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);">
+                  <span aria-hidden="true" style="width: 28px; height: 34px; flex-shrink: 0; border-radius: 4px; background: linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0.06)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); clip-path: polygon(0 0, 72% 0, 100% 24%, 100% 100%, 0 100%);"></span>
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                    <span style="font-size: 14px; font-weight: 600; word-break: break-all;">{{ fileName }}</span>
+                    <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #948da1; font-weight: 600;">{{ fileSize }}</span>
+                  </span>
+                  <button onClick="{{ clearFile }}" aria-label="Remove file" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #cfc9d8; font-size: 13px;" style-hover="background: rgba(255,255,255,0.08); color: #f0edf4;">✕</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- STEP 2 — PREVIEW: a calm working state, then the numbers -->
+      <sc-if value="{{ isReading }}" hint-placeholder-val="{{ false }}">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; min-height: 380px;">
+          <span class="stile lg" aria-hidden="true" style="background: {{ srcColor }};"><span class="smark" style="border-color: {{ srcMark }};"></span></span>
+          <h1 id="im-title" style="margin: 0; font-family: Anton; font-weight: 400; font-size: 28px; line-height: 1.1; text-transform: uppercase;">{{ readingTitle }}</h1>
+          <div class="pbar indet" role="progressbar" aria-label="{{ readingTitle }}" style="max-width: 440px;"><span></span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #e58cc4;">{{ t.nothingYet }}</span>
+            <span style="color: #b8b1c4; font-size: 14px; line-height: 1.5;">{{ t.readingNote }}</span>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isPreview }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <h1 id="im-title" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(34px, 5vw, 44px); line-height: 0.98; text-transform: uppercase;">{{ t.t2 }}</h1>
+          <p style="margin: 0; color: #b8b1c4; font-size: 15px; line-height: 1.55; max-width: 56ch; text-wrap: pretty;">{{ t.l2 }}</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-radius: 14px; background: rgba(255,255,255,0.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);">
+          <sc-for list="{{ previewStats }}" as="x" hint-placeholder-count="5">
+            <div style="display: flex; flex-direction: column; gap: 8px; padding: 18px 16px; min-width: 0; box-shadow: {{ x.rule }};">
+              <span style="font-family: Anton; font-size: 34px; line-height: 1; color: {{ x.fg }};">{{ x.v }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; line-height: 1.35; color: {{ x.kfg }};">{{ x.k }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); overflow: hidden;">
+          <button onClick="{{ toggleMissing }}" aria-expanded="{{ missingOpen }}" style="width: 100%; min-height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px;" style-hover="background: rgba(255,255,255,0.04);">
+            <span style="font-size: 15px; font-weight: 600;">{{ t.notInCat }}</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; color: #948da1;">{{ missingCount }}</span>
+            <span style="flex: 1;"></span>
+            <span aria-hidden="true" style="width: 7px; height: 7px; border-right: 1.5px solid #b8b1c4; border-bottom: 1.5px solid #b8b1c4; transform: rotate({{ missingRot }}); margin-top: {{ missingMt }};"></span>
+          </button>
+          <sc-if value="{{ missingOpen }}" hint-placeholder-val="{{ true }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); column-gap: 24px; padding: 4px 18px 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
+              <sc-for list="{{ missing }}" as="m" hint-placeholder-count="20"><div style="display: flex; align-items: center; gap: 10px; min-height: 36px; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.05);"><span style="width: 6px; height: 6px; border-radius: 999px; background: {{ m.dot }}; flex-shrink: 0;"></span><span style="flex: 1; min-width: 0; font-size: 14px; color: #cfc9d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ m.title }}</span><span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600; color: #948da1; white-space: nowrap;">{{ m.when }}</span></div></sc-for>
+              <div style="display: flex; align-items: center; min-height: 40px; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #948da1;">{{ missingMore }}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- STEP 3 — WRITING, then DONE -->
+      <sc-if value="{{ isWriting }}" hint-placeholder-val="{{ false }}">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; min-height: 380px;">
+          <h1 id="im-title" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(34px, 5vw, 44px); line-height: 0.98; text-transform: uppercase;">{{ t.t3w }}</h1>
+          <div style="display: flex; align-items: baseline; gap: 14px;">
+            <span style="font-family: Anton; font-size: 56px; line-height: 1; background-image: linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ written }}</span>
+            <span style="font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: #948da1;">/ {{ total }}</span>
+          </div>
+          <div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ total }}" aria-valuenow="{{ written }}" style="height: 6px;"><span style="width: {{ writtenPct }};"></span></div>
+          <span style="color: #b8b1c4; font-size: 15px;">{{ t.closeOk }}</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <h1 id="im-title" style="margin: 0; font-family: Anton; font-weight: 400; font-size: clamp(34px, 5vw, 44px); line-height: 0.98; text-transform: uppercase;">{{ t.t3d }}</h1>
+          <p style="margin: 0; color: #b8b1c4; font-size: 15px; line-height: 1.55; max-width: 56ch; text-wrap: pretty;">{{ doneLede }}</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: 14px; background: rgba(255,255,255,0.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);">
+          <sc-for list="{{ doneStats }}" as="x" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; gap: 8px; padding: 18px 16px; min-width: 0; box-shadow: {{ x.rule }};">
+              <span style="font-family: Anton; font-size: 34px; line-height: 1; color: {{ x.fg }};">{{ x.v }}</span>
+              <span style="font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; line-height: 1.35; color: {{ x.kfg }};">{{ x.k }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hasNeeds }}" hint-placeholder-val="{{ true }}">
+          <a href="Import Matches.dc.html" class="nudge"><span class="n">{{ needsN }}</span><span>{{ needLabel }}</span><span class="go">{{ t.resolve }}</span></a>
+        </sc-if>
+      </sc-if>
+    </div>
+
+    <!-- footer: back on the left, the one way forward on the right -->
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px clamp(20px, 4vw, 32px) 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);">
+      <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ back }}" class="pill2" style="height: 48px;"><span aria-hidden="true">←</span>{{ t.back }}</button>
+      </sc-if>
+      <div style="flex: 1;"></div>
+      <sc-if value="{{ isSource }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ preview }}" class="pill1" aria-disabled="{{ previewOff }}">{{ t.preview }}</button>
+      </sc-if>
+      <sc-if value="{{ isPreview }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ importNow }}" class="pill1">{{ t.importNow }}</button>
+      </sc-if>
+      <sc-if value="{{ isWriting }}" hint-placeholder-val="{{ false }}">
+        <a href="Profile.dc.html" class="pill2" style="height: 48px;">{{ t.close }}</a>
+      </sc-if>
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <a href="History.dc.html" class="ghost" style="padding: 0 10px;">{{ t.openHistory }}</a>
+        <a href="Profile.dc.html" class="pill2" style="height: 48px;">{{ t.close }}</a>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"start":{"editor":"enum","options":["source","reading","preview","writing","done"],"default":"source","section":"States"},"lang":{"editor":"enum","options":["en","fr"],"default":"en","section":"States"}}'>
+// ── sources: brand colour for the tile, what each covers, how it's read ──
+const SOURCES = {
+  TVTIME: { name: 'TV Time', color: '#FFD400', dark: true, kinds: ['SERIES', 'MOVIE', 'ANIME'], type: 'file', file: 'tvtime-shows.json · tvtime-movies.json' },
+  NETFLIX: { name: 'Netflix', color: '#E50914', kinds: ['MOVIE', 'SERIES', 'ANIME'], type: 'file', file: 'NetflixViewingHistory.csv' },
+  LETTERBOXD: { name: 'Letterboxd', color: '#202830', kinds: ['MOVIE'], type: 'profile', url: 'letterboxd.com/' },
+  MAL: { name: 'MyAnimeList', color: '#2E51A2', kinds: ['ANIME', 'MANGA'], type: 'profile', url: 'myanimelist.net/profile/' },
+  ANILIST: { name: 'AniList', color: '#02A9FF', kinds: ['ANIME', 'MANGA'], type: 'profile', url: 'anilist.co/user/' },
+  STEAM: { name: 'Steam', color: '#1B2838', kinds: ['GAME'], type: 'profile', url: 'steamcommunity.com/id/', off: 'STEAM_API_KEY' },
+  TRAKT: { name: 'Trakt', color: '#ED1C24', kinds: ['MOVIE', 'SERIES'], type: 'profile', url: 'trakt.tv/users/' },
+};
+const SOURCE_ORDER = ['TVTIME', 'NETFLIX', 'LETTERBOXD', 'MAL', 'ANILIST', 'STEAM', 'TRAKT'];
+const IKDOT = { MOVIE: '#8b5cf6', SERIES: '#6d8bf0', ANIME: '#d9a441', MANGA: '#e8874a', WEBTOON: '#d96bb0', GAME: '#3fbf8f' };
+const tileOf = (id) => ({ id, name: SOURCES[id].name, color: SOURCES[id].color, mark: SOURCES[id].dark ? 'rgba(20,16,26,0.6)' : 'rgba(255,255,255,0.72)' });
+
+// ── copy, English and French. French runs ~20% longer: every container below is sized for it. ──
+const STR = {
+  en: {
+    imports: 'Imports', bring: 'Bring your history', bringCopy: "Pull in what you've already watched, read and played. Nothing is written until you say so.",
+    import: 'IMPORT', importMore: '＋ IMPORT ANOTHER', need: (n) => 'TITLES NEED YOU', resolve: 'RESOLVE →',
+    logged: (a, b) => a + ' OF ' + b + ' LOGGED', writing: (a, b) => 'WRITING ' + a + ' / ' + b, matching: 'MATCHING TITLES…', retry: 'RETRY',
+    sources: (n) => n + ' SOURCES', ago: { d2: '2 DAYS AGO', w3: '3 WEEKS AGO', m1: '1 MONTH AGO', today: 'TODAY', now: 'NOW' },
+    historyTo: 'history to 2026-11-26', privateList: 'YOUR ANILIST LIST IS PRIVATE',
+    step: 'STEP', of: 'OF', stepNames: ['WHERE FROM', 'PREVIEW', 'IMPORT'], close: 'CLOSE', back: 'BACK',
+    t1: 'Where from?', l1: 'Pick a service. Nothing is written before the last step.',
+    username: 'USERNAME', choose: 'CHOOSE FILE', dropHere: (f) => 'Drop ' + f + ' here', orDrop: 'or drag it onto this box', how: 'HOW TO GET THE FILE',
+    preview: 'PREVIEW', offReason: (k) => k + ' is not set on this instance',
+    reading: (s) => 'READING YOUR ' + s.toUpperCase() + ' HISTORY', nothingYet: 'NOTHING HAS BEEN WRITTEN YET.',
+    readingNote: 'Each title is looked up in the catalog, so a large history takes a minute or two.',
+    t2: "Here's what we found", l2: 'Read, not written. Titles that need you are kept aside: nothing is guessed.',
+    stats: ['ENTRIES', 'IN THE CATALOG', 'ALREADY LOGGED', 'WOULD BE WRITTEN', 'NEED YOU'],
+    notInCat: 'Not in the catalog', more: (n) => '… ' + n + ' MORE', importNow: 'IMPORT NOW',
+    t3w: 'Writing your history', closeOk: 'You can close this, the import carries on.', t3d: 'Done',
+    doneStats: ['CREATED', 'MERGED', 'ALREADY LOGGED', 'RATINGS'], openHistory: 'OPEN HISTORY →',
+    howNetflix: [['Open ', 'netflix.com/settings/viewed', ''], ['Click ', '', 'Download all at the bottom of the list'], ['Drop ', '', 'NetflixViewingHistory.csv here']],
+    howTvtime: [['Request your data with ', 'the TV Time Out tool', ''], ['Unzip ', '', 'what it sends you'], ['Drop ', '', 'the two JSON files, or the HTML summary, here']],
+    // matches
+    mTitle: 'Needs you', scope: (n, s) => n + (n === 1 ? ' TITLE FROM ' : ' TITLES FROM ') + s, scopeMany: (n, k) => n + (n === 1 ? ' TITLE' : ' TITLES') + ' FROM ' + k + ' SOURCES',
+    mLede: "An import never guesses. These are the titles it couldn't decide on: pick the right one and it's logged straight away.",
+    wrote: (s) => 'AS ' + s.toUpperCase() + ' WROTE IT', wouldLog: 'WOULD LOG', season: 'SEASON',
+    tie: (n) => 'TIE · ' + n + ' WORKS SHARE THIS NAME', closeR: (p) => 'CLOSE · BEST IS ' + p + '%',
+    none: 'NONE OF THESE', skip: 'SKIP', loggedOne: 'LOGGED', merged: 'MERGED INTO YOUR LOG', skipped: 'SKIPPED', undo: 'UNDO', inLog: 'IN YOUR LOG',
+    searchPh: 'Search the catalog…', cancel: 'CANCEL', noResult: (q) => 'Nothing in the catalog for “' + q + '”.',
+    settled: 'All settled', settledCopy: 'Every title from your imports found its place.',
+    fSource: 'SOURCE', fKind: 'KIND', all: 'All', status: { COMPLETED: 'COMPLETED', PROGRESS: 'IN PROGRESS', EPISODES: 'EPISODES' },
+    page: (a, b, n) => a + '–' + b + ' OF ' + n, prev: '← PREV', next: 'NEXT →',
+  },
+  fr: {
+    imports: 'Imports', bring: 'Apportez votre historique', bringCopy: "Récupérez ce que vous avez déjà vu, lu et joué. Rien n'est écrit sans votre accord.",
+    import: 'IMPORTER', importMore: '＋ IMPORTER UNE AUTRE SOURCE', need: (n) => 'TITRES ONT BESOIN DE VOUS', resolve: 'RÉSOUDRE →',
+    logged: (a, b) => a + ' SUR ' + b + ' ENREGISTRÉS', writing: (a, b) => 'ÉCRITURE ' + a + ' / ' + b, matching: 'RAPPROCHEMENT DES TITRES…', retry: 'RÉESSAYER',
+    sources: (n) => n + ' SOURCES', ago: { d2: 'IL Y A 2 JOURS', w3: 'IL Y A 3 SEMAINES', m1: 'IL Y A 1 MOIS', today: "AUJOURD'HUI", now: 'EN COURS' },
+    historyTo: "historique jusqu'au 2026-11-26", privateList: 'VOTRE LISTE ANILIST EST PRIVÉE',
+    step: 'ÉTAPE', of: 'SUR', stepNames: ['SOURCE', 'APERÇU', 'IMPORT'], close: 'FERMER', back: 'RETOUR',
+    t1: "D'où ?", l1: "Choisissez un service. Rien n'est écrit avant la dernière étape.",
+    username: "NOM D'UTILISATEUR", choose: 'CHOISIR UN FICHIER', dropHere: (f) => 'Déposez ' + f + ' ici', orDrop: 'ou glissez-le sur ce cadre', how: 'COMMENT OBTENIR LE FICHIER',
+    preview: 'APERÇU', offReason: (k) => k + " n'est pas défini sur cette instance",
+    reading: (s) => 'LECTURE DE VOTRE HISTORIQUE ' + s.toUpperCase(), nothingYet: "RIEN N'A ENCORE ÉTÉ ÉCRIT.",
+    readingNote: 'Chaque titre est cherché dans le catalogue : un gros historique prend une à deux minutes.',
+    t2: "Voici ce qu'on a trouvé", l2: "Lu, pas écrit. Les titres à trancher sont mis de côté : rien n'est deviné.",
+    stats: ['ENTRÉES', 'DANS LE CATALOGUE', 'DÉJÀ ENREGISTRÉS', 'SERAIENT ÉCRITS', 'ONT BESOIN DE VOUS'],
+    notInCat: 'Absents du catalogue', more: (n) => '… ' + n + ' DE PLUS', importNow: 'IMPORTER MAINTENANT',
+    t3w: 'Écriture de votre historique', closeOk: "Vous pouvez fermer : l'import continue.", t3d: 'Terminé',
+    doneStats: ['CRÉÉS', 'FUSIONNÉS', 'DÉJÀ ENREGISTRÉS', 'NOTES'], openHistory: "OUVRIR L'HISTORIQUE →",
+    howNetflix: [['Ouvrez ', 'netflix.com/settings/viewed', ''], ['Cliquez sur ', '', 'Tout télécharger, en bas de la liste'], ['Déposez ', '', 'NetflixViewingHistory.csv ici']],
+    howTvtime: [['Demandez vos données avec ', "l'outil TV Time Out", ''], ['Décompressez ', '', 'ce qu’il vous envoie'], ['Déposez ', '', 'les deux fichiers JSON, ou le résumé HTML, ici']],
+    mTitle: 'À trancher', scope: (n, s) => n + (n === 1 ? ' TITRE DE ' : ' TITRES DE ') + s, scopeMany: (n, k) => n + (n === 1 ? ' TITRE' : ' TITRES') + ' DE ' + k + ' SOURCES',
+    mLede: "Un import ne devine jamais. Voici les titres sur lesquels il a hésité : choisissez le bon, il est enregistré aussitôt.",
+    wrote: (s) => 'TEL QUE ' + s.toUpperCase() + " L'A ÉCRIT", wouldLog: 'ENREGISTRERAIT', season: 'SAISON',
+    tie: (n) => 'ÉGALITÉ · ' + n + ' ŒUVRES PORTENT CE NOM', closeR: (p) => 'PROCHE · MEILLEURE PISTE ' + p + ' %',
+    none: 'AUCUN DE CEUX-LÀ', skip: 'IGNORER', loggedOne: 'ENREGISTRÉ', merged: 'FUSIONNÉ DANS VOTRE JOURNAL', skipped: 'IGNORÉ', undo: 'ANNULER', inLog: 'DANS VOTRE JOURNAL',
+    searchPh: 'Chercher dans le catalogue…', cancel: 'ANNULER', noResult: (q) => 'Rien dans le catalogue pour « ' + q + ' ».',
+    settled: 'Tout est réglé', settledCopy: 'Chaque titre de vos imports a trouvé sa place.',
+    fSource: 'SOURCE', fKind: 'TYPE', all: 'Tous', status: { COMPLETED: 'TERMINÉ', PROGRESS: 'EN COURS', EPISODES: 'ÉPISODES' },
+    page: (a, b, n) => a + '–' + b + ' SUR ' + n, prev: '← PRÉC.', next: 'SUIV. →',
+  },
+};
+const MONTHS_FR = { JAN: 'JANV', FEB: 'FÉVR', MAR: 'MARS', APR: 'AVR', MAY: 'MAI', JUN: 'JUIN', JUL: 'JUIL', AUG: 'AOÛT', SEP: 'SEPT', OCT: 'OCT', NOV: 'NOV', DEC: 'DÉC' };
+const frDate = (s, lang) => lang === 'fr' ? s.replace(/[A-Z]{3}/g, (m) => MONTHS_FR[m] || m) : s;
+
+// what a preview of each source finds: entries, in the catalog, already logged, would be written, need you
+const PREVIEW = { NETFLIX: [239, 185, 12, 173, 10], TVTIME: [512, 488, 40, 448, 7], LETTERBOXD: [96, 96, 0, 96, 0], MAL: [214, 214, 2, 212, 0], ANILIST: [188, 186, 31, 155, 2], STEAM: [64, 61, 0, 61, 0], TRAKT: [340, 331, 52, 279, 4] };
+const MISSING = [
+  ['Comedy Night: Live in Lyon', 'SERIES', '04 NOV 26'], ['Le Bureau des affaires courantes', 'SERIES', '28 OCT 26'], ['Midnight Diner: Paris', 'SERIES', '19 OCT 26'],
+  ['Les Pierres du Nord (Trailer)', 'MOVIE', '02 OCT 26'], ['Stand-up : Nadia, sans filtre', 'MOVIE', '21 SEP 26'], ['Chef’s Garden: Saison 2', 'SERIES', '14 SEP 26'],
+  ['Brigade du Port', 'SERIES', '30 AUG 26'], ['Kids Kitchen Battle', 'SERIES', '11 AUG 26'], ['La Course aux étoiles', 'MOVIE', '27 JUL 26'],
+  ['Deep Blue Wonders: Episode 4', 'SERIES', '09 JUL 26'], ['Matin Calme', 'MOVIE', '22 JUN 26'], ['Behind the Pitch: Lyon', 'SERIES', '03 JUN 26'],
+  ['Les Nuits de Montmartre', 'SERIES', '18 MAY 26'], ['Quiz Royale', 'SERIES', '01 MAY 26'], ['Tokyo Ramen Diaries', 'SERIES', '12 APR 26'],
+  ['L’Été des abeilles', 'MOVIE', '29 MAR 26'], ['Wild Kitchen: Islande', 'SERIES', '15 MAR 26'], ['Sous la glace', 'MOVIE', '20 FEB 26'],
+  ['Studio 9: Behind the Scenes', 'SERIES', '06 FEB 26'], ['Le Grand Saut', 'MOVIE', '24 JAN 26'],
+];
+const FLOW = ['source', 'reading', 'preview', 'writing', 'done'];
+
+class Component extends DCLogic {
+  state = { step: null, src: 'NETFLIX', file: true, username: '', missingOpen: true, written: 0 };
+
+  componentDidMount() { this.go(this.props.start ?? 'source'); }
+  componentWillUnmount() { clearTimeout(this.timer); clearInterval(this.ticker); }
+
+  go(step) {
+    clearTimeout(this.timer); clearInterval(this.ticker);
+    const total = PREVIEW[this.state.src][0];
+    if (step === 'reading') this.timer = setTimeout(() => this.setState({ step: 'preview' }), 2600);
+    if (step === 'writing') {
+      this.setState({ written: 0 });
+      this.ticker = setInterval(() => {
+        const w = Math.min(total, this.state.written + Math.ceil(total / 60));
+        this.setState({ written: w });
+        if (w >= total) { clearInterval(this.ticker); this.timer = setTimeout(() => this.setState({ step: 'done' }), 500); }
+      }, 50);
+    }
+    if (step === 'done') this.setState({ written: total });
+    this.setState({ step });
+  }
+
+  renderVals() {
+    const st = this.state, lang = this.props.lang ?? 'en', t = STR[lang] || STR.en;
+    const step = st.step || this.props.start || 'source';
+    const S = SOURCES[st.src], N = PREVIEW[st.src];
+    const stepIdx = step === 'source' ? 0 : (step === 'reading' || step === 'preview') ? 1 : 2;
+    const prism = 'linear-gradient(90deg, #d9a441, #d96bb0, #8b5cf6)';
+    const isFile = S.type === 'file';
+    const ready = isFile ? st.file : st.username.trim().length > 1;
+    const rule = (n) => (n ? 'inset 1px 0 0 rgba(255,255,255,0.09)' : 'none');
+    const stat = (v, k, n, hot) => ({ v: v.toLocaleString('en-US'), k, rule: rule(n), fg: hot ? '#e58cc4' : '#f0edf4', kfg: hot ? '#e58cc4' : '#948da1' });
+    const created = Math.max(0, N[3] - 12), merged = Math.min(12, N[3]);
+    const how = st.src === 'TVTIME' ? t.howTvtime : t.howNetflix;
+    return {
+      t,
+      stepLabel: t.step + ' ' + (stepIdx + 1) + ' ' + t.of + ' 3', stepName: t.stepNames[stepIdx], closeAria: t.close,
+      bars: [0, 1, 2].map((i) => (i <= stepIdx ? prism : 'rgba(255,255,255,0.12)')),
+      isSource: step === 'source', isReading: step === 'reading', isPreview: step === 'preview', isWriting: step === 'writing', isDone: step === 'done',
+      canBack: step === 'preview',
+      back: () => this.go('source'),
+
+      srcCards: SOURCE_ORDER.map((id) => {
+        const s = SOURCES[id], on = st.src === id, off = !!s.off;
+        return Object.assign(tileOf(id), {
+          on, off, offReason: off ? t.offReason(s.off) : '',
+          kinds: s.kinds.map((k) => ({ label: k, dot: IKDOT[k] })),
+          pick: () => { if (!off) this.setState({ src: id, file: id === st.src ? st.file : false }); },
+        });
+      }),
+      srcName: S.name, srcUrl: S.url || '', srcColor: S.color, srcMark: S.dark ? 'rgba(20,16,26,0.6)' : 'rgba(255,255,255,0.72)',
+      isProfileSrc: !isFile, isFileSrc: isFile,
+      username: st.username, onUser: (e) => this.setState({ username: e.target.value }),
+      howSteps: how.map((h, i) => ({ n: String(i + 1), a: h[0], link: h[1], hasLink: !!h[1], b: h[2] })),
+      noFile: isFile && !st.file, hasFile: isFile && st.file,
+      dropText: t.dropHere(st.src === 'TVTIME' ? 'tvtime-shows.json + tvtime-movies.json' : S.file || ''),
+      fileName: S.file || '', fileSize: st.src === 'TVTIME' ? '2 FILES · 3.4 MB' : '41 KB · 239 ROWS',
+      chooseFile: () => this.setState({ file: true }), clearFile: () => this.setState({ file: false }),
+      previewOff: !ready, preview: () => { if (ready) this.go('reading'); },
+
+      readingTitle: t.reading(S.name),
+      previewStats: t.stats.map((k, i) => stat(N[i], k, i, i === 4 && N[4] > 0)),
+      missingOpen: st.missingOpen, toggleMissing: () => this.setState({ missingOpen: !st.missingOpen }),
+      missingRot: st.missingOpen ? '225deg' : '45deg', missingMt: st.missingOpen ? '4px' : '-4px',
+      missingCount: String(N[0] - N[1] - N[4]),
+      missing: MISSING.slice(0, Math.min(20, N[0] - N[1] - N[4])).map((m) => ({ title: m[0], dot: IKDOT[m[1]], when: frDate(m[2], lang) })),
+      missingMore: N[0] - N[1] - N[4] > 20 ? t.more(N[0] - N[1] - N[4] - 20) : '',
+      importNow: () => this.go('writing'),
+
+      written: String(step === 'done' ? N[0] : st.written), total: String(N[0]), writtenPct: (100 * (step === 'done' ? N[0] : st.written) / N[0]) + '%',
+      doneStats: [created, merged, N[2], 0].map((v, i) => stat(v, t.doneStats[i], i, false)),
+      doneLede: t.logged(N[1], N[0]) + (lang === 'fr' ? ' · ' : ' · ') + S.name.toUpperCase(),
+      hasNeeds: N[4] > 0, needsN: String(N[4]), needLabel: t.need(N[4]),
+    };
+  }
+}
+</script>
+</body>
+</html>
